@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8.12)
 
-project(vk_playground)
+project(vk-playground)
 
 
 # -------------------------------------------------------
@@ -8,82 +8,82 @@ project(vk_playground)
 # -------------------------------------------------------
 
 # cmake extensions path
-# Note : CMAKE_MODULE_PATH does not seems to work for includes, 
-#        only for find_package.
-set(MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
-list(APPEND CMAKE_MODULE_PATH "${MODULE_PATH}")
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 
 # project paths
-set(SRC_DIR "${CMAKE_SOURCE_DIR}/src")
-
+set(SOURCE_DIR ${CMAKE_SOURCE_DIR}/src)
+set(OUTPUT_DIR ${CMAKE_SOURCE_DIR}/bin)
 
 # -------------------------------------------------------
 # CMake includes
 # -------------------------------------------------------
 
-# Check compiler validity
-include(${MODULE_PATH}/CheckCompiler.cmake)
+# Custom Cmake helpers
+include(Helpers)
 
 # Vulkan SDK helpers
-include(${MODULE_PATH}/VulkanSDK.cmake)
-
+include(VulkanSDK)
 
 # -------------------------------------------------------
-# Dependencies
+# Generic properties
+# -------------------------------------------------------
+
+set_global_output_directory(${OUTPUT_DIR})
+
+# -------------------------------------------------------
+# Generic dependencies
 # -------------------------------------------------------
 
 find_package(Vulkan REQUIRED)
-find_package(GLFW 3 REQUIRED)
-
+find_package(GLFW 3.2 REQUIRED)
 
 # -------------------------------------------------------
 # General Compiler settings
 # -------------------------------------------------------
 
+# Generic definitions
+add_definitions(
+  -DVK_PROTOTYPES
+)
+
 if(CMAKE_HOST_UNIX)
   find_gcc(4.8)
 
-  set(CMAKE_CXX_FLAGS         "${CMAKE_CXX_FLAGS} -Wall -Wextra -std=c++11")
+  set(COMMON_COMPILE_FLAGS "-Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers")
+  set(COMMON_COMPILE_FLAGS "${COMMON_COMPILE_FLAGS} -fvisibility=hidden -fno-strict-aliasing -fno-builtin-memcmp")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMMON_COMPILE_FLAGS} -std=c99")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON_COMPILE_FLAGS} -std=c++11")
   set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O2")
+  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -g")
+
+  add_definitions(
+    -DVK_USE_PLATFORM_XCB_KHR
+  )
 endif(CMAKE_HOST_UNIX)
 
-# Vulkan definitions
-add_definitions(
-  -DEXTERNAL_SPV
-  -DVK_PROTOTYPES
+include_directories(
+  ${SOURCE_DIR}
+  ${VULKAN_INCLUDE_DIR}
+  ${GLFW_INCLUDE_DIR}
+  ${GLM_INCLUDE_DIR}
 )
+
+# -------------------------------------------------------
+# Shader Paths
+# -------------------------------------------------------
+
+# relative and global shaders path
+set(SHADERS_DIR shaders)
+set(INCLUDE_SHADERS_DIR ${CMAKE_SOURCE_DIR}/${SHADERS_DIR})
+# Spirv directory
+set(COMPILED_SHADERS_DIR ${CMAKE_SOURCE_DIR}/spirv)
 
 
 # -------------------------------------------------------
 # Files
 # -------------------------------------------------------
 
-#add_subdirectory($(SRC_DIR))
-
-# sources to compile
-file(GLOB_RECURSE Sources ${SRC_DIR}/*.cc)
-# others files for IDE integration
-file(GLOB_RECURSE Others ${SRC_DIR}/*.h)
-
-
-# -------------------------------------------------------
-# Build target
-# -------------------------------------------------------
-
-set(TARGET_NAME ${CMAKE_PROJECT_NAME})
-add_executable(${TARGET_NAME} ${Sources} ${Others})
-
-include_directories(
-  ${SRC_DIR}
-  ${VULKAN_INCLUDE_DIRS}
-  ${GLFW_INCLUDE_DIR}
-)
-
-target_link_libraries(${TARGET_NAME}
-  ${VULKAN_LIBRARY}
-  ${GLFW_LIBRARY}
-)
-
+add_subdirectory(${SOURCE_DIR})
 
 # -------------------------------------------------------
 # Installation

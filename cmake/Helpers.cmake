@@ -1,4 +1,8 @@
+# Some helpers functions for CMake.
 
+# -------------------------------------------------------
+# Check GCC version
+# -------------------------------------------------------
 
 # Find a GCC version that can match the minimum required
 # if none were found, check on CMAKE_FIND_ROOT_PATH
@@ -33,3 +37,26 @@ function(find_gcc MIN_GCC_REQUIRED)
     message(FATAL_ERROR "GCC ${MIN_GCC_REQUIRED}+ is required, please set CMAKE_FIND_ROOT_PATH.")
   endif()
 endfunction(find_gcc)
+
+
+# -------------------------------------------------------
+# Specify generic output directories
+# -------------------------------------------------------
+
+function(set_global_output_directory OUTPUT_DIR)
+  # Default output directory.
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_DIR} CACHE PATH "")
+  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${OUTPUT_DIR} CACHE PATH "")
+  set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${OUTPUT_DIR} CACHE PATH "")
+endfunction()
+
+# Force output directory destination, especially for MSVC (@so7747857).
+function(set_target_output_directory target ouput_dir)
+  foreach(type RUNTIME LIBRARY ARCHIVE)
+    set_target_properties(${target} PROPERTIES
+      ${type}_OUTPUT_DIRECTORY         ${output_dir}
+      ${type}_OUTPUT_DIRECTORY_DEBUG   ${output_dir}
+      ${type}_OUTPUT_DIRECTORY_RELEASE ${output_dir}
+    )
+  endforeach()
+endfunction()
