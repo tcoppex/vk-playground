@@ -38,7 +38,7 @@ const char* GetErrorString(VkResult err) {
     VKERROR_CASE( VK_ERROR_INVALID_SHADER_NV );
     VKERROR_CASE( VK_ERROR_OUT_OF_POOL_MEMORY_KHR );
     VKERROR_CASE( VK_ERROR_INVALID_EXTERNAL_HANDLE_KHR );
-    VKERROR_CASE( VK_RESULT_RANGE_SIZE );
+    // VKERROR_CASE( VK_RESULT_RANGE_SIZE );
       
     default:
       return "unknown Vulkan result constant";
