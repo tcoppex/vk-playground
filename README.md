@@ -1,7 +1,7 @@
 
 # vk-playground
 
-A simple c++ engine with custom CMake gems to play with Vulkan.
+A basic c++ framework with custom CMake gems to play with Vulkan.
 
 ### Dependencies
 
