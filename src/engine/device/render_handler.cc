@@ -1,5 +1,7 @@
 #include "engine/device/render_handler.h"
 
+#include "glm/glm.hpp"
+
 #include "engine/device/context.h"
 #include "engine/core.h"
 
@@ -260,7 +262,7 @@ void RenderHandler::init_swapchain() {
   };
   if (ctx_.selected_queue_index_.graphics == ctx_.selected_queue_index_.present) {
     swapchain_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    swapchain_info.queueFamilyIndexCount = glm::countof(queue_indices);
+    swapchain_info.queueFamilyIndexCount = GLM_COUNTOF(queue_indices);
     swapchain_info.pQueueFamilyIndices = queue_indices;
   }
 
@@ -339,7 +341,7 @@ void RenderHandler::init_graphics_command_buffer_wrapper() {
   /* Wrapper around the graphics command buffer */
   cmd_.handle_ptr( &(ctx_.cmd_buffers_[0u]) );
   cmd_.render_area(0, 0, width_, height_);
-  cmd_.clear_values(clear_values_, glm::countof(clear_values_));
+  cmd_.clear_values(clear_values_, GLM_COUNTOF(clear_values_));
 }
 
 // ----------------------------------------------------------------------------
@@ -477,7 +479,7 @@ void RenderHandler::init_render_pass() {
   VkRenderPassCreateInfo info;
   info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
   info.pNext = nullptr;
-  info.attachmentCount = glm::countof(attachments);
+  info.attachmentCount = GLM_COUNTOF(attachments);
   info.pAttachments = attachments;
   info.subpassCount = 1;
   info.pSubpasses = &subpass;
@@ -501,7 +503,7 @@ void RenderHandler::init_framebuffers() {
   info.pNext = nullptr;
   info.flags = 0;
   info.renderPass = render_pass_;
-  info.attachmentCount = glm::countof(attachments);
+  info.attachmentCount = GLM_COUNTOF(attachments);
   info.pAttachments = attachments;
   info.width = width_;
   info.height = height_;
