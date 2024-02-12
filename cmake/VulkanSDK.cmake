@@ -10,16 +10,16 @@
 ## Search the GLSL Compiler binary
 if (WIN32)
   if (CMAKE_CL_64)
-    find_program(GLSLC glslc
+    find_program(GLSLANGVALIDATOR glslangValidator
       "$ENV{VULKAN_SDK}/Bin"
       "$ENV{VK_SDK_PATH}/Bin")
   else()
-    find_program(GLSLC glslc
+    find_program(GLSLANGVALIDATOR glslangValidator
       "$ENV{VULKAN_SDK}/Bin32"
       "$ENV{VK_SDK_PATH}/Bin32")
   endif()
 else()
-    find_program(GLSLC glslc
+    find_program(GLSLANGVALIDATOR glslangValidator
       "$ENV{VULKAN_SDK}/bin")
 endif()
 
@@ -52,10 +52,10 @@ function(glsl2spirv input_glsl output_spirv shader_dir)
     OUTPUT
       ${output_spirv}
     COMMAND
-      ${GLSLC} -I${shader_dir} -fshader-stage=${stage} -o ${output_spirv} ${input_glsl}
+      ${GLSLANGVALIDATOR} -I${shader_dir} -V ${input_glsl} -o ${output_spirv} -S ${stage}
     DEPENDS
       ${input_glsl}
-      ${GLSLC}
+      ${GLSLANGVALIDATOR}
     WORKING_DIRECTORY
       ${CMAKE_SOURCE_DIR}
     COMMENT
