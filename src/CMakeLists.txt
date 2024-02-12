@@ -15,6 +15,7 @@ function(add_simple_demo dir)
     ${VULKAN_LIBRARY}
     ${GLFW_LIBRARY}
   )
+  target_compile_definitions(${dir} PRIVATE ${VALIDATION_LAYERS})
 endfunction(add_simple_demo)
 ###############################################################################
 

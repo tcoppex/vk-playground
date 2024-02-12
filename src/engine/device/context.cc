@@ -9,6 +9,16 @@
 
 // ----------------------------------------------------------------------------
 
+const char* instance_validation_layers[] = {
+  "VK_LAYER_KHRONOS_validation"
+};
+
+const char* device_validation_layers[] = {
+  "VK_LAYER_KHRONOS_validation"
+};
+
+// ----------------------------------------------------------------------------
+
 void DeviceContext::init(char const* appname, const Window *window_ptr) {
   /* Force the creation of a Present capable context. */
   assert(window_ptr != nullptr);
@@ -116,27 +126,23 @@ void DeviceContext::init_device_extensions() {
 // ----------------------------------------------------------------------------
 
 void DeviceContext::init_instance(char const* appname) {
-  VkApplicationInfo app_info;
+  VkApplicationInfo app_info{};
   app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-  app_info.pNext = nullptr;
   app_info.pApplicationName = appname;
   app_info.applicationVersion = 1;
   app_info.pEngineName = appname;
   app_info.engineVersion = 1;
   app_info.apiVersion = VK_API_VERSION_1_0;
-  
-  /// @todo : add Validation layers.
-  VkInstanceCreateInfo instance_info;
+
+  VkInstanceCreateInfo instance_info{};
   instance_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-  instance_info.pNext = nullptr;
-  instance_info.flags = 0;
   instance_info.pApplicationInfo = &app_info;
-  instance_info.enabledLayerCount = 0;
-  instance_info.ppEnabledLayerNames = nullptr; 
+  instance_info.enabledLayerCount = sizeof(instance_validation_layers) / sizeof(const char*);
+  instance_info.ppEnabledLayerNames = instance_validation_layers;
   instance_info.enabledExtensionCount = instance_ext_names_.size();
   instance_info.ppEnabledExtensionNames = instance_ext_names_.data();
 
-  CHECK_VK( vkCreateInstance(&instance_info, nullptr, &instance_) );
+  CHECK_VK(vkCreateInstance(&instance_info, nullptr, &instance_));
 }
 
 // ----------------------------------------------------------------------------
@@ -254,31 +260,24 @@ void DeviceContext::init_queue_family() {
 // ----------------------------------------------------------------------------
 
 void DeviceContext::init_device() {
-  /* Create a logical device with the proper queue. */
-  float queue_priorities[1u] = {0.0};
+  float queue_priorities[1] = {0.0};
 
   VkDeviceQueueCreateInfo queue_info{};
   queue_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-  queue_info.pNext = nullptr;
-  queue_info.flags = 0;
   queue_info.queueFamilyIndex = selected_queue_index_.graphics;
-  queue_info.queueCount = 1u;
+  queue_info.queueCount = 1;
   queue_info.pQueuePriorities = queue_priorities;
 
   VkDeviceCreateInfo device_info{};
   device_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-  device_info.pNext = nullptr;
-  device_info.flags = 0;
-  device_info.queueCreateInfoCount = 1u;
+  device_info.queueCreateInfoCount = 1;
   device_info.pQueueCreateInfos = &queue_info;
-  device_info.enabledLayerCount = 0;
-  device_info.ppEnabledLayerNames = nullptr;
+  device_info.enabledLayerCount = sizeof(device_validation_layers) / sizeof(const char*);
+  device_info.ppEnabledLayerNames = device_validation_layers;
   device_info.enabledExtensionCount = device_ext_names_.size();
   device_info.ppEnabledExtensionNames = device_ext_names_.data();
-  device_info.pEnabledFeatures = nullptr;
-  CHECK_VK( vkCreateDevice(gpu_, &device_info, nullptr, &device_) );
 
-  /// @todo : handle device layers.
+  CHECK_VK(vkCreateDevice(gpu_, &device_info, nullptr, &device_));
 }
 
 // ----------------------------------------------------------------------------

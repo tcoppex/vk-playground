@@ -68,6 +68,10 @@ include_directories(
   ${GLM_INCLUDE_DIR}
 )
 
+set(VALIDATION_LAYERS
+    "VK_LAYER_KHRONOS_validation"
+)
+
 # -------------------------------------------------------
 # Shader Paths
 # -------------------------------------------------------
