@@ -62,6 +62,12 @@ bool Application::presetup() {
       glfwTerminate();
       return false;
     }
+
+    glfwSetKeyCallback(window_, [](GLFWwindow *window, int key, int scancode, int action, int mods) {
+      if ((key == GLFW_KEY_ESCAPE) && (action == GLFW_PRESS)) {
+        glfwSetWindowShouldClose(window, 1);
+      }
+    });
   }
 
   /* Retrieve the window surface. */
