@@ -10,17 +10,20 @@
 ## Search the GLSL Compiler binary
 if (WIN32)
   if (CMAKE_CL_64)
-    find_program(GLSLANGVALIDATOR glslangValidator
+    find_program(GLSLC glslc
       "$ENV{VULKAN_SDK}/Bin"
-      "$ENV{VK_SDK_PATH}/Bin")
+      "$ENV{VK_SDK_PATH}/Bin"
+    )
   else()
-    find_program(GLSLANGVALIDATOR glslangValidator
+    find_program(GLSLC glslc
       "$ENV{VULKAN_SDK}/Bin32"
-      "$ENV{VK_SDK_PATH}/Bin32")
+      "$ENV{VK_SDK_PATH}/Bin32"
+    )
   endif()
 else()
-    find_program(GLSLANGVALIDATOR glslangValidator
-      "$ENV{VULKAN_SDK}/bin")
+    find_program(GLSLC glslc
+      "$ENV{VULKAN_SDK}/bin"
+    )
 endif()
 
 
@@ -30,7 +33,7 @@ function(glsl2spirv input_glsl output_spirv shader_dir)
   get_filename_component(fn ${input_glsl} NAME)
   
   # Detects shader type based on its suffix or prefix
-  if    (${fn} MATCHES "((vert|vs)_.+\\.glsl)|(.+\\.(vert|vs))")
+  if (${fn} MATCHES "((vert|vs)_.+\\.glsl)|(.+\\.(vert|vs))")
     set(stage "vert")
   elseif(${fn} MATCHES "((tesc|tcs)_.+\\.glsl)|(.+\\.(tesc|tcs))")
     set(stage "tesc")
@@ -52,10 +55,10 @@ function(glsl2spirv input_glsl output_spirv shader_dir)
     OUTPUT
       ${output_spirv}
     COMMAND
-      ${GLSLANGVALIDATOR} -I${shader_dir} -V ${input_glsl} -o ${output_spirv} -S ${stage}
+      ${GLSLC} -I${shader_dir} -fshader-stage=${stage} -o ${output_spirv} ${input_glsl}
     DEPENDS
       ${input_glsl}
-      ${GLSLANGVALIDATOR}
+      ${GLSLC}
     WORKING_DIRECTORY
       ${CMAKE_SOURCE_DIR}
     COMMENT
@@ -68,6 +71,8 @@ function(glsl2spirv input_glsl output_spirv shader_dir)
 # add_custom_target( gen_${fn} ALL ..
 # otherwise, set the output files as dependencies.
 endfunction(glsl2spirv)
+
+
 
 # Compile all shader from one directory to another
 function(compile_shaders GLOBAL_GLSL_DIR GLOBAL_SPIRV_DIR binaries sources)
@@ -102,43 +107,5 @@ function(compile_shaders GLOBAL_GLSL_DIR GLOBAL_SPIRV_DIR binaries sources)
   set(${sources} "${glslSHADERS}" PARENT_SCOPE)
   set(${binaries} "${spirvSHADERS}" PARENT_SCOPE)
 endfunction()
-
-# -----------------------------------------------------------------------------
-
-if(0)
-  if (WIN32)
-    if (CMAKE_CL_64)
-      find_program(GLSL_LANG_VALIDATOR glslangValidator
-        "$ENV{VULKAN_SDK}/Bin"
-        "$ENV{VK_SDK_PATH}/Bin")
-    else()
-      find_program(GLSL_LANG_VALIDATOR glslangValidator
-        "$ENV{VULKAN_SDK}/Bin32"
-        "$ENV{VK_SDK_PATH}/Bin32")
-    endif()
-  else()
-      find_program(GLSL_LANG_VALIDATOR glslangValidator
-        "$ENV{VULKAN_SDK}/bin")
-  endif()
-
-  # convert a GLSL shader to its SPIRV version
-  macro(glsl_to_spirv input_glsl output_spirv)  
-    add_custom_command(
-      OUTPUT
-        ${output_spirv}
-      COMMAND
-        ${GLSL_LANG_VALIDATOR} -s -V -o ${output_spirv} ${input_glsl}
-      DEPENDS
-        ${input_glsl}
-        ${GLSL_LANG_VALIDATOR}
-      WORKING_DIRECTORY
-        ${CMAKE_SOURCE_DIR}
-      COMMENT
-        "Converting shader ${input_glsl} to ${output_spirv}" VERBATIM
-      SOURCES
-        ${input_glsl}
-    )
-  endmacro(glsl_to_spirv)
-endif()
 
 # -----------------------------------------------------------------------------
