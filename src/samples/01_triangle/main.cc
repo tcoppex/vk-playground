@@ -6,6 +6,9 @@
 //        - Graphics Pipeline
 //        - Vertex buffer
 //        - Transient command buffer.
+//        - RenderPassEncoder commands:
+//            * Dynamic Viewport / Scissor states
+//            * set_pipeline / set_vertex_buffer / draw
 //
 //    TODO:
 //        * Limits GraphicContext creation to Renderer.
@@ -130,9 +133,21 @@ class SampleApp final : public Application {
   void frame() final {
     auto cmd = renderer_.begin_frame();
 
+    /**
+     * A 'begin_rendering' (dynamic_rendering) or 'begin_render_pass' (legacy rendering)
+     * returns a RenderPassEncoder, which is a specialized CommandEncoder to specify
+     * rendering operations.
+     **/
     auto pass = cmd.begin_rendering();
     {
-      pass.set_viewport_scissor(viewport_size_);
+      /* Set the viewport and scissor with the flag 'flip_y' to true to flip
+       * the Y axis upward like traditional APIs. Set to false by default.
+       *
+       * Note: - As GraphicPipeline uses dynamic Viewport and Scissor states by default,
+       *       we need to specify them when using a graphic pipeline.
+       *       - Dynamic states are not bound to a pipeline and can be set whenever.
+       **/
+      pass.set_viewport_scissor(viewport_size_, true);
 
       pass.set_pipeline(graphics_pipeline_);
       pass.set_vertex_buffer(vertex_buffer_);
