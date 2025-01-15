@@ -2,6 +2,7 @@
 build
 bin
 *.spv
+*.dev.md
 
 # Prerequisites
 *.d
