@@ -1,6 +1,6 @@
 /* -------------------------------------------------------------------------- */
 //
-//    01 - Hello VK
+//    00 - Hello VK
 //
 //    Simple vulkan window creation with clear screen.
 //

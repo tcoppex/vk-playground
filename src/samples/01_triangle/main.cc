@@ -1,17 +1,18 @@
 /* -------------------------------------------------------------------------- */
 //
-//    02 - Hello Triangle
+//    01 - Hello Triangle
 //
-//    Demonstrates how to render a triangle with:
-//        - Graphics Pipeline
-//        - Vertex buffer
-//        - Transient command buffer.
+//    Demonstrates how to render a triangle, using:
+//        - Graphics Pipeline,
+//        - Vertex buffer,
+//        - Transient command buffer,
 //        - RenderPassEncoder commands:
-//            * Dynamic Viewport / Scissor states
-//            * set_pipeline / set_vertex_buffer / draw
+//            * Dynamic Viewport / Scissor states,
+//            * set_pipeline / set_vertex_buffer / draw.
 //
 //    TODO:
-//        * Limits GraphicContext creation to Renderer.
+//        * Limit GraphicContext creation to Renderer ?
+//        * Improve resource release logic.
 //
 //
 /* -------------------------------------------------------------------------- */
@@ -75,7 +76,8 @@ class SampleApp final : public Application {
 
     /* Setup the graphics pipeline. */
     {
-      /* The GraphicsPipeline object is presetup with a default layout for
+      /**
+       * The GraphicsPipeline object is presetup with a default layout for
        * rendering. Before using it we need to specify at least a vertex and
        * fragment shader and the binding of its vertex attributes, if any.
        * */
@@ -108,7 +110,8 @@ class SampleApp final : public Application {
         },
       });
 
-      /* We call 'complete' to finalize the GraphicsPipeline setup for a given output.
+      /**
+       * We call 'complete' to finalize the GraphicsPipeline setup for a given output.
        *
        * Both RTInterface (dynamic_rendering) and RPInterface (legacy rendering)
        * are accepted. Here we use the main renderer as we output directly to
@@ -136,16 +139,18 @@ class SampleApp final : public Application {
     /**
      * A 'begin_rendering' (dynamic_rendering) or 'begin_render_pass' (legacy rendering)
      * returns a RenderPassEncoder, which is a specialized CommandEncoder to specify
-     * rendering operations.
+     * rendering operations to a specific output (here the swapchain directly).
      **/
     auto pass = cmd.begin_rendering();
     {
-      /* Set the viewport and scissor with the flag 'flip_y' to true to flip
+      /**
+       *  Set the viewport and scissor with the flag 'flip_y' to true to flip
        * the Y axis upward like traditional APIs. Set to false by default.
        *
-       * Note: - As GraphicPipeline uses dynamic Viewport and Scissor states by default,
-       *       we need to specify them when using a graphic pipeline.
-       *       - Dynamic states are not bound to a pipeline and can be set whenever.
+       * As GraphicPipeline uses dynamic Viewport and Scissor states by default,
+       * we need to specify them when using a graphic pipeline.
+       *
+       * Dynamic states are not bound to a pipeline and can be set whenever.
        **/
       pass.set_viewport_scissor(viewport_size_, true);
 
