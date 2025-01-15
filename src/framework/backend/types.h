@@ -89,35 +89,16 @@ struct ShaderModule_t {
 
 // ----------------------------------------------------------------------------
 
-// Graphics Pipeline
-
-struct  ModuleDescriptor_t {
-  VkShaderModule module;
-  std::string entryPoint;
-};
-
-struct VertexBufferDescriptor_t {
-  uint32_t stride;
-  std::vector<VkVertexInputAttributeDescription> attributes;
-};
-
-struct VertexDescriptor_t : ModuleDescriptor_t {
-  std::vector<VertexBufferDescriptor_t> buffers;
-};
-
-using FragmentDescriptor_t = ModuleDescriptor_t;
-
-struct RenderPipelineDescriptor_t {
-  VertexDescriptor_t vertex;
-  FragmentDescriptor_t fragment;
-};
-
 struct DescriptorSetLayoutParams_t {
   std::vector<VkDescriptorSetLayoutBinding> entries;
   std::vector<VkDescriptorBindingFlags> flags;
   // std::vector<VkDescriptorBufferInfo> buffer_infos;
   // std::vector<VkDescriptorImageInfo> image_infos;
 };
+
+// ----------------------------------------------------------------------------
+
+// Pipeline
 
 class Pipeline {
  public:
