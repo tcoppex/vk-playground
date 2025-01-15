@@ -86,25 +86,17 @@ void RenderTarget::resize(Context const& context, VkExtent2D const extent) {
     allocator_->create_image_with_view(image_info, view_info, &color);
   }
 
+  // -------
   /* Change color images layout from UNDEFINED to GENERAL. */
   context.transition_images_layout(colors_, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL); //
 
-  // TODO : clear color images via vkCmdClearColorImage.
+  // [TODO] Clear color images via vkCmdClearColorImage ?
 
-  // -------
-
-  // (TODO : use context create_depth_stencil helper ?)
   /* Create an optional depth-stencil buffer. */
   if (depth_stencil_.format != VK_FORMAT_UNDEFINED) {
-    image_info.format = depth_stencil_.format;
-    image_info.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT
-                     | VK_IMAGE_USAGE_SAMPLED_BIT
-                     ;
-    view_info.format = depth_stencil_.format;
-    view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-    view_info.components = {};
-    allocator_->create_image_with_view(image_info, view_info, &depth_stencil_);
+    depth_stencil_ = context.create_depth_stencil_image_2d(depth_stencil_.format, extent_);
   }
+  // -------
 }
 
 /* -------------------------------------------------------------------------- */

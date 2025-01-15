@@ -47,13 +47,15 @@ void Context::deinit() {
 
 // ----------------------------------------------------------------------------
 
-Image_t Context::create_depth_stencil_image_2d(VkFormat const depth_format, VkExtent2D const dimension) const {
+Image_t Context::create_depth_stencil_image_2d(VkFormat const format, VkExtent2D const dimension) const {
   Image_t depth_stencil{};
+
+  // [TODO] check format is a valid depth_stencil one.
 
   VkImageCreateInfo const image_create_info{
     .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
     .imageType = VK_IMAGE_TYPE_2D,
-    .format = depth_format,
+    .format = format,
     .extent = {
       .width = dimension.width,
       .height = dimension.height,
@@ -63,7 +65,9 @@ Image_t Context::create_depth_stencil_image_2d(VkFormat const depth_format, VkEx
     .arrayLayers = 1u,
     .samples = VK_SAMPLE_COUNT_1_BIT,
     .tiling = VK_IMAGE_TILING_OPTIMAL,
-    .usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+    .usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT
+           | VK_IMAGE_USAGE_SAMPLED_BIT //
+           ,
     .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
   };
   VkImageAspectFlags const stencil_mask{
@@ -72,7 +76,7 @@ Image_t Context::create_depth_stencil_image_2d(VkFormat const depth_format, VkEx
   VkImageViewCreateInfo const image_view_info{
     .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
     .viewType = VK_IMAGE_VIEW_TYPE_2D,
-    .format = depth_format,
+    .format = image_create_info.format,
     .subresourceRange = {
       .aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | stencil_mask,
       .baseMipLevel = 0u,

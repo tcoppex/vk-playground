@@ -53,7 +53,7 @@ class Context {
 
   // --- Image ---
 
-  Image_t create_depth_stencil_image_2d(VkFormat const depth_format, VkExtent2D const dimension) const;
+  Image_t create_depth_stencil_image_2d(VkFormat const format, VkExtent2D const dimension) const;
 
   // --- Shader Module ---
 
