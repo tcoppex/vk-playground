@@ -126,8 +126,13 @@ class RenderPassEncoder {
   }
 
   inline
-  void set_viewport_scissor(VkExtent2D const extent) const {
-    set_viewport(0.0f, 0.0f, static_cast<float>(extent.width), static_cast<float>(extent.height));
+  void set_viewport_scissor(VkExtent2D const extent, bool flip_y = false) const {
+    float const h = static_cast<float>(extent.height);
+    if (flip_y) {
+      set_viewport(0.0f, h, static_cast<float>(extent.width), -h);
+    } else {
+      set_viewport(0.0f, 0.0f, static_cast<float>(extent.width), h);
+    }
     set_scissor(0, 0, extent.width, extent.height);
   }
 
