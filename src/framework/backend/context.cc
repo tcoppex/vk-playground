@@ -120,7 +120,7 @@ void Context::release_shader_modules(std::vector<ShaderModule_t> const& shaders)
 
 // ----------------------------------------------------------------------------
 
-CommandEncoder Context::create_transient_command_encoder() {
+CommandEncoder Context::create_transient_command_encoder() const {
   VkCommandBuffer cmd{};
 
   VkCommandBufferAllocateInfo const alloc_info{
@@ -140,7 +140,7 @@ CommandEncoder Context::create_transient_command_encoder() {
 
 // ----------------------------------------------------------------------------
 
-void Context::finish_transient_command_encoder(CommandEncoder const& encoder) {
+void Context::finish_transient_command_encoder(CommandEncoder const& encoder) const {
   encoder.end();
 
   VkFenceCreateInfo const fence_info{
@@ -163,94 +163,6 @@ void Context::finish_transient_command_encoder(CommandEncoder const& encoder) {
   vkDestroyFence(device_, fence, nullptr);
 
   vkFreeCommandBuffers(device_, transient_command_pool_, 1u, &encoder.command_buffer_);
-}
-
-// ----------------------------------------------------------------------------
-
-void Context::transition_images_layout(std::vector<Image_t> const& images, VkImageLayout const new_layout) const {
-  VkQueue const queue = graphics_queue_.queue;
-  VkCommandPool const command_pool = transient_command_pool_;
-
-  // ---
-
-  // Begin transient Command Buffer.
-  VkCommandBuffer cmd;
-  {
-    VkCommandBufferAllocateInfo const alloc_info{
-      .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-      .commandPool = command_pool,
-      .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-      .commandBufferCount = 1u,
-    };
-    CHECK_VK(vkAllocateCommandBuffers(device_, &alloc_info, &cmd));
-
-    VkCommandBufferBeginInfo cb_begin_info{
-      .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-      .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
-    };
-    CHECK_VK(vkBeginCommandBuffer(cmd, &cb_begin_info));
-  }
-
-  // Transition image layout.
-  {
-    VkImageLayout const old_layout = VK_IMAGE_LAYOUT_UNDEFINED;
-
-    auto const [src_stage, src_access] = utils::MakePipelineStageAccessTuple(old_layout);
-    auto const [dst_stage, dst_access] = utils::MakePipelineStageAccessTuple(new_layout);
-
-    VkImageMemoryBarrier2 barrier2{
-      .sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-      .srcStageMask        = src_stage,
-      .srcAccessMask       = src_access,
-      .dstStageMask        = dst_stage,
-      .dstAccessMask       = dst_access,
-      .oldLayout           = old_layout,
-      .newLayout           = new_layout,
-      .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-      .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-      .subresourceRange    = {VK_IMAGE_ASPECT_COLOR_BIT, 0u, 1u, 0u, 1u},
-    };
-    VkDependencyInfo const dependency{
-      .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-      .imageMemoryBarrierCount = 1u,
-      .pImageMemoryBarriers = &barrier2,
-    };
-    for (auto& img : images) {
-      barrier2.image = img.image;
-      vkCmdPipelineBarrier2(cmd, &dependency);
-    }
-  }
-
-  // End command buffer & submit to (graphics) queue.
-  {
-    CHECK_VK(vkEndCommandBuffer(cmd));
-
-    // Create a fence for CPU/GPU synchronization.
-    VkFenceCreateInfo const fence_info{
-      .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
-    };
-    VkFence fence;
-    CHECK_VK( vkCreateFence(device_, &fence_info, nullptr, &fence) );
-
-    // Submit command buffer to Queue.
-    VkCommandBufferSubmitInfo const cb_submit_info{
-      .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
-      .commandBuffer = cmd,
-    };
-    VkSubmitInfo2 const submit_info_2{
-      .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
-      .commandBufferInfoCount = 1u,
-      .pCommandBufferInfos = &cb_submit_info,
-    };
-    CHECK_VK( vkQueueSubmit2(queue, 1u, &submit_info_2, fence) );
-
-    // Wait for blocking fence.
-    CHECK_VK( vkWaitForFences(device_, 1u, &fence, VK_TRUE, UINT64_MAX) );
-
-    // Cleanup.
-    vkDestroyFence(device_, fence, nullptr);
-    vkFreeCommandBuffers(device_, command_pool, 1u, &cmd);
-  }
 }
 
 /* -------------------------------------------------------------------------- */

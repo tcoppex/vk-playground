@@ -87,7 +87,7 @@ void RenderTarget::resize(Context const& context, VkExtent2D const extent) {
   }
 
   /* Change color images layout from UNDEFINED to GENERAL. */
-  context.transition_images_layout(colors_, VK_IMAGE_LAYOUT_GENERAL); //
+  context.transition_images_layout(colors_, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL); //
 
   // TODO : clear color images via vkCmdClearColorImage.
 

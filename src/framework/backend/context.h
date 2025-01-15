@@ -65,9 +65,15 @@ class Context {
 
   // --- Command Encoder ---
 
-  // ----------------------
-  CommandEncoder create_transient_command_encoder();
-  void finish_transient_command_encoder(CommandEncoder const& encoder);
+  CommandEncoder create_transient_command_encoder() const;
+  void finish_transient_command_encoder(CommandEncoder const& encoder) const;
+
+  /* Shortcut to transition image layouts. */
+  void transition_images_layout(std::vector<Image_t> const& images, VkImageLayout const src_layout, VkImageLayout const dst_layout) const {
+    auto cmd{ create_transient_command_encoder() };
+    cmd.transition_images_layout(images, src_layout, dst_layout);
+    finish_transient_command_encoder(cmd);
+  }
 
   /* Example of a direct command utility. */
   // template<typename T>
@@ -81,10 +87,6 @@ class Context {
   //   graphics_queue().submit({ cmd.finish() });
   //   return buffer;
   // }
-
-  // (TODO?) move to the transient encoder.
-  void transition_images_layout(std::vector<Image_t> const& images, VkImageLayout const new_layout) const;
-  // ----------------------
 
  private:
   bool has_extension(std::string_view const& name, std::vector<VkExtensionProperties> const& extensions) const {
