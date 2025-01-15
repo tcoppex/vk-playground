@@ -14,14 +14,17 @@ class Framebuffer;
 /* -------------------------------------------------------------------------- */
 
 /**
- * Main entry point to render image directly to swapchain and issue
- * command to the graphic / present queue.
+ * Main entry point to render image to the swapchain and issue commands to the
+ * graphic / present queue.
  *
  * -> Use 'begin_frame' / 'end_frame' when ready to submit command via the
  *    returned CommandEncoder object.
  *
  * -> 'create_render_target' can be used to create custom dynamic render target,
  *    'create_framebuffer' to create legacy rendering target.
+ *
+ *  Note: As a RTInterface, Renderer always returns 1 color_attachment in the
+ *        form of the current swapchain image.
  *
  **/
 class Renderer : public RTInterface {
@@ -67,7 +70,9 @@ class Renderer : public RTInterface {
   }
 
   std::vector<Image_t> const& get_color_attachments() const final {
-    return swapchain_.get_swap_images();
+    // (special behavior, just used here, updating it elsewhere is non practical)
+    const_cast<Renderer*>(this)->proxy_swap_attachment_ = { get_color_attachment() };
+    return proxy_swap_attachment_;
   }
 
   Image_t const& get_color_attachment(uint32_t i = 0u) const final {
@@ -78,11 +83,11 @@ class Renderer : public RTInterface {
     return depth_stencil_;
   }
 
-  VkClearValue get_color_clear_value(uint32_t i = 0u) const {
+  VkClearValue get_color_clear_value(uint32_t i = 0u) const final {
     return color_clear_value_;
   }
 
-  VkClearValue get_depth_stencil_clear_value() const {
+  VkClearValue get_depth_stencil_clear_value() const final {
     return depth_stencil_clear_value_;
   }
 
@@ -125,6 +130,7 @@ class Renderer : public RTInterface {
 
   /* Swapchain. */
   Swapchain swapchain_{};
+  std::vector<Image_t> proxy_swap_attachment_{};
 
   /* Default depth-stencil buffer. */
   Image_t depth_stencil_{};
