@@ -8,8 +8,6 @@ function(add_simple_demo dirname)
     ${SAMPLE_PATH}/*.h
   )
 
-  # weirdly, if shaders are not compiled in the same file it's impossible to
-  # depends the targets on them..
   compile_shaders(
     ${SAMPLE_PATH}/shaders/glsl
     ${SAMPLE_PATH}/shaders/spirv
@@ -21,7 +19,6 @@ function(add_simple_demo dirname)
 
   target_link_libraries(${dirname} PRIVATE
     ${FRAMEWORK_LIBRARIES}
-
     ${Vulkan_LIBRARY}
     # ${GLFW_LIBRARY}
     # volk
@@ -46,9 +43,8 @@ endfunction(add_simple_demo)
 
 # -----------------------------------------------------------------------------
 
-add_simple_demo(01_hello)
-# add_simple_demo(01_hello_v11)
-# add_simple_demo(02_hello_triangle)
-# add_simple_demo(03_hello_descriptor)
+add_simple_demo(00_hello)
+add_simple_demo(01_triangle)
+# add_simple_demo(02_descriptor)
 
 # -----------------------------------------------------------------------------
