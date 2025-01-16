@@ -1,8 +1,6 @@
 #ifndef HELLOVK_FRAMEWORK_BACKEND_COMMAND_ENCODER_H
 #define HELLOVK_FRAMEWORK_BACKEND_COMMAND_ENCODER_H
 
-#include <span>
-
 #include "framework/backend/common.h"
 #include "framework/backend/allocator.h"
 
@@ -10,16 +8,31 @@ class RenderPassEncoder;
 
 /* -------------------------------------------------------------------------- */
 
-struct RenderPassDescriptor_t {
-  std::vector<VkRenderingAttachmentInfo> colorAttachments;
-  VkRenderingAttachmentInfo depthStencilAttachment;
-  VkRect2D renderArea;
+class GenericCommandEncoder {
+ public:
+  GenericCommandEncoder() = default;
+
+  GenericCommandEncoder(VkCommandBuffer command_buffer)
+    : command_buffer_(command_buffer)
+  {}
+
+  virtual ~GenericCommandEncoder() {}
+
+ protected:
+  VkCommandBuffer command_buffer_{};
 };
 
 /* -------------------------------------------------------------------------- */
 
 /* Generic VkCommandBuffer wrapper. */
-class CommandEncoder {
+class CommandEncoder : public GenericCommandEncoder {
+ public:
+  struct RenderPassDescriptor_t {
+    std::vector<VkRenderingAttachmentInfo> colorAttachments;
+    VkRenderingAttachmentInfo depthStencilAttachment;
+    VkRect2D renderArea;
+  };
+
  public:
   ~CommandEncoder() {}
 
@@ -50,14 +63,26 @@ class CommandEncoder {
   RenderPassEncoder begin_render_pass(RPInterface const& render_pass) const;
   void end_render_pass() const;
 
+  // --- Push Constants ---
+
+  template<typename T> requires (!SpanConvertible<T>)
+  void push_constant(T const& value, VkPipelineLayout const pipeline_layout, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS, uint32_t const offset = 0u) const {
+    utils::PushConstant(command_buffer_, value, pipeline_layout, stage_flags, offset);
+  }
+
+  template<typename T> requires (SpanConvertible<T>)
+  void push_constants(T const& values, VkPipelineLayout const pipeline_layout, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS, uint32_t const offset = 0u) const {
+    utils::PushConstants(command_buffer_, values, pipeline_layout, stage_flags, offset);
+  }
+
  protected:
   CommandEncoder() = default;
 
  private:
   CommandEncoder(VkDevice const device, std::shared_ptr<ResourceAllocator> allocator, VkCommandBuffer const command_buffer)
-    : device_{device}
+    : GenericCommandEncoder(command_buffer)
+    , device_{device}
     , allocator_{allocator}
-    , command_buffer_{command_buffer}
   {}
 
   void begin() const {
@@ -75,7 +100,6 @@ class CommandEncoder {
  protected:
   VkDevice device_{};
   std::shared_ptr<ResourceAllocator> allocator_{};
-  VkCommandBuffer command_buffer_{};
 
   /* Link the default RTInterface when one is available. */
   RTInterface const* default_render_target_ptr_{};
@@ -89,91 +113,94 @@ class CommandEncoder {
 };
 
 /* -------------------------------------------------------------------------- */
-/* -------------------------------------------------------------------------- */
-/* -------------------------------------------------------------------------- */
 
 /* Specialized VkCommandBuffer wrapper for rendering operations. */
-class RenderPassEncoder {
+class RenderPassEncoder : public GenericCommandEncoder {
+ public:
+  static constexpr bool kDefaultViewportFlipY{ false };
+
  public:
   ~RenderPassEncoder() {}
 
-  inline
-  void set_viewport(float x, float y, float width, float height) const {
-    VkViewport const vp{
-      .x = x,
-      .y = y,
-      .width = width,
-      .height = height,
-      .minDepth = 0.0f,
-      .maxDepth = 1.0f,
-    };
-    vkCmdSetViewport(command_buffer_, 0u, 1u, &vp);
-  }
+  // --- Dynamic Viewport / Scissor ---
+
+  void set_viewport(float x, float y, float width, float height, bool flip_y = kDefaultViewportFlipY) const;
+
+  void set_scissor(int32_t x, int32_t y, uint32_t width, uint32_t height) const;
+
+  void set_viewport_scissor(VkRect2D const rect, bool flip_y = kDefaultViewportFlipY) const;
 
   inline
-  void set_scissor(int32_t x, int32_t y, uint32_t width, uint32_t height) const {
-    VkRect2D const rect{
-      .offset = {
-        .x = x,
-        .y = y,
-      },
-      .extent = {
-        .width = width,
-        .height = height,
-      },
-    };
-    vkCmdSetScissor(command_buffer_, 0u, 1u, &rect);
+  void set_viewport_scissor(VkExtent2D const extent, bool flip_y = kDefaultViewportFlipY) const {
+    set_viewport_scissor({{0, 0}, extent}, flip_y);
   }
 
-  inline
-  void set_viewport_scissor(VkExtent2D const extent, bool flip_y = false) const {
-    float const h = static_cast<float>(extent.height);
-    if (flip_y) {
-      set_viewport(0.0f, h, static_cast<float>(extent.width), -h);
-    } else {
-      set_viewport(0.0f, 0.0f, static_cast<float>(extent.width), h);
-    }
-    set_scissor(0, 0, extent.width, extent.height);
-  }
+  // --- Pipeline ---
 
   inline
-  void set_pipeline(Pipeline const& pipeline) const {
+  void set_pipeline(Pipeline const& pipeline) {
+    currently_bound_pipeline_layout_ = pipeline.get_layout();
     vkCmdBindPipeline(command_buffer_, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.get_handle());
   }
+
+  // --- Push Constants ---
+
+  template<typename T> requires (!SpanConvertible<T>)
+  void push_constant(T const& value, VkPipelineLayout const pipeline_layout, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS, uint32_t const offset = 0u) const {
+    utils::PushConstant(command_buffer_, value, pipeline_layout, stage_flags, offset);
+  }
+
+  template<typename T> requires (SpanConvertible<T>)
+  void push_constants(T const& values, VkPipelineLayout const pipeline_layout, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS, uint32_t const offset = 0u) const {
+    utils::PushConstants(command_buffer_, values, pipeline_layout, stage_flags, offset);
+  }
+
+  template<typename T> requires (!SpanConvertible<T>)
+  void push_constant(T const& value, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS, uint32_t const offset = 0u) const {
+    assert(currently_bound_pipeline_layout_ != VK_NULL_HANDLE);
+    utils::PushConstant(command_buffer_, value, currently_bound_pipeline_layout_, stage_flags, offset);
+  }
+
+  template<typename T> requires (SpanConvertible<T>)
+  void push_constants(T const& values, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS, uint32_t const offset = 0u) const {
+    assert(currently_bound_pipeline_layout_ != VK_NULL_HANDLE);
+    utils::PushConstants(command_buffer_, values, currently_bound_pipeline_layout_, stage_flags, offset);
+  }
+
+  // --- Vertex Buffer ---
 
   inline
   void set_vertex_buffer(Buffer_t const& buffer, VkDeviceSize const offset = 0u) const {
     vkCmdBindVertexBuffers(command_buffer_, 0u, 1u, &buffer.buffer, &offset);
   }
 
+  // --- Draw ---
+
   inline
-  void draw(
-    uint32_t vertex_count,
-    uint32_t instance_count = 1u,
-    uint32_t first_vertex = 0u,
-    uint32_t first_instance = 0u
-  ) const {
+  void draw(uint32_t vertex_count,
+            uint32_t instance_count = 1u,
+            uint32_t first_vertex = 0u,
+            uint32_t first_instance = 0u) const {
     vkCmdDraw(command_buffer_, vertex_count, instance_count, first_vertex, first_instance);
   }
 
   inline
-  void draw_indexed(
-    uint32_t index_count,
-    uint32_t instance_count = 1u,
-    uint32_t first_index = 0u,
-    int32_t vertex_offset = 0,
-    uint32_t first_instance = 0u
-  ) const {
+  void draw_indexed(uint32_t index_count,
+                    uint32_t instance_count = 1u,
+                    uint32_t first_index = 0u,
+                    int32_t vertex_offset = 0,
+                    uint32_t first_instance = 0u) const {
     vkCmdDrawIndexed(command_buffer_, index_count, instance_count, first_index, vertex_offset, first_instance);
   }
 
  private:
   RenderPassEncoder(VkCommandBuffer const command_buffer)
-    : command_buffer_(command_buffer)
+    : GenericCommandEncoder(command_buffer)
+    , currently_bound_pipeline_layout_{VK_NULL_HANDLE}
   {}
 
  private:
-  VkCommandBuffer command_buffer_{};
+  VkPipelineLayout currently_bound_pipeline_layout_{}; //
 
  public:
   friend class CommandEncoder;

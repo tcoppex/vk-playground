@@ -173,3 +173,45 @@ void CommandEncoder::end_render_pass() const {
 }
 
 /* -------------------------------------------------------------------------- */
+/* -------------------------------------------------------------------------- */
+
+void RenderPassEncoder::set_viewport(float x, float y, float width, float height, bool flip_y) const {
+  VkViewport const vp{
+    .x = x,
+    .y = y + (flip_y ? height : 0.0f),
+    .width = width,
+    .height = height * (flip_y ? -1.0f : 1.0f),
+    .minDepth = 0.0f,
+    .maxDepth = 1.0f,
+  };
+  vkCmdSetViewport(command_buffer_, 0u, 1u, &vp);
+}
+
+// ----------------------------------------------------------------------------
+
+void RenderPassEncoder::set_scissor(int32_t x, int32_t y, uint32_t width, uint32_t height) const {
+  VkRect2D const rect{
+    .offset = {
+      .x = x,
+      .y = y,
+    },
+    .extent = {
+      .width = width,
+      .height = height,
+    },
+  };
+  vkCmdSetScissor(command_buffer_, 0u, 1u, &rect);
+}
+
+// ----------------------------------------------------------------------------
+
+void RenderPassEncoder::set_viewport_scissor(VkRect2D const rect, bool flip_y) const {
+  float const x = static_cast<float>(rect.offset.x);
+  float const y = static_cast<float>(rect.offset.y);
+  float const w = static_cast<float>(rect.extent.width);
+  float const h = static_cast<float>(rect.extent.height);
+  set_viewport(x, y, w, h, flip_y);
+  set_scissor(rect.offset.x, rect.offset.y, rect.extent.width, rect.extent.height);
+}
+
+/* -------------------------------------------------------------------------- */
