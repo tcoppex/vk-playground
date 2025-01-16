@@ -1,14 +1,16 @@
 # :fire: vk-playground :fire:
 
-A simple c++ 20 framework with CMake gems to play with Vulkan 1.1, inspired by WebGPU and _vk_minimal_latest_.
+A simple c++20 Vulkan 1.1 framework with CMake gems, inspired by WebGPU and _vk_minimal_latest_.
 
-<!-- #### Features
+<!--
+#### Features
 
  * Swapchain management
  * Timeline semaphore
- * Dynamic rendering
+ * Legacy & Dynamic rendering
  * Vulkan Memory Allocator (VMA)
- * GLSL to SPIR-V compilation (via CMake custom commands) -->
+ * GLSL to SPIR-V compilation via CMake
+-->
 
 
 #### Demos
