@@ -153,6 +153,7 @@ class Context {
     VkPhysicalDeviceDynamicRenderingFeaturesKHR dynamic_rendering{};
     VkPhysicalDeviceMaintenance4FeaturesKHR maintenance4{};
     VkPhysicalDeviceMaintenance5FeaturesKHR maintenance5{};
+    VkPhysicalDeviceMaintenance6FeaturesKHR maintenance6{};
     VkPhysicalDeviceTimelineSemaphoreFeaturesKHR timeline_semaphore{};
     VkPhysicalDeviceDescriptorIndexingFeaturesEXT descriptor_indexing{};
     VkPhysicalDeviceExtendedDynamicStateFeaturesEXT dynamic_state{};

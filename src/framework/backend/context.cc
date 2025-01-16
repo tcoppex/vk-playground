@@ -217,7 +217,6 @@ void Context::select_gpu() {
     fprintf(stderr, "[Error] Vulkan: no GPUs were available.\n");
     exit(EXIT_FAILURE);
   }
-
   std::vector<VkPhysicalDevice> gpus(gpu_count);
   CHECK_VK( vkEnumeratePhysicalDevices(instance_, &gpu_count, gpus.data()) );
 
@@ -233,9 +232,9 @@ void Context::select_gpu() {
   }
   gpu_ = gpus.at(selected_index);
 
+  /* Retrieve differents GPU properties. */
   vkGetPhysicalDeviceProperties2(gpu_, &properties_.gpu2);
   vkGetPhysicalDeviceMemoryProperties2(gpu_, &properties_.memory2);
-
   uint32_t queue_family_count{0u};
   vkGetPhysicalDeviceQueueFamilyProperties2(gpu_, &queue_family_count, nullptr);
   properties_.queue_families2.resize(queue_family_count, {.sType = VK_STRUCTURE_TYPE_QUEUE_FAMILY_PROPERTIES_2});
@@ -283,6 +282,14 @@ bool Context::init_device() {
       feature_.maintenance5,
       {
         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_5_FEATURES_KHR,
+      }
+    );
+
+    add_device_feature(
+      VK_KHR_MAINTENANCE_6_EXTENSION_NAME,
+      feature_.maintenance6,
+      {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_6_FEATURES_KHR,
       }
     );
 
@@ -377,7 +384,7 @@ bool Context::init_device() {
   /* Load device extensions. */
   volkLoadDevice(device_);
 
-  // Use aliases without suffixes.
+  /* Use aliases without suffixes. */
   {
     auto bind_func{ [](auto & f1, auto & f2) { if (!f1) { f1 = f2; } } };
     bind_func(vkWaitSemaphores, vkWaitSemaphoresKHR);
