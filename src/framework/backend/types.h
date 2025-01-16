@@ -115,8 +115,13 @@ class Pipeline {
     return pipeline_;
   }
 
+  inline VkPipelineLayout get_layout() const {
+    return pipeline_layout_;
+  }
+
  protected:
   VkPipeline pipeline_{};
+  VkPipelineLayout pipeline_layout_{};
 };
 
 // ----------------------------------------------------------------------------

@@ -16,12 +16,13 @@ void GraphicsPipeline::release(VkDevice const device) {
 // ----------------------------------------------------------------------------
 
 void GraphicsPipeline::reset() {
+  shader_stages_.clear();
+  stages_mask_ = 0u;
+  push_constant_ranges_.clear();
+
   vertex_binding_attribute_.bindings.clear();
   vertex_binding_attribute_.attributes.clear();
   descriptor_set_layouts_.clear();
-
-  shader_stages_.clear();
-  stages_mask_ = 0u;
 
   color_blend_attachment_ = {
     .blendEnable = VK_FALSE,
@@ -112,13 +113,13 @@ void GraphicsPipeline::reset() {
 
 // ----------------------------------------------------------------------------
 
-void GraphicsPipeline::add_shader_stage(VkShaderStageFlagBits const stage, VkShaderModule const module) {
+void GraphicsPipeline::add_shader_stage(VkShaderStageFlagBits const stage, ShaderModule_t const& shader) {
   assert(false == (stages_mask_ & stage));
 
   VkPipelineShaderStageCreateInfo const shader_stage{
     .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
     .stage = stage,
-    .module = module,
+    .module = shader.module,
     .pName = "main", //
   };
   shader_stages_.push_back(shader_stage);
@@ -239,8 +240,8 @@ void GraphicsPipeline::create_layout(VkDevice const device) {
     .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
     .setLayoutCount = static_cast<uint32_t>(descriptor_set_layouts_.size()),
     .pSetLayouts = descriptor_set_layouts_.data(),
-    .pushConstantRangeCount = 0u, //
-    .pPushConstantRanges = nullptr, //
+    .pushConstantRangeCount = static_cast<uint32_t>(push_constant_ranges_.size()),
+    .pPushConstantRanges = push_constant_ranges_.data(),
   };
   CHECK_VK(vkCreatePipelineLayout(device, &pipeline_layout_create_info, nullptr, &pipeline_layout_));
 }

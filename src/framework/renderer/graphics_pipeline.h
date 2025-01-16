@@ -38,14 +38,28 @@ class GraphicsPipeline final : public Pipeline {
 
   void release(VkDevice const device);
 
-  inline PipelineStates_t& get_states() { return states_; }
+  inline PipelineStates_t& get_states() {
+    return states_;
+  }
 
   // -------------------------
   void reset();
 
-  void add_shader_stage(VkShaderStageFlagBits const stage, VkShaderModule const module);
+  void add_shader_stage(VkShaderStageFlagBits const stage, ShaderModule_t const& shader);
 
-  void add_descriptor_set_layout(VkDescriptorSetLayout const descriptor_set_layout) {
+  inline void add_push_constant_range(VkPushConstantRange const& value) {
+    push_constant_ranges_.push_back(value);
+  }
+
+  inline void add_push_constant_ranges(std::vector<VkPushConstantRange> const& values) {
+    push_constant_ranges_.insert(
+      push_constant_ranges_.end(),
+      values.cbegin(),
+      values.cend()
+    );
+  }
+
+  inline void add_descriptor_set_layout(VkDescriptorSetLayout const descriptor_set_layout) {
     descriptor_set_layouts_.push_back(descriptor_set_layout); //
   }
 
@@ -66,13 +80,13 @@ class GraphicsPipeline final : public Pipeline {
   void create_layout(VkDevice const device);
 
  private:
-  VkPipelineLayout pipeline_layout_{};
+  std::vector<VkPipelineShaderStageCreateInfo> shader_stages_{};
+  uint32_t stages_mask_{0u};
+
+  std::vector<VkPushConstantRange> push_constant_ranges_{};
 
   VertexBindingAttribute_t vertex_binding_attribute_{};
   std::vector<VkDescriptorSetLayout> descriptor_set_layouts_{};
-
-  std::vector<VkPipelineShaderStageCreateInfo> shader_stages_{};
-  uint32_t stages_mask_{0u};
 
   VkPipelineColorBlendAttachmentState color_blend_attachment_{};
   std::vector<VkDynamicState> dynamic_states_{};
