@@ -3,6 +3,8 @@
 
 /* -------------------------------------------------------------------------- */
 
+#include <chrono>
+
 #include "framework/backend/context.h"
 #include "framework/renderer/renderer.h"
 
@@ -16,6 +18,13 @@ class Application {
   ~Application() {}
 
   int run();
+
+ protected:
+  float get_elapsed_time() const;
+
+  float get_frame_time() const {
+    return frame_time_;
+  }
 
  protected:
   virtual bool setup() { return true; }
@@ -37,6 +46,10 @@ class Application {
   VkExtent2D viewport_size_{}; //
 
   Renderer renderer_;
+
+ private:
+  std::chrono::time_point<std::chrono::high_resolution_clock> chrono_{};
+  float frame_time_{};
 };
 
 /* -------------------------------------------------------------------------- */

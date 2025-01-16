@@ -14,12 +14,18 @@ int Application::run() {
   }
 
   while (!glfwWindowShouldClose(window_)) {
+    frame_time_ = get_elapsed_time();
     glfwPollEvents();
     frame();
   }
   shutdown();
 
   return EXIT_SUCCESS;
+}
+
+float Application::get_elapsed_time() const {
+  auto now{ std::chrono::high_resolution_clock::now() };
+  return std::chrono::duration<float>(now - chrono_).count();
 }
 
 bool Application::presetup() {
@@ -75,6 +81,9 @@ bool Application::presetup() {
 
   /* Init the Vulkan renderer. */
   renderer_.init(context_, context_.get_resource_allocator(), surface_);
+
+  /* Init time tracker. */
+  chrono_ = std::chrono::high_resolution_clock::now();
 
   return true;
 }
