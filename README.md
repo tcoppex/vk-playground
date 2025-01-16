@@ -2,20 +2,24 @@
 
 A simple c++ 20 framework with CMake gems to play with Vulkan 1.1, inspired by WebGPU and _vk_minimal_latest_.
 
+---
+
 #### Demos
 
 * **[00_hello](src/samples/00_hello)**: Basic setup to display a surface and clear its color (_Device, Swapchain, dynamic rendering_).
 * **[01_triangle](src/samples/01_triangle)**: Basic setup to display a triangle (_Shader, Graphics Pipeline, Vertex Buffer, Commands_).
 * **[02_push_constant](src/samples/02_push_constant)**: Updates per-frame values via push constants and dynamic states.
+ 
+---
 
-##### Featuring
+<!-- #### Features
 
  * Swapchain management
  * Timeline semaphore
  * Dynamic rendering
  * Vulkan Memory Allocator (VMA)
- * GLSL to SPIR-V compilation (via CMake custom commands)
- 
+ * GLSL to SPIR-V compilation (via CMake custom commands) -->
+
 #### Dependencies
 
 ##### Third parties
@@ -44,6 +48,7 @@ A simple c++ 20 framework with CMake gems to play with Vulkan 1.1, inspired by W
 * [VK_KHR_synchronization2](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_synchronization2.html)
 * [VK_KHR_timeline_semaphore](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_timeline_semaphore.html)
 
+---
 
 ### License
 
