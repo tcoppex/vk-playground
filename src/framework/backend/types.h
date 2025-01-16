@@ -34,6 +34,13 @@
 
 /* -------------------------------------------------------------------------- */
 
+// c++ features
+
+template<typename T>
+concept SpanConvertible = requires(T t) { std::span(t); };
+
+/* -------------------------------------------------------------------------- */
+
 // Resource Allocator
 
 struct Buffer_t {

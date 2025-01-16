@@ -16,6 +16,8 @@
 #include <string_view>
 #include <span>
 #include <vector>
+#include <concepts>
+#include <type_traits>
 
 #include <vulkan/vulkan.h>
 #include "volk.h"
