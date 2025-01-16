@@ -24,10 +24,6 @@
 
 class SampleApp final : public Application {
  public:
-  SampleApp() = default;
-  ~SampleApp() {}
-
- public:
   struct Vertex_t {
     float Position[4];
     float Color[4];
@@ -45,6 +41,10 @@ class SampleApp final : public Application {
     {.Position = {  0.0f, +0.5f, 0.0f, 1.0f}, .Color = {0.2f, 1.0f, 0.5f, 1.0f}},
   };
 
+ public:
+  SampleApp() = default;
+  ~SampleApp() {}
+
  private:
   bool setup() final {
     glfwSetWindowTitle(window_, "01 - さんかくのセレナーデ");
@@ -53,7 +53,7 @@ class SampleApp final : public Application {
 
     /* Create a device storage buffer, then upload vertices host data to it.
      *
-     * We use a transient (temporary) command buffer to create the storage (immutable)
+     * We use a (temporary) transient command buffer to create a (immutable) storage
      * device buffer, set to be used as VERTEX_BUFFER.
      **/
     {
@@ -83,8 +83,8 @@ class SampleApp final : public Application {
        * */
       auto& gp = graphics_pipeline_;
 
-      gp.add_shader_stage(VK_SHADER_STAGE_VERTEX_BIT, shaders[0u].module);
-      gp.add_shader_stage(VK_SHADER_STAGE_FRAGMENT_BIT, shaders[1u].module);
+      gp.add_shader_stage(VK_SHADER_STAGE_VERTEX_BIT, shaders[0u]);
+      gp.add_shader_stage(VK_SHADER_STAGE_FRAGMENT_BIT, shaders[1u]);
 
       gp.set_vertex_binding_attribute({
         .bindings = {
@@ -137,20 +137,21 @@ class SampleApp final : public Application {
     auto cmd = renderer_.begin_frame();
 
     /**
-     * A 'begin_rendering' (dynamic_rendering) or 'begin_render_pass' (legacy rendering)
+     * 'begin_rendering' (dynamic_rendering) or 'begin_render_pass' (legacy rendering)
      * returns a RenderPassEncoder, which is a specialized CommandEncoder to specify
      * rendering operations to a specific output (here the swapchain directly).
      **/
     auto pass = cmd.begin_rendering();
     {
       /**
-       *  Set the viewport and scissor with the flag 'flip_y' to true to flip
-       * the Y axis upward like traditional APIs. Set to false by default.
+       * Set the viewport and scissor with the flag 'flip_y' to true to flip
+       * the Y-axis upward, like traditional APIs. It is set to false by default.
        *
        * As GraphicPipeline uses dynamic Viewport and Scissor states by default,
        * we need to specify them when using a graphic pipeline.
        *
-       * Dynamic states are not bound to a pipeline and can be set whenever.
+       * As dynamic states are not bound to a pipeline they can be set whenever
+       * during rendering before the draw command.
        **/
       pass.set_viewport_scissor(viewport_size_, true);
 
