@@ -176,6 +176,11 @@ class RenderPassEncoder : public GenericCommandEncoder {
     vkCmdBindVertexBuffers(command_buffer_, 0u, 1u, &buffer.buffer, &offset);
   }
 
+  inline
+  void set_index_buffer(Buffer_t const& buffer, VkIndexType const index_type = VK_INDEX_TYPE_UINT32, VkDeviceSize const offset = 0u) const {
+    vkCmdBindIndexBuffer2(command_buffer_, buffer.buffer, offset, VK_WHOLE_SIZE, index_type);
+  }
+
   // --- Draw ---
 
   inline

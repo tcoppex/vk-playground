@@ -392,6 +392,7 @@ bool Context::init_device() {
     bind_func(vkQueueSubmit2, vkQueueSubmit2KHR);
     bind_func(vkCmdBeginRendering, vkCmdBeginRenderingKHR);
     bind_func(vkCmdEndRendering, vkCmdEndRenderingKHR);
+    bind_func(vkCmdBindIndexBuffer2, vkCmdBindIndexBuffer2KHR);
   }
 
   vkGetDeviceQueue(device_, graphics_queue_.family_index, graphics_queue_.queue_index, &graphics_queue_.queue);
