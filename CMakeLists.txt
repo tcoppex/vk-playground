@@ -209,6 +209,9 @@ include(${CPM_DOWNLOAD_LOCATION})
 # Dependencies
 # -----------------------------------------------------------------------------
 
+find_package(Vulkan 1.1 REQUIRED)
+find_package(GLFW 3.3 REQUIRED)
+
 # Include Volk
 CPMAddPackage(
   NAME volk
@@ -223,8 +226,13 @@ CPMAddPackage(
   GIT_TAG v3.2.0
 )
 
-find_package(Vulkan REQUIRED)
-find_package(GLFW 3.3 REQUIRED)
+CPMAddPackage(
+  NAME linalg
+  GITHUB_REPOSITORY sgorsten/linalg
+  GIT_TAG v2.2
+  DOWNLOAD_ONLY YES
+)
+set(LINALG_INCLUDE_DIR ${linalg_SOURCE_DIR})
 
 # -----------------------------------------------------------------------------
 

@@ -19,10 +19,12 @@
 #include <concepts>
 #include <type_traits>
 
-#include <vulkan/vulkan.h>
 #include "volk.h"
 
-#include "framework/utils.h" //
+#include "framework/lina.h"
+using namespace lina::aliases;
+
+#include "framework/utils.h"
 
 /* -------------------------------------------------------------------------- */
 
