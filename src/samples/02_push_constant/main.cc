@@ -51,10 +51,11 @@ class SampleApp final : public Application {
 
     renderer_.set_color_clear_value({.float32 = {0.60f, 0.65f, 0.55f, 1.0f}});
 
+    /* Setup the device vertex buffer. */
     {
       auto cmd = context_.create_transient_command_encoder();
 
-      vertex_buffer_ = cmd.create_buffer_and_upload(std::span<Vertex_t const>(kVertices),
+      vertex_buffer_ = cmd.create_buffer_and_upload(kVertices,
           VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
         | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
       );

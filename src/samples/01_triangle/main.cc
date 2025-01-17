@@ -59,7 +59,7 @@ class SampleApp final : public Application {
     {
       auto cmd = context_.create_transient_command_encoder();
 
-      vertex_buffer_ = cmd.create_buffer_and_upload(std::span<Vertex_t const>(kVertices),
+      vertex_buffer_ = cmd.create_buffer_and_upload(kVertices,
           VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
         | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
       );
