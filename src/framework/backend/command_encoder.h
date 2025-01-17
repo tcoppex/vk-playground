@@ -42,9 +42,11 @@ class CommandEncoder : public GenericCommandEncoder {
 
   Buffer_t create_buffer_and_upload(void const* host_data, size_t const size, VkBufferUsageFlags2KHR const usage = {}) const;
 
-  template<typename T>
-  Buffer_t create_buffer_and_upload(std::span<T> const& host_data, VkBufferUsageFlags2KHR usage = {}) const {
-    return create_buffer_and_upload(host_data.data(), sizeof(T) * host_data.size(), usage);
+  template<typename T> requires (SpanConvertible<T>)
+  Buffer_t create_buffer_and_upload(T const& host_data, VkBufferUsageFlags2KHR usage = {}) const {
+    auto const host_span{ std::span(host_data) };
+    size_t const bytesize{ sizeof(typename decltype(host_span)::element_type) * host_span.size() };
+    return create_buffer_and_upload(host_span.data(), bytesize, usage);
   }
 
   // --- Images ---

@@ -77,7 +77,7 @@ Buffer_t ResourceAllocator::create_buffer(
 
 // ----------------------------------------------------------------------------
 
-Buffer_t ResourceAllocator::create_staging_buffer(void const* host_data, size_t const bytesize) {
+Buffer_t ResourceAllocator::create_staging_buffer(size_t const bytesize, void const* host_data) {
   // TODO : use a pool to reuse some staging buffer.
 
   // Create buffer.
@@ -87,17 +87,28 @@ Buffer_t ResourceAllocator::create_staging_buffer(void const* host_data, size_t 
     VMA_MEMORY_USAGE_CPU_TO_GPU,
     VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
   )};
-
   // Map host data to device.
-  {
-    void *device_data{};
-    vmaMapMemory(allocator_, staging_buffer.allocation, &device_data);
-    memcpy(device_data, host_data, bytesize);
-    vmaUnmapMemory(allocator_, staging_buffer.allocation);
+  if (host_data != nullptr) {
+    upload_host_to_device(host_data, bytesize, staging_buffer);
   }
   staging_buffers_.push_back(staging_buffer);
   return staging_buffer;
 }
+
+// ----------------------------------------------------------------------------
+
+void ResourceAllocator::upload_host_to_device(void const* host_data, size_t const bytesize, Buffer_t const& dst_buffer) {
+  assert(host_data != nullptr);
+  assert(dst_buffer.buffer != VK_NULL_HANDLE);
+  assert(bytesize > 0);
+
+  void *device_data{};
+  vmaMapMemory(allocator_, dst_buffer.allocation, &device_data);
+  memcpy(device_data, host_data, bytesize);
+  vmaUnmapMemory(allocator_, dst_buffer.allocation);
+}
+
+// ----------------------------------------------------------------------------
 
 void ResourceAllocator::clear_staging_buffers() {
   for (auto const& staging_buffer : staging_buffers_) {

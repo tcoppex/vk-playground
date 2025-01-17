@@ -14,7 +14,7 @@ void CommandEncoder::copy_buffer(Buffer_t const& src, Buffer_t const& dst, size_
 
 Buffer_t CommandEncoder::create_buffer_and_upload(void const* host_data, size_t const size, VkBufferUsageFlags2KHR const usage) const {
   auto staging_buffer{
-    allocator_->create_staging_buffer(host_data, size)   /// !! (need cleaning)
+    allocator_->create_staging_buffer(size, host_data)   /// (need cleaning)
   };
 
   auto buffer{allocator_->create_buffer(

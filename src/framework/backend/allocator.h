@@ -27,12 +27,14 @@ class ResourceAllocator {
                          VmaMemoryUsage const memory_usage = VMA_MEMORY_USAGE_AUTO,
                          VmaAllocationCreateFlags const flags = {}) const;
 
-  Buffer_t create_staging_buffer(void const* host_data, size_t const bytesize);
+  Buffer_t create_staging_buffer(size_t const bytesize, void const* host_data = nullptr);
 
   template<typename T>
   Buffer_t create_staging_buffer(std::span<T> const& host_data) {
-    return create_staging_buffer(host_data.data(), sizeof(T) * host_data.size());
+    return create_staging_buffer(sizeof(T) * host_data.size(), host_data.data());
   }
+
+  void upload_host_to_device(void const* host_data, size_t const bytesize, Buffer_t const& dst_buffer);
 
   inline
   void destroy_buffer(Buffer_t const& buffer) const {
