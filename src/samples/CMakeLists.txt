@@ -17,12 +17,21 @@ function(add_simple_demo dirname)
 
   add_executable(${dirname} ${Source} ${shaders_bin} ${shaders_src})
 
+  target_compile_options(${dirname} PRIVATE
+    "${CXX_FLAGS}"
+    "$<$<CONFIG:Debug>:${CXX_FLAGS_DEBUG}>"
+    "$<$<CONFIG:Release>:${CXX_FLAGS_RELEASE}>"
+    "$<$<CONFIG:DebugWithRelInfo>:${CXX_FLAGS_RELWITHDEBINFO}>"
+  )
+
+  set_target_properties(${dirname}
+    PROPERTIES
+      LINK_FLAGS "${CXX_LINK_FLAGS}"
+  )
+
   target_link_libraries(${dirname} PRIVATE
     ${FRAMEWORK_LIBRARIES}
     ${Vulkan_LIBRARY}
-    # ${GLFW_LIBRARY}
-    # volk
-    # VulkanMemoryAllocator
   )
 
   target_include_directories(${dirname} PRIVATE
@@ -30,6 +39,7 @@ function(add_simple_demo dirname)
     ${SAMPLE_PATH}
     ${Vulkan_INCLUDE_DIR}
     ${GLFW_INCLUDE_DIR}
+    ${LINALG_INCLUDE_DIR}
   )
 
   target_compile_definitions(${dirname} PRIVATE

@@ -85,6 +85,108 @@ endfunction()
 set_global_output_directory(${PROJECT_BINARY_DIR})
 
 # -----------------------------------------------------------------------------
+# Internal configuration attributes.
+# -----------------------------------------------------------------------------
+
+# Detects if the build is flagged for full debug mode.
+if(CMAKE_BUILD_TYPE MATCHES "Debug")
+  set(DEBUG TRUE)
+  message(STATUS "DEBUG build.")
+else()
+  set(DEBUG FALSE)
+endif()
+
+# Detects the build platform.
+if(UNIX AND NOT APPLE AND NOT ANDROID AND NOT WEBGL)
+  set(OS_NAME "Linux")
+  set(OS_LINUX TRUE)
+elseif(WIN32)
+  set(OS_NAME "Windows")
+  set(OS_WIN32 TRUE)
+elseif(ANDROID)
+  set(OS_NAME "Android")
+  set(OS_ANDROID TRUE)
+else()
+  message(WARNING "The \"${CMAKE_SYSTEM_NAME}\" platform is not supported.")
+endif()
+
+# Detects the current compiler.
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+  set(USE_GCC TRUE)
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "(Apple)?[Cc]lang")
+  set(USE_CLANG TRUE)
+elseif(MSVC)
+  set(USE_MSVC TRUE)
+else()
+  message(WARNING "The \"${CMAKE_CXX_COMPILER_ID}\" compiler is not supported.")
+endif()
+
+# -----------------------------------------------------------------------------
+# Generic compiler settings.
+# -----------------------------------------------------------------------------
+
+if(USE_GCC OR USE_CLANG)
+  # This is a mix of warning options not available in all GCC / Clang version.
+  list(APPEND CXX_FLAGS
+    -Wall
+    -Wextra
+    -Wpedantic
+    -Wshadow
+    -Wnon-virtual-dtor
+    -Woverloaded-virtual
+    -Wmisleading-indentation
+    -Wduplicated-cond
+    # -Wdouble-promotion
+    # -Wuseless-cast
+    # -Wcast-align
+    # -Wlogical-op
+    # -Wnull-dereference
+    # -Wzero-as-null-pointer-constant
+    # -Wdisabled-optimization
+    # -Wvector-operation-performance
+    # -Wformat=2 -Wformat-truncation -Wformat-overflow
+    -Wno-unknown-pragmas
+    -Wno-unused-function
+    -Wno-unused-parameter
+    -Wno-missing-field-initializers
+    -Wno-invalid-offsetof
+  )
+
+  # To avoid warnings about the previous mismatched GCC / Clang options.
+  if(USE_CLANG)
+    list(APPEND CXX_FLAGS -Wno-unknown-warning-option)
+  endif()
+
+  # Features.
+  list(APPEND CXX_FLAGS
+    -fdiagnostics-color
+    # -fno-strict-aliasing
+    # -fno-builtin-memcmp
+    # -fno-common
+    # -fno-exceptions
+    # -ffunction-sections
+    # -fdata-sections
+    # -ftree-loop-distribution
+    # -funroll-loops
+  )
+
+  list(APPEND CXX_FLAGS_DEBUG           -O0 -g3 -Wundef)
+  list(APPEND CXX_FLAGS_RELEASE         -O2 -msse4.1)
+  list(APPEND CXX_FLAGS_RELWITHDEBINFO  ${CXX_FLAGS_RELEASE} -g1)
+
+  # Linker flags.
+  list(APPEND CustomLinkFlags
+    -Wl,--build-id
+    # -Wl,--gc-sections
+  )
+endif()
+
+# Transform linker flags from a list to a string.
+foreach(flag ${CustomLinkFlags})
+  set(CXX_LINK_FLAGS "${CXX_LINK_FLAGS} ${flag}")
+endforeach()
+
+# -----------------------------------------------------------------------------
 # CMake includes
 # -----------------------------------------------------------------------------
 
