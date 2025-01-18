@@ -71,7 +71,7 @@ Image_t Context::create_depth_stencil_image_2d(VkFormat const format, VkExtent2D
     .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
   };
   VkImageAspectFlags const stencil_mask{
-    utils::IsValidStencilFormat(depth_stencil.format) ? VK_IMAGE_ASPECT_STENCIL_BIT : VkImageAspectFlags(0)
+    utils::IsValidStencilFormat(depth_stencil.format) ? VK_IMAGE_ASPECT_STENCIL_BIT : VK_IMAGE_ASPECT_NONE_KHR
   };
   VkImageViewCreateInfo const image_view_info{
     .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
