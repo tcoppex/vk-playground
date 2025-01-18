@@ -106,8 +106,24 @@ struct ShaderModule_t {
 struct DescriptorSetLayoutParams_t {
   std::vector<VkDescriptorSetLayoutBinding> entries;
   std::vector<VkDescriptorBindingFlags> flags;
-  // std::vector<VkDescriptorBufferInfo> buffer_infos;
-  // std::vector<VkDescriptorImageInfo> image_infos;
+};
+
+// struct DescriptorSetLayout_t {
+//   DescriptorSetLayoutParams_t params;
+//   VkDescriptorSetLayout layout;
+// };
+
+struct DescriptorSetWriteEntry_t {
+  // (use an union ?)
+  struct Resource {
+    VkDescriptorImageInfo image{};
+    VkDescriptorBufferInfo buffer{};
+    VkBufferView bufferView{};
+  };
+
+  uint32_t binding{};
+  VkDescriptorType type{};
+  Resource resource{};
 };
 
 // ----------------------------------------------------------------------------
