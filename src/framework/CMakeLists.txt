@@ -15,8 +15,11 @@ file(GLOB_RECURSE
   ${FRAMEWORK_ROOT_PATH}/*.cc
 )
 
-add_library(${target} STATIC ${Sources})
-# add_library(${target} SHARED ${Sources})
+add_library(
+  ${target}
+  STATIC
+  ${Sources}
+)
 
 # -----------------------------------------------------------------------------
 

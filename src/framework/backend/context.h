@@ -57,8 +57,8 @@ class Context {
 
   // --- Shader Module ---
 
-  // (return shared_ptr, with auto release instead ?)
   ShaderModule_t create_shader_module(std::string_view const& directory, std::string_view const& shader_name) const;
+
   std::vector<ShaderModule_t> create_shader_modules(std::string_view const& directory, std::vector<std::string_view> const& shader_names) const;
 
   void release_shader_modules(std::vector<ShaderModule_t> const& shaders) const;
@@ -66,6 +66,7 @@ class Context {
   // --- Command Encoder ---
 
   CommandEncoder create_transient_command_encoder() const;
+
   void finish_transient_command_encoder(CommandEncoder const& encoder) const;
 
   /* Shortcut to transition image layouts. */

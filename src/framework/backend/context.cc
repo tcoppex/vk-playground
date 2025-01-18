@@ -111,6 +111,7 @@ std::vector<ShaderModule_t> Context::create_shader_modules(std::string_view cons
       return create_shader_module(directory, name);
     }
   );
+  // (return shared_ptr, with auto release instead ?)
   return shaders;
 }
 
@@ -169,6 +170,7 @@ void Context::finish_transient_command_encoder(CommandEncoder const& encoder) co
   vkFreeCommandBuffers(device_, transient_command_pool_, 1u, &encoder.command_buffer_);
 }
 
+/* -------------------------------------------------------------------------- */
 /* -------------------------------------------------------------------------- */
 
 void Context::init_instance() {

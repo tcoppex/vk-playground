@@ -8,6 +8,11 @@ class RenderPassEncoder;
 
 /* -------------------------------------------------------------------------- */
 
+/**
+ * Interface to VkCommandBuffer wrappers.
+ *
+ * Specify commands shared by all wrappers.
+ */
 class GenericCommandEncoder {
  public:
   GenericCommandEncoder() = default;
@@ -140,7 +145,9 @@ class CommandEncoder : public GenericCommandEncoder {
 
 /* -------------------------------------------------------------------------- */
 
-/* Specialized VkCommandBuffer wrapper for rendering operations. */
+/**
+ * Specialized wrapper for rendering operations.
+ **/
 class RenderPassEncoder : public GenericCommandEncoder {
  public:
   static constexpr bool kDefaultViewportFlipY{ false };
@@ -190,13 +197,13 @@ class RenderPassEncoder : public GenericCommandEncoder {
   template<typename T> requires (!SpanConvertible<T>)
   void push_constant(T const& value, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS, uint32_t const offset = 0u) const {
     assert(currently_bound_pipeline_layout_ != VK_NULL_HANDLE);
-    utils::PushConstant(command_buffer_, value, currently_bound_pipeline_layout_, stage_flags, offset);
+    push_constant(value, currently_bound_pipeline_layout_, stage_flags, offset);
   }
 
   template<typename T> requires (SpanConvertible<T>)
   void push_constants(T const& values, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS, uint32_t const offset = 0u) const {
     assert(currently_bound_pipeline_layout_ != VK_NULL_HANDLE);
-    utils::PushConstants(command_buffer_, values, currently_bound_pipeline_layout_, stage_flags, offset);
+    push_constants(values, currently_bound_pipeline_layout_, stage_flags, offset);
   }
 
   // --- Vertex Buffer ---

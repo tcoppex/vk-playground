@@ -60,6 +60,7 @@ class GraphicsPipeline final : public Pipeline {
   }
 
   inline void add_descriptor_set_layout(VkDescriptorSetLayout const descriptor_set_layout) {
+    assert(descriptor_set_layout != VK_NULL_HANDLE);
     descriptor_set_layouts_.push_back(descriptor_set_layout); //
   }
 
