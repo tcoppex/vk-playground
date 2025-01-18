@@ -30,6 +30,16 @@ char* ReadBinaryFile(const char *filename, size_t *filesize) {
 
 // ----------------------------------------------------------------------------
 
+size_t AlignTo(size_t const byteLength, size_t const byteAlignment) {
+  return (byteLength + byteAlignment - 1) / byteAlignment * byteAlignment;
+}
+
+size_t AlignTo256(size_t const byteLength) {
+  return AlignTo(byteLength, 256);
+}
+
+// ----------------------------------------------------------------------------
+
 VkShaderModule CreateShaderModule(VkDevice const device, char const* shader_directory, char const* shader_name) {
   char spirv_filename[256]{}; //
   sprintf(spirv_filename, "%s/%s.spv", shader_directory, shader_name);
