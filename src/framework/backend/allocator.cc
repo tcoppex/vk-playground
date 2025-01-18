@@ -42,6 +42,13 @@ Buffer_t ResourceAllocator::create_buffer(
 ) const {
   Buffer_t buffer{};
 
+  if constexpr (kAutoAlignBufferSize) {
+    if (auto const new_size{ utils::AlignTo256(size) }; new_size != size) {
+      fprintf(stderr, "%s: change size from %lu to %lu.\n", __FUNCTION__, size, new_size);
+      size = new_size;
+    }
+  }
+
   VkBufferUsageFlags2CreateInfoKHR const usage_flag2_info{
     .sType = VK_STRUCTURE_TYPE_BUFFER_USAGE_FLAGS_2_CREATE_INFO_KHR,
     .usage = usage
