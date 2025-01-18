@@ -13,7 +13,7 @@
 #include "framework/application.h"
 #include "framework/renderer/graphics_pipeline.h"
 
-/* Constants & data structures shared between the device and host. */
+/* Constants & data structures shared between the host and the device. */
 namespace shader_interop {
 #include "shaders/interop.h"
 }
@@ -56,8 +56,7 @@ class SampleApp final : public Application {
       auto cmd = context_.create_transient_command_encoder();
 
       vertex_buffer_ = cmd.create_buffer_and_upload(kVertices,
-          VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
-        | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
+        VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
       );
 
       context_.finish_transient_command_encoder(cmd);
@@ -121,17 +120,17 @@ class SampleApp final : public Application {
   }
 
   void frame() final {
-    /* Retrieve current frame time. */
+    /* Retrieve the current frame time. */
     float const tick{ get_frame_time() };
 
     /* Prepare values for left/right viewport-scissor, showing the two ways to do it. */
-    VkExtent2D const left_screen{
+    VkExtent2D const left_side{
       viewport_size_.width/2u,
       viewport_size_.height
     };
-    VkRect2D const right_screen{
-      .offset = {.x = static_cast<int>(left_screen.width)},
-      .extent = left_screen,
+    VkRect2D const right_side{
+      .offset = {.x = static_cast<int>(left_side.width)},
+      .extent = left_side,
     };
 
     auto cmd = renderer_.begin_frame();
@@ -147,20 +146,21 @@ class SampleApp final : public Application {
 
         // Left-side.
         {
-          /* Set viewport-scissor using a VkExtent2D (with no offset) */
-          pass.set_viewport_scissor(left_screen, kFlipScreenVertically);
+          /* Set viewport-scissor using a VkExtent2D (with no offset). */
+          pass.set_viewport_scissor(left_side, kFlipScreenVertically);
           pass.draw(kVertices.size());
         }
 
         // Right-side.
         {
-          /* Set viewport-scissor using a VkRect2D (with offset) */
-          pass.set_viewport_scissor(right_screen, !kFlipScreenVertically);
+          /* Set viewport-scissor using a VkRect2D (with offset). */
+          pass.set_viewport_scissor(right_side, !kFlipScreenVertically);
 
           /**
            * If no pipeline layout is specified, the pass encoder will take the
-           * one from the currently bound pipeline when available.
-           * This is only available using a RenderPassEncoder.
+           * one from the currently bound pipeline, when available.
+           *
+           * This is only possible using a non const RenderPassEncoder.
            **/
           pass.push_constant(tick * 4.0f);
           pass.draw(kVertices.size());
