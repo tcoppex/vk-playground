@@ -12,6 +12,10 @@
 
 class ResourceAllocator {
  public:
+  static constexpr size_t kDefaultStagingBufferSize{64 * 1024 * 1024};
+  static constexpr bool kAutoAlignBufferSize{ false };
+
+ public:
   ResourceAllocator() = default;
 
   ~ResourceAllocator() {}
@@ -27,12 +31,23 @@ class ResourceAllocator {
                          VmaMemoryUsage const memory_usage = VMA_MEMORY_USAGE_AUTO,
                          VmaAllocationCreateFlags const flags = {}) const;
 
-  Buffer_t create_staging_buffer(void const* host_data, size_t const bytesize);
+  Buffer_t create_staging_buffer(size_t const bytesize = kDefaultStagingBufferSize, void const* host_data = nullptr);
 
   template<typename T>
   Buffer_t create_staging_buffer(std::span<T> const& host_data) {
-    return create_staging_buffer(host_data.data(), sizeof(T) * host_data.size());
+    return create_staging_buffer(sizeof(T) * host_data.size(), host_data.data());
   }
+
+  // ------------------------
+  void write_buffer(
+    Buffer_t const& dst_buffer, size_t const dst_offset, void const* host_data,
+    size_t const host_offset, size_t const bytesize
+  );
+
+  void upload_host_to_device(void const* host_data, size_t const bytesize, Buffer_t const& dst_buffer) {
+    write_buffer(dst_buffer, 0, host_data, 0, bytesize);
+  }
+  // ------------------------
 
   inline
   void destroy_buffer(Buffer_t const& buffer) const {

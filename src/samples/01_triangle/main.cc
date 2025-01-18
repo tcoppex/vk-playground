@@ -53,15 +53,14 @@ class SampleApp final : public Application {
 
     /* Create a device storage buffer, then upload vertices host data to it.
      *
-     * We use a (temporary) transient command buffer to create a (immutable) storage
-     * device buffer, set to be used as VERTEX_BUFFER.
+     * We use a (temporary) transient command buffer to create the device vertex
+     * buffer.
      **/
     {
       auto cmd = context_.create_transient_command_encoder();
 
-      vertex_buffer_ = cmd.create_buffer_and_upload(std::span<Vertex_t const>(kVertices),
-          VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
-        | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
+      vertex_buffer_ = cmd.create_buffer_and_upload(kVertices,
+        VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
       );
 
       // Submit the command to the graphics queue.

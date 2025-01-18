@@ -58,6 +58,23 @@ class Renderer : public RTInterface {
   std::shared_ptr<Framebuffer> create_framebuffer() const;
 
 
+  // --- Descriptor Set Layout ---
+
+  VkDescriptorSetLayout create_descriptor_set_layout(DescriptorSetLayoutParams_t const& params) const;
+
+  void destroy_descriptor_set_layout(VkDescriptorSetLayout layout) const;
+
+  // --- Descriptor Set ---
+
+  std::vector<VkDescriptorSet> create_descriptor_sets(std::vector<VkDescriptorSetLayout> const& layouts) const;
+
+  VkDescriptorSet create_descriptor_set(VkDescriptorSetLayout const layout) const;
+
+  VkDescriptorSet create_descriptor_set(VkDescriptorSetLayout const layout, std::vector<DescriptorSetWriteEntry_t> const& entries) const;
+
+  void update_descriptor_set(VkDescriptorSet const& descriptor_set, std::vector<DescriptorSetWriteEntry_t> const& entries) const;
+
+
  public:
   // ----- RTInterface Overrides -----
 
@@ -104,6 +121,8 @@ class Renderer : public RTInterface {
     return VK_FORMAT_D16_UNORM; //
   }
 
+  void init_descriptor_pool();
+
  private:
   struct TimelineFrame_t {
     uint64_t signal_index{};
@@ -138,10 +157,18 @@ class Renderer : public RTInterface {
   /* Timeline frame resources */
   Timeline_t timeline_;
 
+  /* Main descriptor pool. */
+  std::vector<VkDescriptorPoolSize> descriptor_pool_sizes_{};
+  VkDescriptorPool descriptor_pool_{};
+
   /* Miscs resources */
   VkClearValue color_clear_value_{kDefaultColorClearValue};
   VkClearValue depth_stencil_clear_value_{{{1.0f, 0u}}};
+
+
+  // Reference to the current CommandEncoder returned by 'begin_frame'
   CommandEncoder cmd_{}; //
+
   VkSampler linear_sampler_{};
 };
 

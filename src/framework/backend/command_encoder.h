@@ -8,6 +8,11 @@ class RenderPassEncoder;
 
 /* -------------------------------------------------------------------------- */
 
+/**
+ * Interface to VkCommandBuffer wrappers.
+ *
+ * Specify commands shared by all wrappers.
+ */
 class GenericCommandEncoder {
  public:
   GenericCommandEncoder() = default;
@@ -18,13 +23,31 @@ class GenericCommandEncoder {
 
   virtual ~GenericCommandEncoder() {}
 
+  // --- Descriptor Sets ---
+
+  void bind_descriptor_set(VkDescriptorSet const descriptor_set, VkPipelineLayout const pipeline_layout, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS) const {
+    VkBindDescriptorSetsInfoKHR const bind_desc_sets_info{
+      .sType = VK_STRUCTURE_TYPE_BIND_DESCRIPTOR_SETS_INFO_KHR,
+      .stageFlags = stage_flags,
+      .layout = pipeline_layout,
+      .firstSet = 0u,
+      .descriptorSetCount = 1u, // 
+      .pDescriptorSets = &descriptor_set,
+    };
+    vkCmdBindDescriptorSets2KHR(command_buffer_, &bind_desc_sets_info);
+  }
+
+  // [TODO] wrapper forvkCmdPushDescriptorSet2KHR
+
  protected:
   VkCommandBuffer command_buffer_{};
 };
 
 /* -------------------------------------------------------------------------- */
 
-/* Generic VkCommandBuffer wrapper. */
+/**
+ * Main wrapper used for general operations outside rendering.
+ **/
 class CommandEncoder : public GenericCommandEncoder {
  public:
   struct RenderPassDescriptor_t {
@@ -38,13 +61,21 @@ class CommandEncoder : public GenericCommandEncoder {
 
   // --- Buffers ---
 
-  void copy_buffer(Buffer_t const& src, Buffer_t const& dst, size_t size) const;
+  void copy_buffer(Buffer_t const& src, Buffer_t const& dst, std::vector<VkBufferCopy> const& regions) const;
 
-  Buffer_t create_buffer_and_upload(void const* host_data, size_t const size, VkBufferUsageFlags2KHR const usage = {}) const;
+  void copy_buffer(Buffer_t const& src, size_t src_offset, Buffer_t const& dst, size_t dst_offet, size_t size) const;
 
-  template<typename T>
-  Buffer_t create_buffer_and_upload(std::span<T> const& host_data, VkBufferUsageFlags2KHR usage = {}) const {
-    return create_buffer_and_upload(host_data.data(), sizeof(T) * host_data.size(), usage);
+  void copy_buffer(Buffer_t const& src, Buffer_t const& dst, size_t size) const {
+    copy_buffer(src, 0, dst, 0, size);
+  }
+
+  Buffer_t create_buffer_and_upload(void const* host_data, size_t const size, VkBufferUsageFlags2KHR const usage) const;
+
+  template<typename T> requires (SpanConvertible<T>)
+  Buffer_t create_buffer_and_upload(T const& host_data, VkBufferUsageFlags2KHR const usage = {}) const {
+    auto const host_span{ std::span(host_data) };
+    size_t const bytesize{ sizeof(typename decltype(host_span)::element_type) * host_span.size() };
+    return create_buffer_and_upload(host_span.data(), bytesize, usage);
   }
 
   // --- Images ---
@@ -114,7 +145,9 @@ class CommandEncoder : public GenericCommandEncoder {
 
 /* -------------------------------------------------------------------------- */
 
-/* Specialized VkCommandBuffer wrapper for rendering operations. */
+/**
+ * Specialized wrapper for rendering operations.
+ **/
 class RenderPassEncoder : public GenericCommandEncoder {
  public:
   static constexpr bool kDefaultViewportFlipY{ false };
@@ -143,6 +176,12 @@ class RenderPassEncoder : public GenericCommandEncoder {
     vkCmdBindPipeline(command_buffer_, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.get_handle());
   }
 
+  // --- Descriptor Sets ---
+
+  void bind_descriptor_set(VkDescriptorSet const descriptor_set, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS) const {
+    GenericCommandEncoder::bind_descriptor_set(descriptor_set, currently_bound_pipeline_layout_, stage_flags);
+  }
+
   // --- Push Constants ---
 
   template<typename T> requires (!SpanConvertible<T>)
@@ -158,13 +197,13 @@ class RenderPassEncoder : public GenericCommandEncoder {
   template<typename T> requires (!SpanConvertible<T>)
   void push_constant(T const& value, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS, uint32_t const offset = 0u) const {
     assert(currently_bound_pipeline_layout_ != VK_NULL_HANDLE);
-    utils::PushConstant(command_buffer_, value, currently_bound_pipeline_layout_, stage_flags, offset);
+    push_constant(value, currently_bound_pipeline_layout_, stage_flags, offset);
   }
 
   template<typename T> requires (SpanConvertible<T>)
   void push_constants(T const& values, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS, uint32_t const offset = 0u) const {
     assert(currently_bound_pipeline_layout_ != VK_NULL_HANDLE);
-    utils::PushConstants(command_buffer_, values, currently_bound_pipeline_layout_, stage_flags, offset);
+    push_constants(values, currently_bound_pipeline_layout_, stage_flags, offset);
   }
 
   // --- Vertex Buffer ---
@@ -172,6 +211,11 @@ class RenderPassEncoder : public GenericCommandEncoder {
   inline
   void set_vertex_buffer(Buffer_t const& buffer, VkDeviceSize const offset = 0u) const {
     vkCmdBindVertexBuffers(command_buffer_, 0u, 1u, &buffer.buffer, &offset);
+  }
+
+  inline
+  void set_index_buffer(Buffer_t const& buffer, VkIndexType const index_type = VK_INDEX_TYPE_UINT32, VkDeviceSize const offset = 0u) const {
+    vkCmdBindIndexBuffer2(command_buffer_, buffer.buffer, offset, VK_WHOLE_SIZE, index_type);
   }
 
   // --- Draw ---

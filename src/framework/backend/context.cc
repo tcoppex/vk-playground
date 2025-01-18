@@ -71,7 +71,7 @@ Image_t Context::create_depth_stencil_image_2d(VkFormat const format, VkExtent2D
     .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
   };
   VkImageAspectFlags const stencil_mask{
-    utils::IsValidStencilFormat(depth_stencil.format) ? VK_IMAGE_ASPECT_STENCIL_BIT : VkImageAspectFlags(0)
+    utils::IsValidStencilFormat(depth_stencil.format) ? VK_IMAGE_ASPECT_STENCIL_BIT : VK_IMAGE_ASPECT_NONE_KHR
   };
   VkImageViewCreateInfo const image_view_info{
     .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
@@ -111,6 +111,7 @@ std::vector<ShaderModule_t> Context::create_shader_modules(std::string_view cons
       return create_shader_module(directory, name);
     }
   );
+  // (return shared_ptr, with auto release instead ?)
   return shaders;
 }
 
@@ -169,6 +170,7 @@ void Context::finish_transient_command_encoder(CommandEncoder const& encoder) co
   vkFreeCommandBuffers(device_, transient_command_pool_, 1u, &encoder.command_buffer_);
 }
 
+/* -------------------------------------------------------------------------- */
 /* -------------------------------------------------------------------------- */
 
 void Context::init_instance() {
@@ -392,6 +394,7 @@ bool Context::init_device() {
     bind_func(vkQueueSubmit2, vkQueueSubmit2KHR);
     bind_func(vkCmdBeginRendering, vkCmdBeginRenderingKHR);
     bind_func(vkCmdEndRendering, vkCmdEndRenderingKHR);
+    bind_func(vkCmdBindIndexBuffer2, vkCmdBindIndexBuffer2KHR);
   }
 
   vkGetDeviceQueue(device_, graphics_queue_.family_index, graphics_queue_.queue_index, &graphics_queue_.queue);
