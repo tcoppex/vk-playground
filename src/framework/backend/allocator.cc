@@ -104,14 +104,20 @@ Buffer_t ResourceAllocator::create_staging_buffer(size_t const bytesize, void co
 
 // ----------------------------------------------------------------------------
 
-void ResourceAllocator::upload_host_to_device(void const* host_data, size_t const bytesize, Buffer_t const& dst_buffer) {
+void ResourceAllocator::write_buffer(
+  Buffer_t const& dst_buffer, size_t const dst_offset,
+  void const* host_data, size_t const host_offset, size_t const bytesize
+) {
   assert(host_data != nullptr);
   assert(dst_buffer.buffer != VK_NULL_HANDLE);
   assert(bytesize > 0);
 
-  void *device_data{};
-  vmaMapMemory(allocator_, dst_buffer.allocation, &device_data);
-  memcpy(device_data, host_data, bytesize);
+  void *device_data = nullptr;
+  CHECK_VK( vmaMapMemory(allocator_, dst_buffer.allocation, &device_data) );
+
+  memcpy(static_cast<char*>(device_data) + dst_offset,
+         static_cast<const char*>(host_data) + host_offset, bytesize);
+
   vmaUnmapMemory(allocator_, dst_buffer.allocation);
 }
 
