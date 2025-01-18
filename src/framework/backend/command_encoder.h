@@ -18,13 +18,31 @@ class GenericCommandEncoder {
 
   virtual ~GenericCommandEncoder() {}
 
+  // --- Descriptor Sets ---
+
+  void bind_descriptor_set(VkDescriptorSet const descriptor_set, VkPipelineLayout const pipeline_layout, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS) const {
+    VkBindDescriptorSetsInfoKHR const bind_desc_sets_info{
+      .sType = VK_STRUCTURE_TYPE_BIND_DESCRIPTOR_SETS_INFO_KHR,
+      .stageFlags = stage_flags,
+      .layout = pipeline_layout,
+      .firstSet = 0u,
+      .descriptorSetCount = 1u, // 
+      .pDescriptorSets = &descriptor_set,
+    };
+    vkCmdBindDescriptorSets2KHR(command_buffer_, &bind_desc_sets_info);
+  }
+
+  // [TODO] wrapper forvkCmdPushDescriptorSet2KHR
+
  protected:
   VkCommandBuffer command_buffer_{};
 };
 
 /* -------------------------------------------------------------------------- */
 
-/* Generic VkCommandBuffer wrapper. */
+/**
+ * Main wrapper used for general operations outside rendering.
+ **/
 class CommandEncoder : public GenericCommandEncoder {
  public:
   struct RenderPassDescriptor_t {
@@ -143,6 +161,12 @@ class RenderPassEncoder : public GenericCommandEncoder {
   void set_pipeline(Pipeline const& pipeline) {
     currently_bound_pipeline_layout_ = pipeline.get_layout();
     vkCmdBindPipeline(command_buffer_, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.get_handle());
+  }
+
+  // --- Descriptor Sets ---
+
+  void bind_descriptor_set(VkDescriptorSet const descriptor_set, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS) const {
+    GenericCommandEncoder::bind_descriptor_set(descriptor_set, currently_bound_pipeline_layout_, stage_flags);
   }
 
   // --- Push Constants ---
