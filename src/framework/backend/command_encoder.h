@@ -56,12 +56,18 @@ class CommandEncoder : public GenericCommandEncoder {
 
   // --- Buffers ---
 
-  void copy_buffer(Buffer_t const& src, Buffer_t const& dst, size_t size) const;
+  void copy_buffer(Buffer_t const& src, Buffer_t const& dst, std::vector<VkBufferCopy> const& regions) const;
 
-  Buffer_t create_buffer_and_upload(void const* host_data, size_t const size, VkBufferUsageFlags2KHR const usage = {}) const;
+  void copy_buffer(Buffer_t const& src, size_t src_offset, Buffer_t const& dst, size_t dst_offet, size_t size) const;
+
+  void copy_buffer(Buffer_t const& src, Buffer_t const& dst, size_t size) const {
+    copy_buffer(src, 0, dst, 0, size);
+  }
+
+  Buffer_t create_buffer_and_upload(void const* host_data, size_t const size, VkBufferUsageFlags2KHR const usage) const;
 
   template<typename T> requires (SpanConvertible<T>)
-  Buffer_t create_buffer_and_upload(T const& host_data, VkBufferUsageFlags2KHR usage = {}) const {
+  Buffer_t create_buffer_and_upload(T const& host_data, VkBufferUsageFlags2KHR const usage = {}) const {
     auto const host_span{ std::span(host_data) };
     size_t const bytesize{ sizeof(typename decltype(host_span)::element_type) * host_span.size() };
     return create_buffer_and_upload(host_span.data(), bytesize, usage);

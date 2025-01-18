@@ -3,16 +3,51 @@
 
 /* -------------------------------------------------------------------------- */
 
-void CommandEncoder::copy_buffer(Buffer_t const& src, Buffer_t const& dst, size_t size) const {
-  VkBufferCopy const region{
-    .size = static_cast<VkDeviceSize>(size),
-  };
-  vkCmdCopyBuffer(command_buffer_, src.buffer, dst.buffer, 1u, &region);
+inline
+void CommandEncoder::copy_buffer(Buffer_t const& src, Buffer_t const& dst, std::vector<VkBufferCopy> const& regions) const {
+  vkCmdCopyBuffer(command_buffer_, src.buffer, dst.buffer, static_cast<uint32_t>(regions.size()), regions.data());
+
+  // VkBufferMemoryBarrier bufferBarrier = {
+  //   .sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+  //   .srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
+  //   .dstAccessMask = VK_ACCESS_UNIFORM_READ_BIT,
+  //   .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+  //   .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+  //   .buffer = dst.buffer,
+  //   .offset = 0,
+  //   .size = VK_WHOLE_SIZE,
+  // };
+
+  // vkCmdPipelineBarrier(
+  //   command_buffer_,
+  //   VK_PIPELINE_STAGE_TRANSFER_BIT,           // Source stage: Transfer writes
+  //   VK_PIPELINE_STAGE_VERTEX_SHADER_BIT,      // Destination stage: Uniform reads in vertex shader
+  //   0,                                        // No dependency flags
+  //   0, nullptr,                               // No memory barriers
+  //   1, &bufferBarrier,                        // Single buffer memory barrier
+  //   0, nullptr                                // No image memory barriers
+  // );
+}
+
+// ----------------------------------------------------------------------------
+
+void CommandEncoder::copy_buffer(Buffer_t const& src, size_t src_offset, Buffer_t const& dst, size_t dst_offet, size_t size) const {
+  assert(size > 0);
+  copy_buffer(src, dst, {
+    {
+      .srcOffset = static_cast<VkDeviceSize>(src_offset),
+      .dstOffset = static_cast<VkDeviceSize>(dst_offet),
+      .size = static_cast<VkDeviceSize>(size),
+    }
+  });
 }
 
 // ----------------------------------------------------------------------------
 
 Buffer_t CommandEncoder::create_buffer_and_upload(void const* host_data, size_t const size, VkBufferUsageFlags2KHR const usage) const {
+  assert(host_data != nullptr);
+  assert(size > 0);
+
   auto staging_buffer{
     allocator_->create_staging_buffer(size, host_data)   /// (need cleaning)
   };
@@ -23,7 +58,7 @@ Buffer_t CommandEncoder::create_buffer_and_upload(void const* host_data, size_t 
     VMA_MEMORY_USAGE_GPU_ONLY
   )};
 
-  copy_buffer(staging_buffer, buffer, size);
+  copy_buffer(staging_buffer, 0u, buffer, 0u, size);
 
   return buffer;
 }
