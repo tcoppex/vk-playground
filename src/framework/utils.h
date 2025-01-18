@@ -2,22 +2,49 @@
 #define HELLOVK_FRAMEWORK_UTILS_H
 
 /* -------------------------------------------------------------------------- */
+//
+//    utils.h
+//
+//  A bunch of utility functions, not yet organized to be elsewhere.
+//
+/* -------------------------------------------------------------------------- */
+
 
 #include <tuple>
+
 #include "framework/backend/common.h"
 #include "framework/backend/types.h"
 
+namespace utils {
+
 /* -------------------------------------------------------------------------- */
 
-namespace utils {
 
 char* ReadBinaryFile(const char* filename, size_t* filesize);
 
+size_t AlignTo(size_t const byteLength, size_t const byteAlignment);
+
+size_t AlignTo256(size_t const byteLength);
+
+
 // ----------------------------------------------------------------------------
+
+
+VkResult CheckVKResult(VkResult result, char const* file, int const line, bool const bExitOnFail);
+
+bool IsValidStencilFormat(VkFormat const format);
+
+
+// ----------------------------------------------------------------------------
+
 
 VkShaderModule CreateShaderModule(VkDevice const device, char const* shader_directory, char const* shader_name);
 
-VkResult CheckVKResult(VkResult result, char const* file, int const line, bool const bExitOnFail);
+std::tuple<VkPipelineStageFlags2, VkAccessFlags2> MakePipelineStageAccessTuple(VkImageLayout const state);
+
+
+// ----------------------------------------------------------------------------
+
 
 template <typename T, typename N>
 void PushNextVKStruct(T* baseStruct, N* nextStruct) {
@@ -25,14 +52,14 @@ void PushNextVKStruct(T* baseStruct, N* nextStruct) {
   baseStruct->pNext = nextStruct;
 }
 
-VkDescriptorSetLayout CreateDescriptorSetLayout(VkDevice const device, DescriptorSetLayoutParams_t const& params);
-
-bool IsValidStencilFormat(VkFormat const format);
-
-std::tuple<VkPipelineStageFlags2, VkAccessFlags2> MakePipelineStageAccessTuple(VkImageLayout const state);
-
 template<typename T> requires (!SpanConvertible<T>)
-void PushConstant(VkCommandBuffer const command_buffer, T const& value, VkPipelineLayout const pipeline_layout, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS, uint32_t const offset = 0u) {
+void PushConstant(
+  VkCommandBuffer const command_buffer,
+  T const& value,
+  VkPipelineLayout const pipeline_layout,
+  VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS,
+  uint32_t const offset = 0u
+) {
   VkPushConstantsInfoKHR const push_info{
     .sType = VK_STRUCTURE_TYPE_PUSH_CONSTANTS_INFO_KHR,
     .layout = pipeline_layout,
@@ -45,7 +72,13 @@ void PushConstant(VkCommandBuffer const command_buffer, T const& value, VkPipeli
 }
 
 template<typename T> requires (SpanConvertible<T>)
-void PushConstants(VkCommandBuffer const command_buffer, T const& values, VkPipelineLayout const pipeline_layout, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS, uint32_t const offset = 0u) {
+void PushConstants(
+  VkCommandBuffer const command_buffer,
+  T const& values,
+  VkPipelineLayout const pipeline_layout,
+  VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS,
+  uint32_t const offset = 0u
+) {
   auto const span_values{ std::span(values) };
   VkPushConstantsInfoKHR const push_info{
     .sType = VK_STRUCTURE_TYPE_PUSH_CONSTANTS_INFO_KHR,
@@ -58,8 +91,8 @@ void PushConstants(VkCommandBuffer const command_buffer, T const& values, VkPipe
   vkCmdPushConstants2KHR(command_buffer, &push_info);
 }
 
-} // namespace "utils"
-
 /* -------------------------------------------------------------------------- */
+
+} // namespace "utils"
 
 #endif

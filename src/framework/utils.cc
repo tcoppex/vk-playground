@@ -71,30 +71,6 @@ VkResult CheckVKResult(VkResult result, char const* file, int const line, bool c
 
 // ----------------------------------------------------------------------------
 
-VkDescriptorSetLayout CreateDescriptorSetLayout(VkDevice const device, DescriptorSetLayoutParams_t const& params) {
-  assert(params.flags.empty() || (params.entries.size() == params.flags.size())); //
-
-  VkDescriptorSetLayoutBindingFlagsCreateInfo const flags_create_info{
-    .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO,
-    .bindingCount = static_cast<uint32_t>(params.flags.size()),
-    .pBindingFlags = params.flags.data(),
-  };
-  VkDescriptorSetLayoutCreateInfo const layout_create_info{
-    .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-    .pNext = params.flags.empty() ? nullptr : &flags_create_info,
-    .flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT, //
-    .bindingCount = static_cast<uint32_t>(params.entries.size()),
-    .pBindings = params.entries.data(),
-  };
-
-  VkDescriptorSetLayout descriptor_set_layout;
-  CHECK_VK(vkCreateDescriptorSetLayout(device, &layout_create_info, nullptr, &descriptor_set_layout));
-
-  return descriptor_set_layout;
-}
-
-// ----------------------------------------------------------------------------
-
 bool IsValidStencilFormat(VkFormat const format) {
   return (format == VK_FORMAT_D16_UNORM_S8_UINT)
       || (format == VK_FORMAT_D24_UNORM_S8_UINT)
