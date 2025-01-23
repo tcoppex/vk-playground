@@ -4,7 +4,7 @@
 
 # :fire: vk-playground :fire:
 
-A simple c++20 / Vulkan 1.1 rendering framework, flavored like 1.4, inspired by WebGPU and _vk_minimal_latest_.
+A simple c++20 / Vulkan 1.1 rendering framework, flavored like 1.4, inspired by WebGPU and _vk_minimal_latest_, running on GNU/Linux (_GCC 12.0_) and Windows 11 (_MSVC 14.38.33130_).
 
 <details>
   <summary><strong>Quick start & run !</strong></summary>
