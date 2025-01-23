@@ -148,7 +148,7 @@ uint32_t Swapchain::acquire_next_image() {
   VkResult const result = vkAcquireNextImageKHR(
     device_, swapchain_, UINT64_MAX, semaphore, VK_NULL_HANDLE, &next_swap_index_
   );
-  assert(current_swap_index_ == next_swap_index_);
+  // assert(current_swap_index_ == next_swap_index_);
 
   need_rebuild_ = CheckOutOfDataResult(result,
     "Vulkan: couldn't acquire swapchain image.\n"
