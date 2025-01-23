@@ -43,7 +43,8 @@ function(add_simple_demo dirname)
   )
 
   target_compile_definitions(${dirname} PRIVATE
-    COMPILED_SHADERS_DIR="${SAMPLE_PATH}/shaders/spirv"
+    COMPILED_SHADERS_DIR="${SAMPLE_PATH}/shaders/spirv/"
+    ASSETS_DIR="${PROJECT_ASSETS_DIR}/"
 
     # Define VK_NO_PROTOTYPES to avoid including Vulkan prototypes
     # This is necessary because we are using volk to load Vulkan functions
