@@ -6,7 +6,7 @@
 
 A simple c++20 / Vulkan 1.1 rendering framework, flavored like 1.4, inspired by WebGPU and _vk_minimal_latest_.
 
-Tested on GNU/Linux (_GCC 12.0_) and Windows 11 (_MSVC 19.38_).
+Runs on GNU/Linux and Windows 11, compiled with _GCC 11.4_ and _MSVC 19.38_.
 
 <details>
   <summary><strong>Quick start & run !</strong></summary>
