@@ -18,6 +18,7 @@ file(GLOB_RECURSE
 add_library(
   ${target}
   STATIC
+  # SHARED
   ${Sources}
 )
 
@@ -25,7 +26,8 @@ add_library(
 
 target_link_libraries(${target} PRIVATE
   ${Vulkan_LIBRARY}
-  ${GLFW_LIBRARY}
+  # ${GLFW_LIBRARY}
+  glfw
   volk
   VulkanMemoryAllocator
 )
@@ -35,6 +37,9 @@ target_include_directories(${target} PRIVATE
   ${Vulkan_INCLUDE_DIR}
   ${GLFW_INCLUDE_DIR}
   ${LINALG_INCLUDE_DIR}
+  ${VOLK_INCLUDE_DIR}
+  ${VMA_INCLUDE_DIR}
+  ${PROJECT_THIRD_PARTY_DIR}
 )
 
 target_compile_definitions(${target} PRIVATE
@@ -54,6 +59,8 @@ set_target_properties(${target}
   PROPERTIES
     LINK_FLAGS "${CXX_LINK_FLAGS}"
 )
+
+set_target_output_directory(${target} ${PROJECT_BINARY_DIR})
 
 # -----------------------------------------------------------------------------
 

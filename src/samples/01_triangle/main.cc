@@ -139,8 +139,9 @@ class SampleApp final : public Application {
     auto pass = cmd.begin_rendering();
     {
       /**
-       * Set the viewport and scissor with the flag 'flip_y' to true to flip
-       * the Y-axis upward, like traditional APIs. It is set to false by default.
+       * Set the viewport and scissor.
+       * Use the flag 'flip_y' to false to flip the Y-axis downward as per the
+       * default Vulkan specs. It is set to true by default.
        *
        * As GraphicPipeline uses dynamic Viewport and Scissor states by default,
        * we need to specify them when using a graphic pipeline.
@@ -148,7 +149,7 @@ class SampleApp final : public Application {
        * As dynamic states are not bound to a pipeline they can be set whenever
        * during rendering before the draw command.
        **/
-      pass.set_viewport_scissor(viewport_size_, true);
+      pass.set_viewport_scissor(viewport_size_, false);
 
       pass.set_pipeline(graphics_pipeline_);
       pass.set_vertex_buffer(vertex_buffer_);

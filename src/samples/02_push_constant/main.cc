@@ -81,6 +81,11 @@ class SampleApp final : public Application {
         .size = sizeof(shader_interop::PushConstant),
       });
 
+      /* By default the cull mode is to 'none' and front face are ordered counter clockwise,
+       * so if we're not flipping the screen triangle will not be displayed.
+       * Uncomment to see the result.  */
+      // gp.set_cull_mode(VK_CULL_MODE_BACK_BIT);
+
       gp.set_vertex_binding_attribute({
         .bindings = {
           {
@@ -124,13 +129,13 @@ class SampleApp final : public Application {
     float const tick{ get_frame_time() };
 
     /* Prepare values for left/right viewport-scissor, showing the two ways to do it. */
-    VkExtent2D const left_side{
+    VkExtent2D const half_screen{
       viewport_size_.width/2u,
       viewport_size_.height
     };
     VkRect2D const right_side{
-      .offset = {.x = static_cast<int>(left_side.width)},
-      .extent = left_side,
+      .offset = {.x = static_cast<int>(half_screen.width)},
+      .extent = half_screen,
     };
 
     auto cmd = renderer_.begin_frame();
@@ -147,7 +152,7 @@ class SampleApp final : public Application {
         // Left-side.
         {
           /* Set viewport-scissor using a VkExtent2D (with no offset). */
-          pass.set_viewport_scissor(left_side, kFlipScreenVertically);
+          pass.set_viewport_scissor(half_screen, kFlipScreenVertically);
           pass.draw(kVertices.size());
         }
 

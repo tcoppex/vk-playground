@@ -18,6 +18,7 @@
 #include <vector>
 #include <concepts>
 #include <type_traits>
+#include <iterator> // For std::back_inserter
 
 #include "volk.h"
 

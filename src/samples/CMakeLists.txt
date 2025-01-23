@@ -31,7 +31,9 @@ function(add_simple_demo dirname)
 
   target_link_libraries(${dirname} PRIVATE
     ${FRAMEWORK_LIBRARIES}
-    ${Vulkan_LIBRARY}
+    # ${Vulkan_LIBRARY}
+    volk
+    glfw
   )
 
   target_include_directories(${dirname} PRIVATE
@@ -40,6 +42,9 @@ function(add_simple_demo dirname)
     ${Vulkan_INCLUDE_DIR}
     ${GLFW_INCLUDE_DIR}
     ${LINALG_INCLUDE_DIR}
+    ${VOLK_INCLUDE_DIR}
+    ${VMA_INCLUDE_DIR}
+    ${PROJECT_THIRD_PARTY_DIR}
   )
 
   target_compile_definitions(${dirname} PRIVATE
@@ -50,15 +55,18 @@ function(add_simple_demo dirname)
     # This is necessary because we are using volk to load Vulkan functions
     VK_NO_PROTOTYPES
   )
+
+  set_target_output_directory(${dirname} ${PROJECT_BINARY_DIR})
 endfunction(add_simple_demo)
 
 # -----------------------------------------------------------------------------
 
 add_simple_demo(00_hello)
 add_simple_demo(01_triangle)
-add_simple_demo(02_push_constant)
+add_simple_demo(02_push_constant) # left side not working on windows?
 add_simple_demo(03_descriptor_set)
 add_simple_demo(04_texturing)
+
 # add_simple_demo(05_instancing)
 # add_simple_demo(06_alpha_blending)
 # add_simple_demo(07_stencil_op)

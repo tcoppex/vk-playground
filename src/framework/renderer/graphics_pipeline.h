@@ -52,11 +52,11 @@ class GraphicsPipeline final : public Pipeline {
 
  public:
   // -------------------------
-  inline void add_push_constant_range(VkPushConstantRange const& value) {
+  void add_push_constant_range(VkPushConstantRange const& value) {
     push_constant_ranges_.push_back(value);
   }
 
-  inline void add_push_constant_ranges(std::vector<VkPushConstantRange> const& values) {
+  void add_push_constant_ranges(std::vector<VkPushConstantRange> const& values) {
     push_constant_ranges_.insert(
       push_constant_ranges_.end(),
       values.cbegin(),
@@ -64,7 +64,7 @@ class GraphicsPipeline final : public Pipeline {
     );
   }
 
-  inline void add_descriptor_set_layout(VkDescriptorSetLayout const descriptor_set_layout) {
+  void add_descriptor_set_layout(VkDescriptorSetLayout const descriptor_set_layout) {
     assert(descriptor_set_layout != VK_NULL_HANDLE);
     descriptor_set_layouts_.push_back(descriptor_set_layout); //
   }
@@ -74,11 +74,15 @@ class GraphicsPipeline final : public Pipeline {
 
   void set_vertex_binding_attribute(VertexBindingAttribute_t const&& vba);
 
-  inline void set_topology(VkPrimitiveTopology const topology) {
+  void set_topology(VkPrimitiveTopology const topology) {
     states_.input_assembly.topology = topology;
   }
 
-  inline PipelineStates_t& get_states() {
+  void set_cull_mode(VkCullModeFlagBits const cull_mode) {
+    states_.rasterization.cullMode = cull_mode;
+  }
+
+  PipelineStates_t& get_states() {
     return states_;
   }
 
