@@ -4,7 +4,9 @@
 
 # :fire: vk-playground :fire:
 
-A simple c++20 / Vulkan 1.1 rendering framework, flavored like 1.4, inspired by WebGPU and _vk_minimal_latest_, running on GNU/Linux (_GCC 12.0_) and Windows 11 (_MSVC 14.38.33130_).
+A simple c++20 / Vulkan 1.1 rendering framework, flavored like 1.4, inspired by WebGPU and _vk_minimal_latest_.
+
+Tested on GNU/Linux (_GCC 12.0_) and Windows 11 (_MSVC 14.38.33130_).
 
 <details>
   <summary><strong>Quick start & run !</strong></summary>
@@ -51,12 +53,13 @@ cmake --build build
 ##### Third parties
 
  * Vulkan SDK 1.1
- * GLFW 3.3
  * CMake 3.31
  * CPM 0.40.3 (_downloaded automatically_)
+ * GLFW 3.4 (_via CPM_)
  * Volk 1.4 (_via CPM_)
  * VulkanMemoryAllocator 3.2.0 (_via CPM_)
  * linalg v2.2 (_via CPM_)
+ * stb_image.h (_included_)
 
 ##### Vulkan device extensions
 
