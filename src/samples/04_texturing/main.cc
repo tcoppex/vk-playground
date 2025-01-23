@@ -18,8 +18,6 @@ namespace shader_interop {
 
 class SampleApp final : public Application {
  public:
-  static bool constexpr kFlipScreenVertically{ true };
-
   using HostData_t = shader_interop::UniformData;
 
  public:
@@ -164,6 +162,7 @@ class SampleApp final : public Application {
       gp.add_shader_stage(VK_SHADER_STAGE_FRAGMENT_BIT, shaders[1u]);
 
       gp.set_topology(cube_geo.get_vk_primitive_topology());
+      gp.set_cull_mode(VK_CULL_MODE_BACK_BIT);
 
       gp.set_vertex_binding_attribute({
         .bindings = {
@@ -216,7 +215,7 @@ class SampleApp final : public Application {
     {
       auto pass = cmd.begin_rendering();
       {
-        pass.set_viewport_scissor(viewport_size_, kFlipScreenVertically);
+        pass.set_viewport_scissor(viewport_size_);
 
         pass.set_pipeline(graphics_pipeline_);
 

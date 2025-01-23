@@ -162,7 +162,7 @@ class CommandEncoder : public GenericCommandEncoder {
  **/
 class RenderPassEncoder : public GenericCommandEncoder {
  public:
-  static constexpr bool kDefaultViewportFlipY{ false };
+  static constexpr bool kDefaultViewportFlipY{ true };
 
  public:
   ~RenderPassEncoder() {}
