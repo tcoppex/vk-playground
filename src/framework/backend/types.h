@@ -114,7 +114,7 @@ struct DescriptorSetLayoutParams_t {
 // };
 
 struct DescriptorSetWriteEntry_t {
-  // (use an union ?)
+  // (use an union instead ?)
   struct Resource {
     VkDescriptorImageInfo image{};
     VkDescriptorBufferInfo buffer{};

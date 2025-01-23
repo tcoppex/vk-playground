@@ -10,10 +10,6 @@
 //            * Dynamic Viewport / Scissor states,
 //            * set_pipeline / set_vertex_buffer / draw.
 //
-//    TODO:
-//        * Limit GraphicContext creation to Renderer ?
-//        * Improve resource release logic.
-//
 //
 /* -------------------------------------------------------------------------- */
 
@@ -63,7 +59,7 @@ class SampleApp final : public Application {
         VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
       );
 
-      // Submit the command to the graphics queue.
+      /* Submit the command to the graphics queue. */
       context_.finish_transient_command_encoder(cmd);
     }
 
@@ -79,7 +75,7 @@ class SampleApp final : public Application {
        * The GraphicsPipeline object is presetup with a default layout for
        * rendering. Before using it we need to specify at least a vertex and
        * fragment shader and the binding of its vertex attributes, if any.
-       * */
+       **/
       auto& gp = graphics_pipeline_;
 
       gp.add_shader_stage(VK_SHADER_STAGE_VERTEX_BIT, shaders[0u]);

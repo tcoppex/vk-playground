@@ -165,11 +165,10 @@ class Renderer : public RTInterface {
   VkClearValue color_clear_value_{kDefaultColorClearValue};
   VkClearValue depth_stencil_clear_value_{{{1.0f, 0u}}};
 
-
   // Reference to the current CommandEncoder returned by 'begin_frame'
   CommandEncoder cmd_{}; //
 
-  VkSampler linear_sampler_{};
+  VkSampler linear_sampler_{}; //
 };
 
 /* -------------------------------------------------------------------------- */

@@ -57,7 +57,7 @@ class SampleApp final : public Application {
 
     allocator_ = context_.get_resource_allocator();
 
-    /* Initialize the scene data, here the camera matrix, on the host. */
+    /* Initialize the scene data on the host, here just the camera matrices. */
     {
       host_data_.scene.camera = {
         .viewMatrix = linalg::lookat_matrix(
@@ -119,6 +119,10 @@ class SampleApp final : public Application {
         },
       });
 
+      /**
+       * Create a descriptor set from a layout and update it directly (optionnal).
+       * The descriptor set can be update later on by calling 'update_descriptor_set'.
+       **/
       descriptor_set_ = renderer_.create_descriptor_set(descriptor_set_layout_, {
         {
           .binding = kDescSetUniformBinding,
@@ -225,7 +229,7 @@ class SampleApp final : public Application {
          * used.
          *
          * Like push_constant, if a pipeline is currently bound, the RenderPassEncoder
-         * will automaticaly use their as the target pipeline layout.
+         * will automaticaly use their's as the targeted pipeline layout.
          **/
         pass.bind_descriptor_set(descriptor_set_, VK_SHADER_STAGE_VERTEX_BIT);
 

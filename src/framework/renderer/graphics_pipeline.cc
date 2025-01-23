@@ -129,6 +129,11 @@ void GraphicsPipeline::add_shader_stage(VkShaderStageFlagBits const stage, Shade
 // ----------------------------------------------------------------------------
 
 void GraphicsPipeline::set_vertex_binding_attribute(VertexBindingAttribute_t const&& vba) {
+  // If vertexAttributeRobustness is not enabled and the pipeline is being created
+  // with vertex input state and pVertexInputState is not dynamic, then all
+  // variables with the Input storage class decorated with Location in the Vertex
+  // Execution Model OpEntryPoint must contain a location in VkVertexInputAttributeDescription::location
+
   vertex_binding_attribute_ = std::move(vba);
 
   auto &vi = states_.vertex_input;
