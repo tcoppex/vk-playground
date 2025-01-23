@@ -82,6 +82,18 @@ class CommandEncoder : public GenericCommandEncoder {
 
   void transition_images_layout(std::vector<Image_t> const& images, VkImageLayout const src_layout, VkImageLayout const dst_layout) const;
 
+
+  void copy_buffer_to_image(Buffer_t const& src, Image_t const& dst, VkExtent3D extent, VkImageLayout image_layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) const {
+    VkBufferImageCopy const copy{
+      .imageSubresource = {
+        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+        .layerCount = 1u
+      },
+      .imageExtent = extent,
+    };
+    vkCmdCopyBufferToImage(command_buffer_, src.buffer, dst.image, image_layout, 1u, &copy);
+  }
+
   // --- Rendering ---
 
   /* Dynamic rendering. */
