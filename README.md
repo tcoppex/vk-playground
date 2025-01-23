@@ -6,7 +6,7 @@
 
 A simple c++20 / Vulkan 1.1 rendering framework, flavored like 1.4, inspired by WebGPU and _vk_minimal_latest_.
 
-Tested on GNU/Linux (_GCC 12.0_) and Windows 11 (_MSVC 14.38.33130_).
+Tested on GNU/Linux (_GCC 12.0_) and Windows 11 (_MSVC 19.38_).
 
 <details>
   <summary><strong>Quick start & run !</strong></summary>
@@ -19,9 +19,9 @@ Tested on GNU/Linux (_GCC 12.0_) and Windows 11 (_MSVC 14.38.33130_).
 git clone https://github.com/tcoppex/vk-playground
 cd vk-playground
 
-# Build using ninja.
-cmake . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
-cmake --build build
+# Build.
+cmake . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --config Release
 
 # Run the first demo.
 ./bin/00_hello
