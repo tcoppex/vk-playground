@@ -60,6 +60,8 @@ set_target_properties(${target}
     LINK_FLAGS "${CXX_LINK_FLAGS}"
 )
 
+set_target_output_directory(${target} ${PROJECT_BINARY_DIR})
+
 # -----------------------------------------------------------------------------
 
 set(FRAMEWORK_LIBRARIES ${target} CACHE INTERNAL "")

@@ -55,6 +55,8 @@ function(add_simple_demo dirname)
     # This is necessary because we are using volk to load Vulkan functions
     VK_NO_PROTOTYPES
   )
+
+  set_target_output_directory(${dirname} ${PROJECT_BINARY_DIR})
 endfunction(add_simple_demo)
 
 # -----------------------------------------------------------------------------
