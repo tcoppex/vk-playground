@@ -32,7 +32,7 @@ project(${PROJECT_NAME} VERSION 0.1 LANGUAGES CXX C)
 
 set(PROJECT_ROOT_PATH               ${CMAKE_CURRENT_SOURCE_DIR})
 
-set(PROJECT_THIRD_PARTY_DIR         ${PROJECT_ROOT_PATH}/thirdparty)
+set(PROJECT_THIRD_PARTY_DIR         ${PROJECT_ROOT_PATH}/third_party)
 set(PROJECT_SOURCE_DIR              ${PROJECT_ROOT_PATH}/src)
 set(PROJECT_BINARY_DIR              ${PROJECT_ROOT_PATH}/bin)
 set(PROJECT_ASSETS_DIR              ${PROJECT_ROOT_PATH}/assets)
@@ -211,7 +211,21 @@ include(${CPM_DOWNLOAD_LOCATION})
 # -----------------------------------------------------------------------------
 
 find_package(Vulkan 1.1 REQUIRED)
-find_package(GLFW 3.3 REQUIRED)
+# find_package(GLFW 3.3 REQUIRED)
+
+# Include GLFW
+CPMAddPackage(
+  NAME glfw
+  GITHUB_REPOSITORY glfw/glfw
+  GIT_TAG 3.4
+  OPTIONS
+    "GLFW_BUILD_DOCS OFF"
+    "GLFW_BUILD_EXAMPLES OFF"
+    "GLFW_BUILD_TESTS OFF"
+    "GLFW_BUILD_WAYLAND OFF"
+    "GLFW_INSTALL OFF"
+)
+set(GLFW_INCLUDE_DIR ${glfw_SOURCE_DIR}/include)
 
 # Include Volk
 CPMAddPackage(
@@ -219,6 +233,7 @@ CPMAddPackage(
   GITHUB_REPOSITORY zeux/volk
   GIT_TAG 1.4.304
 )
+set(VOLK_INCLUDE_DIR ${volk_SOURCE_DIR})
 
 # Include VMA
 CPMAddPackage(
@@ -226,6 +241,7 @@ CPMAddPackage(
   GITHUB_REPOSITORY GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator
   GIT_TAG v3.2.0
 )
+set(VMA_INCLUDE_DIR  ${VulkanMemoryAllocator_SOURCE_DIR}/include)
 
 CPMAddPackage(
   NAME linalg
