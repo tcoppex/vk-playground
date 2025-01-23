@@ -43,7 +43,8 @@ function(add_simple_demo dirname)
   )
 
   target_compile_definitions(${dirname} PRIVATE
-    COMPILED_SHADERS_DIR="${SAMPLE_PATH}/shaders/spirv"
+    COMPILED_SHADERS_DIR="${SAMPLE_PATH}/shaders/spirv/"
+    ASSETS_DIR="${PROJECT_ASSETS_DIR}/"
 
     # Define VK_NO_PROTOTYPES to avoid including Vulkan prototypes
     # This is necessary because we are using volk to load Vulkan functions
@@ -57,10 +58,10 @@ add_simple_demo(00_hello)
 add_simple_demo(01_triangle)
 add_simple_demo(02_push_constant)
 add_simple_demo(03_descriptor_set)
-# add_simple_demo(04_instancing)
-# add_simple_demo(05_texturing)
-# add_simple_demo(06_blending)
-# add_simple_demo(07_stencil)
+add_simple_demo(04_texturing)
+# add_simple_demo(05_instancing)
+# add_simple_demo(06_alpha_blending)
+# add_simple_demo(07_stencil_op)
 # add_simple_demo(08_shadow_mapping)
 # add_simple_demo(09_compute)
 # add_simple_demo(10_deferred)

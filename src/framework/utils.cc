@@ -41,6 +41,13 @@ size_t AlignTo256(size_t const byteLength) {
 // ----------------------------------------------------------------------------
 
 VkShaderModule CreateShaderModule(VkDevice const device, char const* shader_directory, char const* shader_name) {
+  /*
+  * Note :
+  * Since maintenance5, shader module creation can be bypassed if VkShaderModuleCreateInfo
+  * is passed to the VkPipelineShaderStageCreateInfo.
+  * see https://registry.khronos.org/vulkan/specs/latest/html/vkspec.html#VkShaderModule
+  */
+
   char spirv_filename[256]{}; //
   sprintf(spirv_filename, "%s/%s.spv", shader_directory, shader_name);
 

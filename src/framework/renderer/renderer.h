@@ -39,30 +39,39 @@ class Renderer : public RTInterface {
 
   void deinit();
 
-  // -------------------------------------------------
-  // Factory for per frame VkCommandBuffer wrapper.
-  // -------------------------------------------------
-
   CommandEncoder begin_frame();
 
   void end_frame();
 
-  // -------------------------------------------------
-  // Factory for custom render target.
-  // -------------------------------------------------
 
-  /* Used for dynamic rendering. */
+ public:
+  // ----- Factory -----
+
+  // --- Render Target (Dynamic Rendering) ---
+
   std::shared_ptr<RenderTarget> create_render_target() const;
 
-  /* Used for legacy rendering. */
+  // --- Framebuffer (Legacy Rendering) ---
+
   std::shared_ptr<Framebuffer> create_framebuffer() const;
 
+  // ------------------------------------
+  // --- Pipeline Layout ---
+
+  VkPipelineLayout create_pipeline_layout(PipelineLayoutParams_t const& params) const;
+
+  void destroy_pipeline_layout(VkPipelineLayout& layout) const;
+
+  // --- Pipeline ---
+
+  // VkPipeline create_graphics_pipeline(GraphicsPipelineDescriptor_t const& desc) const;
+  // ------------------------------------
 
   // --- Descriptor Set Layout ---
 
   VkDescriptorSetLayout create_descriptor_set_layout(DescriptorSetLayoutParams_t const& params) const;
 
-  void destroy_descriptor_set_layout(VkDescriptorSetLayout layout) const;
+  void destroy_descriptor_set_layout(VkDescriptorSetLayout& layout) const;
 
   // --- Descriptor Set ---
 
@@ -74,6 +83,14 @@ class Renderer : public RTInterface {
 
   void update_descriptor_set(VkDescriptorSet const& descriptor_set, std::vector<DescriptorSetWriteEntry_t> const& entries) const;
 
+  // --- Texture / Sampler ---
+
+  bool load_texture_2d(CommandEncoder const& cmd, std::string_view const& filename, Image_t &image) const;
+  bool load_texture_2d(std::string_view const& filename, Image_t &image) const;
+
+  VkSampler get_default_sampler() const {
+    return linear_sampler_;
+  }
 
  public:
   // ----- RTInterface Overrides -----
@@ -165,11 +182,10 @@ class Renderer : public RTInterface {
   VkClearValue color_clear_value_{kDefaultColorClearValue};
   VkClearValue depth_stencil_clear_value_{{{1.0f, 0u}}};
 
-
   // Reference to the current CommandEncoder returned by 'begin_frame'
   CommandEncoder cmd_{}; //
 
-  VkSampler linear_sampler_{};
+  VkSampler linear_sampler_{}; //
 };
 
 /* -------------------------------------------------------------------------- */

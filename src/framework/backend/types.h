@@ -114,7 +114,7 @@ struct DescriptorSetLayoutParams_t {
 // };
 
 struct DescriptorSetWriteEntry_t {
-  // (use an union ?)
+  // (use an union instead ?)
   struct Resource {
     VkDescriptorImageInfo image{};
     VkDescriptorBufferInfo buffer{};
@@ -129,6 +129,11 @@ struct DescriptorSetWriteEntry_t {
 // ----------------------------------------------------------------------------
 
 // Pipeline
+
+struct PipelineLayoutParams_t {
+  std::vector<VkDescriptorSetLayout> setLayouts{};
+  std::vector<VkPushConstantRange> pushConstantRanges{};
+};
 
 class Pipeline {
  public:
@@ -145,6 +150,67 @@ class Pipeline {
  protected:
   VkPipeline pipeline_{};
   VkPipelineLayout pipeline_layout_{};
+};
+
+// ----------------------------------------------------------------------------
+
+// (wip) Helper to create GraphicsPipeline, ala WebGPU.
+struct GraphicsPipelineDescriptor_t {
+  VkPipelineLayout layout{};
+
+  struct Vertex {
+    struct Buffer {
+      uint32_t stride{};
+      VkVertexInputRate inputRate{};
+      std::vector<VkVertexInputAttributeDescription> attributes{};
+    };
+
+    VkShaderModule module{};
+    std::string entryPoint{};
+    std::vector<Buffer> buffers{};
+  } vertex{};
+
+  struct Fragment {
+    struct Target {
+      VkFormat format{};
+      VkColorComponentFlags writeMask{};
+
+      struct Blending {
+        struct Parameters {
+          VkBlendOp operation{};
+          VkBlendFactor srcFactor{};
+          VkBlendFactor dstFactor{};
+        };
+
+        VkBool32 enable{};
+        Parameters color{};
+        Parameters alpha{};
+      } blend{};
+    };
+
+    VkShaderModule module{};
+    std::string entryPoint{};
+    std::vector<Target> targets{};
+  } fragment{};
+
+  struct DepthStencil {
+    VkFormat format{}; //
+
+    VkBool32 depthTestEnable{};
+    VkBool32 depthWriteEnable{};
+    VkCompareOp depthCompareOp{};
+
+    VkBool32 stencilTestEnable{};
+    VkStencilOpState stencilFront{};
+    VkStencilOpState stencilBack{};
+  } depthStencil{};
+
+  struct Primitive {
+    VkPrimitiveTopology topology{};
+    VkPolygonMode polygonMode{};
+    VkCullModeFlags cullMode{};
+    VkFrontFace frontFace{};
+  } primitive{};
 };
 
 // ----------------------------------------------------------------------------

@@ -35,6 +35,7 @@ set(PROJECT_ROOT_PATH               ${CMAKE_CURRENT_SOURCE_DIR})
 set(PROJECT_THIRD_PARTY_DIR         ${PROJECT_ROOT_PATH}/thirdparty)
 set(PROJECT_SOURCE_DIR              ${PROJECT_ROOT_PATH}/src)
 set(PROJECT_BINARY_DIR              ${PROJECT_ROOT_PATH}/bin)
+set(PROJECT_ASSETS_DIR              ${PROJECT_ROOT_PATH}/assets)
 
 set(FRAMEWORK_PATH                  ${PROJECT_SOURCE_DIR}/framework)
 set(SAMPLES_PATH                    ${PROJECT_SOURCE_DIR}/samples)

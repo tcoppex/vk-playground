@@ -1,6 +1,10 @@
+![language: c++20](https://img.shields.io/badge/c++-20-blue.svg)
+![api: vulkan1.1](https://img.shields.io/badge/vulkan-1.1-red.svg)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 # :fire: vk-playground :fire:
 
-A simple c++20 / Vulkan 1.1 rendering framework, inspired by WebGPU and _vk_minimal_latest_.
+A simple c++20 / Vulkan 1.1 rendering framework, flavored like 1.4, inspired by WebGPU and _vk_minimal_latest_.
 
 <details>
   <summary><strong>Quick start & run !</strong></summary>
@@ -9,12 +13,12 @@ A simple c++20 / Vulkan 1.1 rendering framework, inspired by WebGPU and _vk_mini
 # [Optional] Retrieve system build dependencies with Synaptic.
 # sudo apt install git build-essential cmake ninja-build vulkan-sdk libglfw3-dev
 
-# Clone the repository
-git clone --recurse-submodules -j4 https://github.com/tcoppex/vk-playground
+# Clone the repository.
+git clone https://github.com/tcoppex/vk-playground
 cd vk-playground
 
-# Build using ninja
-cmake cmake . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+# Build using ninja.
+cmake . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
 cmake --build build
 
 # Run the first demo.
@@ -36,10 +40,11 @@ cmake --build build
 
 ### Demos
 
-* **[00_hello](src/samples/00_hello)**: Basic setup to display a surface and clear its color (_Device, Swapchain, dynamic rendering_).
-* **[01_triangle](src/samples/01_triangle)**: Basic setup to display a triangle (_Shader, Graphics Pipeline, Vertex Buffer, Commands_).
-* **[02_push_constant](src/samples/02_push_constant)**: Updates per-frame values via push constants and dynamic states.
-* **[03_descriptor_set](src/samples/03_descriptor_set)**: Show how to initialize & update a descriptor set on a single uniform buffer.
+* **[00_hello](src/samples/00_hello)**: Display a surface and clear its color (_Device, Swapchain, dynamic rendering_).
+* **[01_triangle](src/samples/01_triangle)**: Display a simple triangle (_Shader, Graphics Pipeline, Vertex Buffer, Commands_).
+* **[02_push_constant](src/samples/02_push_constant)**: Update per-frame values via push constants and dynamic states.
+* **[03_descriptor_set](src/samples/03_descriptor_set)**: Initialize & update a descriptor set on a single uniform buffer.
+* **[04_texturing](src/samples/04_texturing)**: Display a textured cube with a linear sampler.
 
 ### Dependencies
 
@@ -69,7 +74,6 @@ cmake --build build
 * [VK_KHR_swapchain](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_swapchain.html)
 * [VK_KHR_synchronization2](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_synchronization2.html)
 * [VK_KHR_timeline_semaphore](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_timeline_semaphore.html)
-
 
 ### License
 

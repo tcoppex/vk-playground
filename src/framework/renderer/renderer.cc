@@ -4,6 +4,10 @@
 #include "framework/renderer/render_target.h"
 #include "framework/renderer/framebuffer.h"
 
+#define STBI_ONLY_PNG
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb/stb_image.h"
+
 /* -------------------------------------------------------------------------- */
 
 void Renderer::init(Context const& context, std::shared_ptr<ResourceAllocator> allocator, VkSurfaceKHR const surface) {
@@ -243,6 +247,35 @@ std::shared_ptr<Framebuffer> Renderer::create_framebuffer() const {
 
 // ----------------------------------------------------------------------------
 
+void Renderer::destroy_pipeline_layout(VkPipelineLayout &layout) const {
+  vkDestroyPipelineLayout(device_, layout, nullptr);
+  layout = VK_NULL_HANDLE;
+}
+
+// ----------------------------------------------------------------------------
+
+VkPipelineLayout Renderer::create_pipeline_layout(PipelineLayoutParams_t const& params) const {
+  VkPipelineLayoutCreateInfo const pipeline_layout_create_info{
+    .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+    .setLayoutCount = static_cast<uint32_t>(params.setLayouts.size()),
+    .pSetLayouts = params.setLayouts.data(),
+    .pushConstantRangeCount = static_cast<uint32_t>(params.pushConstantRanges.size()),
+    .pPushConstantRanges = params.pushConstantRanges.data(),
+  };
+  VkPipelineLayout pipeline_layout;
+  CHECK_VK(vkCreatePipelineLayout(device_, &pipeline_layout_create_info, nullptr, &pipeline_layout));
+  return pipeline_layout;
+}
+
+// ----------------------------------------------------------------------------
+
+// VkPipeline Renderer::create_graphics_pipeline(GraphicsPipelineDescriptor_t const& desc) const {
+//   // GraphicsPipeline::PipelineStates_t states;
+//   return VkPipeline();
+// }
+
+// ----------------------------------------------------------------------------
+
 VkDescriptorSetLayout Renderer::create_descriptor_set_layout(DescriptorSetLayoutParams_t const& params) const {
   assert(params.flags.empty() || (params.entries.size() == params.flags.size())); //
 
@@ -267,8 +300,9 @@ VkDescriptorSetLayout Renderer::create_descriptor_set_layout(DescriptorSetLayout
 
 // ----------------------------------------------------------------------------
 
-void Renderer::destroy_descriptor_set_layout(VkDescriptorSetLayout layout) const {
+void Renderer::destroy_descriptor_set_layout(VkDescriptorSetLayout &layout) const {
   vkDestroyDescriptorSetLayout(device_, layout, nullptr);
+  layout = VK_NULL_HANDLE;
 }
 
 // ----------------------------------------------------------------------------
@@ -355,6 +389,95 @@ void Renderer::update_descriptor_set(VkDescriptorSet const& descriptor_set, std:
     0u,
     nullptr
   );
+}
+
+// ----------------------------------------------------------------------------
+
+bool Renderer::load_texture_2d(CommandEncoder const& cmd, std::string_view const& filename, Image_t &image) const {
+  int x, y, num_channels;
+  stbi_uc* data = stbi_load(filename.data(), &x, &y, &num_channels, 4);
+  if (!data) {
+    return false;
+  }
+
+  uint32_t const bytesize = static_cast<uint32_t>(4 * x * y);
+
+  VkImageCreateInfo image_info{
+    .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+    .imageType = VK_IMAGE_TYPE_2D,
+    .format = VK_FORMAT_R8G8B8A8_UNORM,
+    .extent = {
+      static_cast<uint32_t>(x),
+      static_cast<uint32_t>(y),
+      1u
+    },
+    .mipLevels = 1u, //
+    .arrayLayers = 1u,
+    .samples = VK_SAMPLE_COUNT_1_BIT,
+    .tiling = VK_IMAGE_TILING_OPTIMAL,
+    .usage = VK_IMAGE_USAGE_SAMPLED_BIT
+           | VK_IMAGE_USAGE_TRANSFER_DST_BIT
+           ,
+    .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+    .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+  };
+
+  VkImageViewCreateInfo view_info{
+    .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+    .viewType = VK_IMAGE_VIEW_TYPE_2D, //
+    .format = VK_FORMAT_R8G8B8A8_UNORM,
+    .components = {
+      VK_COMPONENT_SWIZZLE_R,
+      VK_COMPONENT_SWIZZLE_G,
+      VK_COMPONENT_SWIZZLE_B,
+      VK_COMPONENT_SWIZZLE_A,
+    },
+    .subresourceRange = {
+      .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+      .levelCount = 1u,
+      .layerCount = 1u,
+    },
+  };
+
+  allocator_->create_image_with_view(image_info, view_info, &image);
+
+  /* Copy host data to a staging buffer. */
+  auto staging_buffer = allocator_->create_staging_buffer(bytesize, data); //
+  stbi_image_free(data);
+
+  /* Transfer staging device buffer to image memory, with appropriate layout. */
+  {
+    // [TODO ?]
+    // Use a large enough dedicated staging buffer and store images
+    // to be transfered later on in a batch.
+
+    VkImageLayout const transfer_layout{ VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL };
+
+    cmd.transition_images_layout(
+      { image },
+      VK_IMAGE_LAYOUT_UNDEFINED,
+      transfer_layout
+    );
+
+    cmd.copy_buffer_to_image(staging_buffer, image, image_info.extent, transfer_layout);
+
+    cmd.transition_images_layout(
+      { image },
+      transfer_layout,
+      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+    );
+  }
+
+  return true;
+}
+
+// ----------------------------------------------------------------------------
+
+bool Renderer::load_texture_2d(std::string_view const& filename, Image_t &image) const {
+  auto cmd = ctx_ptr_->create_transient_command_encoder();
+  bool result = load_texture_2d(cmd, filename, image);
+  ctx_ptr_->finish_transient_command_encoder(cmd);
+  return result;
 }
 
 /* -------------------------------------------------------------------------- */
