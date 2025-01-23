@@ -243,6 +243,35 @@ std::shared_ptr<Framebuffer> Renderer::create_framebuffer() const {
 
 // ----------------------------------------------------------------------------
 
+void Renderer::destroy_pipeline_layout(VkPipelineLayout &layout) const {
+  vkDestroyPipelineLayout(device_, layout, nullptr);
+  layout = VK_NULL_HANDLE;
+}
+
+// ----------------------------------------------------------------------------
+
+VkPipelineLayout Renderer::create_pipeline_layout(PipelineLayoutParams_t const& params) const {
+  VkPipelineLayoutCreateInfo const pipeline_layout_create_info{
+    .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+    .setLayoutCount = static_cast<uint32_t>(params.setLayouts.size()),
+    .pSetLayouts = params.setLayouts.data(),
+    .pushConstantRangeCount = static_cast<uint32_t>(params.pushConstantRanges.size()),
+    .pPushConstantRanges = params.pushConstantRanges.data(),
+  };
+  VkPipelineLayout pipeline_layout;
+  CHECK_VK(vkCreatePipelineLayout(device_, &pipeline_layout_create_info, nullptr, &pipeline_layout));
+  return pipeline_layout;
+}
+
+// ----------------------------------------------------------------------------
+
+// VkPipeline Renderer::create_graphics_pipeline(GraphicsPipelineDescriptor_t const& desc) const {
+//   // GraphicsPipeline::PipelineStates_t states;
+//   return VkPipeline();
+// }
+
+// ----------------------------------------------------------------------------
+
 VkDescriptorSetLayout Renderer::create_descriptor_set_layout(DescriptorSetLayoutParams_t const& params) const {
   assert(params.flags.empty() || (params.entries.size() == params.flags.size())); //
 
@@ -267,8 +296,9 @@ VkDescriptorSetLayout Renderer::create_descriptor_set_layout(DescriptorSetLayout
 
 // ----------------------------------------------------------------------------
 
-void Renderer::destroy_descriptor_set_layout(VkDescriptorSetLayout layout) const {
+void Renderer::destroy_descriptor_set_layout(VkDescriptorSetLayout &layout) const {
   vkDestroyDescriptorSetLayout(device_, layout, nullptr);
+  layout = VK_NULL_HANDLE;
 }
 
 // ----------------------------------------------------------------------------

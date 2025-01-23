@@ -39,30 +39,39 @@ class Renderer : public RTInterface {
 
   void deinit();
 
-  // -------------------------------------------------
-  // Factory for per frame VkCommandBuffer wrapper.
-  // -------------------------------------------------
-
   CommandEncoder begin_frame();
 
   void end_frame();
 
-  // -------------------------------------------------
-  // Factory for custom render target.
-  // -------------------------------------------------
 
-  /* Used for dynamic rendering. */
+ public:
+  // ----- Factory -----
+
+  // --- Render Target (Dynamic Rendering) ---
+
   std::shared_ptr<RenderTarget> create_render_target() const;
 
-  /* Used for legacy rendering. */
+  // --- Framebuffer (Legacy Rendering) ---
+
   std::shared_ptr<Framebuffer> create_framebuffer() const;
 
+  // ------------------------------------
+  // --- Pipeline Layout ---
+
+  VkPipelineLayout create_pipeline_layout(PipelineLayoutParams_t const& params) const;
+
+  void destroy_pipeline_layout(VkPipelineLayout& layout) const;
+
+  // --- Pipeline ---
+
+  // VkPipeline create_graphics_pipeline(GraphicsPipelineDescriptor_t const& desc) const;
+  // ------------------------------------
 
   // --- Descriptor Set Layout ---
 
   VkDescriptorSetLayout create_descriptor_set_layout(DescriptorSetLayoutParams_t const& params) const;
 
-  void destroy_descriptor_set_layout(VkDescriptorSetLayout layout) const;
+  void destroy_descriptor_set_layout(VkDescriptorSetLayout& layout) const;
 
   // --- Descriptor Set ---
 
