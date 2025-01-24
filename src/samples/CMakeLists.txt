@@ -31,20 +31,12 @@ function(add_simple_demo dirname)
 
   target_link_libraries(${dirname} PRIVATE
     ${FRAMEWORK_LIBRARIES}
-    # ${Vulkan_LIBRARY}
-    volk
-    glfw
+    ${SharedLibs}
   )
 
   target_include_directories(${dirname} PRIVATE
-    ${PROJECT_SOURCE_DIR}
     ${SAMPLE_PATH}
-    ${Vulkan_INCLUDE_DIR}
-    ${GLFW_INCLUDE_DIR}
-    ${LINALG_INCLUDE_DIR}
-    ${VOLK_INCLUDE_DIR}
-    ${VMA_INCLUDE_DIR}
-    ${PROJECT_THIRD_PARTY_DIR}
+    ${SharedIncludeDirs}
   )
 
   target_compile_definitions(${dirname} PRIVATE
