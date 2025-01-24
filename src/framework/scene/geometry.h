@@ -51,14 +51,23 @@ class Geometry {
   };
 
  public:
-  /* Create a Cube with interleaved Position, Normal and UV, as an indexed triangle list mesh. */
+  /* Create a cube with interleaved Position, Normal and UV, as an indexed triangle list mesh. */
   static void MakeCube(Geometry &geo);
 
+  /* Create a +Y plane with interleaved Position, Normal and UV, as an index tristrip mesh. */
   static void MakePlane(Geometry &geo, uint32_t resx, uint32_t resy, float size);
 
   static void MakePlane(Geometry &geo, float size = 1.0f) {
     MakePlane(geo, 1u, 1u, size);
   }
+
+  /* Create a sphere with interleaved Position, Normal and UV, as an indexed tristrip mesh. */
+  static void MakeSphere(Geometry &geo, uint32_t resx, uint32_t resy, float radius);
+
+  static void MakeSphere(Geometry &geo, uint32_t resolution, float radius = 1.0f) {
+    MakeSphere(geo, resolution, resolution, radius);
+  }
+
 
  public:
   Geometry() = default;

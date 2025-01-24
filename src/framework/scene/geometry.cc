@@ -1,5 +1,7 @@
 #include "framework/scene/geometry.h"
 
+#define _USE_MATH_DEFINES
+#include <cmath>
 #include <cstdlib>
 #include <cstddef>
 #include <array>
@@ -59,32 +61,33 @@ void Geometry::MakeCube(Geometry &geo) {
   };
 
   // --------
-  geo.indexFormat = Geometry::IndexFormat::U16;
-  geo.topology = Geometry::Topology::TriangleList;
+
+  geo.indexFormat = IndexFormat::U16;
+  geo.topology = Topology::TriangleList;
   geo.index_count = static_cast<uint32_t>(trilistIndices.size());
   geo.vertex_count = static_cast<uint32_t>(vertexAttributesIndices.size());
 
   geo.attributes = {
     {
-      Geometry::AttributeType::Position,
+      AttributeType::Position,
       {
-        .format = Geometry::AttributeFormat::RGB_F32,
+        .format = AttributeFormat::RGB_F32,
         .offset = offsetof(Vertex_t, position),
         .stride = sizeof(Vertex_t),
       }
     },
     {
-      Geometry::AttributeType::Normal,
+      AttributeType::Normal,
       {
-        .format = Geometry::AttributeFormat::RGB_F32,
+        .format = AttributeFormat::RGB_F32,
         .offset = offsetof(Vertex_t, normal),
         .stride = sizeof(Vertex_t),
       }
     },
     {
-      Geometry::AttributeType::Texcoord,
+      AttributeType::Texcoord,
       {
-        .format = Geometry::AttributeFormat::RG_F32,
+        .format = AttributeFormat::RG_F32,
         .offset = offsetof(Vertex_t, texcoord),
         .stride = sizeof(Vertex_t),
       }
@@ -113,6 +116,283 @@ void Geometry::MakeCube(Geometry &geo) {
 
 // ----------------------------------------------------------------------------
 
+void Geometry::MakePlane(Geometry &geo, uint32_t resx, uint32_t resy, float size) {
+  struct Vertex_t {
+    float position[3];
+    float normal[3];
+    float texcoord[2];
+  };
+
+  uint32_t const ncols = (resx + 1u);
+  uint32_t const nrows = (resy + 1u);
+  uint32_t const vertex_count = nrows * ncols;
+
+  /* Set up the buffer of raw vertices. */
+  std::vector<Vertex_t> raw_vertices(vertex_count);
+  {
+    float const dx = 1.0f / static_cast<float>(ncols - 1u);
+    float const dy = 1.0f / static_cast<float>(nrows - 1u);
+
+    uint32_t v_index = 0u;
+    for (uint32_t iy = 0u; iy < nrows; ++iy) {
+      for (uint32_t ix = 0u; ix < ncols; ++ix, ++v_index) {
+        float const uv_x = static_cast<float>(ix) * dx;
+        float const uv_y = static_cast<float>(iy) * dy;
+
+        raw_vertices[v_index] = {
+          .position = { size * (uv_x - 0.5f), 0.0f, size * (uv_y - 0.5f) },
+          .normal = { 0.0f, 1.0f, 0.0f },
+          .texcoord = { uv_x, uv_y }
+        };
+      }
+    }
+  }
+
+  /* Set up triangle strip indices. */
+  uint32_t const index_count = ((resx + 1u) * 2u) * resy + (resy - 1u) * 2u;
+  std::vector<uint32_t> indices(index_count);
+  {
+    uint32_t index = 0u;
+    for (uint32_t iy = 0u; iy < resy; ++iy) {
+      for (uint32_t ix = 0u; ix < resx + 1u; ++ix) {
+        uint32_t const v_index = (ncols * (iy + 1u)) - (ix + 1);
+        indices[index++] = v_index;
+        indices[index++] = v_index + ncols;
+      }
+      if (iy < resy - 1u) {
+        indices[index] = indices[index - 1u];
+        indices[index + 1u] = indices[index] + resx;
+        index += 2u;
+      }
+    }
+    assert(index == index_count);
+  }
+
+  /// --------------
+
+  geo.indexFormat = IndexFormat::U32;
+  geo.topology = Topology::TriangleStrip;
+  geo.index_count = index_count;
+  geo.vertex_count = vertex_count;
+
+  geo.attributes = {
+    {
+      AttributeType::Position,
+      {
+        .format = AttributeFormat::RGB_F32,
+        .offset = offsetof(Vertex_t, position),
+        .stride = sizeof(Vertex_t),
+      }
+    },
+    {
+      AttributeType::Normal,
+      {
+        .format = AttributeFormat::RGB_F32,
+        .offset = offsetof(Vertex_t, normal),
+        .stride = sizeof(Vertex_t),
+      }
+    },
+    {
+      AttributeType::Texcoord,
+      {
+        .format = AttributeFormat::RG_F32,
+        .offset = offsetof(Vertex_t, texcoord),
+        .stride = sizeof(Vertex_t),
+      }
+    },
+  };
+
+  /* Fill vertices. */
+  {
+    size_t const vertices_bytesize = raw_vertices.size() * sizeof(raw_vertices[0u]);
+    uint8_t *const vertices_ptr = reinterpret_cast<uint8_t*>(raw_vertices.data());
+    geo.vertices.clear();
+    geo.vertices.insert(
+      geo.vertices.end(),
+      vertices_ptr,
+      vertices_ptr + vertices_bytesize
+    );
+  }
+
+  /* Fill indices. */
+  {
+    size_t const indices_bytesize = indices.size() * sizeof(indices[0u]);
+    uint8_t *const indices_ptr = reinterpret_cast<uint8_t*>(indices.data());
+    geo.indices.clear();
+    geo.indices.insert(
+      geo.indices.end(),
+      indices_ptr,
+      indices_ptr + indices_bytesize
+    );
+  }
+}
+
+// ----------------------------------------------------------------------------
+
+void Geometry::MakeSphere(Geometry &geo, uint32_t resx, uint32_t resy, float radius) {
+  assert( resx > 3u && resy > 2u );
+  assert( radius > 0.0f );
+
+  float constexpr kPi = M_PI;
+  float constexpr kTwoPi = 2.0f * kPi;
+
+  struct Vertex_t {
+    float position[3];
+    float normal[3];
+    float texcoord[2];
+  };
+
+  uint32_t const ncols = resx + 1u;
+  uint32_t const nrows = resy + 1u;
+
+  geo.vertex_count = 2u + (nrows - 2u) * ncols;
+  std::vector<Vertex_t> vertices(geo.vertex_count);
+
+  // Vertices data.
+  {
+    float const dx = 1.0f / static_cast<float>(resx);
+    float const dy = 1.0f / static_cast<float>(resy);
+
+    uint32_t vertex_id = 0u;
+
+    vertices[vertex_id++] = {
+      .position = { 0.0f, -radius, 0.0f },
+      .normal = { 0.0f, -1.0f, 0.0f },
+      .texcoord = { 0.0f, 0.0f },
+    };
+
+    for (uint32_t j = 1u; j < nrows-1u; ++j) {
+      float const dj = static_cast<float>(j) * dy;
+
+      float const theta = (dj - 0.5f) * kPi;
+      float const ct = cosf(theta);
+      float const st = sinf(theta);
+
+      for (uint32_t i = 0u; i < ncols; ++i) {
+        float const di = static_cast<float>(i) * dx;
+
+        float const phi = di * kTwoPi;
+        float const cp = cosf(phi);
+        float const sp = sinf(phi);
+
+        float nx = ct * cp;
+        float ny = st;
+        float nz = ct * sp;
+
+        // float dlen = 1.0f / sqrtf(nx*nx + ny*ny + nz*nz);
+        // nx *= dlen;
+        // ny *= dlen;
+        // nz *= dlen;
+
+        vertices[vertex_id++] = {
+          .position = { radius * nx, radius * ny, radius * nz },
+          .normal = { nx, ny, nz },
+          .texcoord = { di, dj },
+        };
+      }
+    }
+
+    vertices[vertex_id++] = {
+      .position = { 0.0f, +radius, 0.0f },
+      .normal = { 0.0f, 1.0f, 0.0f },
+      .texcoord = { 1.0f, 1.0f },
+    };
+
+    assert(vertex_id == geo.vertex_count);
+  }
+
+  // Indices.
+  geo.index_count = 2u * (nrows - 3u) + 2u * ncols * (nrows - 1u);
+  std::vector<uint32_t> indices(geo.index_count);
+  {
+    uint32_t index = 0u;
+
+    for (uint32_t i = 0u; i < ncols; ++i) {
+      indices[index++] = 0u;
+      indices[index++] = i + 1u;
+    }
+
+    for (uint32_t j = 1u; j < nrows-2u; ++j) {
+      uint32_t base_index = indices[index-1u];
+
+      indices[index++] = base_index;
+      indices[index++] = base_index;
+
+      base_index = base_index - ncols + 1;
+
+      for (uint32_t i = 0u; i < ncols; ++i) {
+        indices[index++] = base_index + i;
+        indices[index++] = base_index + i + ncols;
+      }
+    }
+
+    for (uint32_t i = 0u; i < ncols; ++i) {
+      indices[index++] = geo.vertex_count - 1u - ncols + i;
+      indices[index++] = geo.vertex_count - 1u;
+    }
+
+    // assert(index == geo.index_count);
+  }
+
+  /// --------------
+
+  geo.indexFormat = IndexFormat::U32;
+  geo.topology = Topology::TriangleStrip;
+
+  geo.attributes = {
+    {
+      AttributeType::Position,
+      {
+        .format = AttributeFormat::RGB_F32,
+        .offset = offsetof(Vertex_t, position),
+        .stride = sizeof(Vertex_t),
+      }
+    },
+    {
+      AttributeType::Normal,
+      {
+        .format = AttributeFormat::RGB_F32,
+        .offset = offsetof(Vertex_t, normal),
+        .stride = sizeof(Vertex_t),
+      }
+    },
+    {
+      AttributeType::Texcoord,
+      {
+        .format = AttributeFormat::RG_F32,
+        .offset = offsetof(Vertex_t, texcoord),
+        .stride = sizeof(Vertex_t),
+      }
+    },
+  };
+
+  /* Fill vertices. */
+  {
+    size_t const vertices_bytesize = vertices.size() * sizeof(vertices[0u]);
+    uint8_t *const vertices_ptr = reinterpret_cast<uint8_t*>(vertices.data());
+    geo.vertices.clear();
+    geo.vertices.insert(
+      geo.vertices.end(),
+      vertices_ptr,
+      vertices_ptr + vertices_bytesize
+    );
+  }
+
+  /* Fill indices. */
+  {
+    size_t const indices_bytesize = indices.size() * sizeof(indices[0u]);
+    uint8_t *const indices_ptr = reinterpret_cast<uint8_t*>(indices.data());
+    geo.indices.clear();
+    geo.indices.insert(
+      geo.indices.end(),
+      indices_ptr,
+      indices_ptr + indices_bytesize
+    );
+  }
+}
+
+// ----------------------------------------------------------------------------
+
 VkFormat Geometry::get_vk_format(AttributeType const attrib) const {
   switch (get_format(attrib)) {
     case AttributeFormat::RG_F32:
@@ -134,14 +414,12 @@ VkFormat Geometry::get_vk_format(AttributeType const attrib) const {
 
 VkPrimitiveTopology Geometry::get_vk_primitive_topology() const {
   switch (topology) {
-    case Topology::TriangleList:
-      return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-
     case Topology::TriangleStrip:
       return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
 
     default:
-      return VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
+    case Topology::TriangleList:
+      return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
   }
 }
 
