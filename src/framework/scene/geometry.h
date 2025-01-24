@@ -52,7 +52,13 @@ class Geometry {
 
  public:
   /* Create a Cube with interleaved Position, Normal and UV, as an indexed triangle list mesh. */
-  static void MakeCubeGeometry(Geometry &geo);
+  static void MakeCube(Geometry &geo);
+
+  static void MakePlane(Geometry &geo, uint32_t resx, uint32_t resy, float size);
+
+  static void MakePlane(Geometry &geo, float size = 1.0f) {
+    MakePlane(geo, 1u, 1u, size);
+  }
 
  public:
   Geometry() = default;

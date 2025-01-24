@@ -6,7 +6,7 @@
 
 /* -------------------------------------------------------------------------- */
 
-void Geometry::MakeCubeGeometry(Geometry &geo) {
+void Geometry::MakeCube(Geometry &geo) {
   struct Vertex_t {
     float position[3];
     float normal[3];

@@ -56,7 +56,7 @@ class SampleApp final : public Application {
      * safe its index count for rendering. */
     Geometry cube_geo;
     {
-      Geometry::MakeCubeGeometry(cube_geo);
+      Geometry::MakeCube(cube_geo);
       index_type_ = cube_geo.get_vk_index_type();
       index_count_ = cube_geo.get_index_count();
     }
