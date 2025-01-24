@@ -13,7 +13,7 @@ Runs on GNU/Linux and Windows 11, compiled with _GCC 11.4_ and _MSVC 19.38_.
 
 ```bash
 # [Optional] Retrieve system build dependencies with Synaptic.
-# sudo apt install git build-essential cmake vulkan-sdk
+# sudo apt install git git-lfs build-essential cmake vulkan-sdk
 
 # Clone the repository.
 git clone https://github.com/tcoppex/vk-playground
