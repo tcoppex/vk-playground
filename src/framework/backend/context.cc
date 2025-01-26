@@ -1,5 +1,4 @@
 #include "framework/backend/context.h"
-#include "framework/utils/utils.h" //
 
 // for glfwGetRequiredInstanceExtensions
 #define GLFW_INCLUDE_NONE
@@ -74,7 +73,7 @@ Image_t Context::create_depth_stencil_image_2d(VkFormat const format, VkExtent2D
     .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
   };
   VkImageAspectFlagBits const stencil_mask{
-    utils::IsValidStencilFormat(depth_stencil.format) ? VK_IMAGE_ASPECT_STENCIL_BIT : VK_IMAGE_ASPECT_NONE_KHR
+    vkutils::IsValidStencilFormat(depth_stencil.format) ? VK_IMAGE_ASPECT_STENCIL_BIT : VK_IMAGE_ASPECT_NONE_KHR
   };
   VkImageViewCreateInfo const image_view_info{
     .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
@@ -97,7 +96,7 @@ Image_t Context::create_depth_stencil_image_2d(VkFormat const format, VkExtent2D
 
 ShaderModule_t Context::create_shader_module(std::string_view const& directory, std::string_view const& shader_name) const {
   return {
-    .module = utils::CreateShaderModule(device_, directory.data(), shader_name.data()),
+    .module = vkutils::CreateShaderModule(device_, directory.data(), shader_name.data()),
   };
 }
 

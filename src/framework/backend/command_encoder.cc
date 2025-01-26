@@ -1,5 +1,4 @@
 #include "framework/backend/command_encoder.h"
-#include "framework/utils/utils.h"
 
 /* -------------------------------------------------------------------------- */
 
@@ -70,8 +69,8 @@ void CommandEncoder::transition_images_layout(
   VkImageLayout const src_layout,
   VkImageLayout const dst_layout
 ) const {
-  auto const [src_stage, src_access] = utils::MakePipelineStageAccessTuple(src_layout);
-  auto const [dst_stage, dst_access] = utils::MakePipelineStageAccessTuple(dst_layout);
+  auto const [src_stage, src_access] = vkutils::MakePipelineStageAccessTuple(src_layout);
+  auto const [dst_stage, dst_access] = vkutils::MakePipelineStageAccessTuple(dst_layout);
 
   VkImageMemoryBarrier2 barrier2{
     .sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,

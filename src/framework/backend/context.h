@@ -3,10 +3,9 @@
 
 /* -------------------------------------------------------------------------- */
 
-#include "framework/backend/common.h"
+#include "framework/backend/types.h"
 #include "framework/backend/command_encoder.h"
 #include "framework/backend/allocator.h"
-#include "framework/backend/types.h"
 
 /* -------------------------------------------------------------------------- */
 
@@ -108,7 +107,7 @@ class Context {
 
     // Add to DeviceFeatures2.
     feature = feature_entry;
-    utils::PushNextVKStruct(&feature_.base, &feature);
+    vkutils::PushNextVKStruct(&feature_.base, &feature);
 
     // Add extensions dependencies.
     if (!dependencies.empty()) {

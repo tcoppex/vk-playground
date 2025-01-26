@@ -1,7 +1,6 @@
 #ifndef HELLOVK_FRAMEWORK_BACKEND_COMMAND_ENCODER_H
 #define HELLOVK_FRAMEWORK_BACKEND_COMMAND_ENCODER_H
 
-#include "framework/backend/common.h"
 #include "framework/backend/allocator.h"
 
 class RenderPassEncoder;
@@ -110,12 +109,12 @@ class CommandEncoder : public GenericCommandEncoder {
 
   template<typename T> requires (!SpanConvertible<T>)
   void push_constant(T const& value, VkPipelineLayout const pipeline_layout, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS, uint32_t const offset = 0u) const {
-    utils::PushConstant(command_buffer_, value, pipeline_layout, stage_flags, offset);
+    vkutils::PushConstant(command_buffer_, value, pipeline_layout, stage_flags, offset);
   }
 
   template<typename T> requires (SpanConvertible<T>)
   void push_constants(T const& values, VkPipelineLayout const pipeline_layout, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS, uint32_t const offset = 0u) const {
-    utils::PushConstants(command_buffer_, values, pipeline_layout, stage_flags, offset);
+    vkutils::PushConstants(command_buffer_, values, pipeline_layout, stage_flags, offset);
   }
 
  protected:
@@ -198,12 +197,12 @@ class RenderPassEncoder : public GenericCommandEncoder {
 
   template<typename T> requires (!SpanConvertible<T>)
   void push_constant(T const& value, VkPipelineLayout const pipeline_layout, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS, uint32_t const offset = 0u) const {
-    utils::PushConstant(command_buffer_, value, pipeline_layout, stage_flags, offset);
+    vkutils::PushConstant(command_buffer_, value, pipeline_layout, stage_flags, offset);
   }
 
   template<typename T> requires (SpanConvertible<T>)
   void push_constants(T const& values, VkPipelineLayout const pipeline_layout, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS, uint32_t const offset = 0u) const {
-    utils::PushConstants(command_buffer_, values, pipeline_layout, stage_flags, offset);
+    vkutils::PushConstants(command_buffer_, values, pipeline_layout, stage_flags, offset);
   }
 
   template<typename T> requires (!SpanConvertible<T>)

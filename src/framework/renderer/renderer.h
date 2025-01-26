@@ -3,9 +3,8 @@
 
 /* -------------------------------------------------------------------------- */
 
-#include "framework/backend/common.h"
 #include "framework/backend/swapchain.h"
-#include "framework/backend/command_encoder.h" //
+#include "framework/backend/command_encoder.h"
 
 class Context;
 class RenderTarget;

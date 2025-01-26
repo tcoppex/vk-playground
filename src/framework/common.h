@@ -1,12 +1,13 @@
-#ifndef HELLOVK_FRAMEWORK_BACKEND_COMMON_H
-#define HELLOVK_FRAMEWORK_BACKEND_COMMON_H
+#ifndef HELLOVK_FRAMEWORK_COMMON_H
+#define HELLOVK_FRAMEWORK_COMMON_H
 
 /* -------------------------------------------------------------------------- */
 
-#include <cassert>
-#include <cmath>
+#include <cassert> //
+#include <cmath> //
+#include <cstdio> //
 #include <cstddef>
-#include <cstdio>
+#include <cstdint>
 #include <cstdlib>
 #include <cstring>
 
@@ -20,23 +21,20 @@
 #include <type_traits>
 #include <iterator> // For std::back_inserter
 
-#include "volk.h"
-
 // (linear algebra)
 #include "framework/lina.h"
 using namespace lina::aliases;
 
 // (miscs utility functions)
-#include "framework/utils/utils.h" //
+#include "framework/utils/utils.h"
 
 /* -------------------------------------------------------------------------- */
 
-#ifdef NDEBUG
-# define CHECK_VK(res)  res
-#else
-# define CHECK_VK(res)  utils::CheckVKResult(res, __FILE__, __LINE__, true)
-#endif
+// c++ features
+
+template<typename T>
+concept SpanConvertible = requires(T t) { std::span(t); };
 
 /* -------------------------------------------------------------------------- */
 
-#endif
+#endif // HELLOVK_FRAMEWORK_COMMON_H

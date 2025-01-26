@@ -3,7 +3,7 @@
 
 /* -------------------------------------------------------------------------- */
 
-#include "framework/backend/common.h"
+#include "framework/backend/vk_utils.h"
 
 #define VMA_DYNAMIC_VULKAN_FUNCTIONS 1
 
@@ -38,13 +38,6 @@
 #pragma GCC diagnostic pop
 #endif
 #endif
-
-/* -------------------------------------------------------------------------- */
-
-// c++ features
-
-template<typename T>
-concept SpanConvertible = requires(T t) { std::span(t); };
 
 /* -------------------------------------------------------------------------- */
 
