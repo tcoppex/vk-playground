@@ -51,7 +51,7 @@ class SampleApp final : public Application {
 
  private:
   bool setup() final {
-    glfwSetWindowTitle(window_, "03 - Πρίσμα");
+    wm_->setTitle("03 - Πρίσμα");
 
     renderer_.set_color_clear_value({.float32 = {0.125f, 0.125f, 0.125f, 1.0f}});
 

@@ -17,7 +17,7 @@ class SampleApp final : public Application {
 
  private:
   bool setup() final {
-    glfwSetWindowTitle(window_, "00 - アカシ コンピュータ システム");
+    wm_->setTitle("00 - アカシ コンピュータ システム");
     return true;
   }
 

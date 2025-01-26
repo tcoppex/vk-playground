@@ -26,7 +26,7 @@ class SampleApp final : public Application {
 
  private:
   bool setup() final {
-    glfwSetWindowTitle(window_, "04 - خوراي ، كىشىلەر ماڭا دىققەت قىلىۋاتىدۇ");
+    wm_->setTitle("04 - خوراي ، كىشىلەر ماڭا دىققەت قىلىۋاتىدۇ");
 
     renderer_.set_color_clear_value({.float32 = {0.94f, 0.93f, 0.94f, 1.0f}});
 

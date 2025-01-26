@@ -47,7 +47,7 @@ class SampleApp final : public Application {
 
  private:
   bool setup() final {
-    glfwSetWindowTitle(window_, "02 - танцующий треугольник");
+    wm_->setTitle("02 - танцующий треугольник");
 
     renderer_.set_color_clear_value({.float32 = {0.60f, 0.65f, 0.55f, 1.0f}});
 
