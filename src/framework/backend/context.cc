@@ -1,23 +1,18 @@
 #include "framework/backend/context.h"
 
-// for glfwGetRequiredInstanceExtensions
-#define GLFW_INCLUDE_NONE
-#define GLFW_INCLUDE_VULKAN
-#include "GLFW/glfw3.h"
-
 /* -------------------------------------------------------------------------- */
 
-bool Context::init() {
+bool Context::init(std::vector<char const*> const& instance_extensions) {
   CHECK_VK(volkInitialize());
 
-  init_instance();
+  init_instance(instance_extensions);
   select_gpu();
 
   if (!init_device()) {
     return false;
   }
 
-  // Create a transient CommandPool for temporary command buffers.
+  /* Create a transient CommandPool for temporary command buffers. */
   {
     VkCommandPoolCreateInfo const command_pool_create_info{
       .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
@@ -175,7 +170,7 @@ void Context::finish_transient_command_encoder(CommandEncoder const& encoder) co
 /* -------------------------------------------------------------------------- */
 /* -------------------------------------------------------------------------- */
 
-void Context::init_instance() {
+void Context::init_instance(std::vector<char const*> const& instance_extensions) {
   if (enable_validation_layers) {
     instance_layer_names_.push_back("VK_LAYER_KHRONOS_validation");
   }
@@ -185,8 +180,10 @@ void Context::init_instance() {
   available_instance_extensions_.resize(extension_count);
   vkEnumerateInstanceExtensionProperties(nullptr, &extension_count, available_instance_extensions_.data());
 
-  char const** glfw_extensions = glfwGetRequiredInstanceExtensions(&extension_count);
-  instance_extension_names_.insert(instance_extension_names_.end(), glfw_extensions, glfw_extensions + extension_count);
+  // Add extensions requested by the application.
+  instance_extension_names_.insert(
+    instance_extension_names_.begin(), instance_extensions.begin(), instance_extensions.end()
+  );
 
   if (auto ext_name = "VK_EXT_debug_utils"; has_extension(ext_name, available_instance_extensions_)) {
     instance_extension_names_.push_back(ext_name);

@@ -1,4 +1,6 @@
 #include "framework/application.h"
+#include "framework/events.h"
+#include "framework/window.h"
 
 /* -------------------------------------------------------------------------- */
 
@@ -13,11 +15,17 @@ int Application::run() {
     return EXIT_FAILURE;
   }
 
-  while (!glfwWindowShouldClose(window_)) {
+  auto &events{ Events::Get() };
+  auto const nextFrame{[this, &events]() {
+    events.prepareNextFrame();
+    return wm_->poll();
+  }};
+
+  while (nextFrame()) {
     frame_time_ = get_elapsed_time();
-    glfwPollEvents();
     frame();
   }
+
   shutdown();
 
   return EXIT_SUCCESS;
@@ -29,61 +37,39 @@ float Application::get_elapsed_time() const {
 }
 
 bool Application::presetup() {
-  if (!glfwInit()) {
-    fprintf(stderr, "Error: Could not initialize GLFW.\n");
-    return false;
+  /* Singletons. */
+  {
+    Events::Initialize();
   }
 
-  if (!glfwVulkanSupported()) {
-    fprintf(stderr, "Error: Vulkan is not supported.\n");
+  /* Create the main window surface. */
+  if (wm_ = std::make_unique<Window>(); !wm_->init()) {
     return false;
   }
 
   /* Initialize the Vulkan context. */
-  if (!context_.init()) {
+  if (!context_.init(wm_->getVulkanInstanceExtensions())) {
     return false;
   }
 
-  /* Create the main window surface. */
-  {
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+  /* Create the context surface. */
+  CHECK_VK( wm_->createWindowSurface(context_.get_instance(), &surface_) );
 
-    GLFWmonitor* monitor = glfwGetPrimaryMonitor();
-    {
-      float xscale, yscale;
-      glfwGetMonitorContentScale(monitor, &xscale, &yscale);
-      dpi_scale_ = xscale;
-
-      GLFWvidmode const* mode = glfwGetVideoMode(monitor);
-      surface_size_.width  = static_cast<int>(WINDOW_SIZE_FACTOR * dpi_scale_ * mode->width);
-      surface_size_.height = static_cast<int>(WINDOW_SIZE_FACTOR * dpi_scale_ * mode->height);
-
-      viewport_size_ = surface_size_;
-    }
-
-    window_ = glfwCreateWindow(surface_size_.width, surface_size_.height, "", nullptr, nullptr);
-    if (!window_) {
-      fprintf(stderr, "Error: GLFW couldn't create the window.\n");
-      glfwTerminate();
-      return false;
-    }
-
-    glfwSetKeyCallback(window_, [](GLFWwindow *window, int key, int scancode, int action, int mods) {
-      if ((key == GLFW_KEY_ESCAPE) && (action == GLFW_PRESS)) {
-        glfwSetWindowShouldClose(window, 1);
-      }
-    });
-  }
-
-  /* Retrieve the window surface. */
-  CHECK_VK( glfwCreateWindowSurface(context_.get_instance(), window_, nullptr, &surface_) );
-
-  /* Init the Vulkan renderer. */
+  /* Init the default renderer. */
   renderer_.init(context_, context_.get_resource_allocator(), surface_);
 
-  /* Init time tracker. */
-  chrono_ = std::chrono::high_resolution_clock::now();
+  /* Miscs */
+  {
+    Events::Get().registerCallbacks(this);
+
+    viewport_size_ = {
+      .width = wm_->get_surface_width(),
+      .height = wm_->get_surface_height(),
+    };
+
+    // Init time tracker.
+    chrono_ = std::chrono::high_resolution_clock::now();
+  }
 
   return true;
 }
@@ -91,12 +77,15 @@ bool Application::presetup() {
 void Application::shutdown() {
   CHECK_VK(vkDeviceWaitIdle(context_.get_device()));
 
+  // User defined clean up.
   release();
 
   renderer_.deinit();
   vkDestroySurfaceKHR(context_.get_instance(), surface_, nullptr);
   glfwTerminate();
   context_.deinit();
+
+  Events::Deinitialize();
 }
 
 /* -------------------------------------------------------------------------- */

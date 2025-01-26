@@ -19,7 +19,7 @@ class Context {
 
   ~Context() {}
 
-  bool init();
+  bool init(std::vector<char const*> const& instance_extensions);
   void deinit();
 
   inline VkInstance get_instance() const {
@@ -124,7 +124,7 @@ class Context {
     return true;
   }
 
-  void init_instance();
+  void init_instance(std::vector<char const*> const& instance_extensions);
   void select_gpu();
   bool init_device();
 
