@@ -1,11 +1,10 @@
-#ifndef HELLOVK_FRAMEWORK_SCENE_GEOMETRY_H
-#define HELLOVK_FRAMEWORK_SCENE_GEOMETRY_H
+#ifndef UTILS_GEOMETRY_H
+#define UTILS_GEOMETRY_H
 
 /* -------------------------------------------------------------------------- */
 
-#include "framework/backend/common.h"
+#include <vulkan/vulkan.h>
 
-#include <cstdint>
 #include <vector>
 #include <map>
 
