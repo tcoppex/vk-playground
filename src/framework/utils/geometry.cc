@@ -1,4 +1,4 @@
-#include "framework/scene/geometry.h"
+#include "framework/utils/geometry.h"
 
 #define _USE_MATH_DEFINES
 #include <cmath>

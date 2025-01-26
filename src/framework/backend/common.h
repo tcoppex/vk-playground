@@ -22,10 +22,12 @@
 
 #include "volk.h"
 
+// (linear algebra)
 #include "framework/lina.h"
 using namespace lina::aliases;
 
-#include "framework/utils.h"
+// (miscs utility functions)
+#include "framework/utils/utils.h" //
 
 /* -------------------------------------------------------------------------- */
 

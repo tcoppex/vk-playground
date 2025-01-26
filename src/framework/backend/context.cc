@@ -1,7 +1,10 @@
 #include "framework/backend/context.h"
+#include "framework/utils/utils.h" //
 
-#include "framework/utils.h" //
-#include <GLFW/glfw3.h> // for glfwGetRequiredInstanceExtensions
+// for glfwGetRequiredInstanceExtensions
+#define GLFW_INCLUDE_NONE
+#define GLFW_INCLUDE_VULKAN
+#include "GLFW/glfw3.h"
 
 /* -------------------------------------------------------------------------- */
 

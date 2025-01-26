@@ -8,7 +8,7 @@
 
 #include "framework/application.h"
 #include "framework/renderer/graphics_pipeline.h"
-#include "framework/scene/geometry.h"
+#include "framework/utils/geometry.h"
 
 namespace shader_interop {
 #include "shaders/interop.h"
