@@ -134,8 +134,6 @@ void Geometry::MakePlane(Geometry &geo, float size, uint32_t resx, uint32_t resy
   uint32_t const nrows = (resy + 1u);
   uint32_t const vertex_count = nrows * ncols;
 
-  float const s = size / 2.0f;
-
   /* Set up the buffer of raw vertices. */
   std::vector<Vertex_t> raw_vertices(vertex_count);
   {
@@ -149,7 +147,7 @@ void Geometry::MakePlane(Geometry &geo, float size, uint32_t resx, uint32_t resy
         float const uv_y = static_cast<float>(iy) * dy;
 
         raw_vertices[v_index] = {
-          .position = { s * (uv_x - 0.5f), 0.0f, s * (uv_y - 0.5f) },
+          .position = { size * (uv_x - 0.5f), 0.0f, size * (uv_y - 0.5f) },
           .normal = { 0.0f, 1.0f, 0.0f },
           .texcoord = { uv_x, uv_y }
         };
