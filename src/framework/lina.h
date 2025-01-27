@@ -102,6 +102,7 @@ constexpr LINA_FP kHalfPi       = 2.0 * kQuarterPi;
 constexpr LINA_FP kPi           = 4.0 * kQuarterPi;
 constexpr LINA_FP kTwoPi        = 8.0 * kQuarterPi;
 constexpr LINA_FP kInvPi        = 1.0 / kPi;
+constexpr LINA_FP kHalfSqrtTwo  = 0.7071067811865476; // sqrtf(2.0f)/2.0f
 
 //
 // Functions.
