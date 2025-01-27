@@ -9,14 +9,24 @@
 
 /* -------------------------------------------------------------------------- */
 
-void Geometry::MakeCube(Geometry &geo, float size) {
-  struct Vertex_t {
-    float position[3];
-    float normal[3];
-    float texcoord[2];
-  };
+namespace {
 
-  float s = size;
+static float constexpr kPi = M_PI;
+static float constexpr kTwoPi = 2.0f * kPi;
+
+/* Default interleaved attributes used to construct geometries internally. */
+struct Vertex_t {
+  float position[3];
+  float normal[3];
+  float texcoord[2];
+};
+
+}
+
+/* -------------------------------------------------------------------------- */
+
+void Geometry::MakeCube(Geometry &geo, float size) {
+  float s = size / 2.0f;
 
   std::array<decltype(Vertex_t::position), 8u> const positions{
     +s, +s, +s,
@@ -119,16 +129,12 @@ void Geometry::MakeCube(Geometry &geo, float size) {
 
 // ----------------------------------------------------------------------------
 
-void Geometry::MakePlane(Geometry &geo, uint32_t resx, uint32_t resy, float size) {
-  struct Vertex_t {
-    float position[3];
-    float normal[3];
-    float texcoord[2];
-  };
-
+void Geometry::MakePlane(Geometry &geo, float size, uint32_t resx, uint32_t resy) {
   uint32_t const ncols = (resx + 1u);
   uint32_t const nrows = (resy + 1u);
   uint32_t const vertex_count = nrows * ncols;
+
+  float const s = size / 2.0f;
 
   /* Set up the buffer of raw vertices. */
   std::vector<Vertex_t> raw_vertices(vertex_count);
@@ -143,7 +149,7 @@ void Geometry::MakePlane(Geometry &geo, uint32_t resx, uint32_t resy, float size
         float const uv_y = static_cast<float>(iy) * dy;
 
         raw_vertices[v_index] = {
-          .position = { size * (uv_x - 0.5f), 0.0f, size * (uv_y - 0.5f) },
+          .position = { s * (uv_x - 0.5f), 0.0f, s * (uv_y - 0.5f) },
           .normal = { 0.0f, 1.0f, 0.0f },
           .texcoord = { uv_x, uv_y }
         };
@@ -232,18 +238,9 @@ void Geometry::MakePlane(Geometry &geo, uint32_t resx, uint32_t resy, float size
 
 // ----------------------------------------------------------------------------
 
-void Geometry::MakeSphere(Geometry &geo, uint32_t resx, uint32_t resy, float radius) {
+void Geometry::MakeSphere(Geometry &geo, float radius, uint32_t resx, uint32_t resy) {
   assert( resx > 3u && resy > 2u );
   assert( radius > 0.0f );
-
-  float constexpr kPi = M_PI;
-  float constexpr kTwoPi = 2.0f * kPi;
-
-  struct Vertex_t {
-    float position[3];
-    float normal[3];
-    float texcoord[2];
-  };
 
   uint32_t const ncols = resx + 1u;
   uint32_t const nrows = resy + 1u;
@@ -373,6 +370,143 @@ void Geometry::MakeSphere(Geometry &geo, uint32_t resx, uint32_t resy, float rad
   {
     size_t const vertices_bytesize = vertices.size() * sizeof(vertices[0u]);
     uint8_t *const vertices_ptr = reinterpret_cast<uint8_t*>(vertices.data());
+    geo.vertices.clear();
+    geo.vertices.insert(
+      geo.vertices.end(),
+      vertices_ptr,
+      vertices_ptr + vertices_bytesize
+    );
+  }
+
+  /* Fill indices. */
+  {
+    size_t const indices_bytesize = indices.size() * sizeof(indices[0u]);
+    uint8_t *const indices_ptr = reinterpret_cast<uint8_t*>(indices.data());
+    geo.indices.clear();
+    geo.indices.insert(
+      geo.indices.end(),
+      indices_ptr,
+      indices_ptr + indices_bytesize
+    );
+  }
+}
+
+// ----------------------------------------------------------------------------
+
+void Geometry::MakeTorus(Geometry &geo, float major_radius, float minor_radius, uint32_t resx, uint32_t resy) {
+  uint32_t const ncols = (resx + 1u);
+  uint32_t const nrows = (resy + 1u);
+  uint32_t const vertex_count = nrows * ncols;
+
+  // The torus is made as a plane rolled around the outer_ring.
+
+  /* Set up the buffer of raw vertices. */
+  std::vector<Vertex_t> raw_vertices(vertex_count);
+  {
+    float const dx = 1.0f / static_cast<float>(ncols - 1u);
+    float const dy = 1.0f / static_cast<float>(nrows - 1u);
+
+    //float const cosine_step_theta = cos(dy * kTwoPi);
+    //float const sine_step_theta = sin(dy * kTwoPi);
+    //float const cosine_step_phi = cos(dx * kTwoPi);
+    //float const sine_step_phi = sin(dx * kTwoPi);
+
+    uint32_t v_index = 0u;
+    for (uint32_t iy = 0u; iy < nrows; ++iy) {
+      float const uv_y = static_cast<float>(iy) * dy;
+      float const theta = uv_y * kTwoPi;
+
+      float cosine_theta = cosf(theta);
+      float sine_theta = sinf(theta);
+
+      // Rotate minor ring position (1, 0, 0) on Z-axis.
+      float const b_x = cosine_theta * minor_radius + major_radius;
+      float const b_y = sine_theta * minor_radius;
+
+      for (uint32_t ix = 0u; ix < ncols; ++ix, ++v_index) {
+        float const uv_x = static_cast<float>(ix) * dx;
+        float const phi = uv_x * kTwoPi;
+
+        float const cosine_phi = cosf(phi);
+        float const sine_phi = sinf(phi);
+
+        // Rotate major ring position on Y-axis.
+        float const a_x = cosine_phi * b_x;
+        float const a_y = b_y;
+        float const a_z = - sine_phi * b_x;
+
+        float const nx = cosine_phi * cosine_theta;
+        float const ny = sine_theta;
+        float const nz = - sine_phi * cosine_theta;
+
+        raw_vertices[v_index] = {
+          .position = { a_x, a_y, a_z },
+          .normal = { nx, ny, nz },
+          .texcoord = { uv_x, uv_y }
+        };
+      }
+    }
+  }
+
+
+  /* Set up triangle strip indices. */
+  uint32_t const index_count = ((resx + 1u) * 2u) * resy + (resy - 1u) * 2u;
+  std::vector<uint32_t> indices(index_count);
+  {
+    uint32_t index = 0u;
+    for (uint32_t iy = 0u; iy < resy; ++iy) {
+      for (uint32_t ix = 0u; ix < resx + 1u; ++ix) {
+        uint32_t const v_index = (ncols * (iy + 1u)) - (ix + 1);
+        indices[index++] = v_index;
+        indices[index++] = v_index + ncols;
+      }
+      if (iy < resy - 1u) {
+        indices[index] = indices[index - 1u];
+        indices[index + 1u] = indices[index] + resx;
+        index += 2u;
+      }
+    }
+    assert(index == index_count);
+  }
+
+  /// --------------
+
+  geo.indexFormat = IndexFormat::U32;
+  geo.topology = Topology::TriangleStrip;
+  geo.index_count = index_count;
+  geo.vertex_count = vertex_count;
+
+  geo.attributes = {
+    {
+      AttributeType::Position,
+      {
+        .format = AttributeFormat::RGB_F32,
+        .offset = offsetof(Vertex_t, position),
+        .stride = sizeof(Vertex_t),
+      }
+    },
+    {
+      AttributeType::Normal,
+      {
+        .format = AttributeFormat::RGB_F32,
+        .offset = offsetof(Vertex_t, normal),
+        .stride = sizeof(Vertex_t),
+      }
+    },
+    {
+      AttributeType::Texcoord,
+      {
+        .format = AttributeFormat::RG_F32,
+        .offset = offsetof(Vertex_t, texcoord),
+        .stride = sizeof(Vertex_t),
+      }
+    },
+  };
+
+  /* Fill vertices. */
+  {
+    size_t const vertices_bytesize = raw_vertices.size() * sizeof(raw_vertices[0u]);
+    uint8_t *const vertices_ptr = reinterpret_cast<uint8_t*>(raw_vertices.data());
     geo.vertices.clear();
     geo.vertices.insert(
       geo.vertices.end(),
