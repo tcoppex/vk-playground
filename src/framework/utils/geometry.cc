@@ -9,22 +9,24 @@
 
 /* -------------------------------------------------------------------------- */
 
-void Geometry::MakeCube(Geometry &geo) {
+void Geometry::MakeCube(Geometry &geo, float size) {
   struct Vertex_t {
     float position[3];
     float normal[3];
     float texcoord[2];
   };
 
+  float s = size;
+
   std::array<decltype(Vertex_t::position), 8u> const positions{
-    +1.0, +1.0, +1.0,
-    +1.0, -1.0, +1.0,
-    +1.0, -1.0, -1.0,
-    +1.0, +1.0, -1.0,
-    -1.0, +1.0, +1.0,
-    -1.0, -1.0, +1.0,
-    -1.0, -1.0, -1.0,
-    -1.0, +1.0, -1.0,
+    +s, +s, +s,
+    +s, -s, +s,
+    +s, -s, -s,
+    +s, +s, -s,
+    -s, +s, +s,
+    -s, -s, +s,
+    -s, -s, -s,
+    -s, +s, -s,
   };
 
   std::array<decltype(Vertex_t::normal), 6u> const normals{
