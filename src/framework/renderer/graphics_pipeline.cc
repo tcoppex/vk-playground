@@ -3,7 +3,7 @@
 /* -------------------------------------------------------------------------- */
 
 void GraphicsPipeline::release(VkDevice const device) {
-  if (pipeline_layout_ != VK_NULL_HANDLE) {
+  if (use_internal_layout_ && (pipeline_layout_ != VK_NULL_HANDLE)) {
     vkDestroyPipelineLayout(device, pipeline_layout_, nullptr);
     pipeline_layout_ = VK_NULL_HANDLE;
   }
@@ -16,13 +16,17 @@ void GraphicsPipeline::release(VkDevice const device) {
 // ----------------------------------------------------------------------------
 
 void GraphicsPipeline::reset() {
+  // release();
+
+  use_internal_layout_ = false;
+  push_constant_ranges_.clear();
+  descriptor_set_layouts_.clear();
+
   shader_stages_.clear();
   stages_mask_ = 0u;
-  push_constant_ranges_.clear();
 
   vertex_binding_attribute_.bindings.clear();
   vertex_binding_attribute_.attributes.clear();
-  descriptor_set_layouts_.clear();
 
   color_blend_attachments_ = {
     {
@@ -373,9 +377,11 @@ void GraphicsPipeline::complete_WIP(VkDevice const device, GraphicsPipelineDescr
 
 // ----------------------------------------------------------------------------
 
-// (to remove, in favor of Renderer::create_pipeline_layout)
 void GraphicsPipeline::create_layout(VkDevice const device) {
-  assert(VK_NULL_HANDLE == pipeline_layout_);
+  if (pipeline_layout_ != VK_NULL_HANDLE) {
+    return;
+  }
+  use_internal_layout_ = true;
 
   VkPipelineLayoutCreateInfo const pipeline_layout_create_info{
     .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
