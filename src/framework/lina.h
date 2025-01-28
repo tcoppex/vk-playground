@@ -153,6 +153,13 @@ constexpr T saturate(T const& a) {
 
 // ----------------------------------------------------------------------------
 
+template<class T> linalg::mat<T,4,4> rotation_matrix_axis(linalg::vec<T, 3> const& axis, T const angle) { return linalg::rotation_matrix(linalg::rotation_quat(linalg::normalize(axis), angle)); }
+template<class T> linalg::mat<T,4,4> rotation_matrix_x(T const angle) { return rotation_matrix_axis(linalg::vec<T, 3>(1.0f, 0.0f, 0.0f), angle); }
+template<class T> linalg::mat<T,4,4> rotation_matrix_y(T const angle) { return rotation_matrix_axis(linalg::vec<T, 3>(0.0f, 1.0f, 0.0f), angle); }
+template<class T> linalg::mat<T,4,4> rotation_matrix_z(T const angle) { return rotation_matrix_axis(linalg::vec<T, 3>(0.0f, 0.0f, 1.0f), angle); }
+
+// ----------------------------------------------------------------------------
+
 template<typename T>
 constexpr T step(T const& a, T const& x) {
   static_assert( std::is_floating_point<T>::value );
