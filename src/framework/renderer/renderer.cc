@@ -19,9 +19,9 @@ void Renderer::init(Context const& context, std::shared_ptr<ResourceAllocator> a
   /* Initialize the swapchain. */
   swapchain_.init(context, surface);
 
-  /* Create a (default) depth stencil buffer. */
+  /* Create a default depth stencil buffer. */
   depth_stencil_ = context.create_depth_stencil_image_2d(
-    get_valid_depth_format(),
+    get_valid_depth_format(), //
     swapchain_.get_surface_size()
   );
 

@@ -53,7 +53,9 @@ bool Application::presetup() {
   }
 
   /* Create the context surface. */
-  CHECK_VK( wm_->createWindowSurface(context_.get_instance(), &surface_) );
+  if (auto res = wm_->createWindowSurface(context_.get_instance(), &surface_); CHECK_VK(res)) {
+    return false;
+  }
 
   /* Init the default renderer. */
   renderer_.init(context_, context_.get_resource_allocator(), surface_);

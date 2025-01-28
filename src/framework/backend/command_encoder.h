@@ -33,10 +33,9 @@ class GenericCommandEncoder {
       .descriptorSetCount = 1u, // 
       .pDescriptorSets = &descriptor_set,
     };
+    // (requires VK_KHR_maintenance6 or VK_VERSION_1_4)
     vkCmdBindDescriptorSets2KHR(command_buffer_, &bind_desc_sets_info);
   }
-
-  // [TODO] wrapper forvkCmdPushDescriptorSet2KHR
 
  protected:
   VkCommandBuffer command_buffer_{};

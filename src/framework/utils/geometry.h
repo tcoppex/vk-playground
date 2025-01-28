@@ -54,21 +54,26 @@ class Geometry {
   };
 
  public:
-  /* Create a cube with interleaved Position, Normal and UV, as an indexed triangle list mesh. */
+  // --- Indexed Triangle List ---
+
+  /* Create a cube with interleaved Position, Normal and UV. */
   static void MakeCube(Geometry &geo, float size = kDefaultSize);
 
-  /* Create a +Y plane with interleaved Position, Normal and UV, as an index tristrip mesh. */
+ public:
+  // --- Indexed Triangle Strip ---
+
+  /* Create a +Y plane with interleaved Position, Normal and UV. */
   static void MakePlane(Geometry &geo, float size = kDefaultSize, uint32_t resx = 1u, uint32_t resy = 1u);
 
-  /* Create a sphere with interleaved Position, Normal and UV, as an indexed tristrip mesh. */
+  /* Create a sphere with interleaved Position, Normal and UV. */
   static void MakeSphere(Geometry &geo, float radius, uint32_t resx, uint32_t resy);
 
-  static void MakeSphere(Geometry &geo, float radius = kDefaultRadius, uint32_t resolution = 32) {
+  static void MakeSphere(Geometry &geo, float radius = kDefaultRadius, uint32_t resolution = 32u) {
     MakeSphere(geo, resolution, resolution, radius);
   }
 
-  /* Create atorus with interleaved Position, Normal, and UV, as an index tristrip mesh. */
-  static void MakeTorus(Geometry &geo, float major_radius, float minor_radius, uint32_t resx = 32, uint32_t resy = 24);
+  /* Create a torus with interleaved Position, Normal, and UV. */
+  static void MakeTorus(Geometry &geo, float major_radius, float minor_radius, uint32_t resx = 32u, uint32_t resy = 24u);
 
   static void MakeTorus(Geometry &geo, float radius = kDefaultRadius) {
     MakeTorus(geo, 0.8f*radius, 0.2f*radius);
@@ -81,7 +86,8 @@ class Geometry {
 
  public:
   Geometry() = default;
-  ~Geometry() {}
+  
+  ~Geometry() = default;
 
   Topology get_topology() const {
     return topology;

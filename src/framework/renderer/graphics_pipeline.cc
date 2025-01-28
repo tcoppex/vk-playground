@@ -124,7 +124,7 @@ void GraphicsPipeline::reset() {
 // ----------------------------------------------------------------------------
 
 void GraphicsPipeline::add_shader_stage(VkShaderStageFlagBits const stage, ShaderModule_t const& shader) {
-  assert(false == (stages_mask_ & stage));
+  assert(false == (stages_mask_ & stage) && "This stage has already been set !");
 
   VkPipelineShaderStageCreateInfo const shader_stage{
     .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
