@@ -58,12 +58,6 @@ add_simple_demo(01_triangle)
 add_simple_demo(02_push_constant) # left side not working on windows?
 add_simple_demo(03_descriptor_set)
 add_simple_demo(04_texturing)
-
-# add_simple_demo(05_instancing)
-# add_simple_demo(06_alpha_blending)
-# add_simple_demo(07_stencil_op)
-# add_simple_demo(08_shadow_mapping)
-# add_simple_demo(09_compute)
-# add_simple_demo(10_deferred)
+add_simple_demo(05_stencil_op)
 
 # -----------------------------------------------------------------------------
