@@ -141,19 +141,22 @@ class SampleApp final : public Application {
     {
       auto& gp = graphics_pipeline_;
 
-      gp.add_shader_stage(VK_SHADER_STAGE_VERTEX_BIT, shaders[0u]);
-      gp.add_shader_stage(VK_SHADER_STAGE_FRAGMENT_BIT, shaders[1u]);
-
-      gp.add_push_constant_range({
-        .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
-        .offset = 0u,
-        .size = sizeof(shader_interop::PushConstant),
-      });
-
       /**
        * Add the descriptor set layout use by this pipeline (here just one).
        **/
-      gp.add_descriptor_set_layout(descriptor_set_layout_);
+      VkPipelineLayout const pipeline_layout = renderer_.create_pipeline_layout({
+        .setLayouts = { descriptor_set_layout_ },
+        .pushConstantRanges = {
+          {
+            .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+            .size = sizeof(shader_interop::PushConstant),
+          }
+        },
+      });
+      gp.set_pipeline_layout(pipeline_layout);
+
+      gp.add_shader_stage(VK_SHADER_STAGE_VERTEX_BIT, shaders[0u]);
+      gp.add_shader_stage(VK_SHADER_STAGE_FRAGMENT_BIT, shaders[1u]);
 
       /**
        * By default graphics pipeline expect mesh data layout as Triangle List,
@@ -194,9 +197,10 @@ class SampleApp final : public Application {
   }
 
   void release() final {
-    graphics_pipeline_.release(context_.get_device());
-
+    renderer_.destroy_pipeline_layout(graphics_pipeline_.get_layout());
     renderer_.destroy_descriptor_set_layout(descriptor_set_layout_);
+
+    graphics_pipeline_.release(context_.get_device());
 
     allocator_->destroy_buffer(index_buffer_);
     allocator_->destroy_buffer(vertex_buffer_);
