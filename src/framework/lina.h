@@ -84,6 +84,15 @@ using mat4f = linalg::mat<LINA_FP, 4, 4>;
 using vec2 = vec2f;
 using vec3 = vec3f;
 using vec4 = vec4f;
+
+using uvec2 = vec2u;
+using uvec3 = vec3u;
+using uvec4 = vec4u;
+
+using ivec2 = vec2i;
+using ivec3 = vec3i;
+using ivec4 = vec4i;
+
 using mat3 = mat3f;
 using mat4 = mat4f;
 using mat3x3 = mat3;
