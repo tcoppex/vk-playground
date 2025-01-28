@@ -59,7 +59,7 @@ class Renderer : public RTInterface {
 
   VkPipelineLayout create_pipeline_layout(PipelineLayoutParams_t const& params) const;
 
-  void destroy_pipeline_layout(VkPipelineLayout& layout) const;
+  void destroy_pipeline_layout(VkPipelineLayout layout) const;
 
   // --- Pipeline ---
 

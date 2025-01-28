@@ -252,9 +252,9 @@ std::shared_ptr<Framebuffer> Renderer::create_framebuffer() const {
 
 // ----------------------------------------------------------------------------
 
-void Renderer::destroy_pipeline_layout(VkPipelineLayout &layout) const {
+void Renderer::destroy_pipeline_layout(VkPipelineLayout layout) const {
   vkDestroyPipelineLayout(device_, layout, nullptr);
-  layout = VK_NULL_HANDLE;
+  // layout = VK_NULL_HANDLE;
 }
 
 // ----------------------------------------------------------------------------
