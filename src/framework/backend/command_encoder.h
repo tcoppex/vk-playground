@@ -22,6 +22,10 @@ class GenericCommandEncoder {
 
   virtual ~GenericCommandEncoder() {}
 
+  VkCommandBuffer get_handle() {
+    return command_buffer_;
+  }
+
   // --- Descriptor Sets ---
 
   void bind_descriptor_set(VkDescriptorSet const descriptor_set, VkPipelineLayout const pipeline_layout, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS) const {
