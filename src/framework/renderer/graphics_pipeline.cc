@@ -105,6 +105,10 @@ void GraphicsPipeline::reset() {
     .depthTestEnable = VK_TRUE,
     .depthWriteEnable = VK_TRUE,
     .depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL,
+    .depthBoundsTestEnable = VK_FALSE,
+    .stencilTestEnable = VK_FALSE,
+    .front = {},
+    .back = {},
   };
 
   states_.color_blend = {
@@ -174,11 +178,14 @@ bool GraphicsPipeline::complete(VkDevice const device, RTInterface const& render
     );
   }
 
+  auto const depth_stencil = render_target.get_depth_stencil_attachment();
+
   VkPipelineRenderingCreateInfo const dynamic_rendering_create_info{
     .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
     .colorAttachmentCount = static_cast<uint32_t>(color_formats.size()),
     .pColorAttachmentFormats = color_formats.data(),
-    .depthAttachmentFormat = render_target.get_depth_stencil_attachment().format,
+    .depthAttachmentFormat = depth_stencil.format,
+    .stencilAttachmentFormat = depth_stencil.format,
   };
 
   VkGraphicsPipelineCreateInfo const graphics_pipeline_create_info{

@@ -51,7 +51,8 @@ class CommandEncoder : public GenericCommandEncoder {
  public:
   struct RenderPassDescriptor_t {
     std::vector<VkRenderingAttachmentInfo> colorAttachments;
-    VkRenderingAttachmentInfo depthStencilAttachment;
+    VkRenderingAttachmentInfo depthAttachment;
+    VkRenderingAttachmentInfo stencilAttachment;
     VkRect2D renderArea;
   };
 

@@ -104,7 +104,8 @@ RenderPassEncoder CommandEncoder::begin_rendering(RenderPassDescriptor_t const& 
     .layerCount           = 1u,
     .colorAttachmentCount = static_cast<uint32_t>(desc.colorAttachments.size()),
     .pColorAttachments    = desc.colorAttachments.data(),
-    .pDepthAttachment     = &desc.depthStencilAttachment,
+    .pDepthAttachment     = &desc.depthAttachment,
+    .pStencilAttachment   = &desc.stencilAttachment, //
   };
   vkCmdBeginRenderingKHR(command_buffer_, &rendering_info);
 
@@ -136,7 +137,15 @@ RenderPassEncoder CommandEncoder::begin_rendering(RTInterface const& render_targ
         .clearValue  = render_target.get_color_clear_value(),
       }
     },
-    .depthStencilAttachment = {
+    .depthAttachment = {
+      .sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
+      .imageView   = render_target.get_depth_stencil_attachment().view,
+      .imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR,
+      .loadOp      = VK_ATTACHMENT_LOAD_OP_CLEAR,
+      .storeOp     = VK_ATTACHMENT_STORE_OP_STORE,
+      .clearValue  = render_target.get_depth_stencil_clear_value(),
+    },
+    .stencilAttachment = {
       .sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
       .imageView   = render_target.get_depth_stencil_attachment().view,
       .imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR,
