@@ -149,7 +149,7 @@ void Geometry::MakePlane(Geometry &geo, float size, uint32_t resx, uint32_t resy
         raw_vertices[v_index] = {
           .position = { size * (uv_x - 0.5f), 0.0f, size * (uv_y - 0.5f) },
           .normal = { 0.0f, 1.0f, 0.0f },
-          .texcoord = { uv_x, uv_y }
+          .texcoord = { uv_x, 1.0f - uv_y }
         };
       }
     }
@@ -163,8 +163,8 @@ void Geometry::MakePlane(Geometry &geo, float size, uint32_t resx, uint32_t resy
     for (uint32_t iy = 0u; iy < resy; ++iy) {
       for (uint32_t ix = 0u; ix < resx + 1u; ++ix) {
         uint32_t const v_index = (ncols * (iy + 1u)) - (ix + 1);
-        indices[index++] = v_index;
         indices[index++] = v_index + ncols;
+        indices[index++] = v_index;
       }
       if (iy < resy - 1u) {
         indices[index] = indices[index - 1u];
