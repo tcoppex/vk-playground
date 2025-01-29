@@ -36,13 +36,13 @@ void main() {
                      ;
 
   // Vertex outputs.
-  float di = gl_InstanceIndex / 128.0;
+  float di = gl_InstanceIndex / 256.0;
 
   float ystep = 0.092f;
   vec3 offset = vec3(
-    0.14*sin(6.7 * di * 6.28),
-    -(2.5 + gl_InstanceIndex) * ystep,
-    0.13*cos(8.5 * di * 6.28)
+    0.14*sin(13.4 * di * 6.283),
+    -(2.0 + gl_InstanceIndex) * ystep,
+    0.13*cos(17.0 * di * 6.283)
   );
   float scale = (1.0 - 0.65 * di);
 
