@@ -47,6 +47,7 @@ cmake --build build --config Release
 * **[02_push_constant](src/samples/02_push_constant)**: Update per-frame values via push constants and dynamic states.
 * **[03_descriptor_set](src/samples/03_descriptor_set)**: Initialize & update a descriptor set on a single uniform buffer.
 * **[04_texturing](src/samples/04_texturing)**: Display a textured cube with a linear sampler.
+* **[05_stencil_op](src/samples/05_stencil_op)**: Demonstrate instancing and stencil operations through a multi-passes portal effect.
 
 ### Dependencies
 
