@@ -54,6 +54,14 @@ class GraphicsPipeline final : public Pipeline {
     pipeline_layout_ = layout;
   }
 
+  void add_dynamic_state(VkDynamicState state) {
+    dynamic_states_.push_back(state);
+  }
+
+  void add_dynamic_states(std::vector<VkDynamicState> const& states) {
+    dynamic_states_.insert(dynamic_states_.end(), states.begin(), states.end());
+  }
+
   void add_shader_stage(VkShaderStageFlagBits const stage, ShaderModule_t const& shader);
 
   void set_vertex_binding_attribute(VertexBindingAttribute_t const&& vba);
