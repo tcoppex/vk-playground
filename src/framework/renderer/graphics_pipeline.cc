@@ -3,7 +3,7 @@
 /* -------------------------------------------------------------------------- */
 
 void GraphicsPipeline::release(VkDevice const device) {
-  if (pipeline_layout_ != VK_NULL_HANDLE) {
+  if (use_internal_layout_ && (pipeline_layout_ != VK_NULL_HANDLE)) {
     vkDestroyPipelineLayout(device, pipeline_layout_, nullptr);
     pipeline_layout_ = VK_NULL_HANDLE;
   }
@@ -16,13 +16,17 @@ void GraphicsPipeline::release(VkDevice const device) {
 // ----------------------------------------------------------------------------
 
 void GraphicsPipeline::reset() {
+  // release();
+
+  use_internal_layout_ = false;
+  push_constant_ranges_.clear();
+  descriptor_set_layouts_.clear();
+
   shader_stages_.clear();
   stages_mask_ = 0u;
-  push_constant_ranges_.clear();
 
   vertex_binding_attribute_.bindings.clear();
   vertex_binding_attribute_.attributes.clear();
-  descriptor_set_layouts_.clear();
 
   color_blend_attachments_ = {
     {
@@ -101,6 +105,10 @@ void GraphicsPipeline::reset() {
     .depthTestEnable = VK_TRUE,
     .depthWriteEnable = VK_TRUE,
     .depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL,
+    .depthBoundsTestEnable = VK_FALSE,
+    .stencilTestEnable = VK_FALSE,
+    .front = {},
+    .back = {},
   };
 
   states_.color_blend = {
@@ -116,7 +124,7 @@ void GraphicsPipeline::reset() {
 // ----------------------------------------------------------------------------
 
 void GraphicsPipeline::add_shader_stage(VkShaderStageFlagBits const stage, ShaderModule_t const& shader) {
-  assert(false == (stages_mask_ & stage));
+  assert(false == (stages_mask_ & stage) && "This stage has already been set !");
 
   VkPipelineShaderStageCreateInfo const shader_stage{
     .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -170,11 +178,14 @@ bool GraphicsPipeline::complete(VkDevice const device, RTInterface const& render
     );
   }
 
+  auto const depth_stencil = render_target.get_depth_stencil_attachment();
+
   VkPipelineRenderingCreateInfo const dynamic_rendering_create_info{
     .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
     .colorAttachmentCount = static_cast<uint32_t>(color_formats.size()),
     .pColorAttachmentFormats = color_formats.data(),
-    .depthAttachmentFormat = render_target.get_depth_stencil_attachment().format,
+    .depthAttachmentFormat = depth_stencil.format,
+    .stencilAttachmentFormat = depth_stencil.format,
   };
 
   VkGraphicsPipelineCreateInfo const graphics_pipeline_create_info{
@@ -373,9 +384,11 @@ void GraphicsPipeline::complete_WIP(VkDevice const device, GraphicsPipelineDescr
 
 // ----------------------------------------------------------------------------
 
-// (to remove, in favor of Renderer::create_pipeline_layout)
 void GraphicsPipeline::create_layout(VkDevice const device) {
-  assert(VK_NULL_HANDLE == pipeline_layout_);
+  if (pipeline_layout_ != VK_NULL_HANDLE) {
+    return;
+  }
+  use_internal_layout_ = true;
 
   VkPipelineLayoutCreateInfo const pipeline_layout_create_info{
     .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,

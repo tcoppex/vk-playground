@@ -84,6 +84,15 @@ using mat4f = linalg::mat<LINA_FP, 4, 4>;
 using vec2 = vec2f;
 using vec3 = vec3f;
 using vec4 = vec4f;
+
+using uvec2 = vec2u;
+using uvec3 = vec3u;
+using uvec4 = vec4u;
+
+using ivec2 = vec2i;
+using ivec3 = vec3i;
+using ivec4 = vec4i;
+
 using mat3 = mat3f;
 using mat4 = mat4f;
 using mat3x3 = mat3;
@@ -102,6 +111,8 @@ constexpr LINA_FP kHalfPi       = 2.0 * kQuarterPi;
 constexpr LINA_FP kPi           = 4.0 * kQuarterPi;
 constexpr LINA_FP kTwoPi        = 8.0 * kQuarterPi;
 constexpr LINA_FP kInvPi        = 1.0 / kPi;
+constexpr LINA_FP kSqrtTwo      = 1.4142135623730951;
+constexpr LINA_FP kHalfSqrtTwo  = 0.5 * kSqrtTwo;
 
 //
 // Functions.
@@ -139,6 +150,13 @@ constexpr T saturate(T const& a) {
   static_assert( std::is_floating_point<T>::value );
   return clamp(a, 0, 1);
 }
+
+// ----------------------------------------------------------------------------
+
+template<class T> linalg::mat<T,4,4> rotation_matrix_axis(linalg::vec<T, 3> const& axis, T const angle) { return linalg::rotation_matrix(linalg::rotation_quat(linalg::normalize(axis), angle)); }
+template<class T> linalg::mat<T,4,4> rotation_matrix_x(T const angle) { return rotation_matrix_axis(linalg::vec<T, 3>(1.0f, 0.0f, 0.0f), angle); }
+template<class T> linalg::mat<T,4,4> rotation_matrix_y(T const angle) { return rotation_matrix_axis(linalg::vec<T, 3>(0.0f, 1.0f, 0.0f), angle); }
+template<class T> linalg::mat<T,4,4> rotation_matrix_z(T const angle) { return rotation_matrix_axis(linalg::vec<T, 3>(0.0f, 0.0f, 1.0f), angle); }
 
 // ----------------------------------------------------------------------------
 

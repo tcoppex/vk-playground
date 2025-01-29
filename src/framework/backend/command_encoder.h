@@ -1,7 +1,6 @@
 #ifndef HELLOVK_FRAMEWORK_BACKEND_COMMAND_ENCODER_H
 #define HELLOVK_FRAMEWORK_BACKEND_COMMAND_ENCODER_H
 
-#include "framework/backend/common.h"
 #include "framework/backend/allocator.h"
 
 class RenderPassEncoder;
@@ -23,6 +22,10 @@ class GenericCommandEncoder {
 
   virtual ~GenericCommandEncoder() {}
 
+  VkCommandBuffer get_handle() {
+    return command_buffer_;
+  }
+
   // --- Descriptor Sets ---
 
   void bind_descriptor_set(VkDescriptorSet const descriptor_set, VkPipelineLayout const pipeline_layout, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS) const {
@@ -34,10 +37,9 @@ class GenericCommandEncoder {
       .descriptorSetCount = 1u, // 
       .pDescriptorSets = &descriptor_set,
     };
+    // (requires VK_KHR_maintenance6 or VK_VERSION_1_4)
     vkCmdBindDescriptorSets2KHR(command_buffer_, &bind_desc_sets_info);
   }
-
-  // [TODO] wrapper forvkCmdPushDescriptorSet2KHR
 
  protected:
   VkCommandBuffer command_buffer_{};
@@ -52,7 +54,8 @@ class CommandEncoder : public GenericCommandEncoder {
  public:
   struct RenderPassDescriptor_t {
     std::vector<VkRenderingAttachmentInfo> colorAttachments;
-    VkRenderingAttachmentInfo depthStencilAttachment;
+    VkRenderingAttachmentInfo depthAttachment;
+    VkRenderingAttachmentInfo stencilAttachment;
     VkRect2D renderArea;
   };
 
@@ -110,12 +113,12 @@ class CommandEncoder : public GenericCommandEncoder {
 
   template<typename T> requires (!SpanConvertible<T>)
   void push_constant(T const& value, VkPipelineLayout const pipeline_layout, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS, uint32_t const offset = 0u) const {
-    utils::PushConstant(command_buffer_, value, pipeline_layout, stage_flags, offset);
+    vkutils::PushConstant(command_buffer_, value, pipeline_layout, stage_flags, offset);
   }
 
   template<typename T> requires (SpanConvertible<T>)
   void push_constants(T const& values, VkPipelineLayout const pipeline_layout, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS, uint32_t const offset = 0u) const {
-    utils::PushConstants(command_buffer_, values, pipeline_layout, stage_flags, offset);
+    vkutils::PushConstants(command_buffer_, values, pipeline_layout, stage_flags, offset);
   }
 
  protected:
@@ -198,12 +201,12 @@ class RenderPassEncoder : public GenericCommandEncoder {
 
   template<typename T> requires (!SpanConvertible<T>)
   void push_constant(T const& value, VkPipelineLayout const pipeline_layout, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS, uint32_t const offset = 0u) const {
-    utils::PushConstant(command_buffer_, value, pipeline_layout, stage_flags, offset);
+    vkutils::PushConstant(command_buffer_, value, pipeline_layout, stage_flags, offset);
   }
 
   template<typename T> requires (SpanConvertible<T>)
   void push_constants(T const& values, VkPipelineLayout const pipeline_layout, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS, uint32_t const offset = 0u) const {
-    utils::PushConstants(command_buffer_, values, pipeline_layout, stage_flags, offset);
+    vkutils::PushConstants(command_buffer_, values, pipeline_layout, stage_flags, offset);
   }
 
   template<typename T> requires (!SpanConvertible<T>)

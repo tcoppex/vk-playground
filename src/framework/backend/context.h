@@ -3,10 +3,9 @@
 
 /* -------------------------------------------------------------------------- */
 
-#include "framework/backend/common.h"
+#include "framework/backend/types.h"
 #include "framework/backend/command_encoder.h"
 #include "framework/backend/allocator.h"
-#include "framework/backend/types.h"
 
 /* -------------------------------------------------------------------------- */
 
@@ -20,7 +19,7 @@ class Context {
 
   ~Context() {}
 
-  bool init();
+  bool init(std::vector<char const*> const& instance_extensions);
   void deinit();
 
   inline VkInstance get_instance() const {
@@ -108,7 +107,7 @@ class Context {
 
     // Add to DeviceFeatures2.
     feature = feature_entry;
-    utils::PushNextVKStruct(&feature_.base, &feature);
+    vkutils::PushNextVKStruct(&feature_.base, &feature);
 
     // Add extensions dependencies.
     if (!dependencies.empty()) {
@@ -125,7 +124,7 @@ class Context {
     return true;
   }
 
-  void init_instance();
+  void init_instance(std::vector<char const*> const& instance_extensions);
   void select_gpu();
   bool init_device();
 

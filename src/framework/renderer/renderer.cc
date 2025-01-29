@@ -19,9 +19,9 @@ void Renderer::init(Context const& context, std::shared_ptr<ResourceAllocator> a
   /* Initialize the swapchain. */
   swapchain_.init(context, surface);
 
-  /* Create a (default) depth stencil buffer. */
+  /* Create a default depth stencil buffer. */
   depth_stencil_ = context.create_depth_stencil_image_2d(
-    get_valid_depth_format(),
+    get_valid_depth_format(), //
     swapchain_.get_surface_size()
   );
 
@@ -252,9 +252,9 @@ std::shared_ptr<Framebuffer> Renderer::create_framebuffer() const {
 
 // ----------------------------------------------------------------------------
 
-void Renderer::destroy_pipeline_layout(VkPipelineLayout &layout) const {
+void Renderer::destroy_pipeline_layout(VkPipelineLayout layout) const {
   vkDestroyPipelineLayout(device_, layout, nullptr);
-  layout = VK_NULL_HANDLE;
+  // layout = VK_NULL_HANDLE;
 }
 
 // ----------------------------------------------------------------------------

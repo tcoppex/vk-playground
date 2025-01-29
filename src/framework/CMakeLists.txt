@@ -25,21 +25,12 @@ add_library(
 # -----------------------------------------------------------------------------
 
 target_link_libraries(${target} PRIVATE
-  ${Vulkan_LIBRARY}
-  # ${GLFW_LIBRARY}
-  glfw
-  volk
+  ${SharedLibs}
   VulkanMemoryAllocator
 )
 
 target_include_directories(${target} PRIVATE
-  ${PROJECT_SOURCE_DIR}
-  ${Vulkan_INCLUDE_DIR}
-  ${GLFW_INCLUDE_DIR}
-  ${LINALG_INCLUDE_DIR}
-  ${VOLK_INCLUDE_DIR}
-  ${VMA_INCLUDE_DIR}
-  ${PROJECT_THIRD_PARTY_DIR}
+  ${SharedIncludeDirs}
 )
 
 target_compile_definitions(${target} PRIVATE

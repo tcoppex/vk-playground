@@ -1,11 +1,10 @@
-#ifndef HELLOVK_FRAMEWORK_SCENE_GEOMETRY_H
-#define HELLOVK_FRAMEWORK_SCENE_GEOMETRY_H
+#ifndef UTILS_GEOMETRY_H
+#define UTILS_GEOMETRY_H
 
 /* -------------------------------------------------------------------------- */
 
-#include "framework/backend/common.h"
+#include <vulkan/vulkan.h>
 
-#include <cstdint>
 #include <vector>
 #include <map>
 
@@ -16,6 +15,10 @@
  * Useful for side loading or creating procedural geometries.
  **/
 class Geometry {
+ public:
+  static constexpr float kDefaultSize = 1.0f;
+  static constexpr float kDefaultRadius = 0.5f;
+
  public:
   enum class AttributeType {
     Position,
@@ -51,12 +54,40 @@ class Geometry {
   };
 
  public:
-  /* Create a Cube with interleaved Position, Normal and UV, as an indexed triangle list mesh. */
-  static void MakeCubeGeometry(Geometry &geo);
+  // --- Indexed Triangle List ---
+
+  /* Create a cube with interleaved Position, Normal and UV. */
+  static void MakeCube(Geometry &geo, float size = kDefaultSize);
+
+ public:
+  // --- Indexed Triangle Strip ---
+
+  /* Create a +Y plane with interleaved Position, Normal and UV. */
+  static void MakePlane(Geometry &geo, float size = kDefaultSize, uint32_t resx = 1u, uint32_t resy = 1u);
+
+  /* Create a sphere with interleaved Position, Normal and UV. */
+  static void MakeSphere(Geometry &geo, float radius, uint32_t resx, uint32_t resy);
+
+  static void MakeSphere(Geometry &geo, float radius = kDefaultRadius, uint32_t resolution = 32u) {
+    MakeSphere(geo, resolution, resolution, radius);
+  }
+
+  /* Create a torus with interleaved Position, Normal, and UV. */
+  static void MakeTorus(Geometry &geo, float major_radius, float minor_radius, uint32_t resx = 32u, uint32_t resy = 24u);
+
+  static void MakeTorus(Geometry &geo, float radius = kDefaultRadius) {
+    MakeTorus(geo, 0.8f*radius, 0.2f*radius);
+  }
+
+  static void MakeTorus2(Geometry &geo, float inner_radius, float outer_radius, uint32_t resx = 32u, uint32_t resy = 24u) {
+    float const minor_radius = (outer_radius - inner_radius) / 2.0f;
+    MakeTorus(geo, inner_radius + minor_radius, minor_radius, resx, resy);
+  }
 
  public:
   Geometry() = default;
-  ~Geometry() {}
+  
+  ~Geometry() = default;
 
   Topology get_topology() const {
     return topology;

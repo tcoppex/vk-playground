@@ -47,7 +47,7 @@ class SampleApp final : public Application {
 
  private:
   bool setup() final {
-    glfwSetWindowTitle(window_, "02 - танцующий треугольник");
+    wm_->setTitle("02 - танцующий треугольник");
 
     renderer_.set_color_clear_value({.float32 = {0.60f, 0.65f, 0.55f, 1.0f}});
 
@@ -71,15 +71,20 @@ class SampleApp final : public Application {
     {
       auto& gp = graphics_pipeline_;
 
+      /* Add a push constant range to the layout. */
+      VkPipelineLayout const pipeline_layout = renderer_.create_pipeline_layout({
+        .pushConstantRanges = {
+          {
+            .stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS,
+            .size = sizeof(shader_interop::PushConstant),
+          }
+        },
+      });
+
+      gp.set_pipeline_layout(pipeline_layout);
+
       gp.add_shader_stage(VK_SHADER_STAGE_VERTEX_BIT, shaders[0u]);
       gp.add_shader_stage(VK_SHADER_STAGE_FRAGMENT_BIT, shaders[1u]);
-
-      /* Add a push constant range to access. */
-      gp.add_push_constant_range({
-        .stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS,
-        .offset = 0u,
-        .size = sizeof(shader_interop::PushConstant),
-      });
 
       /* By default the cull mode is to 'none' and front face are ordered counter clockwise,
        * so if we're not flipping the screen triangle will not be displayed.
@@ -119,8 +124,12 @@ class SampleApp final : public Application {
   }
 
   void release() final {
-    auto allocator = context_.get_resource_allocator();
+    /* When the layout are provided to the graphics pipeline object, it should
+     * be destroyed manually. */
+    renderer_.destroy_pipeline_layout(graphics_pipeline_.get_layout());
     graphics_pipeline_.release(context_.get_device());
+
+    auto allocator = context_.get_resource_allocator();
     allocator->destroy_buffer(vertex_buffer_);
   }
 
@@ -177,8 +186,8 @@ class SampleApp final : public Application {
   }
 
  private:
-  GraphicsPipeline graphics_pipeline_;
   Buffer_t vertex_buffer_;
+  GraphicsPipeline graphics_pipeline_;
 };
 
 // ----------------------------------------------------------------------------

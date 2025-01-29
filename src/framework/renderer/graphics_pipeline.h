@@ -3,7 +3,6 @@
 
 /* -------------------------------------------------------------------------- */
 
-#include "framework/backend/common.h"
 #include "framework/backend/context.h"
 
 /* -------------------------------------------------------------------------- */
@@ -51,24 +50,17 @@ class GraphicsPipeline final : public Pipeline {
 
 
  public:
-  // -------------------------
-  void add_push_constant_range(VkPushConstantRange const& value) {
-    push_constant_ranges_.push_back(value);
+  void set_pipeline_layout(VkPipelineLayout const layout) {
+    pipeline_layout_ = layout;
   }
 
-  void add_push_constant_ranges(std::vector<VkPushConstantRange> const& values) {
-    push_constant_ranges_.insert(
-      push_constant_ranges_.end(),
-      values.cbegin(),
-      values.cend()
-    );
+  void add_dynamic_state(VkDynamicState state) {
+    dynamic_states_.push_back(state);
   }
 
-  void add_descriptor_set_layout(VkDescriptorSetLayout const descriptor_set_layout) {
-    assert(descriptor_set_layout != VK_NULL_HANDLE);
-    descriptor_set_layouts_.push_back(descriptor_set_layout); //
+  void add_dynamic_states(std::vector<VkDynamicState> const& states) {
+    dynamic_states_.insert(dynamic_states_.end(), states.begin(), states.end());
   }
-  // -------------------------
 
   void add_shader_stage(VkShaderStageFlagBits const stage, ShaderModule_t const& shader);
 
@@ -86,16 +78,34 @@ class GraphicsPipeline final : public Pipeline {
     return states_;
   }
 
+  VkPipelineColorBlendAttachmentState& get_color_blend_attachment(uint32_t i = 0) {
+    return color_blend_attachments_.at(i);
+  }
+
+ public:
+  /* [deprecated] Helpers to create an internal pipeline layout. */
+
+  void add_push_constant_range(VkPushConstantRange const& value) {
+    push_constant_ranges_.push_back(value);
+  }
+
+  void add_push_constant_ranges(std::vector<VkPushConstantRange> const& values) {
+    push_constant_ranges_.insert(
+      push_constant_ranges_.end(),
+      values.cbegin(),
+      values.cend()
+    );
+  }
+
+  void add_descriptor_set_layout(VkDescriptorSetLayout const descriptor_set_layout) {
+    assert(descriptor_set_layout != VK_NULL_HANDLE);
+    descriptor_set_layouts_.push_back(descriptor_set_layout); //
+  }
+
  private:
   void create_layout(VkDevice const device); //
 
  private:
-  // -----------------------------
-  // (Pipeline Layout data)
-  std::vector<VkPushConstantRange> push_constant_ranges_{};
-  std::vector<VkDescriptorSetLayout> descriptor_set_layouts_{};
-  // -----------------------------
-
   std::vector<VkPipelineShaderStageCreateInfo> shader_stages_{};
   uint32_t stages_mask_{};
 
@@ -108,6 +118,11 @@ class GraphicsPipeline final : public Pipeline {
   // (dynamic rendering)
   // std::vector<VkFormat> color_attachment_formats_;
   // VkFormat depth_attachment_format_;
+
+  // (Pipeline Layout data)
+  std::vector<VkPushConstantRange> push_constant_ranges_{};
+  std::vector<VkDescriptorSetLayout> descriptor_set_layouts_{};
+  bool use_internal_layout_{};
 };
 
 /* -------------------------------------------------------------------------- */

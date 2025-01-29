@@ -7,12 +7,12 @@
 
 #include "framework/backend/context.h"
 #include "framework/renderer/renderer.h"
-
-#include <GLFW/glfw3.h>
+#include "framework/event_callbacks.h"
+#include "framework/wm_interface.h"
 
 /* -------------------------------------------------------------------------- */
 
-class Application {
+class Application : public EventCallbacks {
  public:
   Application() = default;
   virtual ~Application() {}
@@ -36,18 +36,15 @@ class Application {
   void shutdown();
 
  protected:
+  std::unique_ptr<WMInterface> wm_;
   Context context_;
-
-  GLFWwindow* window_{};
-  float dpi_scale_{};
-
-  VkSurfaceKHR surface_{};
-  VkExtent2D surface_size_{};
-  VkExtent2D viewport_size_{}; //
-
   Renderer renderer_;
 
+  VkExtent2D viewport_size_{};
+
  private:
+  VkSurfaceKHR surface_{}; //
+
   std::chrono::time_point<std::chrono::high_resolution_clock> chrono_{};
   float frame_time_{};
 };

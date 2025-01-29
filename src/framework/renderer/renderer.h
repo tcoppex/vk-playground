@@ -3,9 +3,8 @@
 
 /* -------------------------------------------------------------------------- */
 
-#include "framework/backend/common.h"
 #include "framework/backend/swapchain.h"
-#include "framework/backend/command_encoder.h" //
+#include "framework/backend/command_encoder.h"
 
 class Context;
 class RenderTarget;
@@ -60,7 +59,7 @@ class Renderer : public RTInterface {
 
   VkPipelineLayout create_pipeline_layout(PipelineLayoutParams_t const& params) const;
 
-  void destroy_pipeline_layout(VkPipelineLayout& layout) const;
+  void destroy_pipeline_layout(VkPipelineLayout layout) const;
 
   // --- Pipeline ---
 
@@ -135,7 +134,7 @@ class Renderer : public RTInterface {
 
  private:
   inline VkFormat get_valid_depth_format() const {
-    return VK_FORMAT_D16_UNORM; //
+    return VK_FORMAT_D24_UNORM_S8_UINT; // VK_FORMAT_D16_UNORM; //
   }
 
   void init_descriptor_pool();

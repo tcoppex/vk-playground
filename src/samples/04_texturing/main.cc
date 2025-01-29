@@ -8,7 +8,7 @@
 
 #include "framework/application.h"
 #include "framework/renderer/graphics_pipeline.h"
-#include "framework/scene/geometry.h"
+#include "framework/utils/geometry.h"
 
 namespace shader_interop {
 #include "shaders/interop.h"
@@ -26,7 +26,7 @@ class SampleApp final : public Application {
 
  private:
   bool setup() final {
-    glfwSetWindowTitle(window_, "04 - خوراي ، كىشىلەر ماڭا دىققەت قىلىۋاتىدۇ");
+    wm_->setTitle("04 - خوراي ، كىشىلەر ماڭا دىققەت قىلىۋاتىدۇ");
 
     renderer_.set_color_clear_value({.float32 = {0.94f, 0.93f, 0.94f, 1.0f}});
 
@@ -36,7 +36,7 @@ class SampleApp final : public Application {
     {
       host_data_.scene.camera = {
         .viewMatrix = linalg::lookat_matrix(
-          vec3f(1.0f, 2.0f, 5.0f),
+          vec3f(1.0f, 2.0f, 3.0f),
           vec3f(0.0f, 0.0f, 0.0f),
           vec3f(0.0f, 1.0f, 0.0f)
         ),
@@ -56,7 +56,7 @@ class SampleApp final : public Application {
      * safe its index count for rendering. */
     Geometry cube_geo;
     {
-      Geometry::MakeCubeGeometry(cube_geo);
+      Geometry::MakeCube(cube_geo);
       index_type_ = cube_geo.get_vk_index_type();
       index_count_ = cube_geo.get_index_count();
     }
@@ -143,20 +143,21 @@ class SampleApp final : public Application {
       "fs_simple.glsl",
     })};
 
-
     /* Setup the graphics pipeline. */
     {
       auto& gp = graphics_pipeline_;
 
-      gp.add_push_constant_range({
-        .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
-        .offset = 0u,
-        .size = sizeof(shader_interop::PushConstant),
+      VkPipelineLayout const pipeline_layout = renderer_.create_pipeline_layout({
+        .setLayouts = { descriptor_set_layout_ },
+        .pushConstantRanges = {
+          {
+            .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+            .size = sizeof(shader_interop::PushConstant),
+          }
+        },
       });
 
-      gp.add_descriptor_set_layout(descriptor_set_layout_);
-
-      // ----
+      gp.set_pipeline_layout(pipeline_layout);
 
       gp.add_shader_stage(VK_SHADER_STAGE_VERTEX_BIT, shaders[0u]);
       gp.add_shader_stage(VK_SHADER_STAGE_FRAGMENT_BIT, shaders[1u]);
@@ -188,9 +189,10 @@ class SampleApp final : public Application {
   }
 
   void release() final {
-    graphics_pipeline_.release(context_.get_device());
-
     renderer_.destroy_descriptor_set_layout(descriptor_set_layout_);
+    renderer_.destroy_pipeline_layout(graphics_pipeline_.get_layout());
+
+    graphics_pipeline_.release(context_.get_device());
 
     allocator_->destroy_image(&image_);
 

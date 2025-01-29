@@ -1,50 +1,32 @@
-#ifndef HELLOVK_FRAMEWORK_UTILS_H
-#define HELLOVK_FRAMEWORK_UTILS_H
-
-/* -------------------------------------------------------------------------- */
-//
-//    utils.h
-//
-//  A bunch of utility functions, not yet organized to be elsewhere.
-//
-/* -------------------------------------------------------------------------- */
-
-
-#include <tuple>
-
-#include "framework/backend/common.h"
-#include "framework/backend/types.h"
-
-namespace utils {
+#ifndef HELLOVK_FRAMEWORK_BACKEND_VKUTILS_H
+#define HELLOVK_FRAMEWORK_BACKEND_VKUTILS_H
 
 /* -------------------------------------------------------------------------- */
 
+#include "framework/common.h"
+#include "volk.h"
 
-char* ReadBinaryFile(const char* filename, size_t* filesize);
+/* -------------------------------------------------------------------------- */
 
-size_t AlignTo(size_t const byteLength, size_t const byteAlignment);
+#ifdef NDEBUG
+# define CHECK_VK(res)  res
+#else
+# define CHECK_VK(res)  vkutils::CheckVKResult(res, __FILE__, __LINE__, true)
+#endif
 
-size_t AlignTo256(size_t const byteLength);
+/* -------------------------------------------------------------------------- */
 
-
-// ----------------------------------------------------------------------------
-
+namespace vkutils {
 
 VkResult CheckVKResult(VkResult result, char const* file, int const line, bool const bExitOnFail);
 
 bool IsValidStencilFormat(VkFormat const format);
 
-
-// ----------------------------------------------------------------------------
-
-
 VkShaderModule CreateShaderModule(VkDevice const device, char const* shader_directory, char const* shader_name);
 
 std::tuple<VkPipelineStageFlags2, VkAccessFlags2> MakePipelineStageAccessTuple(VkImageLayout const state);
 
-
 // ----------------------------------------------------------------------------
-
 
 template <typename T, typename N>
 void PushNextVKStruct(T* baseStruct, N* nextStruct) {
@@ -91,8 +73,8 @@ void PushConstants(
   vkCmdPushConstants2KHR(command_buffer, &push_info);
 }
 
+} // namespace "vkutils"
+
 /* -------------------------------------------------------------------------- */
 
-} // namespace "utils"
-
-#endif
+#endif // HELLOVK_FRAMEWORK_BACKEND_VKUTILS_H

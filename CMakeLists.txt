@@ -85,6 +85,24 @@ endfunction()
 
 set_global_output_directory(${PROJECT_BINARY_DIR})
 
+function(helpers_findLibM)
+  # Chuck Atkins @ https://cmake.org/pipermail/cmake/2019-March/069168.html
+  include(CheckCSourceCompiles)
+  set(LIBM_TEST_SOURCE "#include<math.h>\nint main(){float f = sqrtf(4.0f);}")
+  check_c_source_compiles("${LIBM_TEST_SOURCE}" HAVE_MATH)
+  if(HAVE_MATH)
+    set(LIBM_LIBRARIES)
+  else()
+    set(CMAKE_REQUIRED_LIBRARIES m)
+    check_c_source_compiles("${LIBM_TEST_SOURCE}" HAVE_LIBM_MATH)
+    unset(CMAKE_REQUIRED_LIBRARIES)
+    if(NOT HAVE_LIBM_MATH)
+      message(FATAL_ERROR "Unable to use C math library functions.")
+    endif()
+    set(LIBM_LIBRARIES m)
+  endif()
+endfunction(helpers_findLibM)
+
 # -----------------------------------------------------------------------------
 # Internal configuration attributes.
 # -----------------------------------------------------------------------------
@@ -211,7 +229,6 @@ include(${CPM_DOWNLOAD_LOCATION})
 # -----------------------------------------------------------------------------
 
 find_package(Vulkan 1.1 REQUIRED)
-# find_package(GLFW 3.3 REQUIRED)
 
 # Include GLFW
 CPMAddPackage(
@@ -243,6 +260,7 @@ CPMAddPackage(
 )
 set(VMA_INCLUDE_DIR  ${VulkanMemoryAllocator_SOURCE_DIR}/include)
 
+# Include linalg
 CPMAddPackage(
   NAME linalg
   GITHUB_REPOSITORY sgorsten/linalg
@@ -250,6 +268,25 @@ CPMAddPackage(
   DOWNLOAD_ONLY YES
 )
 set(LINALG_INCLUDE_DIR ${linalg_SOURCE_DIR})
+
+# Sometimes we need to link libm.
+helpers_findLibM()
+
+list(APPEND SharedLibs
+  ${LIBM_LIBRARIES}
+  volk
+  glfw
+)
+
+list(APPEND SharedIncludeDirs
+  ${GLFW_INCLUDE_DIR}
+  ${LINALG_INCLUDE_DIR}
+  ${PROJECT_SOURCE_DIR}
+  ${PROJECT_THIRD_PARTY_DIR}
+  ${VMA_INCLUDE_DIR}
+  ${VOLK_INCLUDE_DIR}
+  ${Vulkan_INCLUDE_DIR}
+)
 
 # -----------------------------------------------------------------------------
 
