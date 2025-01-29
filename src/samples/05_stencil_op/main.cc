@@ -20,6 +20,8 @@ class SampleApp final : public Application {
  public:
   using HostData_t = shader_interop::UniformData;
 
+  static constexpr float kPortalSize = 2.35f;
+
   /* Helper to store unique static mesh resources. */
   struct Mesh_t {
     Geometry geo;
@@ -67,13 +69,10 @@ class SampleApp final : public Application {
         VK_BUFFER_USAGE_2_UNIFORM_BUFFER_BIT
       );
 
-      // [TODO] Better device buffer management (eg. shared buffers for statics).
-      //------------------------------------------
-      float const plane_size = 2.0f;
       // Plane
       {
         auto &mesh = plane_;
-        Geometry::MakePlane(mesh.geo, plane_size);
+        Geometry::MakePlane(mesh.geo, kPortalSize);
 
         mesh.vertex = cmd.create_buffer_and_upload(
           mesh.geo.get_vertices(),
@@ -88,7 +87,7 @@ class SampleApp final : public Application {
       // Torus
       {
         auto &mesh = torus_;
-        float const r = 0.5f * plane_size;
+        float const r = 0.5f * kPortalSize;
         Geometry::MakeTorus2(mesh.geo, r, r * lina::kSqrtTwo, 48u, 32u);
 
         mesh.vertex = cmd.create_buffer_and_upload(
@@ -100,7 +99,6 @@ class SampleApp final : public Application {
           VK_BUFFER_USAGE_2_INDEX_BUFFER_BIT
         );
       }
-      //------------------------------------------
 
       context_.finish_transient_command_encoder(cmd);
     }
@@ -326,50 +324,6 @@ class SampleApp final : public Application {
 
         gp.complete(context_.get_device(), renderer_);
       }
-
-
-      /* Demonstrate dynamic pipeline. */
-      {
-        auto& gp = dynamic_pipeline_;
-        auto& mesh = plane_;
-
-        gp.set_pipeline_layout(pipeline_layout_);
-
-        gp.add_dynamic_states({
-          VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK,
-          VK_DYNAMIC_STATE_STENCIL_WRITE_MASK,
-          VK_DYNAMIC_STATE_STENCIL_REFERENCE,
-
-          VK_DYNAMIC_STATE_STENCIL_TEST_ENABLE_EXT,
-          VK_DYNAMIC_STATE_STENCIL_OP_EXT,
-
-          VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE_EXT,
-          VK_DYNAMIC_STATE_COLOR_WRITE_MASK_EXT,
-
-          VK_DYNAMIC_STATE_PRIMITIVE_TOPOLOGY_EXT,
-          VK_DYNAMIC_STATE_CULL_MODE_EXT,
-        });
-
-        gp.add_shader_stage(VK_SHADER_STAGE_VERTEX_BIT, shaders[0u]);
-        gp.add_shader_stage(VK_SHADER_STAGE_FRAGMENT_BIT, shaders[2u]);
-        gp.set_vertex_binding_attribute({
-          .bindings = {
-            {
-              .binding = 0u,
-              .stride = mesh.geo.get_stride(),
-              .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
-            },
-          },
-          .attributes = mesh.geo.get_vk_binding_attributes(0u, {
-            { Geometry::AttributeType::Position, shader_interop::kAttribLocation_Position },
-            { Geometry::AttributeType::Texcoord, shader_interop::kAttribLocation_Texcoord },
-            { Geometry::AttributeType::Normal, shader_interop::kAttribLocation_Normal },
-          }),
-        });
-
-        gp.complete(context_.get_device(), renderer_);
-      }
-
     }
 
     context_.release_shader_modules(shaders);
@@ -383,8 +337,6 @@ class SampleApp final : public Application {
     stencil_mask_.release(device);
     depth_mask_.release(device);
     render_pipeline_.release(device);
-
-    dynamic_pipeline_.release(device);
 
     renderer_.destroy_descriptor_set_layout(descriptor_set_layout_);
     renderer_.destroy_pipeline_layout(pipeline_layout_);
@@ -440,10 +392,7 @@ class SampleApp final : public Application {
           pass.draw_indexed(mesh.geo.get_index_count(), 256);
         }
 
-
-
         // Write the portal mask into the depth buffer.
-#if 1
         pass.set_pipeline(depth_mask_);
         {
           auto &mesh = plane_;
@@ -451,40 +400,6 @@ class SampleApp final : public Application {
           pass.set_index_buffer(mesh.index, mesh.geo.get_vk_index_type());
           pass.draw_indexed(mesh.geo.get_index_count());
         }
-#else
-        pass.set_pipeline(dynamic_pipeline_);
-        {
-          {
-            auto cmdbuf = pass.get_handle();
-
-            vkCmdSetDepthWriteEnableEXT(cmdbuf, VK_TRUE);
-
-            vkCmdSetStencilTestEnableEXT(cmdbuf, VK_TRUE);
-            vkCmdSetStencilOpEXT(cmdbuf,
-              VK_STENCIL_FACE_FRONT_AND_BACK,
-              VK_STENCIL_OP_REPLACE,
-              VK_STENCIL_OP_REPLACE,
-              VK_STENCIL_OP_REPLACE,
-              VK_COMPARE_OP_ALWAYS
-            );
-            vkCmdSetStencilCompareMask(cmdbuf, VK_STENCIL_FACE_FRONT_AND_BACK, 0xff);
-            vkCmdSetStencilWriteMask(cmdbuf, VK_STENCIL_FACE_FRONT_AND_BACK, 0xff);
-            vkCmdSetStencilReference(cmdbuf, VK_STENCIL_FACE_FRONT_AND_BACK, 1u);
-
-            vkCmdSetCullModeEXT(cmdbuf, VK_CULL_MODE_BACK_BIT);
-
-            VkColorComponentFlags colorWrite(0);
-            vkCmdSetColorWriteMaskEXT(cmdbuf, 0u, 1u, &colorWrite);
-
-            vkCmdSetPrimitiveTopologyEXT(cmdbuf, plane_.geo.get_vk_primitive_topology());
-          }
-
-          auto &mesh = plane_;
-          pass.set_vertex_buffer(mesh.vertex);
-          pass.set_index_buffer(mesh.index, mesh.geo.get_vk_index_type());
-          pass.draw_indexed(mesh.geo.get_index_count());
-        }
-#endif
 
         // Render objects 'outside' the portal.
         pass.set_pipeline(render_pipeline_);
@@ -523,12 +438,8 @@ class SampleApp final : public Application {
   GraphicsPipeline depth_mask_{};
   GraphicsPipeline render_pipeline_{};
 
-  GraphicsPipeline dynamic_pipeline_{};
-
-  // -------------
   Mesh_t plane_;
   Mesh_t torus_;
-  // -------------
 };
 
 // ----------------------------------------------------------------------------
