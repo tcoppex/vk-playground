@@ -177,7 +177,7 @@ class SampleApp final : public Application {
 
         // Disable cull mode, as both face will write in stencil.
         // gp.set_cull_mode(VK_CULL_MODE_NONE);
-        gp.set_cull_mode(VK_CULL_MODE_FRONT_BIT); // (wrong rotation ?)
+        gp.set_cull_mode(VK_CULL_MODE_BACK_BIT);
 
         // -------------------------------------------
         auto & depth_stencil = gp.get_states().depth_stencil;
@@ -249,6 +249,61 @@ class SampleApp final : public Application {
         gp.complete(context_.get_device(), renderer_);
       }
 
+      // !! exactly the same as 'stencil_mask' but with depthWrite enable !!
+      {
+        auto& gp = depth_mask_;
+        auto& mesh = plane_;
+
+        gp.set_pipeline_layout(pipeline_layout_);
+        gp.add_shader_stage(VK_SHADER_STAGE_VERTEX_BIT, shaders[0u]);
+        gp.add_shader_stage(VK_SHADER_STAGE_FRAGMENT_BIT, shaders[2u]);
+        gp.set_topology(mesh.geo.get_vk_primitive_topology());
+        gp.set_vertex_binding_attribute({
+          .bindings = {
+            {
+              .binding = 0u,
+              .stride = mesh.geo.get_stride(),
+              .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
+            },
+          },
+          .attributes = mesh.geo.get_vk_binding_attributes(0u, {
+            { Geometry::AttributeType::Position, shader_interop::kAttribLocation_Position },
+            { Geometry::AttributeType::Texcoord, shader_interop::kAttribLocation_Texcoord },
+            { Geometry::AttributeType::Normal, shader_interop::kAttribLocation_Normal },
+          }),
+        });
+
+        // Disable cull mode, as both face will write in stencil.
+        // gp.set_cull_mode(VK_CULL_MODE_NONE);
+        gp.set_cull_mode(VK_CULL_MODE_BACK_BIT);
+
+        // -------------------------------------------
+        auto & depth_stencil = gp.get_states().depth_stencil;
+
+        depth_stencil.depthTestEnable = VK_TRUE;
+        depth_stencil.depthWriteEnable = VK_TRUE;
+        depth_stencil.depthCompareOp = VK_COMPARE_OP_ALWAYS;
+
+        depth_stencil.stencilTestEnable = VK_TRUE;
+        depth_stencil.front = {
+          .failOp = VK_STENCIL_OP_REPLACE,
+          .passOp = VK_STENCIL_OP_REPLACE,
+          .depthFailOp = VK_STENCIL_OP_REPLACE,
+          .compareOp = VK_COMPARE_OP_ALWAYS,
+          .compareMask = 0xff,
+          .writeMask = 0xff,
+          .reference = 1u,
+        };
+        depth_stencil.back = depth_stencil.front;
+
+        // Do not write the mask into the color buffer.
+        auto & color_blend = gp.get_color_blend_attachment();
+        color_blend.colorWriteMask = 0;
+        // -------------------------------------------
+
+        gp.complete(context_.get_device(), renderer_);
+      }
+
       {
         auto& gp = render_pipeline_;
         auto& mesh = torus_;
@@ -284,9 +339,11 @@ class SampleApp final : public Application {
   }
 
   void release() final {
-    stencil_test_.release(context_.get_device());
-    stencil_write_.release(context_.get_device());
-    render_pipeline_.release(context_.get_device());
+    auto device = context_.get_device();
+    stencil_test_.release(device);
+    stencil_write_.release(device);
+    depth_mask_.release(device);
+    render_pipeline_.release(device);
 
     renderer_.destroy_descriptor_set_layout(descriptor_set_layout_);
     renderer_.destroy_pipeline_layout(pipeline_layout_);
@@ -306,8 +363,8 @@ class SampleApp final : public Application {
     mat4 const portal_world_matrix = linalg::mul(
       lina::rotation_matrix_x(lina::kHalfPi),
       lina::rotation_matrix_axis(
-        vec3(0.45f*cosf(0.5f*frame_time), 1.0f, -0.24*sinf(0.35f*frame_time)),
-        0.75f*frame_time
+        vec3(2.45f*cosf(0.5f*frame_time), 1.35f, -1.4*sinf(0.35f*frame_time)),
+        0.35f*frame_time
       )
     );
 
@@ -320,13 +377,13 @@ class SampleApp final : public Application {
       {
         pass.set_viewport_scissor(viewport_size_);
 
+        push_constant_.model.worldMatrix = portal_world_matrix;
+        cmd.push_constant(push_constant_, pipeline_layout_, VK_SHADER_STAGE_VERTEX_BIT);
+
         pass.set_pipeline(stencil_write_);
         {
           // vkCmdSetStencilTestEnableEXT();
           // vkCmdSetStencilOpEXT
-
-          push_constant_.model.worldMatrix = portal_world_matrix;
-          pass.push_constant(push_constant_, VK_SHADER_STAGE_VERTEX_BIT);
 
           auto &mesh = plane_;
           pass.set_vertex_buffer(mesh.vertex);
@@ -355,23 +412,34 @@ class SampleApp final : public Application {
 
         pass.set_pipeline(stencil_test_);
         {
-          push_constant_.model.worldMatrix = portal_world_matrix;
-          pass.push_constant(push_constant_, VK_SHADER_STAGE_VERTEX_BIT);
-
           auto &mesh = torus_;
           pass.set_vertex_buffer(mesh.vertex);
           pass.set_index_buffer(mesh.index, mesh.geo.get_vk_index_type());
-          pass.draw_indexed(mesh.geo.get_index_count(), 128);
+
+          pass.draw_indexed(mesh.geo.get_index_count(), 256);
+        }
+
+        pass.set_pipeline(depth_mask_);
+        {
+          auto &mesh = plane_;
+          pass.set_vertex_buffer(mesh.vertex);
+          pass.set_index_buffer(mesh.index, mesh.geo.get_vk_index_type());
+          pass.draw_indexed(mesh.geo.get_index_count());
         }
 
         pass.set_pipeline(render_pipeline_);
         {
-          push_constant_.model.worldMatrix = portal_world_matrix;
-          pass.push_constant(push_constant_, VK_SHADER_STAGE_VERTEX_BIT);
-
           auto &mesh = torus_;
           pass.set_vertex_buffer(mesh.vertex);
           pass.set_index_buffer(mesh.index, mesh.geo.get_vk_index_type());
+
+          pass.draw_indexed(mesh.geo.get_index_count());
+
+          push_constant_.model.worldMatrix = linalg::mul(
+            linalg::scaling_matrix(vec3(3.0, 3.0, 3.0)),
+            lina::rotation_matrix_z(-0.32f*frame_time)
+          );
+          pass.push_constant(push_constant_, VK_SHADER_STAGE_VERTEX_BIT);
           pass.draw_indexed(mesh.geo.get_index_count());
         }
       }
@@ -393,6 +461,7 @@ class SampleApp final : public Application {
 
   GraphicsPipeline stencil_write_{};
   GraphicsPipeline stencil_test_{};
+  GraphicsPipeline depth_mask_{};
   GraphicsPipeline render_pipeline_{};
 
   // -------------
