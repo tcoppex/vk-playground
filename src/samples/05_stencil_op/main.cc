@@ -1,8 +1,8 @@
 /* -------------------------------------------------------------------------- */
 //
-//    05 - Hello Stencil
+//    05 - Hello Stencil Op
 //
-//  Where we look into the abyss and the abyss looks back.
+//  Where we look into the abyss via a multi passes stencil effect.
 //
 /* -------------------------------------------------------------------------- */
 
@@ -175,8 +175,7 @@ class SampleApp final : public Application {
           }),
         });
 
-        // Disable cull mode, as both face will write in stencil.
-        // gp.set_cull_mode(VK_CULL_MODE_NONE);
+        /* We will only write on one side of the portal, so the plane mask is cull on its back. */
         gp.set_cull_mode(VK_CULL_MODE_BACK_BIT);
 
         // -------------------------------------------
@@ -329,8 +328,7 @@ class SampleApp final : public Application {
       }
 
 
-
-      /* TESTING dynamic pipeline */
+      /* Demonstrate dynamic pipeline. */
       {
         auto& gp = dynamic_pipeline_;
         auto& mesh = plane_;
@@ -444,8 +442,8 @@ class SampleApp final : public Application {
 
 
 
-#if 1
         // Write the portal mask into the depth buffer.
+#if 1
         pass.set_pipeline(depth_mask_);
         {
           auto &mesh = plane_;
