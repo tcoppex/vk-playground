@@ -8,7 +8,7 @@
 /* -------------------------------------------------------------------------- */
 
 /**
- * (WIP) Wrapper / Builder to a VkPipeline.
+ * Helper to build graphics pipeline.
  **/
 class GraphicsPipeline final : public Pipeline {
  public:
@@ -46,7 +46,7 @@ class GraphicsPipeline final : public Pipeline {
   bool complete(VkDevice const device, RPInterface const& render_pass);
 
   /* [WIP] Create a graphic pipeline from a descriptor. */
-  // void complete_WIP(VkDevice const device, GraphicsPipelineDescriptor_t const& desc); //
+  void complete_WIP(VkDevice const device, GraphicsPipelineDescriptor_t const& desc); //
 
 
  public:
