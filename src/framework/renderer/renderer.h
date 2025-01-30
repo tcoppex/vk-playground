@@ -44,7 +44,8 @@ class Renderer : public RTInterface {
 
 
  public:
-  // ----- Factory -----
+  /* ----- Factory ----- */
+
 
   // --- Render Target (Dynamic Rendering) ---
 
@@ -54,7 +55,6 @@ class Renderer : public RTInterface {
 
   std::shared_ptr<Framebuffer> create_framebuffer() const;
 
-  // ------------------------------------
   // --- Pipeline Layout ---
 
   VkPipelineLayout create_pipeline_layout(PipelineLayoutParams_t const& params) const;
@@ -63,8 +63,9 @@ class Renderer : public RTInterface {
 
   // --- Pipeline ---
 
-  // VkPipeline create_graphics_pipeline(GraphicsPipelineDescriptor_t const& desc) const;
-  // ------------------------------------
+  Pipeline create_graphics_pipeline(VkPipelineLayout pipeline_layout, GraphicsPipelineDescriptor_t const& desc) const;
+
+  void destroy_pipeline(Pipeline const& pipeline) const;
 
   // --- Descriptor Set Layout ---
 
@@ -92,7 +93,7 @@ class Renderer : public RTInterface {
   }
 
  public:
-  // ----- RTInterface Overrides -----
+  /* ----- RTInterface Overrides ----- */
 
   VkExtent2D get_surface_size() const final {
     return swapchain_.get_surface_size();
