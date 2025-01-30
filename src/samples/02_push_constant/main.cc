@@ -11,7 +11,6 @@
 /* -------------------------------------------------------------------------- */
 
 #include "framework/application.h"
-#include "framework/renderer/graphics_pipeline.h"
 
 /* Constants & data structures shared between the host and the device. */
 namespace shader_interop {
@@ -69,65 +68,84 @@ class SampleApp final : public Application {
 
     /* Setup the graphics pipeline. */
     {
-      auto& gp = graphics_pipeline_;
-
-      /* Add a push constant range to the layout. */
-      VkPipelineLayout const pipeline_layout = renderer_.create_pipeline_layout({
+      /**
+       * When two parameters are specified to 'create_graphics_pipeline' the first
+       * one is either the layout descriptor, in that case the layout is destroyed internally
+       * alongside the pipeline when destroy_pipeline is called, or the VkDesciptorLayout
+       * object, in which case it must be destroyed by the user.
+       * */
+      PipelineLayoutDescriptor_t const layout_desc{
         .pushConstantRanges = {
           {
             .stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS,
             .size = sizeof(shader_interop::PushConstant),
           }
         },
-      });
+      };
 
-      gp.set_pipeline_layout(pipeline_layout);
-
-      gp.add_shader_stage(VK_SHADER_STAGE_VERTEX_BIT, shaders[0u]);
-      gp.add_shader_stage(VK_SHADER_STAGE_FRAGMENT_BIT, shaders[1u]);
-
-      /* By default the cull mode is to 'none' and front face are ordered counter clockwise,
-       * so if we're not flipping the screen triangle will not be displayed.
-       * Uncomment to see the result.  */
-      // gp.set_cull_mode(VK_CULL_MODE_BACK_BIT);
-
-      gp.set_vertex_binding_attribute({
-        .bindings = {
-          {
-            .binding = 0u,
-            .stride = sizeof(Vertex_t),
-            .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
+      graphics_pipeline_ = renderer_.create_graphics_pipeline(
+        layout_desc,
+        {
+          .vertex = {
+            .module = shaders[0u].module,
+            .buffers = {
+              {
+                .stride = sizeof(Vertex_t),
+                .attributes =  {
+                  {
+                    .location = AttributeLocation::Position,
+                    .format = VK_FORMAT_R32G32B32A32_SFLOAT,
+                    .offset = offsetof(Vertex_t, Vertex_t::Position),
+                  },
+                  {
+                    .location = AttributeLocation::Color,
+                    .format = VK_FORMAT_R32G32B32A32_SFLOAT,
+                    .offset = offsetof(Vertex_t, Vertex_t::Color),
+                  },
+                }
+              }
+            }
           },
-        },
-        .attributes = {
-          {
-            .location = AttributeLocation::Position,
-            .binding = 0u,
-            .format = VK_FORMAT_R32G32B32A32_SFLOAT,
-            .offset = offsetof(Vertex_t, Vertex_t::Position),
+          .fragment = {
+            .module = shaders[1u].module,
+            .targets = {
+              {
+                .format = renderer_.get_color_attachment().format,
+                .writeMask = VK_COLOR_COMPONENT_R_BIT
+                           | VK_COLOR_COMPONENT_G_BIT
+                           | VK_COLOR_COMPONENT_B_BIT
+                           | VK_COLOR_COMPONENT_A_BIT
+                           ,
+              }
+            },
           },
-          {
-            .location = AttributeLocation::Color,
-            .binding = 0u,
-            .format = VK_FORMAT_R32G32B32A32_SFLOAT,
-            .offset = offsetof(Vertex_t, Vertex_t::Color),
+          .depthStencil = {
+            .format = renderer_.get_depth_stencil_attachment().format,
+            .depthTestEnable = VK_TRUE,
+            .depthWriteEnable = VK_TRUE,
+            .depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL,
           },
-        },
-      });
-
-      gp.complete(context_.get_device(), renderer_);
+          .primitive = {
+            .topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+            /* By default the cull mode is set to 'none' and front face are ordered counter clockwise,
+             * so if we're not flipping the screen, triangles will not be displayed.
+             * Uncomment to see the result.  */
+            // .cullMode = VK_CULL_MODE_BACK_BIT,
+            // .frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
+          }
+        }
+      );
     }
 
     context_.release_shader_modules(shaders);
+
+    // -------------
 
     return true;
   }
 
   void release() final {
-    /* When the layout are provided to the graphics pipeline object, it should
-     * be destroyed manually. */
-    renderer_.destroy_pipeline_layout(graphics_pipeline_.get_layout());
-    graphics_pipeline_.release(context_.get_device());
+    renderer_.destroy_pipeline(graphics_pipeline_);
 
     auto allocator = context_.get_resource_allocator();
     allocator->destroy_buffer(vertex_buffer_);
@@ -187,7 +205,7 @@ class SampleApp final : public Application {
 
  private:
   Buffer_t vertex_buffer_;
-  GraphicsPipeline graphics_pipeline_;
+  Pipeline graphics_pipeline_;
 };
 
 // ----------------------------------------------------------------------------
