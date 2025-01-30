@@ -55,7 +55,7 @@ endfunction(add_simple_demo)
 
 add_simple_demo(00_hello)
 add_simple_demo(01_triangle)
-add_simple_demo(02_push_constant) # left side not working on windows?
+add_simple_demo(02_push_constant)
 add_simple_demo(03_descriptor_set)
 add_simple_demo(04_texturing)
 add_simple_demo(05_stencil_op)

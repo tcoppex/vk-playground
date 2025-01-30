@@ -274,6 +274,36 @@ VkPipelineLayout Renderer::create_pipeline_layout(PipelineLayoutDescriptor_t con
 
 // ----------------------------------------------------------------------------
 
+// GraphicsPipelineDescriptor_t Renderer::get_default_graphics_pipeline_descriptor() const {
+//   return {
+//     .fragment = {
+//       .targets = {
+//         {
+//           .format = get_color_attachment().format,
+//           .writeMask = VK_COLOR_COMPONENT_R_BIT
+//                      | VK_COLOR_COMPONENT_G_BIT
+//                      | VK_COLOR_COMPONENT_B_BIT
+//                      | VK_COLOR_COMPONENT_A_BIT
+//                      ,
+//         }
+//       },
+//     },
+//     .depthStencil = {
+//       .format = get_depth_stencil_attachment().format,
+//       .depthTestEnable = VK_TRUE,
+//       .depthWriteEnable = VK_TRUE,
+//       .depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL,
+//     },
+//     .primitive = {
+//       .topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+//       .cullMode = VK_CULL_MODE_BACK_BIT,
+//       .frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
+//     }
+//   };
+// }
+
+// ----------------------------------------------------------------------------
+
 Pipeline Renderer::create_graphics_pipeline(VkPipelineLayout pipeline_layout, GraphicsPipelineDescriptor_t const& desc) const {
   assert( pipeline_layout != VK_NULL_HANDLE );
   assert( desc.vertex.module != VK_NULL_HANDLE );
@@ -593,7 +623,7 @@ void Renderer::update_descriptor_set(VkDescriptorSet const& descriptor_set, std:
   }
 
   /* Copy entries to be able to update them. */
-  auto updated_entries = entries;
+  auto updated_entries{ entries };
 
   std::vector<VkWriteDescriptorSet> write_descriptor_sets{};
   write_descriptor_sets.reserve(entries.size());
@@ -605,7 +635,7 @@ void Renderer::update_descriptor_set(VkDescriptorSet const& descriptor_set, std:
     assert(has_image != has_buffer || has_image != has_bufferView || has_buffer != has_bufferView);
 
     if (has_buffer) {
-      /* Instead of an error we force range to whole range if none were provided. */
+      /* Instead of an error we force range to whole size if none were provided. */
       if (entry.resource.buffer.range == 0) {
         entry.resource.buffer.range = VK_WHOLE_SIZE;
       }
@@ -668,7 +698,7 @@ bool Renderer::load_texture_2d(CommandEncoder const& cmd, std::string_view const
 
   VkImageViewCreateInfo view_info{
     .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-    .viewType = VK_IMAGE_VIEW_TYPE_2D, //
+    .viewType = VK_IMAGE_VIEW_TYPE_2D,
     .format = VK_FORMAT_R8G8B8A8_UNORM,
     .components = {
       VK_COMPONENT_SWIZZLE_R,
