@@ -130,26 +130,33 @@ struct PipelineLayoutParams_t {
 
 class Pipeline {
  public:
-  virtual ~Pipeline() {};
+  Pipeline() = default;
 
-  inline VkPipeline get_handle() const {
-    return pipeline_;
-  }
+  Pipeline(VkPipelineLayout layout, VkPipeline pipeline)
+    : pipeline_layout_(layout)
+    , pipeline_(pipeline)
+  {}
+
+  virtual ~Pipeline() {}
 
   inline VkPipelineLayout get_layout() const {
     return pipeline_layout_;
   }
 
+  inline VkPipeline get_handle() const {
+    return pipeline_;
+  }
+
  protected:
-  VkPipeline pipeline_{};
   VkPipelineLayout pipeline_layout_{};
+  VkPipeline pipeline_{};
 };
 
 // ----------------------------------------------------------------------------
 
-// (wip) Helper to create GraphicsPipeline, ala WebGPU.
+// [wip] Descriptor structure to create GraphicsPipeline, à la WebGPU.
 struct GraphicsPipelineDescriptor_t {
-  VkPipelineLayout layout{};
+  std::vector<VkDynamicState> dynamicStates{};
 
   struct Vertex {
     struct Buffer {
@@ -158,7 +165,7 @@ struct GraphicsPipelineDescriptor_t {
       std::vector<VkVertexInputAttributeDescription> attributes{};
     };
 
-    VkShaderModule module{};
+    VkShaderModule module{}; //
     std::string entryPoint{};
     std::vector<Buffer> buffers{};
   } vertex{};
