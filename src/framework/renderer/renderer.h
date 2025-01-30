@@ -5,6 +5,9 @@
 
 #include "framework/backend/swapchain.h"
 #include "framework/backend/command_encoder.h"
+#include "framework/renderer/pipeline.h"
+
+/* -------------------------------------------------------------------------- */
 
 class Context;
 class RenderTarget;
@@ -44,7 +47,8 @@ class Renderer : public RTInterface {
 
 
  public:
-  // ----- Factory -----
+  /* ----- Factory ----- */
+
 
   // --- Render Target (Dynamic Rendering) ---
 
@@ -54,17 +58,21 @@ class Renderer : public RTInterface {
 
   std::shared_ptr<Framebuffer> create_framebuffer() const;
 
-  // ------------------------------------
   // --- Pipeline Layout ---
 
-  VkPipelineLayout create_pipeline_layout(PipelineLayoutParams_t const& params) const;
+  VkPipelineLayout create_pipeline_layout(PipelineLayoutDescriptor_t const& params) const;
 
   void destroy_pipeline_layout(VkPipelineLayout layout) const;
 
   // --- Pipeline ---
 
-  // VkPipeline create_graphics_pipeline(GraphicsPipelineDescriptor_t const& desc) const;
-  // ------------------------------------
+  Pipeline create_graphics_pipeline(VkPipelineLayout pipeline_layout, GraphicsPipelineDescriptor_t const& desc) const;
+
+  // Specialized version that create the layout internally.
+  Pipeline create_graphics_pipeline(PipelineLayoutDescriptor_t const& layout_desc, GraphicsPipelineDescriptor_t const& desc) const;
+  Pipeline create_graphics_pipeline(GraphicsPipelineDescriptor_t const& desc) const;
+
+  void destroy_pipeline(Pipeline const& pipeline) const;
 
   // --- Descriptor Set Layout ---
 
@@ -92,7 +100,7 @@ class Renderer : public RTInterface {
   }
 
  public:
-  // ----- RTInterface Overrides -----
+  /* ----- RTInterface Overrides ----- */
 
   VkExtent2D get_surface_size() const final {
     return swapchain_.get_surface_size();

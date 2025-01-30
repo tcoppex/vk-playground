@@ -259,7 +259,7 @@ void Renderer::destroy_pipeline_layout(VkPipelineLayout layout) const {
 
 // ----------------------------------------------------------------------------
 
-VkPipelineLayout Renderer::create_pipeline_layout(PipelineLayoutParams_t const& params) const {
+VkPipelineLayout Renderer::create_pipeline_layout(PipelineLayoutDescriptor_t const& params) const {
   VkPipelineLayoutCreateInfo const pipeline_layout_create_info{
     .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
     .setLayoutCount = static_cast<uint32_t>(params.setLayouts.size()),
@@ -274,10 +274,279 @@ VkPipelineLayout Renderer::create_pipeline_layout(PipelineLayoutParams_t const& 
 
 // ----------------------------------------------------------------------------
 
-// VkPipeline Renderer::create_graphics_pipeline(GraphicsPipelineDescriptor_t const& desc) const {
-//   // GraphicsPipeline::PipelineStates_t states;
-//   return VkPipeline();
+// GraphicsPipelineDescriptor_t Renderer::get_default_graphics_pipeline_descriptor() const {
+//   return {
+//     .fragment = {
+//       .targets = {
+//         {
+//           .format = get_color_attachment().format,
+//           .writeMask = VK_COLOR_COMPONENT_R_BIT
+//                      | VK_COLOR_COMPONENT_G_BIT
+//                      | VK_COLOR_COMPONENT_B_BIT
+//                      | VK_COLOR_COMPONENT_A_BIT
+//                      ,
+//         }
+//       },
+//     },
+//     .depthStencil = {
+//       .format = get_depth_stencil_attachment().format,
+//       .depthTestEnable = VK_TRUE,
+//       .depthWriteEnable = VK_TRUE,
+//       .depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL,
+//     },
+//     .primitive = {
+//       .topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+//       .cullMode = VK_CULL_MODE_BACK_BIT,
+//       .frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
+//     }
+//   };
 // }
+
+// ----------------------------------------------------------------------------
+
+Pipeline Renderer::create_graphics_pipeline(VkPipelineLayout pipeline_layout, GraphicsPipelineDescriptor_t const& desc) const {
+  assert( pipeline_layout != VK_NULL_HANDLE );
+  assert( desc.vertex.module != VK_NULL_HANDLE );
+  assert( desc.fragment.module != VK_NULL_HANDLE );
+  assert( !desc.vertex.buffers.empty() );
+  assert( !desc.fragment.targets.empty() );
+  assert( desc.fragment.targets[0].format != VK_FORMAT_UNDEFINED );
+
+  // Default color blend attachment.
+  std::vector<VkPipelineColorBlendAttachmentState> color_blend_attachments{
+    {
+      .blendEnable = VK_FALSE,
+      .srcColorBlendFactor = VK_BLEND_FACTOR_ZERO,
+      .dstColorBlendFactor = VK_BLEND_FACTOR_ZERO,
+      .colorBlendOp = VK_BLEND_OP_ADD,
+      .srcAlphaBlendFactor = VK_BLEND_FACTOR_ZERO,
+      .dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO,
+      .alphaBlendOp = VK_BLEND_OP_ADD,
+
+      .colorWriteMask = VK_COLOR_COMPONENT_R_BIT
+                      | VK_COLOR_COMPONENT_G_BIT
+                      | VK_COLOR_COMPONENT_B_BIT
+                      | VK_COLOR_COMPONENT_A_BIT
+                      ,
+    }
+  };
+
+  /* Dynamic Rendering. */
+  VkPipelineRenderingCreateInfo dynamic_rendering_create_info{};
+  std::vector<VkFormat> color_attachments(desc.fragment.targets.size());
+  {
+    VkFormat const depth_format{
+      desc.depthStencil.format
+    };
+    VkFormat const stencil_format{
+      vkutils::IsValidStencilFormat(depth_format) ? depth_format : VK_FORMAT_UNDEFINED
+    };
+
+    // TODO : ColorBlendAttachments
+    color_blend_attachments.resize(color_attachments.size(), color_blend_attachments.at(0u));
+    for (size_t i = 0; i < color_attachments.size(); ++i) {
+      auto &target = desc.fragment.targets[i];
+      color_attachments[i] = target.format;
+      color_blend_attachments[i].colorWriteMask = target.writeMask;
+    }
+
+    dynamic_rendering_create_info = {
+      .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
+      .colorAttachmentCount = static_cast<uint32_t>(color_attachments.size()),
+      .pColorAttachmentFormats = color_attachments.data(),
+      .depthAttachmentFormat = depth_format,
+      .stencilAttachmentFormat = stencil_format,
+    };
+  }
+
+  /* Shaders stages */
+  auto getShaderEntryPoint{[](std::string const& entryPoint) -> char const* {
+    return entryPoint.empty() ? "main" : entryPoint.c_str();
+  }};
+  std::vector<VkPipelineShaderStageCreateInfo> shader_stages{
+    {
+      .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+      .stage = VK_SHADER_STAGE_VERTEX_BIT,
+      .module = desc.vertex.module,
+      .pName = getShaderEntryPoint(desc.vertex.entryPoint),
+    },
+    {
+      .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+      .stage = VK_SHADER_STAGE_FRAGMENT_BIT,
+      .module = desc.fragment.module,
+      .pName = getShaderEntryPoint(desc.fragment.entryPoint),
+    }
+  };
+
+  /* Vertex Input */
+  VkPipelineVertexInputStateCreateInfo vertex_input{};
+  std::vector<VkVertexInputBindingDescription> vertex_bindings{};
+  std::vector<VkVertexInputAttributeDescription> vertex_attributes{};
+  {
+    uint32_t binding = 0u;
+    for (auto const& buffer : desc.vertex.buffers) {
+      vertex_bindings.push_back({
+        .binding = binding,
+        .stride = buffer.stride,
+        .inputRate = buffer.inputRate,
+      });
+      for (auto attrib : buffer.attributes) {
+        attrib.binding = binding;
+        vertex_attributes.push_back(attrib);
+      }
+      ++binding;
+    }
+
+    vertex_input = {
+      .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+      .vertexBindingDescriptionCount = static_cast<uint32_t>(vertex_bindings.size()),
+      .pVertexBindingDescriptions = vertex_bindings.data(),
+      .vertexAttributeDescriptionCount = static_cast<uint32_t>(vertex_attributes.size()),
+      .pVertexAttributeDescriptions = vertex_attributes.data(),
+    };
+  }
+
+  /* Input Assembly */
+  VkPipelineInputAssemblyStateCreateInfo input_assembly{
+    .sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
+    .topology = desc.primitive.topology,
+    .primitiveRestartEnable = VK_FALSE,
+  };
+
+  /* Tessellation */
+  VkPipelineTessellationStateCreateInfo tessellation{
+    .sType = VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO,
+  };
+
+  /* Viewport Scissor */
+  VkPipelineViewportStateCreateInfo viewport{
+    .sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
+    // Viewport and Scissor are set as dynamic, but without VK_EXT_extended_dynamic_state
+    // we need to specify the number for each one.
+    .viewportCount = 1u,
+    .scissorCount = 1u,
+  };
+
+  /* Rasterization */
+  VkPipelineRasterizationStateCreateInfo rasterization{
+    .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+    .depthClampEnable = VK_FALSE,
+    .rasterizerDiscardEnable = VK_FALSE,
+    .polygonMode = VK_POLYGON_MODE_FILL,
+    .cullMode = desc.primitive.cullMode,
+    .frontFace = desc.primitive.frontFace,
+    .lineWidth = 1.0f, //
+  };
+
+  /* Multisampling */
+  VkPipelineMultisampleStateCreateInfo multisample{
+    .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
+    .rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
+    .sampleShadingEnable = VK_FALSE,
+    .alphaToCoverageEnable = VK_FALSE,
+    .alphaToOneEnable = VK_FALSE,
+  };
+
+  /* Depth Stencil */
+  VkPipelineDepthStencilStateCreateInfo depth_stencil{
+    .sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+    .depthTestEnable = desc.depthStencil.depthTestEnable,
+    .depthWriteEnable = desc.depthStencil.depthWriteEnable,
+    .depthCompareOp = desc.depthStencil.depthCompareOp,
+    .depthBoundsTestEnable = VK_FALSE, //
+    .stencilTestEnable = desc.depthStencil.stencilTestEnable,
+    .front = desc.depthStencil.stencilFront,
+    .back = desc.depthStencil.stencilBack,
+  };
+
+  /* Color Blend */
+  VkPipelineColorBlendStateCreateInfo color_blend{
+    .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+    .logicOpEnable = VK_FALSE,
+    .logicOp = VK_LOGIC_OP_COPY,
+    .attachmentCount = static_cast<uint32_t>(color_blend_attachments.size()),
+    .pAttachments = color_blend_attachments.data(),
+    .blendConstants = { 0.0f, 0.0f, 0.0f, 0.0f },
+  };
+
+  /* Dynamic states */
+  std::vector<VkDynamicState> dynamic_states{
+    VK_DYNAMIC_STATE_VIEWPORT,
+    VK_DYNAMIC_STATE_SCISSOR,
+
+    // // VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK,
+    // // VK_DYNAMIC_STATE_STENCIL_WRITE_MASK,
+    // // VK_DYNAMIC_STATE_STENCIL_REFERENCE,
+
+    // VK_DYNAMIC_STATE_STENCIL_TEST_ENABLE_EXT,
+    // VK_DYNAMIC_STATE_STENCIL_OP_EXT,
+
+    // VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE_EXT,
+    // VK_DYNAMIC_STATE_COLOR_WRITE_MASK_EXT,
+
+    // VK_DYNAMIC_STATE_PRIMITIVE_TOPOLOGY_EXT,
+    // VK_DYNAMIC_STATE_CULL_MODE_EXT,
+  };
+  dynamic_states.insert(
+    dynamic_states.end(), desc.dynamicStates.begin(), desc.dynamicStates.end()
+  );
+  VkPipelineDynamicStateCreateInfo const dynamic_state_create_info{
+    .sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
+    .dynamicStateCount = static_cast<uint32_t>(dynamic_states.size()),
+    .pDynamicStates = dynamic_states.data(),
+  };
+
+  VkGraphicsPipelineCreateInfo const graphics_pipeline_create_info{
+    .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+    .pNext = &dynamic_rendering_create_info,
+    .stageCount = static_cast<uint32_t>(shader_stages.size()),
+    .pStages = shader_stages.data(),
+    .pVertexInputState = &vertex_input,
+    .pInputAssemblyState = &input_assembly,
+    .pTessellationState = &tessellation,
+    .pViewportState = &viewport, //
+    .pRasterizationState = &rasterization,
+    .pMultisampleState = &multisample,
+    .pDepthStencilState = &depth_stencil,
+    .pColorBlendState = &color_blend,
+    .pDynamicState = &dynamic_state_create_info,
+    .layout = pipeline_layout,
+    // .renderPass = render_pass.get_render_pass(),
+  };
+
+  VkPipeline pipeline;
+  CHECK_VK(vkCreateGraphicsPipelines(
+    device_, nullptr, 1u, &graphics_pipeline_create_info, nullptr, &pipeline
+  ));
+
+  return Pipeline(pipeline_layout, pipeline);
+}
+
+// ----------------------------------------------------------------------------
+
+Pipeline Renderer::create_graphics_pipeline(PipelineLayoutDescriptor_t const& layout_desc, GraphicsPipelineDescriptor_t const& desc) const {
+  Pipeline pipeline = create_graphics_pipeline(
+    create_pipeline_layout(layout_desc),
+    desc
+  );
+  pipeline.use_internal_layout_ = true;
+  return pipeline;
+}
+
+// ----------------------------------------------------------------------------
+
+Pipeline Renderer::create_graphics_pipeline(GraphicsPipelineDescriptor_t const& desc) const {
+  return create_graphics_pipeline(PipelineLayoutDescriptor_t(), desc);
+}
+
+// ----------------------------------------------------------------------------
+
+void Renderer::destroy_pipeline(Pipeline const& pipeline) const {
+  vkDestroyPipeline(device_, pipeline.get_handle(), nullptr);
+  if (pipeline.use_internal_layout_) {
+    destroy_pipeline_layout(pipeline.get_layout());
+  }
+}
 
 // ----------------------------------------------------------------------------
 
@@ -354,7 +623,7 @@ void Renderer::update_descriptor_set(VkDescriptorSet const& descriptor_set, std:
   }
 
   /* Copy entries to be able to update them. */
-  auto updated_entries = entries;
+  auto updated_entries{ entries };
 
   std::vector<VkWriteDescriptorSet> write_descriptor_sets{};
   write_descriptor_sets.reserve(entries.size());
@@ -366,7 +635,7 @@ void Renderer::update_descriptor_set(VkDescriptorSet const& descriptor_set, std:
     assert(has_image != has_buffer || has_image != has_bufferView || has_buffer != has_bufferView);
 
     if (has_buffer) {
-      /* Instead of an error we force range to whole range if none were provided. */
+      /* Instead of an error we force range to whole size if none were provided. */
       if (entry.resource.buffer.range == 0) {
         entry.resource.buffer.range = VK_WHOLE_SIZE;
       }
@@ -429,7 +698,7 @@ bool Renderer::load_texture_2d(CommandEncoder const& cmd, std::string_view const
 
   VkImageViewCreateInfo view_info{
     .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-    .viewType = VK_IMAGE_VIEW_TYPE_2D, //
+    .viewType = VK_IMAGE_VIEW_TYPE_2D,
     .format = VK_FORMAT_R8G8B8A8_UNORM,
     .components = {
       VK_COMPONENT_SWIZZLE_R,

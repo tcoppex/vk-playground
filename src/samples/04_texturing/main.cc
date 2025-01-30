@@ -7,7 +7,6 @@
 /* -------------------------------------------------------------------------- */
 
 #include "framework/application.h"
-#include "framework/renderer/graphics_pipeline.h"
 #include "framework/utils/geometry.h"
 
 namespace shader_interop {
@@ -145,8 +144,6 @@ class SampleApp final : public Application {
 
     /* Setup the graphics pipeline. */
     {
-      auto& gp = graphics_pipeline_;
-
       VkPipelineLayout const pipeline_layout = renderer_.create_pipeline_layout({
         .setLayouts = { descriptor_set_layout_ },
         .pushConstantRanges = {
@@ -157,30 +154,44 @@ class SampleApp final : public Application {
         },
       });
 
-      gp.set_pipeline_layout(pipeline_layout);
-
-      gp.add_shader_stage(VK_SHADER_STAGE_VERTEX_BIT, shaders[0u]);
-      gp.add_shader_stage(VK_SHADER_STAGE_FRAGMENT_BIT, shaders[1u]);
-
-      gp.set_topology(cube_geo.get_vk_primitive_topology());
-      gp.set_cull_mode(VK_CULL_MODE_BACK_BIT);
-
-      gp.set_vertex_binding_attribute({
-        .bindings = {
-          {
-            .binding = 0u,
-            .stride = cube_geo.get_stride(),
-            .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
+      graphics_pipeline_ = renderer_.create_graphics_pipeline(pipeline_layout, {
+        .vertex = {
+          .module = shaders[0u].module,
+          .buffers = {
+            {
+              .stride = cube_geo.get_stride(),
+              .attributes =  cube_geo.get_vk_binding_attributes(0u, {
+                { Geometry::AttributeType::Position, shader_interop::kAttribLocation_Position },
+                { Geometry::AttributeType::Texcoord, shader_interop::kAttribLocation_Texcoord },
+                { Geometry::AttributeType::Normal, shader_interop::kAttribLocation_Normal },
+              }),
+            }
+          }
+        },
+        .fragment = {
+          .module = shaders[1u].module,
+          .targets = {
+            {
+              .format = renderer_.get_color_attachment().format,
+              .writeMask = VK_COLOR_COMPONENT_R_BIT
+                         | VK_COLOR_COMPONENT_G_BIT
+                         | VK_COLOR_COMPONENT_B_BIT
+                         | VK_COLOR_COMPONENT_A_BIT
+                         ,
+            }
           },
         },
-        .attributes = cube_geo.get_vk_binding_attributes(0u, {
-          { Geometry::AttributeType::Position, shader_interop::kAttribLocation_Position },
-          { Geometry::AttributeType::Texcoord, shader_interop::kAttribLocation_Texcoord },
-          { Geometry::AttributeType::Normal, shader_interop::kAttribLocation_Normal },
-        }),
+        .depthStencil = {
+          .format = renderer_.get_depth_stencil_attachment().format,
+          .depthTestEnable = VK_TRUE,
+          .depthWriteEnable = VK_TRUE,
+          .depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL,
+        },
+        .primitive = {
+          .topology = cube_geo.get_vk_primitive_topology(),
+          .cullMode = VK_CULL_MODE_BACK_BIT,
+        }
       });
-
-      gp.complete(context_.get_device(), renderer_);
     }
 
     context_.release_shader_modules(shaders);
@@ -191,8 +202,7 @@ class SampleApp final : public Application {
   void release() final {
     renderer_.destroy_descriptor_set_layout(descriptor_set_layout_);
     renderer_.destroy_pipeline_layout(graphics_pipeline_.get_layout());
-
-    graphics_pipeline_.release(context_.get_device());
+    renderer_.destroy_pipeline(graphics_pipeline_);
 
     allocator_->destroy_image(&image_);
 
@@ -235,7 +245,7 @@ class SampleApp final : public Application {
   }
 
  private:
-  std::shared_ptr<ResourceAllocator> allocator_;
+  std::shared_ptr<ResourceAllocator> allocator_{};
 
   Image_t image_{};
 
@@ -250,7 +260,7 @@ class SampleApp final : public Application {
   VkDescriptorSetLayout descriptor_set_layout_{};
   VkDescriptorSet descriptor_set_{};
 
-  GraphicsPipeline graphics_pipeline_{};
+  Pipeline graphics_pipeline_{};
 
   shader_interop::PushConstant push_constant_{};
 };

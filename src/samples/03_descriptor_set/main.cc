@@ -2,12 +2,11 @@
 //
 //    03 - Hello Descriptor Set
 //
-//  Demonstrate a very simple use of a descriptor set, in 3D !
+//  Show a simple use of a descriptor set, with a 3D tetrahedron.
 //
 /* -------------------------------------------------------------------------- */
 
 #include "framework/application.h"
-#include "framework/renderer/graphics_pipeline.h"
 
 namespace shader_interop {
 #include "shaders/interop.h"
@@ -139,12 +138,8 @@ class SampleApp final : public Application {
 
     /* Setup the graphics pipeline. */
     {
-      auto& gp = graphics_pipeline_;
-
-      /**
-       * Add the descriptor set layout use by this pipeline (here just one).
-       **/
-      VkPipelineLayout const pipeline_layout = renderer_.create_pipeline_layout({
+      /* Here we create the the pipeline layout externally. */
+      pipeline_layout_ = renderer_.create_pipeline_layout({
         .setLayouts = { descriptor_set_layout_ },
         .pushConstantRanges = {
           {
@@ -153,42 +148,55 @@ class SampleApp final : public Application {
           }
         },
       });
-      gp.set_pipeline_layout(pipeline_layout);
 
-      gp.add_shader_stage(VK_SHADER_STAGE_VERTEX_BIT, shaders[0u]);
-      gp.add_shader_stage(VK_SHADER_STAGE_FRAGMENT_BIT, shaders[1u]);
-
-      /**
-       * By default graphics pipeline expect mesh data layout as Triangle List,
-       * but we can change it using 'set_topology'.
-       **/
-      gp.set_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP);
-
-      gp.set_vertex_binding_attribute({
-        .bindings = {
-          {
-            .binding = 0u,
-            .stride = sizeof(Vertex_t),
-            .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
+      graphics_pipeline_ = renderer_.create_graphics_pipeline(
+        pipeline_layout_,
+        {
+          .vertex = {
+            .module = shaders[0u].module,
+            .buffers = {
+              {
+                .stride = sizeof(Vertex_t),
+                .attributes =  {
+                  {
+                    .location = AttributeLocation::Position,
+                    .format = VK_FORMAT_R32G32B32A32_SFLOAT,
+                    .offset = offsetof(Vertex_t, Vertex_t::Position),
+                  },
+                  {
+                    .location = AttributeLocation::Normal,
+                    .format = VK_FORMAT_R32G32B32_SFLOAT,
+                    .offset = offsetof(Vertex_t, Vertex_t::Normal),
+                  },
+                }
+              }
+            }
           },
-        },
-        .attributes = {
-          {
-            .location = AttributeLocation::Position,
-            .binding = 0u,
-            .format = VK_FORMAT_R32G32B32A32_SFLOAT,
-            .offset = offsetof(Vertex_t, Vertex_t::Position),
+          .fragment = {
+            .module = shaders[1u].module,
+            .targets = {
+              {
+                .format = renderer_.get_color_attachment().format,
+                .writeMask = VK_COLOR_COMPONENT_R_BIT
+                           | VK_COLOR_COMPONENT_G_BIT
+                           | VK_COLOR_COMPONENT_B_BIT
+                           | VK_COLOR_COMPONENT_A_BIT
+                           ,
+              }
+            },
           },
-          {
-            .location = AttributeLocation::Normal,
-            .binding = 0u,
-            .format = VK_FORMAT_R32G32B32_SFLOAT,
-            .offset = offsetof(Vertex_t, Vertex_t::Normal),
+          .depthStencil = {
+            .format = renderer_.get_depth_stencil_attachment().format,
+            .depthTestEnable = VK_TRUE,
+            .depthWriteEnable = VK_TRUE,
+            .depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL,
           },
-        },
-      });
-
-      gp.complete(context_.get_device(), renderer_);
+          .primitive = {
+            /** Here we use a mesh layout as triangle strip. */
+            .topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP,
+          }
+        }
+      );
     }
 
     context_.release_shader_modules(shaders);
@@ -197,10 +205,13 @@ class SampleApp final : public Application {
   }
 
   void release() final {
-    renderer_.destroy_pipeline_layout(graphics_pipeline_.get_layout());
     renderer_.destroy_descriptor_set_layout(descriptor_set_layout_);
 
-    graphics_pipeline_.release(context_.get_device());
+    /* As we've created the pipeline layout externally we should destroy it manually.
+     * We could also use 'graphics_pipeline_.get_layout()'' if we didn't kept it. */
+    renderer_.destroy_pipeline_layout(pipeline_layout_);
+
+    renderer_.destroy_pipeline(graphics_pipeline_);
 
     allocator_->destroy_buffer(index_buffer_);
     allocator_->destroy_buffer(vertex_buffer_);
@@ -256,18 +267,19 @@ class SampleApp final : public Application {
   }
 
  private:
-  std::shared_ptr<ResourceAllocator> allocator_;
+  std::shared_ptr<ResourceAllocator> allocator_{};
 
   HostData_t host_data_{};
-  Buffer_t uniform_buffer_;
+  Buffer_t uniform_buffer_{};
 
-  Buffer_t vertex_buffer_;
-  Buffer_t index_buffer_;
+  Buffer_t vertex_buffer_{};
+  Buffer_t index_buffer_{};
 
   VkDescriptorSetLayout descriptor_set_layout_{};
   VkDescriptorSet descriptor_set_{};
 
-  GraphicsPipeline graphics_pipeline_;
+  VkPipelineLayout pipeline_layout_{};
+  Pipeline graphics_pipeline_{};
 
   shader_interop::PushConstant push_constant_{};
 };

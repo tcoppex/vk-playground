@@ -14,7 +14,6 @@
 /* -------------------------------------------------------------------------- */
 
 #include "framework/application.h"
-#include "framework/renderer/graphics_pipeline.h"
 
 /* -------------------------------------------------------------------------- */
 
@@ -69,51 +68,56 @@ class SampleApp final : public Application {
       "fs_simple.glsl",
     })};
 
-    /* Setup the graphics pipeline. */
-    {
-      /**
-       * The GraphicsPipeline object is presetup with a default layout for
-       * rendering. Before using it we need to specify at least a vertex and
-       * fragment shader and the binding of its vertex attributes, if any.
-       **/
-      auto& gp = graphics_pipeline_;
-
-      gp.add_shader_stage(VK_SHADER_STAGE_VERTEX_BIT, shaders[0u]);
-      gp.add_shader_stage(VK_SHADER_STAGE_FRAGMENT_BIT, shaders[1u]);
-
-      gp.set_vertex_binding_attribute({
-        .bindings = {
+    /* Setup the graphics pipeline.
+     *
+     * When no pipeline layout is specified, a default one is set internally
+     * and will be destroy alongside the pipeline.
+     * If one is provided the destruction is let to the user.
+     **/
+    graphics_pipeline_ = renderer_.create_graphics_pipeline({
+      .vertex = {
+        .module = shaders[0u].module,
+        .buffers = {
           {
-            .binding = 0u,
             .stride = sizeof(Vertex_t),
-            .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
-          },
-        },
-        .attributes = {
+            .attributes =  {
+              {
+                .location = AttributeLocation::Position,
+                .format = VK_FORMAT_R32G32B32A32_SFLOAT,
+                .offset = offsetof(Vertex_t, Vertex_t::Position),
+              },
+              {
+                .location = AttributeLocation::Color,
+                .format = VK_FORMAT_R32G32B32A32_SFLOAT,
+                .offset = offsetof(Vertex_t, Vertex_t::Color),
+              },
+            }
+          }
+        }
+      },
+      .fragment = {
+        .module = shaders[1u].module,
+        .targets = {
           {
-            .location = AttributeLocation::Position,
-            .binding = 0u,
-            .format = VK_FORMAT_R32G32B32A32_SFLOAT,
-            .offset = offsetof(Vertex_t, Vertex_t::Position),
-          },
-          {
-            .location = AttributeLocation::Color,
-            .binding = 0u,
-            .format = VK_FORMAT_R32G32B32A32_SFLOAT,
-            .offset = offsetof(Vertex_t, Vertex_t::Color),
-          },
+            .format = renderer_.get_color_attachment().format,
+            .writeMask = VK_COLOR_COMPONENT_R_BIT
+                       | VK_COLOR_COMPONENT_G_BIT
+                       | VK_COLOR_COMPONENT_B_BIT
+                       | VK_COLOR_COMPONENT_A_BIT
+                       ,
+          }
         },
-      });
-
-      /**
-       * We call 'complete' to finalize the GraphicsPipeline setup for a given output.
-       *
-       * Both RTInterface (dynamic_rendering) and RPInterface (legacy rendering)
-       * are accepted. Here we use the main renderer as we output directly to
-       * the swapchain via dynamic_rendering.
-       **/
-      gp.complete(context_.get_device(), renderer_);
-    }
+      },
+      .depthStencil = {
+        .format = renderer_.get_depth_stencil_attachment().format,
+        .depthTestEnable = VK_TRUE,
+        .depthWriteEnable = VK_TRUE,
+        .depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL,
+      },
+      .primitive = {
+        .topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+      }
+    });
 
     /* Release the shader modules. */
     context_.release_shader_modules(shaders);
@@ -122,9 +126,9 @@ class SampleApp final : public Application {
   }
 
   void release() final {
-    auto allocator = context_.get_resource_allocator();
+    renderer_.destroy_pipeline(graphics_pipeline_);
 
-    graphics_pipeline_.release(context_.get_device()); //
+    auto allocator = context_.get_resource_allocator();
     allocator->destroy_buffer(vertex_buffer_);
   }
 
@@ -151,6 +155,7 @@ class SampleApp final : public Application {
        **/
       pass.set_viewport_scissor(viewport_size_, false);
 
+      // pass.set_pipeline(graphics_pipeline_);
       pass.set_pipeline(graphics_pipeline_);
       pass.set_vertex_buffer(vertex_buffer_);
       pass.draw(kVertices.size());
@@ -161,8 +166,8 @@ class SampleApp final : public Application {
   }
 
  private:
-  GraphicsPipeline graphics_pipeline_;
   Buffer_t vertex_buffer_;
+  Pipeline graphics_pipeline_;
 };
 
 // ----------------------------------------------------------------------------

@@ -186,7 +186,7 @@ class RenderPassEncoder : public GenericCommandEncoder {
   // --- Pipeline ---
 
   inline
-  void set_pipeline(Pipeline const& pipeline) {
+  void set_pipeline(PipelineInterface const& pipeline) {
     currently_bound_pipeline_layout_ = pipeline.get_layout();
     vkCmdBindPipeline(command_buffer_, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.get_handle());
   }
