@@ -5,6 +5,9 @@
 
 #include "framework/backend/swapchain.h"
 #include "framework/backend/command_encoder.h"
+#include "framework/renderer/pipeline.h"
+
+/* -------------------------------------------------------------------------- */
 
 class Context;
 class RenderTarget;
@@ -57,13 +60,17 @@ class Renderer : public RTInterface {
 
   // --- Pipeline Layout ---
 
-  VkPipelineLayout create_pipeline_layout(PipelineLayoutParams_t const& params) const;
+  VkPipelineLayout create_pipeline_layout(PipelineLayoutDescriptor_t const& params) const;
 
   void destroy_pipeline_layout(VkPipelineLayout layout) const;
 
   // --- Pipeline ---
 
   Pipeline create_graphics_pipeline(VkPipelineLayout pipeline_layout, GraphicsPipelineDescriptor_t const& desc) const;
+
+  // Specialized version that create the layout internally.
+  Pipeline create_graphics_pipeline(PipelineLayoutDescriptor_t const& layout_desc, GraphicsPipelineDescriptor_t const& desc) const;
+  Pipeline create_graphics_pipeline(GraphicsPipelineDescriptor_t const& desc) const;
 
   void destroy_pipeline(Pipeline const& pipeline) const;
 

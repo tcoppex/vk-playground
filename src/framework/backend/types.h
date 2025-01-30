@@ -123,21 +123,16 @@ struct DescriptorSetWriteEntry_t {
 
 // Pipeline
 
-struct PipelineLayoutParams_t {
-  std::vector<VkDescriptorSetLayout> setLayouts{};
-  std::vector<VkPushConstantRange> pushConstantRanges{};
-};
-
-class Pipeline {
+class PipelineInterface {
  public:
-  Pipeline() = default;
+  PipelineInterface() = default;
 
-  Pipeline(VkPipelineLayout layout, VkPipeline pipeline)
+  PipelineInterface(VkPipelineLayout layout, VkPipeline pipeline)
     : pipeline_layout_(layout)
     , pipeline_(pipeline)
   {}
 
-  virtual ~Pipeline() {}
+  virtual ~PipelineInterface() {}
 
   inline VkPipelineLayout get_layout() const {
     return pipeline_layout_;
@@ -150,67 +145,6 @@ class Pipeline {
  protected:
   VkPipelineLayout pipeline_layout_{};
   VkPipeline pipeline_{};
-};
-
-// ----------------------------------------------------------------------------
-
-// [wip] Descriptor structure to create GraphicsPipeline, à la WebGPU.
-struct GraphicsPipelineDescriptor_t {
-  std::vector<VkDynamicState> dynamicStates{};
-
-  struct Vertex {
-    struct Buffer {
-      uint32_t stride{};
-      VkVertexInputRate inputRate{};
-      std::vector<VkVertexInputAttributeDescription> attributes{};
-    };
-
-    VkShaderModule module{}; //
-    std::string entryPoint{};
-    std::vector<Buffer> buffers{};
-  } vertex{};
-
-  struct Fragment {
-    struct Target {
-      VkFormat format{};
-      VkColorComponentFlags writeMask{};
-
-      struct Blending {
-        struct Parameters {
-          VkBlendOp operation{};
-          VkBlendFactor srcFactor{};
-          VkBlendFactor dstFactor{};
-        };
-
-        VkBool32 enable{};
-        Parameters color{};
-        Parameters alpha{};
-      } blend{};
-    };
-
-    VkShaderModule module{};
-    std::string entryPoint{};
-    std::vector<Target> targets{};
-  } fragment{};
-
-  struct DepthStencil {
-    VkFormat format{}; //
-
-    VkBool32 depthTestEnable{};
-    VkBool32 depthWriteEnable{};
-    VkCompareOp depthCompareOp{};
-
-    VkBool32 stencilTestEnable{};
-    VkStencilOpState stencilFront{};
-    VkStencilOpState stencilBack{};
-  } depthStencil{};
-
-  struct Primitive {
-    VkPrimitiveTopology topology{};
-    VkPolygonMode polygonMode{};
-    VkCullModeFlags cullMode{};
-    VkFrontFace frontFace{};
-  } primitive{};
 };
 
 // ----------------------------------------------------------------------------

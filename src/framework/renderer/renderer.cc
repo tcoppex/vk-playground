@@ -259,7 +259,7 @@ void Renderer::destroy_pipeline_layout(VkPipelineLayout layout) const {
 
 // ----------------------------------------------------------------------------
 
-VkPipelineLayout Renderer::create_pipeline_layout(PipelineLayoutParams_t const& params) const {
+VkPipelineLayout Renderer::create_pipeline_layout(PipelineLayoutDescriptor_t const& params) const {
   VkPipelineLayoutCreateInfo const pipeline_layout_create_info{
     .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
     .setLayoutCount = static_cast<uint32_t>(params.setLayouts.size()),
@@ -494,8 +494,28 @@ Pipeline Renderer::create_graphics_pipeline(VkPipelineLayout pipeline_layout, Gr
 
 // ----------------------------------------------------------------------------
 
+Pipeline Renderer::create_graphics_pipeline(PipelineLayoutDescriptor_t const& layout_desc, GraphicsPipelineDescriptor_t const& desc) const {
+  Pipeline pipeline = create_graphics_pipeline(
+    create_pipeline_layout(layout_desc),
+    desc
+  );
+  pipeline.use_internal_layout_ = true;
+  return pipeline;
+}
+
+// ----------------------------------------------------------------------------
+
+Pipeline Renderer::create_graphics_pipeline(GraphicsPipelineDescriptor_t const& desc) const {
+  return create_graphics_pipeline(PipelineLayoutDescriptor_t(), desc);
+}
+
+// ----------------------------------------------------------------------------
+
 void Renderer::destroy_pipeline(Pipeline const& pipeline) const {
   vkDestroyPipeline(device_, pipeline.get_handle(), nullptr);
+  if (pipeline.use_internal_layout_) {
+    destroy_pipeline_layout(pipeline.get_layout());
+  }
 }
 
 // ----------------------------------------------------------------------------
