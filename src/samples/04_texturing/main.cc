@@ -32,23 +32,21 @@ class SampleApp final : public Application {
     allocator_ = context_.get_resource_allocator();
 
     /* Initialize the scene data. */
-    {
-      host_data_.scene.camera = {
-        .viewMatrix = linalg::lookat_matrix(
-          vec3f(1.0f, 2.0f, 3.0f),
-          vec3f(0.0f, 0.0f, 0.0f),
-          vec3f(0.0f, 1.0f, 0.0f)
-        ),
-        .projectionMatrix = linalg::perspective_matrix(
-          lina::radians(60.0f),
-          static_cast<float>(viewport_size_.width) / static_cast<float>(viewport_size_.height),
-          0.01f,
-          500.0f,
-          linalg::neg_z,
-          linalg::zero_to_one
-        ),
-      };
-    }
+    host_data_.scene.camera = {
+      .viewMatrix = linalg::lookat_matrix(
+        vec3f(1.0f, 2.0f, 3.0f),
+        vec3f(0.0f, 0.0f, 0.0f),
+        vec3f(0.0f, 1.0f, 0.0f)
+      ),
+      .projectionMatrix = linalg::perspective_matrix(
+        lina::radians(60.0f),
+        static_cast<float>(viewport_size_.width) / static_cast<float>(viewport_size_.height),
+        0.01f,
+        500.0f,
+        linalg::neg_z,
+        linalg::zero_to_one
+      ),
+    };
 
     /* Create a cube mesh procedurally on the host.
      * We have no need to keep it on memory after initialization so we just
@@ -212,14 +210,13 @@ class SampleApp final : public Application {
   }
 
   void frame() final {
-    /* Update the model world matrix. */
+    /* Update the world matrix. */
     {
       float const frame_time{ get_frame_time() };
-      auto const axis{
-        vec3f(3.0f*frame_time, 0.8f, sinf(frame_time))
-      };
-      push_constant_.model.worldMatrix = linalg::rotation_matrix(
-        linalg::rotation_quat(linalg::normalize(axis), frame_time * 0.62f)
+
+      push_constant_.model.worldMatrix = lina::rotation_matrix_axis(
+        vec3(3.0f*frame_time, 0.8f, sinf(frame_time)),
+        frame_time * 0.62f
       );
     }
 
