@@ -3,8 +3,8 @@
 
 /* -------------------------------------------------------------------------- */
 
-#include <cassert> //
-#include <cmath> //
+#include <cassert>
+#include <cmath>
 #include <cstdio> //
 #include <cstddef>
 #include <cstdint>
@@ -21,16 +21,16 @@
 #include <type_traits>
 #include <iterator> // For std::back_inserter
 
-// (linear algebra)
-#include "framework/lina.h"
+// linear algebra.
+#include "lina/lina.h"
 using namespace lina::aliases;
 
-// (miscs utility functions)
+// Utility functions.
 #include "framework/utils/utils.h"
 
 /* -------------------------------------------------------------------------- */
 
-// c++ features
+/* -- c++ features -- */
 
 template<typename T>
 concept SpanConvertible = requires(T t) { std::span(t); };
