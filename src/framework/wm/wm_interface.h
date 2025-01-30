@@ -1,5 +1,5 @@
-#ifndef HELLOVK_FRAMEWORK_WM_INTERFACE_H
-#define HELLOVK_FRAMEWORK_WM_INTERFACE_H
+#ifndef HELLOVK_FRAMEWORK_WM_WM_INTERFACE_H
+#define HELLOVK_FRAMEWORK_WM_WM_INTERFACE_H
 
 #include "framework/common.h"
 #include <vulkan/vulkan.h>
@@ -31,4 +31,4 @@ struct WMInterface {
 
 /* -------------------------------------------------------------------------- */
 
-#endif  // HELLOVK_FRAMEWORK_WM_INTERFACE_H
+#endif  // HELLOVK_FRAMEWORK_WM_WM_INTERFACE_H

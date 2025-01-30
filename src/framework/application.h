@@ -7,8 +7,8 @@
 
 #include "framework/backend/context.h"
 #include "framework/renderer/renderer.h"
-#include "framework/event_callbacks.h"
-#include "framework/wm_interface.h"
+#include "framework/wm/event_callbacks.h"
+#include "framework/wm/wm_interface.h"
 
 /* -------------------------------------------------------------------------- */
 

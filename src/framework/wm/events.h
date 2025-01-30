@@ -1,5 +1,5 @@
-#ifndef HELLOVK_FRAMEWORK_EVENTS_H
-#define HELLOVK_FRAMEWORK_EVENTS_H
+#ifndef HELLOVK_FRAMEWORK_WM_EVENTS_H
+#define HELLOVK_FRAMEWORK_WM_EVENTS_H
 
 #include <functional>
 #include <set>
@@ -9,7 +9,7 @@
 #include <vector>
 
 #include "framework/utils/singleton.h"
-#include "framework/event_callbacks.h"
+#include "framework/wm/event_callbacks.h"
 
 // ----------------------------------------------------------------------------
 
@@ -121,4 +121,4 @@ class Events final : public Singleton<Events>
 
 // ----------------------------------------------------------------------------
 
-#endif // HELLOVK_FRAMEWORK_EVENTS_H
+#endif // HELLOVK_FRAMEWORK_WM_EVENTS_H
