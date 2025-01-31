@@ -141,7 +141,7 @@ void Geometry::MakePlane(Geometry &geo, float size, uint32_t resx, uint32_t resy
   uint32_t const vertex_count = nrows * ncols;
 
   /* Set up the buffer of raw vertices. */
-  std::vector<Vertex_t> raw_vertices(vertex_count);
+  std::vector<Vertex_t> vertices(vertex_count);
   {
     float const dx = 1.0f / static_cast<float>(ncols - 1u);
     float const dy = 1.0f / static_cast<float>(nrows - 1u);
@@ -152,7 +152,7 @@ void Geometry::MakePlane(Geometry &geo, float size, uint32_t resx, uint32_t resy
         float const uv_x = static_cast<float>(ix) * dx;
         float const uv_y = static_cast<float>(iy) * dy;
 
-        raw_vertices[v_index] = {
+        vertices[v_index] = {
           .position = { size * (uv_x - 0.5f), 0.0f, size * (uv_y - 0.5f) },
           .normal = { 0.0f, 1.0f, 0.0f },
           .texcoord = { uv_x, 1.0f - uv_y }
@@ -217,8 +217,8 @@ void Geometry::MakePlane(Geometry &geo, float size, uint32_t resx, uint32_t resy
 
   /* Fill vertices. */
   {
-    size_t const vertices_bytesize = raw_vertices.size() * sizeof(raw_vertices[0u]);
-    uint8_t *const vertices_ptr = reinterpret_cast<uint8_t*>(raw_vertices.data());
+    size_t const vertices_bytesize = vertices.size() * sizeof(vertices[0u]);
+    uint8_t *const vertices_ptr = reinterpret_cast<uint8_t*>(vertices.data());
     geo.vertices.clear();
     geo.vertices.insert(
       geo.vertices.end(),
@@ -405,7 +405,7 @@ void Geometry::MakeTorus(Geometry &geo, float major_radius, float minor_radius, 
   // The torus is made as a plane rolled around the outer_ring.
 
   /* Set up the buffer of raw vertices. */
-  std::vector<Vertex_t> raw_vertices(vertex_count);
+  std::vector<Vertex_t> vertices(vertex_count);
   {
     float const dx = 1.0f / static_cast<float>(ncols - 1u);
     float const dy = 1.0f / static_cast<float>(nrows - 1u);
@@ -443,7 +443,7 @@ void Geometry::MakeTorus(Geometry &geo, float major_radius, float minor_radius, 
         float const ny = sine_theta;
         float const nz = - sine_phi * cosine_theta;
 
-        raw_vertices[v_index] = {
+        vertices[v_index] = {
           .position = { a_x, a_y, a_z },
           .normal = { nx, ny, nz },
           .texcoord = { uv_x, uv_y }
@@ -509,8 +509,8 @@ void Geometry::MakeTorus(Geometry &geo, float major_radius, float minor_radius, 
 
   /* Fill vertices. */
   {
-    size_t const vertices_bytesize = raw_vertices.size() * sizeof(raw_vertices[0u]);
-    uint8_t *const vertices_ptr = reinterpret_cast<uint8_t*>(raw_vertices.data());
+    size_t const vertices_bytesize = vertices.size() * sizeof(vertices[0u]);
+    uint8_t *const vertices_ptr = reinterpret_cast<uint8_t*>(vertices.data());
     geo.vertices.clear();
     geo.vertices.insert(
       geo.vertices.end(),
