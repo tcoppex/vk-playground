@@ -89,7 +89,7 @@ class Geometry {
   // --- Indexed Point List ---
 
   /* Create a plane of points with float4 positions and an index buffer for sorting (when needed). */
-  static void MakePointsPlane(Geometry &geo, float size = kDefaultSize, uint32_t resx = 1u, uint32_t resy = 1u);
+  static void MakePointListPlane(Geometry &geo, float size = kDefaultSize, uint32_t resx = 1u, uint32_t resy = 1u);
 
  public:
   Geometry() = default;
