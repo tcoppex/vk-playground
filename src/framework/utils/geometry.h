@@ -36,6 +36,7 @@ class Geometry {
   };
 
   enum class Topology {
+    PointList,
     TriangleList,
     TriangleStrip,
     kCount
@@ -83,6 +84,12 @@ class Geometry {
     float const minor_radius = (outer_radius - inner_radius) / 2.0f;
     MakeTorus(geo, inner_radius + minor_radius, minor_radius, resx, resy);
   }
+
+ public:
+  // --- Indexed Point List ---
+
+  /* Create a plane of points with float4 positions and an index buffer for sorting (when needed). */
+  static void MakePointsPlane(Geometry &geo, float size = kDefaultSize, uint32_t resx = 1u, uint32_t resy = 1u);
 
  public:
   Geometry() = default;
