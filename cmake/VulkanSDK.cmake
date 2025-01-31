@@ -52,6 +52,9 @@ function(glsl2spirv input_glsl output_spirv shader_dir)
     return()
   endif()
 
+  get_filename_component(output_dir ${output_spirv} DIRECTORY)
+  file(MAKE_DIRECTORY ${output_dir})
+
   # Compile to SPIR-V with include directory set to shaderdir
   add_custom_command(
     OUTPUT
@@ -78,8 +81,6 @@ endfunction(glsl2spirv)
 
 # Compile all shader from one directory to another
 function(compile_shaders GLOBAL_GLSL_DIR GLOBAL_SPIRV_DIR binaries sources)
-  file(MAKE_DIRECTORY ${GLOBAL_SPIRV_DIR})
-
   # retrieve all SOURCE glsl shaders
   file(GLOB_RECURSE g_ShadersGLSL ${GLOBAL_GLSL_DIR}/*.*)
 
