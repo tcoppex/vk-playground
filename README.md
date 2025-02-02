@@ -48,6 +48,7 @@ cmake --build build --config Release
 * **[03_descriptor_set](src/samples/03_descriptor_set)**: Initialize & update a descriptor set on a single uniform buffer.
 * **[04_texturing](src/samples/04_texturing)**: Display a textured cube with a linear sampler.
 * **[05_stencil_op](src/samples/05_stencil_op)**: Demonstrate instancing and stencil operations through a multi-passes portal effect.
+* **[06_blend_op](src/samples/06_blend_op)**: Display fast & simple GPU particles with additive blend operation.
 
 ### Dependencies
 
