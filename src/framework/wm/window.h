@@ -1,7 +1,7 @@
-#ifndef HELLOVK_FRAMEWORK_WINDOW_H
-#define HELLOVK_FRAMEWORK_WINDOW_H
+#ifndef HELLOVK_FRAMEWORK_WM_WINDOW_H
+#define HELLOVK_FRAMEWORK_WM_WINDOW_H
 
-#include "framework/wm_interface.h"
+#include "framework/wm/wm_interface.h"
 
 #define GLFW_INCLUDE_NONE
 #include "GLFW/glfw3.h"

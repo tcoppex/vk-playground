@@ -1,6 +1,6 @@
 #include "framework/application.h"
-#include "framework/events.h"
-#include "framework/window.h"
+#include "framework/wm/events.h"
+#include "framework/wm/window.h"
 
 /* -------------------------------------------------------------------------- */
 

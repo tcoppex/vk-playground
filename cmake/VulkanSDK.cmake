@@ -33,22 +33,27 @@ function(glsl2spirv input_glsl output_spirv shader_dir)
   get_filename_component(fn ${input_glsl} NAME)
   
   # Detects shader type based on its suffix or prefix
-  if (${fn} MATCHES "((vert|vs)_.+\\.glsl)|(.+\\.(vert|vs))")
+  if (${fn} MATCHES "((vert|vs)_.+\\.glsl)|(.+\\.(vert|vs)(\\.glsl)?)")
     set(stage "vert")
-  elseif(${fn} MATCHES "((tesc|tcs)_.+\\.glsl)|(.+\\.(tesc|tcs))")
+  elseif(${fn} MATCHES "((tesc|tcs)_.+\\.glsl)|(.+\\.(tesc|tcs)(\\.glsl)?)")
     set(stage "tesc")
-  elseif(${fn} MATCHES "((tese|tes)_.+\\.glsl)|(.+\\.(tese|tes))")
+  elseif(${fn} MATCHES "((tese|tes)_.+\\.glsl)|(.+\\.(tese|tes)(\\.glsl)?)")
     set(stage "tese")
-  elseif(${fn} MATCHES "((geom|gs)_.+\\.glsl)|(.+\\.(geom|gs))")
+  elseif(${fn} MATCHES "((geom|gs)_.+\\.glsl)|(.+\\.(geom|gs)(\\.glsl)?)")
     set(stage "geom")
-  elseif(${fn} MATCHES "((frag|fs)_.+\\.glsl)|(.+\\.(frag|fs))")
+  elseif(${fn} MATCHES "((frag|fs)_.+\\.glsl)|(.+\\.(frag|fs)(\\.glsl)?)")
     set(stage "frag")
-  elseif(${fn} MATCHES "((comp|cs)_.+\\.glsl)|(.+\\.(comp|cs))")
+  elseif(${fn} MATCHES "((comp|cs)_.+\\.glsl)|(.+\\.(comp|cs)(\\.glsl)?)")
     set(stage "comp")
+  elseif(${fn} MATCHES "((mesh|ms)_.+\\.glsl)|(.+\\.(mesh|cs)(\\.glsl)?)")
+    set(stage "mesh")
   else()
     message(WARNING "Unknown shaer type for ${fn}")
     return()
   endif()
+
+  get_filename_component(output_dir ${output_spirv} DIRECTORY)
+  file(MAKE_DIRECTORY ${output_dir})
 
   # Compile to SPIR-V with include directory set to shaderdir
   add_custom_command(
@@ -76,8 +81,6 @@ endfunction(glsl2spirv)
 
 # Compile all shader from one directory to another
 function(compile_shaders GLOBAL_GLSL_DIR GLOBAL_SPIRV_DIR binaries sources)
-  file(MAKE_DIRECTORY ${GLOBAL_SPIRV_DIR})
-
   # retrieve all SOURCE glsl shaders
   file(GLOB_RECURSE g_ShadersGLSL ${GLOBAL_GLSL_DIR}/*.*)
 

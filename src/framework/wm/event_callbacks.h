@@ -1,5 +1,5 @@
-#ifndef HELLOVK_FRAMEWORK_EVENT_CALLBACKS_H
-#define HELLOVK_FRAMEWORK_EVENT_CALLBACKS_H
+#ifndef HELLOVK_FRAMEWORK_WM_EVENT_CALLBACKS_H
+#define HELLOVK_FRAMEWORK_WM_EVENT_CALLBACKS_H
 
 #include "framework/common.h"
 
@@ -30,4 +30,4 @@ struct EventCallbacks {
 
 /* -------------------------------------------------------------------------- */
 
-#endif  // HELLOVK_FRAMEWORK_EVENT_CALLBACKS_H
+#endif  // HELLOVK_FRAMEWORK_WM_EVENT_CALLBACKS_H

@@ -21,11 +21,17 @@ class SampleApp final : public Application {
 
   static constexpr float kPortalSize = 2.35f;
 
-  /* Helper to store unique static mesh resources. */
+  /* Helper to handle static mesh resources. */
   struct Mesh_t {
     Geometry geo;
     Buffer_t vertex;
     Buffer_t index;
+
+    void draw(RenderPassEncoder const& pass, uint32_t instance_count = 1u) const {
+      pass.set_vertex_buffer(vertex);
+      pass.set_index_buffer(index, geo.get_vk_index_type());
+      pass.draw_indexed(geo.get_index_count(), instance_count);
+    }
   };
 
   enum class PipelineID : uint32_t {
@@ -49,23 +55,21 @@ class SampleApp final : public Application {
     allocator_ = context_.get_resource_allocator();
 
     /* Initialize the scene data. */
-    {
-      host_data_.scene.camera = {
-        .viewMatrix = linalg::lookat_matrix(
-          vec3f(0.0f, 0.0f, 4.0f),
-          vec3f(0.0f, 0.0f, 0.0f),
-          vec3f(0.0f, 1.0f, 0.0f)
-        ),
-        .projectionMatrix = linalg::perspective_matrix(
-          lina::radians(60.0f),
-          static_cast<float>(viewport_size_.width) / static_cast<float>(viewport_size_.height),
-          0.01f,
-          500.0f,
-          linalg::neg_z,
-          linalg::zero_to_one
-        ),
-      };
-    }
+    host_data_.scene.camera = {
+      .viewMatrix = linalg::lookat_matrix(
+        vec3f(0.0f, 0.0f, 4.0f),
+        vec3f(0.0f, 0.0f, 0.0f),
+        vec3f(0.0f, 1.0f, 0.0f)
+      ),
+      .projectionMatrix = linalg::perspective_matrix(
+        lina::radians(60.0f),
+        static_cast<float>(viewport_size_.width) / static_cast<float>(viewport_size_.height),
+        0.01f,
+        500.0f,
+        linalg::neg_z,
+        linalg::zero_to_one
+      ),
+    };
 
     /* Create Uniform, Vertices, and Indices Buffers. */
     {
@@ -157,7 +161,7 @@ class SampleApp final : public Application {
 
     /* Setup the pipelines. */
     {
-      /* "Shared" descriptor between the stencil and the depth mask pipelines. */
+      /* Pipeline descriptor "shared" between the stencil and the depth mask pipelines. */
       GraphicsPipelineDescriptor_t mask_pipeline_descriptor{
         .vertex = {
           .module = shaders[0u].module,
@@ -203,7 +207,7 @@ class SampleApp final : public Application {
         }
       };
 
-      /* Write inside the stencil buffer. */
+      /* Render inside the stencil buffer. */
       pipelines_[PipelineID::StencilMask] = renderer_.create_graphics_pipeline(pipeline_layout_, mask_pipeline_descriptor);
 
       /* Render inside the portal using the stencil test and the instancing vertex shader. */
@@ -256,11 +260,11 @@ class SampleApp final : public Application {
         }
       });
 
-      /* Only write in the depth buffer, to mask the portal once we've rendered into it. */
+      /* Render in the depth buffer, to mask the portal once we've rendered into it. */
       mask_pipeline_descriptor.depthStencil.depthWriteEnable = VK_TRUE;
       pipelines_[PipelineID::DepthMask] = renderer_.create_graphics_pipeline(pipeline_layout_, mask_pipeline_descriptor);
 
-      /* Basic rendering pipeline, do not use the stencil. */
+      /* Regular rendering pipeline, used outside the portal. Does not use the stencil buffer. */
       pipelines_[PipelineID::Rendering] = renderer_.create_graphics_pipeline(pipeline_layout_, {
         .vertex = {
           .module = shaders[0u].module,
@@ -346,51 +350,31 @@ class SampleApp final : public Application {
       {
         pass.set_viewport_scissor(viewport_size_);
 
-        // Write the portal mask into the stencil buffer.
+        // Draw the portal mask into the stencil buffer.
+        pass.set_pipeline(pipelines_[PipelineID::StencilMask]);
+        plane_.draw(pass);
+
+        // Draw instanced rings when passing the stencil test.
+        pass.set_pipeline(pipelines_[PipelineID::StencilTest]);
+        torus_.draw(pass, 256u);
+
+        // Draw the portal mask into the depth buffer.
+        pass.set_pipeline(pipelines_[PipelineID::DepthMask]);
+        plane_.draw(pass);
+
+        // Draw regular objects 'outside' the portal.
+        pass.set_pipeline(pipelines_[PipelineID::Rendering]);
         {
-          auto &mesh = plane_;
-          pass.set_pipeline(pipelines_[PipelineID::StencilMask]);
+          // Portal frame.
+          torus_.draw(pass);
 
-          pass.set_vertex_buffer(mesh.vertex);
-          pass.set_index_buffer(mesh.index, mesh.geo.get_vk_index_type());
-          pass.draw_indexed(mesh.geo.get_index_count());
-        }
-
-        // Instanced rings 'behind' the stencil mask.
-        {
-          auto &mesh = torus_;
-          pass.set_pipeline(pipelines_[PipelineID::StencilTest]);
-
-          pass.set_vertex_buffer(mesh.vertex);
-          pass.set_index_buffer(mesh.index, mesh.geo.get_vk_index_type());
-          pass.draw_indexed(mesh.geo.get_index_count(), 256u);
-        }
-
-        // Write the portal mask into the depth buffer.
-        {
-          auto &mesh = plane_;
-          pass.set_pipeline(pipelines_[PipelineID::DepthMask]);
-
-          pass.set_vertex_buffer(mesh.vertex);
-          pass.set_index_buffer(mesh.index, mesh.geo.get_vk_index_type());
-          pass.draw_indexed(mesh.geo.get_index_count());
-        }
-
-        // Render objects 'outside' the portal.
-        {
-          auto &mesh = torus_;
-          pass.set_pipeline(pipelines_[PipelineID::Rendering]);
-
-          pass.set_vertex_buffer(mesh.vertex);
-          pass.set_index_buffer(mesh.index, mesh.geo.get_vk_index_type());
-          pass.draw_indexed(mesh.geo.get_index_count());
-
+          // Outer-ring.
           push_constant_.model.worldMatrix = linalg::mul(
             linalg::scaling_matrix(vec3(3.0)),
             lina::rotation_matrix_z(-0.32f*frame_time)
           );
           pass.push_constant(push_constant_, VK_SHADER_STAGE_VERTEX_BIT);
-          pass.draw_indexed(mesh.geo.get_index_count());
+          torus_.draw(pass);
         }
       }
       cmd.end_rendering();
