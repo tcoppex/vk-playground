@@ -342,12 +342,22 @@ Pipeline Renderer::create_graphics_pipeline(VkPipelineLayout pipeline_layout, Gr
       vkutils::IsValidStencilFormat(depth_format) ? depth_format : VK_FORMAT_UNDEFINED
     };
 
-    // TODO : ColorBlendAttachments
     color_blend_attachments.resize(color_attachments.size(), color_blend_attachments.at(0u));
     for (size_t i = 0; i < color_attachments.size(); ++i) {
       auto &target = desc.fragment.targets[i];
+
       color_attachments[i] = target.format;
-      color_blend_attachments[i].colorWriteMask = target.writeMask;
+
+      color_blend_attachments[i] = {
+        .blendEnable = target.blend.enable,
+        .srcColorBlendFactor = target.blend.color.srcFactor,
+        .dstColorBlendFactor = target.blend.color.dstFactor,
+        .colorBlendOp = target.blend.color.operation,
+        .srcAlphaBlendFactor = target.blend.alpha.srcFactor,
+        .dstAlphaBlendFactor = target.blend.alpha.dstFactor,
+        .alphaBlendOp = target.blend.alpha.operation,
+        .colorWriteMask = target.writeMask,
+      };
     }
 
     dynamic_rendering_create_info = {
