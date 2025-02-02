@@ -274,41 +274,11 @@ VkPipelineLayout Renderer::create_pipeline_layout(PipelineLayoutDescriptor_t con
 
 // ----------------------------------------------------------------------------
 
-// GraphicsPipelineDescriptor_t Renderer::get_default_graphics_pipeline_descriptor() const {
-//   return {
-//     .fragment = {
-//       .targets = {
-//         {
-//           .format = get_color_attachment().format,
-//           .writeMask = VK_COLOR_COMPONENT_R_BIT
-//                      | VK_COLOR_COMPONENT_G_BIT
-//                      | VK_COLOR_COMPONENT_B_BIT
-//                      | VK_COLOR_COMPONENT_A_BIT
-//                      ,
-//         }
-//       },
-//     },
-//     .depthStencil = {
-//       .format = get_depth_stencil_attachment().format,
-//       .depthTestEnable = VK_TRUE,
-//       .depthWriteEnable = VK_TRUE,
-//       .depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL,
-//     },
-//     .primitive = {
-//       .topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
-//       .cullMode = VK_CULL_MODE_BACK_BIT,
-//       .frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
-//     }
-//   };
-// }
-
-// ----------------------------------------------------------------------------
-
 Pipeline Renderer::create_graphics_pipeline(VkPipelineLayout pipeline_layout, GraphicsPipelineDescriptor_t const& desc) const {
   assert( pipeline_layout != VK_NULL_HANDLE );
   assert( desc.vertex.module != VK_NULL_HANDLE );
   assert( desc.fragment.module != VK_NULL_HANDLE );
-  assert( !desc.vertex.buffers.empty() );
+  // assert( !desc.vertex.buffers.empty() );
   assert( !desc.fragment.targets.empty() );
   assert( desc.fragment.targets[0].format != VK_FORMAT_UNDEFINED );
 
