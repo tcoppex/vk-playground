@@ -100,19 +100,17 @@ class SampleApp final : public Application {
       uint32_t const kDescSetUniformBinding = 0u;
 
       descriptor_set_layout_ = renderer_.create_descriptor_set_layout({
-        .entries = {
-          {
-            .binding = kDescSetUniformBinding,
-            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-            .descriptorCount = 1u,
-            .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+        {
+          .binding = kDescSetUniformBinding,
+          .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+          .descriptorCount = 1u,
+          .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+          .bindingFlags = {
+              VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT
+            | VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT
+            | VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT
+            ,
           },
-        },
-        .flags = {
-            VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT
-          | VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT
-          | VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT
-          ,
         },
       });
 

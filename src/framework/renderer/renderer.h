@@ -76,7 +76,7 @@ class Renderer : public RTInterface {
 
   // --- Descriptor Set Layout ---
 
-  VkDescriptorSetLayout create_descriptor_set_layout(DescriptorSetLayoutParams_t const& params) const;
+  VkDescriptorSetLayout create_descriptor_set_layout(std::vector<DescriptorSetLayoutParams_t> const& params) const;
 
   void destroy_descriptor_set_layout(VkDescriptorSetLayout& layout) const;
 

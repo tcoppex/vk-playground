@@ -97,14 +97,13 @@ struct ShaderModule_t {
 // ----------------------------------------------------------------------------
 
 struct DescriptorSetLayoutParams_t {
-  std::vector<VkDescriptorSetLayoutBinding> entries;
-  std::vector<VkDescriptorBindingFlags> flags;
+  uint32_t                 binding;
+  VkDescriptorType         descriptorType;
+  uint32_t                 descriptorCount;
+  VkShaderStageFlags       stageFlags;
+  const VkSampler*         pImmutableSamplers;
+  VkDescriptorBindingFlags bindingFlags;
 };
-
-// struct DescriptorSetLayout_t {
-//   DescriptorSetLayoutParams_t params;
-//   VkDescriptorSetLayout layout;
-// };
 
 struct DescriptorSetWriteEntry_t {
   // (use an union instead ?)

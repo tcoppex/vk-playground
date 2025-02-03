@@ -530,20 +530,35 @@ void Renderer::destroy_pipeline(Pipeline const& pipeline) const {
 
 // ----------------------------------------------------------------------------
 
-VkDescriptorSetLayout Renderer::create_descriptor_set_layout(DescriptorSetLayoutParams_t const& params) const {
-  assert(params.flags.empty() || (params.entries.size() == params.flags.size())); //
+VkDescriptorSetLayout Renderer::create_descriptor_set_layout(std::vector<DescriptorSetLayoutParams_t> const& params) const {
+  std::vector<VkDescriptorSetLayoutBinding> entries;
+  std::vector<VkDescriptorBindingFlags> flags;
+
+  entries.reserve(params.size());
+  flags.reserve(params.size());
+
+  for (auto const& param : params) {
+    entries.push_back({
+      .binding = param.binding,
+      .descriptorType = param.descriptorType,
+      .descriptorCount = param.descriptorCount,
+      .stageFlags = param.stageFlags,
+      .pImmutableSamplers = param.pImmutableSamplers,
+    });
+    flags.push_back(param.bindingFlags);
+  }
 
   VkDescriptorSetLayoutBindingFlagsCreateInfo const flags_create_info{
     .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO,
-    .bindingCount = static_cast<uint32_t>(params.flags.size()),
-    .pBindingFlags = params.flags.data(),
+    .bindingCount = static_cast<uint32_t>(flags.size()),
+    .pBindingFlags = flags.data(),
   };
   VkDescriptorSetLayoutCreateInfo const layout_create_info{
     .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-    .pNext = params.flags.empty() ? nullptr : &flags_create_info,
+    .pNext = flags.empty() ? nullptr : &flags_create_info,
     .flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT, //
-    .bindingCount = static_cast<uint32_t>(params.entries.size()),
-    .pBindings = params.entries.data(),
+    .bindingCount = static_cast<uint32_t>(entries.size()),
+    .pBindings = entries.data(),
   };
 
   VkDescriptorSetLayout descriptor_set_layout;

@@ -92,36 +92,32 @@ class SampleApp final : public Application {
       };
 
       graphics_.descriptor_set_layout = renderer_.create_descriptor_set_layout({
-        .entries = {
-          {
-            .binding = shader_interop::kDescriptorSetBinding_UniformBuffer,
-            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-            .descriptorCount = 1u,
-            .stageFlags = VK_SHADER_STAGE_VERTEX_BIT
-                        | VK_SHADER_STAGE_COMPUTE_BIT
-                        ,
-          },
-          {
-            .binding = shader_interop::kDescriptorSetBinding_StorageBuffer_Position,
-            .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-            .descriptorCount = 1u,
-            .stageFlags = VK_SHADER_STAGE_VERTEX_BIT
-                        | VK_SHADER_STAGE_COMPUTE_BIT
-                        ,
-          },
-          {
-            .binding = shader_interop::kDescriptorSetBinding_StorageBuffer_Index,
-            .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-            .descriptorCount = 1u,
-            .stageFlags = VK_SHADER_STAGE_VERTEX_BIT
-                        | VK_SHADER_STAGE_COMPUTE_BIT
-                        ,
-          },
+        {
+          .binding = shader_interop::kDescriptorSetBinding_UniformBuffer,
+          .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+          .descriptorCount = 1u,
+          .stageFlags = VK_SHADER_STAGE_VERTEX_BIT
+                      | VK_SHADER_STAGE_COMPUTE_BIT
+                      ,
+          .bindingFlags = kDefaultDescBindingFlags,
         },
-        .flags = {
-          kDefaultDescBindingFlags,
-          kDefaultDescBindingFlags,
-          kDefaultDescBindingFlags,
+        {
+          .binding = shader_interop::kDescriptorSetBinding_StorageBuffer_Position,
+          .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+          .descriptorCount = 1u,
+          .stageFlags = VK_SHADER_STAGE_VERTEX_BIT
+                      | VK_SHADER_STAGE_COMPUTE_BIT
+                      ,
+          .bindingFlags = kDefaultDescBindingFlags,
+        },
+        {
+          .binding = shader_interop::kDescriptorSetBinding_StorageBuffer_Index,
+          .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+          .descriptorCount = 1u,
+          .stageFlags = VK_SHADER_STAGE_VERTEX_BIT
+                      | VK_SHADER_STAGE_COMPUTE_BIT
+                      ,
+          .bindingFlags = kDefaultDescBindingFlags,
         },
       });
 
