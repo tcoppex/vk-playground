@@ -60,5 +60,6 @@ add_simple_demo(03_descriptor_set)
 add_simple_demo(04_texturing)
 add_simple_demo(05_stencil_op)
 add_simple_demo(06_blend_op)
+add_simple_demo(07_compute)
 
 # -----------------------------------------------------------------------------
