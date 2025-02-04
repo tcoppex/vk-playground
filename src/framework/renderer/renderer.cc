@@ -505,7 +505,7 @@ Pipeline Renderer::create_graphics_pipeline(VkPipelineLayout pipeline_layout, Gr
     device_, nullptr, 1u, &graphics_pipeline_create_info, nullptr, &pipeline
   ));
 
-  return Pipeline(pipeline_layout, pipeline);
+  return Pipeline(pipeline_layout, pipeline, VK_PIPELINE_BIND_POINT_GRAPHICS);
 }
 
 // ----------------------------------------------------------------------------
@@ -523,6 +523,43 @@ Pipeline Renderer::create_graphics_pipeline(PipelineLayoutDescriptor_t const& la
 
 Pipeline Renderer::create_graphics_pipeline(GraphicsPipelineDescriptor_t const& desc) const {
   return create_graphics_pipeline(PipelineLayoutDescriptor_t(), desc);
+}
+
+// ----------------------------------------------------------------------------
+
+void Renderer::create_compute_pipelines(VkPipelineLayout pipeline_layout, std::vector<ShaderModule_t> const& modules, Pipeline *pipelines) const {
+  assert(pipelines != nullptr);
+
+  std::vector<VkComputePipelineCreateInfo> pipeline_infos(modules.size(), {
+    .sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
+    .stage = {
+      .sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+      .stage  = VK_SHADER_STAGE_COMPUTE_BIT,
+      .module = VK_NULL_HANDLE,
+      .pName  = "main",
+    },
+    .layout = pipeline_layout,
+  });
+  for (size_t i = 0; i < modules.size(); ++i) {
+    pipeline_infos[i].stage.module = modules[i].module;
+  }
+  std::vector<VkPipeline> pips(modules.size());
+
+  CHECK_VK(vkCreateComputePipelines(
+    device_, nullptr, static_cast<uint32_t>(pipeline_infos.size()), pipeline_infos.data(), nullptr, pips.data()
+  ));
+
+  for (size_t i = 0; i < pips.size(); ++i) {
+    pipelines[i] = Pipeline(pipeline_layout, pips[i], VK_PIPELINE_BIND_POINT_COMPUTE);
+  }
+}
+
+// ----------------------------------------------------------------------------
+
+Pipeline Renderer::create_compute_pipeline(VkPipelineLayout pipeline_layout, ShaderModule_t const& module) const {
+  Pipeline p;
+  create_compute_pipelines(pipeline_layout, { module }, &p);
+  return p;
 }
 
 // ----------------------------------------------------------------------------

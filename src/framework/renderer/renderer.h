@@ -72,6 +72,9 @@ class Renderer : public RTInterface {
   Pipeline create_graphics_pipeline(PipelineLayoutDescriptor_t const& layout_desc, GraphicsPipelineDescriptor_t const& desc) const;
   Pipeline create_graphics_pipeline(GraphicsPipelineDescriptor_t const& desc) const;
 
+  void create_compute_pipelines(VkPipelineLayout pipeline_layout, std::vector<ShaderModule_t> const& modules, Pipeline *pipelines) const;
+  Pipeline create_compute_pipeline(VkPipelineLayout pipeline_layout, ShaderModule_t const& module) const;
+
   void destroy_pipeline(Pipeline const& pipeline) const;
 
   // --- Descriptor Set Layout ---
