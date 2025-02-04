@@ -209,23 +209,7 @@ class SampleApp final : public Application {
         "sort_indices.comp.glsl",
       })};
 
-      std::vector<VkComputePipelineCreateInfo> pipeline_infos(shaders.size(), {
-        .sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
-        .stage = {
-          .sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-          .stage  = VK_SHADER_STAGE_COMPUTE_BIT,
-          .module = VK_NULL_HANDLE,
-          .pName  = "main",
-        },
-        .layout = pipeline_layout_,
-      });
-      for (size_t i = 0; i < shaders.size(); ++i) {
-        pipeline_infos[i].stage.module = shaders[i].module;
-      }
-
-      CHECK_VK(vkCreateComputePipelines(
-        context_.get_device(), {}, static_cast<uint32_t>(pipeline_infos.size()), pipeline_infos.data(), nullptr, compute_pipelines_.data()
-      ));
+      renderer_.create_compute_pipelines(pipeline_layout_, shaders, compute_pipelines_.data());
 
       context_.release_shader_modules(shaders);
     }
@@ -284,7 +268,7 @@ class SampleApp final : public Application {
 
   void release() final {
     for (auto pipeline : compute_pipelines_) {
-      vkDestroyPipeline(context_.get_device(), pipeline, nullptr);
+      renderer_.destroy_pipeline(pipeline);
     }
     renderer_.destroy_pipeline(graphics_pipeline_);
     renderer_.destroy_pipeline_layout(pipeline_layout_);
@@ -329,11 +313,11 @@ class SampleApp final : public Application {
         );
 
         /// 1) Simulate a simple particle system.
-        vkCmdBindPipeline(cmd.get_handle(), VK_PIPELINE_BIND_POINT_COMPUTE, compute_pipelines_.at(Compute_Simulation));
+        cmd.set_pipeline(compute_pipelines_.at(Compute_Simulation));
         cmd.dispatch<shader_interop::kCompute_Simulation_kernelSize_x>(nelems);
 
         /// 2) Fill the first part of indices buffer with continuous indices.
-        vkCmdBindPipeline(cmd.get_handle(), VK_PIPELINE_BIND_POINT_COMPUTE, compute_pipelines_.at(Compute_FillIndices));
+        cmd.set_pipeline(compute_pipelines_.at(Compute_FillIndices));
         cmd.dispatch<shader_interop::kCompute_FillIndex_kernelSize_x>(nelems);
 
         cmd.pipeline_buffer_barriers({
@@ -347,7 +331,7 @@ class SampleApp final : public Application {
         });
 
         /// 3) Compute the particles dot product against the camera direction.
-        vkCmdBindPipeline(cmd.get_handle(), VK_PIPELINE_BIND_POINT_COMPUTE, compute_pipelines_.at(Compute_DotProduct));
+        cmd.set_pipeline(compute_pipelines_.at(Compute_DotProduct));
         cmd.dispatch<shader_interop::kCompute_DotProduct_kernelSize_x>(nelems);
 
         cmd.pipeline_buffer_barriers({
@@ -369,7 +353,7 @@ class SampleApp final : public Application {
 
 
         /// 2) Sort indices via their dot products using a simple bitonic sort.
-        vkCmdBindPipeline(cmd.get_handle(), VK_PIPELINE_BIND_POINT_COMPUTE, compute_pipelines_.at(Compute_SortIndices));
+        cmd.set_pipeline(compute_pipelines_.at(Compute_SortIndices));
         {
           uint32_t const index_buffer_offset = point_grid_.geo.get_index_count();
           uint32_t index_buffer_binding = 0u;
@@ -479,7 +463,7 @@ class SampleApp final : public Application {
   VkPipelineLayout pipeline_layout_{};
 
   Pipeline graphics_pipeline_{};
-  std::array<VkPipeline, Compute_kCount> compute_pipelines_{};
+  std::array<Pipeline, Compute_kCount> compute_pipelines_{};
 };
 
 // ----------------------------------------------------------------------------
