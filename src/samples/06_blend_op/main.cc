@@ -193,6 +193,7 @@ class SampleApp final : public Application {
         },
         .primitive = {
           .topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+          /* We disable culling as we let the billboard particles face whatever direction. */
           // .cullMode = VK_CULL_MODE_BACK_BIT,
         },
       });

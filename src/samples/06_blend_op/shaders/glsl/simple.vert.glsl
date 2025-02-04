@@ -75,10 +75,14 @@ void main() {
 
   //---------
 
-  /// NOTEs
+  /* Simulate particles. */
+  ///
   /// One pass particle simulation on the vertex shader is possible when we don't
-  /// need to process them between frame (eg. sort them for alpha blending or manage
-  /// their lifecycle).
+  /// need to process them between frame (eg. sorting them for alpha blending or
+  /// to manage their lifecycle).
+  ///
+  /// It's perfect to render per-vertex attributes, like normals.
+  ///
 
   /* Move Points on a sphere. */
   float phi = center.x * kTwoPi * (1.0f - 1.0f/512.0f);
@@ -90,19 +94,10 @@ void main() {
     ct * sin(phi)
   );
 
-#if 0
-  normal += 2.5 * vec3(
-    sin(theta),
-    0.8 * cos(2.0f*theta),
-    ct
-  );
-#else
   center += normal;
-#endif
 
   /* Move along the normal */
   float factor = 0.2f * sin(8.0f * dot(center, center) + 0.75f * pushConstant.time);
-  // factor *= cos(0.2f * phi + 0.15f * pushConstant.time);
   center = factor * normal;
 
   //---------

@@ -27,7 +27,7 @@ class SampleApp final : public Application {
   bool setup() final {
     wm_->setTitle("04 - خوراي ، كىشىلەر ماڭا دىققەت قىلىۋاتىدۇ");
 
-    renderer_.set_color_clear_value({.float32 = {0.94f, 0.93f, 0.94f, 1.0f}});
+    renderer_.set_color_clear_value({{ 0.94f, 0.93f, 0.94f, 1.0f }});
 
     allocator_ = context_.get_resource_allocator();
 
@@ -50,7 +50,7 @@ class SampleApp final : public Application {
 
     /* Create a cube mesh procedurally on the host.
      * We have no need to keep it on memory after initialization so we just
-     * safe its index count for rendering. */
+     * save the attribute we need. */
     Geometry cube_geo;
     {
       Geometry::MakeCube(cube_geo);
@@ -209,8 +209,9 @@ class SampleApp final : public Application {
     {
       float const frame_time{ get_frame_time() };
 
+      // rotation_matrix_axis automatically normalize the given axis.
       push_constant_.model.worldMatrix = lina::rotation_matrix_axis(
-        vec3(3.0f*frame_time, 0.8f, sinf(frame_time)),
+        vec3(3.0f * frame_time, 0.8f, sinf(frame_time)),
         frame_time * 0.62f
       );
     }
@@ -222,14 +223,14 @@ class SampleApp final : public Application {
         pass.set_viewport_scissor(viewport_size_);
 
         pass.set_pipeline(graphics_pipeline_);
+        {
+          pass.push_constant(push_constant_, VK_SHADER_STAGE_VERTEX_BIT);
+          pass.bind_descriptor_set(descriptor_set_, VK_SHADER_STAGE_VERTEX_BIT);
 
-        pass.push_constant(push_constant_, VK_SHADER_STAGE_VERTEX_BIT);
-        pass.bind_descriptor_set(descriptor_set_, VK_SHADER_STAGE_VERTEX_BIT);
-
-        pass.set_vertex_buffer(vertex_buffer_);
-        pass.set_index_buffer(index_buffer_, index_type_);
-        pass.draw_indexed(index_count_);
-
+          pass.set_vertex_buffer(vertex_buffer_);
+          pass.set_index_buffer(index_buffer_, index_type_);
+          pass.draw_indexed(index_count_);
+        }
       }
       cmd.end_rendering();
     }
@@ -239,22 +240,22 @@ class SampleApp final : public Application {
  private:
   std::shared_ptr<ResourceAllocator> allocator_{};
 
-  Image_t image_{};
-
   HostData_t host_data_{};
+  VkIndexType index_type_{};
+  uint32_t index_count_{};
+
   Buffer_t uniform_buffer_{};
 
   Buffer_t vertex_buffer_{};
   Buffer_t index_buffer_{};
-  VkIndexType index_type_{};
-  uint32_t index_count_{};
+
+  Image_t image_{};
 
   VkDescriptorSetLayout descriptor_set_layout_{};
   VkDescriptorSet descriptor_set_{};
+  shader_interop::PushConstant push_constant_{};
 
   Pipeline graphics_pipeline_{};
-
-  shader_interop::PushConstant push_constant_{};
 };
 
 // ----------------------------------------------------------------------------

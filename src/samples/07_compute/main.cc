@@ -2,8 +2,8 @@
 //
 //    07 - Hello Compute
 //
-//  Where we simulate & sort alpha blended particles on compute shaders,
-//  using a simple bitonic sorting algorithm.
+//  Where we simulate & sort alpha blended particles on compute shaders
+//  via a simple bitonic sorting algorithm.
 //
 /* -------------------------------------------------------------------------- */
 
@@ -106,7 +106,7 @@ class SampleApp final : public Application {
       context_.finish_transient_command_encoder(cmd);
 
       /* Buffer used to store the dot product of particles toward the view direction. */
-      compute_.dot_product_buffer = allocator_->create_buffer(
+      dot_product_buffer_ = allocator_->create_buffer(
         point_grid_.geo.get_vertex_count() * sizeof(float),
         VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
         VMA_MEMORY_USAGE_GPU_ONLY
@@ -178,7 +178,7 @@ class SampleApp final : public Application {
         {
           .binding = shader_interop::kDescriptorSetBinding_StorageBuffer_DotProduct,
           .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-          .resource = { .buffer = { compute_.dot_product_buffer.buffer } }
+          .resource = { .buffer = { dot_product_buffer_.buffer } }
         },
       });
     }
@@ -224,7 +224,7 @@ class SampleApp final : public Application {
       }
 
       CHECK_VK(vkCreateComputePipelines(
-        context_.get_device(), {}, static_cast<uint32_t>(pipeline_infos.size()), pipeline_infos.data(), nullptr, compute_.pipelines.data()
+        context_.get_device(), {}, static_cast<uint32_t>(pipeline_infos.size()), pipeline_infos.data(), nullptr, compute_pipelines_.data()
       ));
 
       context_.release_shader_modules(shaders);
@@ -237,7 +237,7 @@ class SampleApp final : public Application {
         "simple.frag.glsl",
       })};
 
-      graphics_.pipeline = renderer_.create_graphics_pipeline(pipeline_layout_, {
+      graphics_pipeline_ = renderer_.create_graphics_pipeline(pipeline_layout_, {
         .vertex = {
           .module = shaders[0u].module,
         },
@@ -283,15 +283,14 @@ class SampleApp final : public Application {
   }
 
   void release() final {
-    for (auto pipeline : compute_.pipelines) {
+    for (auto pipeline : compute_pipelines_) {
       vkDestroyPipeline(context_.get_device(), pipeline, nullptr);
     }
-    renderer_.destroy_pipeline(graphics_.pipeline);
-
-    renderer_.destroy_descriptor_set_layout(descriptor_set_layout_);
+    renderer_.destroy_pipeline(graphics_pipeline_);
     renderer_.destroy_pipeline_layout(pipeline_layout_);
+    renderer_.destroy_descriptor_set_layout(descriptor_set_layout_);
 
-    allocator_->destroy_buffer(compute_.dot_product_buffer);
+    allocator_->destroy_buffer(dot_product_buffer_);
     allocator_->destroy_buffer(point_grid_.index);
     allocator_->destroy_buffer(point_grid_.vertex);
     allocator_->destroy_buffer(uniform_buffer_);
@@ -304,7 +303,6 @@ class SampleApp final : public Application {
         linalg::scaling_matrix(vec3(2.0f))
       )
     );
-
 
     auto cmd = renderer_.begin_frame();
     {
@@ -349,7 +347,7 @@ class SampleApp final : public Application {
         );
 
         /// 1) Simulate a simple particle system.
-        vkCmdBindPipeline(cmd.get_handle(), VK_PIPELINE_BIND_POINT_COMPUTE, compute_.pipelines.at(Compute_Simulation));
+        vkCmdBindPipeline(cmd.get_handle(), VK_PIPELINE_BIND_POINT_COMPUTE, compute_pipelines_.at(Compute_Simulation));
         {
           group_x = getGroupSize(nelems, shader_interop::kCompute_Simulation_kernelSize_x);
           vkCmdDispatch(cmd.get_handle(), group_x, 1u, 1u);
@@ -366,7 +364,7 @@ class SampleApp final : public Application {
         );
 
         /// 2) Fill the first part of indices buffer with continuous indices.
-        vkCmdBindPipeline(cmd.get_handle(), VK_PIPELINE_BIND_POINT_COMPUTE, compute_.pipelines.at(Compute_FillIndices));
+        vkCmdBindPipeline(cmd.get_handle(), VK_PIPELINE_BIND_POINT_COMPUTE, compute_pipelines_.at(Compute_FillIndices));
         {
           group_x = getGroupSize(nelems, shader_interop::kCompute_FillIndex_kernelSize_x);
           vkCmdDispatch(cmd.get_handle(), group_x, 1u, 1u);
@@ -383,14 +381,14 @@ class SampleApp final : public Application {
         );
 
         /// 3) Compute the particles dot product against the camera direction.
-        vkCmdBindPipeline(cmd.get_handle(), VK_PIPELINE_BIND_POINT_COMPUTE, compute_.pipelines.at(Compute_DotProduct));
+        vkCmdBindPipeline(cmd.get_handle(), VK_PIPELINE_BIND_POINT_COMPUTE, compute_pipelines_.at(Compute_DotProduct));
         {
           group_x = getGroupSize(nelems, shader_interop::kCompute_DotProduct_kernelSize_x);
           vkCmdDispatch(cmd.get_handle(), group_x, 1u, 1u);
 
           barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
           barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-          barrier.buffer = compute_.dot_product_buffer.buffer;
+          barrier.buffer = dot_product_buffer_.buffer;
           vkCmdPipelineBarrier(
             cmd.get_handle(),
             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
@@ -403,7 +401,7 @@ class SampleApp final : public Application {
         }
 
         /// 2) Sort indices via their dot products using a simple bitonic sort.
-        vkCmdBindPipeline(cmd.get_handle(), VK_PIPELINE_BIND_POINT_COMPUTE, compute_.pipelines.at(Compute_SortIndices));
+        vkCmdBindPipeline(cmd.get_handle(), VK_PIPELINE_BIND_POINT_COMPUTE, compute_pipelines_.at(Compute_SortIndices));
         {
           uint32_t index_buffer_binding = 0u;
           uint32_t const index_buffer_offset = point_grid_.geo.get_index_count();
@@ -483,7 +481,7 @@ class SampleApp final : public Application {
       {
         pass.set_viewport_scissor(viewport_size_);
 
-        pass.set_pipeline(graphics_.pipeline);
+        pass.set_pipeline(graphics_pipeline_);
 
         push_constant_.graphics.model.worldMatrix = world_matrix;
         pass.push_constant(
@@ -504,27 +502,21 @@ class SampleApp final : public Application {
 
   HostData_t host_data_{};
 
-  Buffer_t uniform_buffer_{};
   Mesh_t point_grid_{};
-
   uint32_t vertex_buffer_bytesize_{};
   uint32_t index_buffer_bytesize_{};
 
+  Buffer_t uniform_buffer_{};
+  Buffer_t dot_product_buffer_{};
+
   VkDescriptorSetLayout descriptor_set_layout_{};
   VkDescriptorSet descriptor_set_{};
-
   shader_interop::PushConstant push_constant_{};
+
   VkPipelineLayout pipeline_layout_{};
 
-  struct {
-    Pipeline pipeline{};
-  } graphics_;
-
-  struct {
-    Buffer_t dot_product_buffer{};
-    std::array<VkPipeline, Compute_kCount> pipelines{}; //
-  } compute_;
-
+  Pipeline graphics_pipeline_{};
+  std::array<VkPipeline, Compute_kCount> compute_pipelines_{};
 };
 
 // ----------------------------------------------------------------------------

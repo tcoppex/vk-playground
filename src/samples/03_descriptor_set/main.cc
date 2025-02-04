@@ -273,11 +273,10 @@ class SampleApp final : public Application {
 
   VkDescriptorSetLayout descriptor_set_layout_{};
   VkDescriptorSet descriptor_set_{};
+  shader_interop::PushConstant push_constant_{};
 
   VkPipelineLayout pipeline_layout_{};
   Pipeline graphics_pipeline_{};
-
-  shader_interop::PushConstant push_constant_{};
 };
 
 // ----------------------------------------------------------------------------
