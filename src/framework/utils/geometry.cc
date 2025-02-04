@@ -535,8 +535,8 @@ void Geometry::MakeTorus(Geometry &geo, float major_radius, float minor_radius, 
 // ----------------------------------------------------------------------------
 
 void Geometry::MakePointListPlane(Geometry &geo, float size, uint32_t resx, uint32_t resy) {
-  uint32_t const ncols = (resx + 1u);
-  uint32_t const nrows = (resy + 1u);
+  uint32_t const ncols = resx;
+  uint32_t const nrows = resy;
   uint32_t const vertex_count = nrows * ncols;
 
   std::vector<Point_t> vertices(vertex_count);
