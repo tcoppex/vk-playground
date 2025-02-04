@@ -28,7 +28,7 @@ endif()
 
 
 ## Custom function to generate binary shaders from GLSL, with include handling.
-function(glsl2spirv input_glsl output_spirv shader_dir)
+function(glsl2spirv input_glsl output_spirv shader_dir deps)
   # Retrieve the input file name
   get_filename_component(fn ${input_glsl} NAME)
   
@@ -48,7 +48,7 @@ function(glsl2spirv input_glsl output_spirv shader_dir)
   elseif(${fn} MATCHES "((mesh|ms)_.+\\.glsl)|(.+\\.(mesh|cs)(\\.glsl)?)")
     set(stage "mesh")
   else()
-    message(WARNING "Unknown shaer type for ${fn}")
+    message(WARNING "Unknown shader type for ${fn}")
     return()
   endif()
 
@@ -64,6 +64,7 @@ function(glsl2spirv input_glsl output_spirv shader_dir)
     DEPENDS
       ${input_glsl}
       ${GLSLC}
+      ${deps}
     WORKING_DIRECTORY
       ${CMAKE_SOURCE_DIR}
     COMMENT
@@ -71,6 +72,7 @@ function(glsl2spirv input_glsl output_spirv shader_dir)
     SOURCES
       ${input_glsl}
   )
+
 # Forcing compilation can be tricky.
 # To always recompile, use 
 # add_custom_target( gen_${fn} ALL ..
@@ -83,6 +85,11 @@ endfunction(glsl2spirv)
 function(compile_shaders GLOBAL_GLSL_DIR GLOBAL_SPIRV_DIR binaries sources)
   # retrieve all SOURCE glsl shaders
   file(GLOB_RECURSE g_ShadersGLSL ${GLOBAL_GLSL_DIR}/*.*)
+
+  file(GLOB ShadersDependencies
+    ${GLOBAL_GLSL_DIR}/../*.h
+    ${GLOBAL_GLSL_DIR}/../*.inc.glsl
+  )
 
   # transform shader path to relative
   foreach(glslshader IN LISTS g_ShadersGLSL)
@@ -100,7 +107,7 @@ function(compile_shaders GLOBAL_GLSL_DIR GLOBAL_SPIRV_DIR binaries sources)
     set(binary ${GLOBAL_SPIRV_DIR}/${glslshader}.spv)
 
     # compile GLSL to SPIRV
-    glsl2spirv(${source} ${binary} ${GLOBAL_GLSL_DIR})
+    glsl2spirv(${source} ${binary} ${GLOBAL_GLSL_DIR} "${ShadersDependencies}")
 
     # return the list of compiled filed
     list(APPEND glslSHADERS ${source})
