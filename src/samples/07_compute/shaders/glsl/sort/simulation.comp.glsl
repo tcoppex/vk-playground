@@ -52,18 +52,18 @@ void main() {
 
   // --------------------------------
 
-  float W = 2.5f;
+  float W = 2.50f;
   float A = 0.20f;
-  float S = 2.0f;
+  float S = 2.10f;
 
   pos = wave(pos, W, A, S, vec2(1.0, 0.0))
-      + wave(pos, W * 0.25f, A*0.5, S*1.1, vec2(1.0, -0.2))
-      + wave(pos, W * 0.125f, A*0.25, S*1.21, vec2(0.8, +0.5))
-      + wave(pos, W * 0.5f, A*0.75, S*0.9, vec2(0.8, 3.1))
+      + wave(pos, W * 0.250f, A * 0.50f, S * 1.10f, vec2(1.0, -0.2))
+      + wave(pos, W * 0.125f, A * 0.25f, S * 1.21f, vec2(0.8, +0.5))
+      + wave(pos, W * 0.500f, A * 0.75f, S * 0.90f, vec2(0.8, +3.1))
       ;
-  pos.xz = particle.xz + pos.xz / 4.0;
+  pos.xz = particle.xz + pos.xz / 4.0f;
 
-  float size = 4.0f * (1.0 - smoothstep(-0.75, +0.75, pos.y));
+  float size = 5.0f * (1.0f - smoothstep(-0.65f, +0.65f, pos.y));
 
   // --------------------------------
 
