@@ -84,7 +84,9 @@ Buffer_t ResourceAllocator::create_buffer(
 
 // ----------------------------------------------------------------------------
 
-Buffer_t ResourceAllocator::create_staging_buffer(size_t const bytesize, void const* host_data) {
+Buffer_t ResourceAllocator::create_staging_buffer(size_t const bytesize, void const* host_data, size_t host_data_size) {
+  assert(host_data_size <= bytesize);
+
   // TODO : use a pool to reuse some staging buffer.
 
   // Create buffer.
@@ -96,7 +98,7 @@ Buffer_t ResourceAllocator::create_staging_buffer(size_t const bytesize, void co
   )};
   // Map host data to device.
   if (host_data != nullptr) {
-    upload_host_to_device(host_data, bytesize, staging_buffer);
+    upload_host_to_device(host_data, (host_data_size > 0u) ? host_data_size : bytesize, staging_buffer);
   }
   staging_buffers_.push_back(staging_buffer);
   return staging_buffer;

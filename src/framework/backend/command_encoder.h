@@ -72,19 +72,18 @@ class CommandEncoder : public GenericCommandEncoder {
     copy_buffer(src, 0, dst, 0, size);
   }
 
-  Buffer_t create_buffer_and_upload(void const* host_data, size_t const size, VkBufferUsageFlags2KHR const usage) const;
+  Buffer_t create_buffer_and_upload(void const* host_data, size_t const host_data_size, VkBufferUsageFlags2KHR const usage, size_t const device_buffer_size = 0u) const;
 
   template<typename T> requires (SpanConvertible<T>)
-  Buffer_t create_buffer_and_upload(T const& host_data, VkBufferUsageFlags2KHR const usage = {}) const {
+  Buffer_t create_buffer_and_upload(T const& host_data, VkBufferUsageFlags2KHR const usage = {}, size_t const device_buffer_size = 0u) const {
     auto const host_span{ std::span(host_data) };
     size_t const bytesize{ sizeof(typename decltype(host_span)::element_type) * host_span.size() };
-    return create_buffer_and_upload(host_span.data(), bytesize, usage);
+    return create_buffer_and_upload(host_span.data(), bytesize, usage, device_buffer_size);
   }
 
   // --- Images ---
 
   void transition_images_layout(std::vector<Image_t> const& images, VkImageLayout const src_layout, VkImageLayout const dst_layout) const;
-
 
   void copy_buffer_to_image(Buffer_t const& src, Image_t const& dst, VkExtent3D extent, VkImageLayout image_layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) const {
     VkBufferImageCopy const copy{
