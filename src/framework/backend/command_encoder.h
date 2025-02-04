@@ -2,6 +2,7 @@
 #define HELLOVK_FRAMEWORK_BACKEND_COMMAND_ENCODER_H
 
 #include "framework/backend/allocator.h"
+#include "framework/backend/vk_utils.h"
 
 class RenderPassEncoder;
 
@@ -28,7 +29,7 @@ class GenericCommandEncoder {
 
   // --- Descriptor Sets ---
 
-  void bind_descriptor_set(VkDescriptorSet const descriptor_set, VkPipelineLayout const pipeline_layout, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS) const {
+  void bind_descriptor_set(VkDescriptorSet const descriptor_set, VkPipelineLayout const pipeline_layout, VkShaderStageFlags const stage_flags) const {
     VkBindDescriptorSetsInfoKHR const bind_desc_sets_info{
       .sType = VK_STRUCTURE_TYPE_BIND_DESCRIPTOR_SETS_INFO_KHR,
       .stageFlags = stage_flags,
@@ -46,8 +47,8 @@ class GenericCommandEncoder {
   void pipeline_buffer_barriers(std::vector<VkBufferMemoryBarrier2> buffers) const {
     for (auto& bb : buffers) {
       bb.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2;
-      bb.srcQueueFamilyIndex = (bb.srcQueueFamilyIndex == 0u) ? VK_QUEUE_FAMILY_IGNORED : bb.srcQueueFamilyIndex;
-      bb.dstQueueFamilyIndex = (bb.dstQueueFamilyIndex == 0u) ? VK_QUEUE_FAMILY_IGNORED : bb.dstQueueFamilyIndex;
+      bb.srcQueueFamilyIndex = (bb.srcQueueFamilyIndex == 0u) ? VK_QUEUE_FAMILY_IGNORED : bb.srcQueueFamilyIndex; //
+      bb.dstQueueFamilyIndex = (bb.dstQueueFamilyIndex == 0u) ? VK_QUEUE_FAMILY_IGNORED : bb.dstQueueFamilyIndex; //
       bb.size = (bb.size == 0ULL) ? VK_WHOLE_SIZE : bb.size;
     }
     VkDependencyInfo const dependency{
@@ -55,7 +56,19 @@ class GenericCommandEncoder {
       .bufferMemoryBarrierCount = static_cast<uint32_t>(buffers.size()),
       .pBufferMemoryBarriers = buffers.data(),
     };
+    // (requires VK_KHR_synchronization2 or VK_VERSION_1_3)
     vkCmdPipelineBarrier2(command_buffer_, &dependency);
+  }
+
+  // --- Compute ---
+
+  template<uint32_t tX = 1u, uint32_t tY = 1u, uint32_t tZ = 1u>
+  void dispatch(uint32_t x = 1u, uint32_t y = 1u, uint32_t z = 1u) {
+    vkCmdDispatch(command_buffer_,
+      vkutils::GetKernelGridDim(x, tX),
+      vkutils::GetKernelGridDim(y, tY),
+      vkutils::GetKernelGridDim(z, tZ)
+    );
   }
 
  protected:

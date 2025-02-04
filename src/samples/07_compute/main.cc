@@ -317,15 +317,7 @@ class SampleApp final : public Application {
       {
         auto const nelems = point_grid_.geo.get_vertex_count();
 
-        uint32_t group_x = 0u;
-
-        auto getGroupSize{ [](uint32_t const totalSize, uint32_t const blockSize) -> uint32_t {
-          return (totalSize + blockSize - 1u) / blockSize;
-        }};
-
-        // -------
-
-        push_constant_.compute.model.worldMatrix = world_matrix; //
+        push_constant_.compute.model.worldMatrix = world_matrix;
         push_constant_.compute.time = get_frame_time();
         push_constant_.compute.numElems = nelems;
 
@@ -338,17 +330,11 @@ class SampleApp final : public Application {
 
         /// 1) Simulate a simple particle system.
         vkCmdBindPipeline(cmd.get_handle(), VK_PIPELINE_BIND_POINT_COMPUTE, compute_pipelines_.at(Compute_Simulation));
-        {
-          group_x = getGroupSize(nelems, shader_interop::kCompute_Simulation_kernelSize_x);
-          vkCmdDispatch(cmd.get_handle(), group_x, 1u, 1u);
-        }
+        cmd.dispatch<shader_interop::kCompute_Simulation_kernelSize_x>(nelems);
 
         /// 2) Fill the first part of indices buffer with continuous indices.
         vkCmdBindPipeline(cmd.get_handle(), VK_PIPELINE_BIND_POINT_COMPUTE, compute_pipelines_.at(Compute_FillIndices));
-        {
-          group_x = getGroupSize(nelems, shader_interop::kCompute_FillIndex_kernelSize_x);
-          vkCmdDispatch(cmd.get_handle(), group_x, 1u, 1u);
-        }
+        cmd.dispatch<shader_interop::kCompute_FillIndex_kernelSize_x>(nelems);
 
         cmd.pipeline_buffer_barriers({
           {
@@ -362,10 +348,7 @@ class SampleApp final : public Application {
 
         /// 3) Compute the particles dot product against the camera direction.
         vkCmdBindPipeline(cmd.get_handle(), VK_PIPELINE_BIND_POINT_COMPUTE, compute_pipelines_.at(Compute_DotProduct));
-        {
-          group_x = getGroupSize(nelems, shader_interop::kCompute_DotProduct_kernelSize_x);
-          vkCmdDispatch(cmd.get_handle(), group_x, 1u, 1u);
-        }
+        cmd.dispatch<shader_interop::kCompute_DotProduct_kernelSize_x>(nelems);
 
         cmd.pipeline_buffer_barriers({
           {
@@ -388,8 +371,8 @@ class SampleApp final : public Application {
         /// 2) Sort indices via their dot products using a simple bitonic sort.
         vkCmdBindPipeline(cmd.get_handle(), VK_PIPELINE_BIND_POINT_COMPUTE, compute_pipelines_.at(Compute_SortIndices));
         {
-          uint32_t index_buffer_binding = 0u;
           uint32_t const index_buffer_offset = point_grid_.geo.get_index_count();
+          uint32_t index_buffer_binding = 0u;
 
           // Get trailing bits count.
           uint32_t nsteps = 0u;
@@ -417,8 +400,7 @@ class SampleApp final : public Application {
                 offsetof(shader_interop::PushConstant, compute)
               );
 
-              group_x = getGroupSize(nelems / 2u, shader_interop::kCompute_SortIndex_kernelSize_x);
-              vkCmdDispatch(cmd.get_handle(), group_x, 1u, 1u);
+              cmd.dispatch<shader_interop::kCompute_SortIndex_kernelSize_x>(nelems / 2u);
 
               cmd.pipeline_buffer_barriers({
                 {
@@ -457,7 +439,7 @@ class SampleApp final : public Application {
         });
       }
 
-      /* Render */
+      /* Rendering */
       auto pass = cmd.begin_rendering();
       {
         pass.set_viewport_scissor(viewport_size_);
