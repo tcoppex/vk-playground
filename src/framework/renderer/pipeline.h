@@ -14,8 +14,8 @@ class Pipeline : public PipelineInterface {
   Pipeline() = default;
   ~Pipeline() = default;
 
-  Pipeline(VkPipelineLayout layout, VkPipeline pipeline, bool use_internal_layout = false)
-   : PipelineInterface(layout, pipeline)
+  Pipeline(VkPipelineLayout layout, VkPipeline pipeline, VkPipelineBindPoint bind_point, bool use_internal_layout = false)
+   : PipelineInterface(layout, pipeline, bind_point)
    , use_internal_layout_{use_internal_layout}
   {}
 
