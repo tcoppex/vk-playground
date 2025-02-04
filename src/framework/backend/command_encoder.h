@@ -2,6 +2,7 @@
 #define HELLOVK_FRAMEWORK_BACKEND_COMMAND_ENCODER_H
 
 #include "framework/backend/allocator.h"
+#include "framework/backend/vk_utils.h"
 
 class RenderPassEncoder;
 
@@ -18,6 +19,7 @@ class GenericCommandEncoder {
 
   GenericCommandEncoder(VkCommandBuffer command_buffer)
     : command_buffer_(command_buffer)
+    , currently_bound_pipeline_layout_{VK_NULL_HANDLE}
   {}
 
   virtual ~GenericCommandEncoder() {}
@@ -28,7 +30,7 @@ class GenericCommandEncoder {
 
   // --- Descriptor Sets ---
 
-  void bind_descriptor_set(VkDescriptorSet const descriptor_set, VkPipelineLayout const pipeline_layout, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS) const {
+  void bind_descriptor_set(VkDescriptorSet const descriptor_set, VkPipelineLayout const pipeline_layout, VkShaderStageFlags const stage_flags) const {
     VkBindDescriptorSetsInfoKHR const bind_desc_sets_info{
       .sType = VK_STRUCTURE_TYPE_BIND_DESCRIPTOR_SETS_INFO_KHR,
       .stageFlags = stage_flags,
@@ -41,8 +43,78 @@ class GenericCommandEncoder {
     vkCmdBindDescriptorSets2KHR(command_buffer_, &bind_desc_sets_info);
   }
 
+  // --- Pipeline Barrier ---
+
+  void pipeline_buffer_barriers(std::vector<VkBufferMemoryBarrier2> buffers) const {
+    for (auto& bb : buffers) {
+      bb.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2;
+      bb.srcQueueFamilyIndex = (bb.srcQueueFamilyIndex == 0u) ? VK_QUEUE_FAMILY_IGNORED : bb.srcQueueFamilyIndex; //
+      bb.dstQueueFamilyIndex = (bb.dstQueueFamilyIndex == 0u) ? VK_QUEUE_FAMILY_IGNORED : bb.dstQueueFamilyIndex; //
+      bb.size = (bb.size == 0ULL) ? VK_WHOLE_SIZE : bb.size;
+    }
+    VkDependencyInfo const dependency{
+      .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+      .bufferMemoryBarrierCount = static_cast<uint32_t>(buffers.size()),
+      .pBufferMemoryBarriers = buffers.data(),
+    };
+    // (requires VK_KHR_synchronization2 or VK_VERSION_1_3)
+    vkCmdPipelineBarrier2(command_buffer_, &dependency);
+  }
+
+  // --- Compute ---
+
+  template<uint32_t tX = 1u, uint32_t tY = 1u, uint32_t tZ = 1u>
+  void dispatch(uint32_t x = 1u, uint32_t y = 1u, uint32_t z = 1u) {
+    vkCmdDispatch(command_buffer_,
+      vkutils::GetKernelGridDim(x, tX),
+      vkutils::GetKernelGridDim(y, tY),
+      vkutils::GetKernelGridDim(z, tZ)
+    );
+  }
+
+  // --- Pipeline ---
+
+  inline
+  void set_pipeline(PipelineInterface const& pipeline) {
+    currently_bound_pipeline_layout_ = pipeline.get_layout();
+    vkCmdBindPipeline(command_buffer_, pipeline.get_bind_point(), pipeline.get_handle());
+  }
+
+  // --- Descriptor Sets ---
+
+  void bind_descriptor_set(VkDescriptorSet const descriptor_set, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS) const {
+    GenericCommandEncoder::bind_descriptor_set(descriptor_set, currently_bound_pipeline_layout_, stage_flags);
+  }
+
+  // --- Push Constants ---
+
+  template<typename T> requires (!SpanConvertible<T>)
+  void push_constant(T const& value, VkPipelineLayout const pipeline_layout, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS, uint32_t const offset = 0u) const {
+    vkutils::PushConstant(command_buffer_, value, pipeline_layout, stage_flags, offset);
+  }
+
+  template<typename T> requires (SpanConvertible<T>)
+  void push_constants(T const& values, VkPipelineLayout const pipeline_layout, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS, uint32_t const offset = 0u) const {
+    vkutils::PushConstants(command_buffer_, values, pipeline_layout, stage_flags, offset);
+  }
+
+  template<typename T> requires (!SpanConvertible<T>)
+  void push_constant(T const& value, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS, uint32_t const offset = 0u) const {
+    assert(currently_bound_pipeline_layout_ != VK_NULL_HANDLE);
+    push_constant(value, currently_bound_pipeline_layout_, stage_flags, offset);
+  }
+
+  template<typename T> requires (SpanConvertible<T>)
+  void push_constants(T const& values, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS, uint32_t const offset = 0u) const {
+    assert(currently_bound_pipeline_layout_ != VK_NULL_HANDLE);
+    push_constants(values, currently_bound_pipeline_layout_, stage_flags, offset);
+  }
+
  protected:
   VkCommandBuffer command_buffer_{};
+
+ private:
+  VkPipelineLayout currently_bound_pipeline_layout_{};
 };
 
 /* -------------------------------------------------------------------------- */
@@ -72,19 +144,18 @@ class CommandEncoder : public GenericCommandEncoder {
     copy_buffer(src, 0, dst, 0, size);
   }
 
-  Buffer_t create_buffer_and_upload(void const* host_data, size_t const size, VkBufferUsageFlags2KHR const usage) const;
+  Buffer_t create_buffer_and_upload(void const* host_data, size_t const host_data_size, VkBufferUsageFlags2KHR const usage, size_t device_buffer_offet = 0u, size_t const device_buffer_size = 0u) const;
 
   template<typename T> requires (SpanConvertible<T>)
-  Buffer_t create_buffer_and_upload(T const& host_data, VkBufferUsageFlags2KHR const usage = {}) const {
+  Buffer_t create_buffer_and_upload(T const& host_data, VkBufferUsageFlags2KHR const usage = {}, size_t device_buffer_offet = 0u, size_t const device_buffer_size = 0u) const {
     auto const host_span{ std::span(host_data) };
     size_t const bytesize{ sizeof(typename decltype(host_span)::element_type) * host_span.size() };
-    return create_buffer_and_upload(host_span.data(), bytesize, usage);
+    return create_buffer_and_upload(host_span.data(), bytesize, usage, device_buffer_offet, device_buffer_size);
   }
 
   // --- Images ---
 
   void transition_images_layout(std::vector<Image_t> const& images, VkImageLayout const src_layout, VkImageLayout const dst_layout) const;
-
 
   void copy_buffer_to_image(Buffer_t const& src, Image_t const& dst, VkExtent3D extent, VkImageLayout image_layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) const {
     VkBufferImageCopy const copy{
@@ -183,44 +254,6 @@ class RenderPassEncoder : public GenericCommandEncoder {
     set_viewport_scissor({{0, 0}, extent}, flip_y);
   }
 
-  // --- Pipeline ---
-
-  inline
-  void set_pipeline(PipelineInterface const& pipeline) {
-    currently_bound_pipeline_layout_ = pipeline.get_layout();
-    vkCmdBindPipeline(command_buffer_, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.get_handle());
-  }
-
-  // --- Descriptor Sets ---
-
-  void bind_descriptor_set(VkDescriptorSet const descriptor_set, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS) const {
-    GenericCommandEncoder::bind_descriptor_set(descriptor_set, currently_bound_pipeline_layout_, stage_flags);
-  }
-
-  // --- Push Constants ---
-
-  template<typename T> requires (!SpanConvertible<T>)
-  void push_constant(T const& value, VkPipelineLayout const pipeline_layout, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS, uint32_t const offset = 0u) const {
-    vkutils::PushConstant(command_buffer_, value, pipeline_layout, stage_flags, offset);
-  }
-
-  template<typename T> requires (SpanConvertible<T>)
-  void push_constants(T const& values, VkPipelineLayout const pipeline_layout, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS, uint32_t const offset = 0u) const {
-    vkutils::PushConstants(command_buffer_, values, pipeline_layout, stage_flags, offset);
-  }
-
-  template<typename T> requires (!SpanConvertible<T>)
-  void push_constant(T const& value, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS, uint32_t const offset = 0u) const {
-    assert(currently_bound_pipeline_layout_ != VK_NULL_HANDLE);
-    push_constant(value, currently_bound_pipeline_layout_, stage_flags, offset);
-  }
-
-  template<typename T> requires (SpanConvertible<T>)
-  void push_constants(T const& values, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS, uint32_t const offset = 0u) const {
-    assert(currently_bound_pipeline_layout_ != VK_NULL_HANDLE);
-    push_constants(values, currently_bound_pipeline_layout_, stage_flags, offset);
-  }
-
   // --- Vertex Buffer ---
 
   inline
@@ -255,11 +288,7 @@ class RenderPassEncoder : public GenericCommandEncoder {
  private:
   RenderPassEncoder(VkCommandBuffer const command_buffer)
     : GenericCommandEncoder(command_buffer)
-    , currently_bound_pipeline_layout_{VK_NULL_HANDLE}
   {}
-
- private:
-  VkPipelineLayout currently_bound_pipeline_layout_{}; //
 
  public:
   friend class CommandEncoder;

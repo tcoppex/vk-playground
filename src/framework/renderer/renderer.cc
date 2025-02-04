@@ -254,12 +254,18 @@ std::shared_ptr<Framebuffer> Renderer::create_framebuffer() const {
 
 void Renderer::destroy_pipeline_layout(VkPipelineLayout layout) const {
   vkDestroyPipelineLayout(device_, layout, nullptr);
-  // layout = VK_NULL_HANDLE;
 }
 
 // ----------------------------------------------------------------------------
 
 VkPipelineLayout Renderer::create_pipeline_layout(PipelineLayoutDescriptor_t const& params) const {
+  for (size_t i = 1u; i < params.pushConstantRanges.size(); ++i) {
+    if (params.pushConstantRanges[i].offset == 0u) {
+      std::cerr << "[Warning] 'create_pipeline_layout' has constant ranges with no offsets." << std::endl << std::endl;
+      break;
+    }
+  }
+
   VkPipelineLayoutCreateInfo const pipeline_layout_create_info{
     .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
     .setLayoutCount = static_cast<uint32_t>(params.setLayouts.size()),
@@ -499,7 +505,7 @@ Pipeline Renderer::create_graphics_pipeline(VkPipelineLayout pipeline_layout, Gr
     device_, nullptr, 1u, &graphics_pipeline_create_info, nullptr, &pipeline
   ));
 
-  return Pipeline(pipeline_layout, pipeline);
+  return Pipeline(pipeline_layout, pipeline, VK_PIPELINE_BIND_POINT_GRAPHICS);
 }
 
 // ----------------------------------------------------------------------------
@@ -521,6 +527,43 @@ Pipeline Renderer::create_graphics_pipeline(GraphicsPipelineDescriptor_t const& 
 
 // ----------------------------------------------------------------------------
 
+void Renderer::create_compute_pipelines(VkPipelineLayout pipeline_layout, std::vector<ShaderModule_t> const& modules, Pipeline *pipelines) const {
+  assert(pipelines != nullptr);
+
+  std::vector<VkComputePipelineCreateInfo> pipeline_infos(modules.size(), {
+    .sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
+    .stage = {
+      .sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+      .stage  = VK_SHADER_STAGE_COMPUTE_BIT,
+      .module = VK_NULL_HANDLE,
+      .pName  = "main",
+    },
+    .layout = pipeline_layout,
+  });
+  for (size_t i = 0; i < modules.size(); ++i) {
+    pipeline_infos[i].stage.module = modules[i].module;
+  }
+  std::vector<VkPipeline> pips(modules.size());
+
+  CHECK_VK(vkCreateComputePipelines(
+    device_, nullptr, static_cast<uint32_t>(pipeline_infos.size()), pipeline_infos.data(), nullptr, pips.data()
+  ));
+
+  for (size_t i = 0; i < pips.size(); ++i) {
+    pipelines[i] = Pipeline(pipeline_layout, pips[i], VK_PIPELINE_BIND_POINT_COMPUTE);
+  }
+}
+
+// ----------------------------------------------------------------------------
+
+Pipeline Renderer::create_compute_pipeline(VkPipelineLayout pipeline_layout, ShaderModule_t const& module) const {
+  Pipeline p;
+  create_compute_pipelines(pipeline_layout, { module }, &p);
+  return p;
+}
+
+// ----------------------------------------------------------------------------
+
 void Renderer::destroy_pipeline(Pipeline const& pipeline) const {
   vkDestroyPipeline(device_, pipeline.get_handle(), nullptr);
   if (pipeline.use_internal_layout_) {
@@ -530,20 +573,35 @@ void Renderer::destroy_pipeline(Pipeline const& pipeline) const {
 
 // ----------------------------------------------------------------------------
 
-VkDescriptorSetLayout Renderer::create_descriptor_set_layout(DescriptorSetLayoutParams_t const& params) const {
-  assert(params.flags.empty() || (params.entries.size() == params.flags.size())); //
+VkDescriptorSetLayout Renderer::create_descriptor_set_layout(std::vector<DescriptorSetLayoutParams_t> const& params) const {
+  std::vector<VkDescriptorSetLayoutBinding> entries;
+  std::vector<VkDescriptorBindingFlags> flags;
+
+  entries.reserve(params.size());
+  flags.reserve(params.size());
+
+  for (auto const& param : params) {
+    entries.push_back({
+      .binding = param.binding,
+      .descriptorType = param.descriptorType,
+      .descriptorCount = param.descriptorCount,
+      .stageFlags = param.stageFlags,
+      .pImmutableSamplers = param.pImmutableSamplers,
+    });
+    flags.push_back(param.bindingFlags);
+  }
 
   VkDescriptorSetLayoutBindingFlagsCreateInfo const flags_create_info{
     .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO,
-    .bindingCount = static_cast<uint32_t>(params.flags.size()),
-    .pBindingFlags = params.flags.data(),
+    .bindingCount = static_cast<uint32_t>(flags.size()),
+    .pBindingFlags = flags.data(),
   };
   VkDescriptorSetLayoutCreateInfo const layout_create_info{
     .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-    .pNext = params.flags.empty() ? nullptr : &flags_create_info,
+    .pNext = flags.empty() ? nullptr : &flags_create_info,
     .flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT, //
-    .bindingCount = static_cast<uint32_t>(params.entries.size()),
-    .pBindings = params.entries.data(),
+    .bindingCount = static_cast<uint32_t>(entries.size()),
+    .pBindings = entries.data(),
   };
 
   VkDescriptorSetLayout descriptor_set_layout;

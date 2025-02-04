@@ -50,33 +50,39 @@ const vec2 kLocalTexCoords[6] = vec2[](
   vec2(1.0, 1.0)
 );
 
+const float kTwoPi = 6.28318530718;
+
+const vec2 kSpriteSize = vec2(0.035);
+
 // ----------------------------------------------------------------------------
 
 layout(location = 0) out vec2 vTexCoord;
 
 // ----------------------------------------------------------------------------
 
-const float kTwoPi = 6.28318530718;
-const vec2 kSpriteSize = vec2(0.035);
-
 void main() {
   mat4 worldMatrix = pushConstant.model.worldMatrix;
   mat4 viewMatrix = uData.scene.camera.viewMatrix;
-
   mat4 viewProj = uData.scene.camera.projectionMatrix
                 * viewMatrix
                 ;
 
   int primitive_id = gl_InstanceIndex;
   int vertex_id = gl_VertexIndex;
+
   vec3 center = Positions[Indices[primitive_id]].xyz;
+  vec2 quad_offset = kSpriteSize * kLocalOffsets[vertex_id];
 
   //---------
 
-  /// NOTEs
-  /// Direct particle simulation on the vertex shader is possible when we don't
-  /// to process them between frame (eg. sort them for alpha blending or manage
-  /// their lifecycle) .
+  /* Simulate particles. */
+  ///
+  /// One pass particle simulation on the vertex shader is possible when we don't
+  /// need to process them between frame (eg. sorting them for alpha blending or
+  /// to manage their lifecycle).
+  ///
+  /// It's perfect to render per-vertex attributes, like normals.
+  ///
 
   /* Move Points on a sphere. */
   float phi = center.x * kTwoPi * (1.0f - 1.0f/512.0f);
@@ -88,19 +94,10 @@ void main() {
     ct * sin(phi)
   );
 
-#if 0
-  normal += 2.5 * vec3(
-    sin(theta),
-    0.8 * cos(2.0f*theta),
-    ct
-  );
-#else
   center += normal;
-#endif
 
   /* Move along the normal */
   float factor = 0.2f * sin(8.0f * dot(center, center) + 0.75f * pushConstant.time);
-  // factor *= cos(0.2f * phi + 0.15f * pushConstant.time);
   center = factor * normal;
 
   //---------
@@ -120,7 +117,6 @@ void main() {
   quad_up    = normalize(cross(quad_right, quad_front));
 #endif
 
-  vec2 quad_offset = kSpriteSize * kLocalOffsets[vertex_id];
   vec3 vertex_offset = quad_right * quad_offset.x
                      + quad_up * quad_offset.y
                      ;

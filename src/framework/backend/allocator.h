@@ -29,7 +29,7 @@ class ResourceAllocator {
                          VmaMemoryUsage const memory_usage = VMA_MEMORY_USAGE_AUTO,
                          VmaAllocationCreateFlags const flags = {}) const;
 
-  Buffer_t create_staging_buffer(size_t const bytesize = kDefaultStagingBufferSize, void const* host_data = nullptr);
+  Buffer_t create_staging_buffer(size_t const bytesize = kDefaultStagingBufferSize, void const* host_data = nullptr, size_t host_data_size = 0);
 
   template<typename T>
   Buffer_t create_staging_buffer(std::span<T> const& host_data) {

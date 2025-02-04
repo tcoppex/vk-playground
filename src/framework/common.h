@@ -13,13 +13,14 @@
 
 #include <algorithm>
 #include <array>
-#include <memory>
-#include <string_view>
-#include <span>
-#include <vector>
 #include <concepts>
-#include <type_traits>
+#include <iostream> //
 #include <iterator> // For std::back_inserter
+#include <memory>
+#include <span>
+#include <string_view>
+#include <type_traits>
+#include <vector>
 
 // linear algebra.
 #include "lina/lina.h"

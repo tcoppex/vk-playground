@@ -92,36 +92,32 @@ class SampleApp final : public Application {
       };
 
       graphics_.descriptor_set_layout = renderer_.create_descriptor_set_layout({
-        .entries = {
-          {
-            .binding = shader_interop::kDescriptorSetBinding_UniformBuffer,
-            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-            .descriptorCount = 1u,
-            .stageFlags = VK_SHADER_STAGE_VERTEX_BIT
-                        | VK_SHADER_STAGE_COMPUTE_BIT
-                        ,
-          },
-          {
-            .binding = shader_interop::kDescriptorSetBinding_StorageBuffer_Position,
-            .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-            .descriptorCount = 1u,
-            .stageFlags = VK_SHADER_STAGE_VERTEX_BIT
-                        | VK_SHADER_STAGE_COMPUTE_BIT
-                        ,
-          },
-          {
-            .binding = shader_interop::kDescriptorSetBinding_StorageBuffer_Index,
-            .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-            .descriptorCount = 1u,
-            .stageFlags = VK_SHADER_STAGE_VERTEX_BIT
-                        | VK_SHADER_STAGE_COMPUTE_BIT
-                        ,
-          },
+        {
+          .binding = shader_interop::kDescriptorSetBinding_UniformBuffer,
+          .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+          .descriptorCount = 1u,
+          .stageFlags = VK_SHADER_STAGE_VERTEX_BIT
+                      | VK_SHADER_STAGE_COMPUTE_BIT
+                      ,
+          .bindingFlags = kDefaultDescBindingFlags,
         },
-        .flags = {
-          kDefaultDescBindingFlags,
-          kDefaultDescBindingFlags,
-          kDefaultDescBindingFlags,
+        {
+          .binding = shader_interop::kDescriptorSetBinding_StorageBuffer_Position,
+          .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+          .descriptorCount = 1u,
+          .stageFlags = VK_SHADER_STAGE_VERTEX_BIT
+                      | VK_SHADER_STAGE_COMPUTE_BIT
+                      ,
+          .bindingFlags = kDefaultDescBindingFlags,
+        },
+        {
+          .binding = shader_interop::kDescriptorSetBinding_StorageBuffer_Index,
+          .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+          .descriptorCount = 1u,
+          .stageFlags = VK_SHADER_STAGE_VERTEX_BIT
+                      | VK_SHADER_STAGE_COMPUTE_BIT
+                      ,
+          .bindingFlags = kDefaultDescBindingFlags,
         },
       });
 
@@ -197,6 +193,7 @@ class SampleApp final : public Application {
         },
         .primitive = {
           .topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+          /* We disable culling as we let the billboard particles face whatever direction. */
           // .cullMode = VK_CULL_MODE_BACK_BIT,
         },
       });
@@ -227,7 +224,6 @@ class SampleApp final : public Application {
 
     auto cmd = renderer_.begin_frame();
     {
-      /* As the pipeline shared the same layout, we can bind them just once directly. */
       cmd.bind_descriptor_set(graphics_.descriptor_set, graphics_.pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT);
 
       graphics_.push_constant.model.worldMatrix = world_matrix;

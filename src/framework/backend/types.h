@@ -97,14 +97,13 @@ struct ShaderModule_t {
 // ----------------------------------------------------------------------------
 
 struct DescriptorSetLayoutParams_t {
-  std::vector<VkDescriptorSetLayoutBinding> entries;
-  std::vector<VkDescriptorBindingFlags> flags;
+  uint32_t                 binding;
+  VkDescriptorType         descriptorType;
+  uint32_t                 descriptorCount;
+  VkShaderStageFlags       stageFlags;
+  const VkSampler*         pImmutableSamplers;
+  VkDescriptorBindingFlags bindingFlags;
 };
-
-// struct DescriptorSetLayout_t {
-//   DescriptorSetLayoutParams_t params;
-//   VkDescriptorSetLayout layout;
-// };
 
 struct DescriptorSetWriteEntry_t {
   // (use an union instead ?)
@@ -127,24 +126,30 @@ class PipelineInterface {
  public:
   PipelineInterface() = default;
 
-  PipelineInterface(VkPipelineLayout layout, VkPipeline pipeline)
+  PipelineInterface(VkPipelineLayout layout, VkPipeline pipeline, VkPipelineBindPoint bind_point)
     : pipeline_layout_(layout)
     , pipeline_(pipeline)
+    , bind_point_(bind_point)
   {}
 
   virtual ~PipelineInterface() {}
 
-  inline VkPipelineLayout get_layout() const {
+  VkPipelineLayout get_layout() const {
     return pipeline_layout_;
   }
 
-  inline VkPipeline get_handle() const {
+  VkPipeline get_handle() const {
     return pipeline_;
+  }
+
+  VkPipelineBindPoint get_bind_point() const {
+    return bind_point_;
   }
 
  protected:
   VkPipelineLayout pipeline_layout_{};
   VkPipeline pipeline_{};
+  VkPipelineBindPoint bind_point_{};
 };
 
 // ----------------------------------------------------------------------------
