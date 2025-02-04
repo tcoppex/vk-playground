@@ -41,6 +41,23 @@ class GenericCommandEncoder {
     vkCmdBindDescriptorSets2KHR(command_buffer_, &bind_desc_sets_info);
   }
 
+  // --- Pipeline Barrier ---
+
+  void pipeline_buffer_barriers(std::vector<VkBufferMemoryBarrier2> buffers) const {
+    for (auto& bb : buffers) {
+      bb.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2;
+      bb.srcQueueFamilyIndex = (bb.srcQueueFamilyIndex == 0u) ? VK_QUEUE_FAMILY_IGNORED : bb.srcQueueFamilyIndex;
+      bb.dstQueueFamilyIndex = (bb.dstQueueFamilyIndex == 0u) ? VK_QUEUE_FAMILY_IGNORED : bb.dstQueueFamilyIndex;
+      bb.size = (bb.size == 0ULL) ? VK_WHOLE_SIZE : bb.size;
+    }
+    VkDependencyInfo const dependency{
+      .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+      .bufferMemoryBarrierCount = static_cast<uint32_t>(buffers.size()),
+      .pBufferMemoryBarriers = buffers.data(),
+    };
+    vkCmdPipelineBarrier2(command_buffer_, &dependency);
+  }
+
  protected:
   VkCommandBuffer command_buffer_{};
 };

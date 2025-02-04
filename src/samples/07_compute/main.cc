@@ -315,16 +315,6 @@ class SampleApp final : public Application {
 
       /* Simulate & Sort particles */
       {
-        VkBufferMemoryBarrier barrier{
-          .sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
-          .srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT,
-          .dstAccessMask = VK_ACCESS_SHADER_READ_BIT,
-          .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-          .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-          .offset = 0,
-          .size = VK_WHOLE_SIZE,
-        };
-
         auto const nelems = point_grid_.geo.get_vertex_count();
 
         uint32_t group_x = 0u;
@@ -353,16 +343,6 @@ class SampleApp final : public Application {
           vkCmdDispatch(cmd.get_handle(), group_x, 1u, 1u);
         }
 
-        barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
-        barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-        barrier.buffer = point_grid_.vertex.buffer;
-        vkCmdPipelineBarrier(
-          cmd.get_handle(),
-          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-          0, 0, nullptr, 1, &barrier, 0, nullptr
-        );
-
         /// 2) Fill the first part of indices buffer with continuous indices.
         vkCmdBindPipeline(cmd.get_handle(), VK_PIPELINE_BIND_POINT_COMPUTE, compute_pipelines_.at(Compute_FillIndices));
         {
@@ -370,35 +350,40 @@ class SampleApp final : public Application {
           vkCmdDispatch(cmd.get_handle(), group_x, 1u, 1u);
         }
 
-        barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-        barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-        barrier.buffer = point_grid_.index.buffer;
-        vkCmdPipelineBarrier(
-          cmd.get_handle(),
-          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-          0, 0, nullptr, 1, &barrier, 0, nullptr
-        );
+        cmd.pipeline_buffer_barriers({
+          {
+            .srcStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+            .srcAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT,
+            .dstStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+            .dstAccessMask = VK_ACCESS_SHADER_READ_BIT,
+            .buffer = point_grid_.vertex.buffer,
+          }
+        });
 
         /// 3) Compute the particles dot product against the camera direction.
         vkCmdBindPipeline(cmd.get_handle(), VK_PIPELINE_BIND_POINT_COMPUTE, compute_pipelines_.at(Compute_DotProduct));
         {
           group_x = getGroupSize(nelems, shader_interop::kCompute_DotProduct_kernelSize_x);
           vkCmdDispatch(cmd.get_handle(), group_x, 1u, 1u);
-
-          barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-          barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-          barrier.buffer = dot_product_buffer_.buffer;
-          vkCmdPipelineBarrier(
-            cmd.get_handle(),
-            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-            0, 0, nullptr, 1, &barrier, 0, nullptr
-          );
-
-          // (to use instead)
-          // vkCmdPipelineBarrier2(command_buffer, &dependency_info);
         }
+
+        cmd.pipeline_buffer_barriers({
+          {
+            .srcStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+            .srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT,
+            .dstStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+            .dstAccessMask = VK_ACCESS_SHADER_READ_BIT,
+            .buffer = dot_product_buffer_.buffer,
+          },
+          {
+            .srcStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+            .srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT,
+            .dstStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+            .dstAccessMask = VK_ACCESS_SHADER_READ_BIT,
+            .buffer = point_grid_.index.buffer,
+          }
+        });
+
 
         /// 2) Sort indices via their dot products using a simple bitonic sort.
         vkCmdBindPipeline(cmd.get_handle(), VK_PIPELINE_BIND_POINT_COMPUTE, compute_pipelines_.at(Compute_SortIndices));
@@ -435,45 +420,41 @@ class SampleApp final : public Application {
               group_x = getGroupSize(nelems / 2u, shader_interop::kCompute_SortIndex_kernelSize_x);
               vkCmdDispatch(cmd.get_handle(), group_x, 1u, 1u);
 
-              barrier.buffer = point_grid_.index.buffer;
-              barrier.size = index_buffer_bytesize_;
-
-              barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
-              barrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-              barrier.offset = read_offset * sizeof(uint32_t);
-              vkCmdPipelineBarrier(
-                cmd.get_handle(),
-                VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                0, 0, nullptr, 1, &barrier, 0, nullptr
-              );
-
-              barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-              barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-              barrier.offset = write_offset * sizeof(uint32_t);
-              vkCmdPipelineBarrier(
-                cmd.get_handle(),
-                VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                0, 0, nullptr, 1, &barrier, 0, nullptr
-              );
+              cmd.pipeline_buffer_barriers({
+                {
+                  .srcStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                  .srcAccessMask = VK_ACCESS_SHADER_READ_BIT,
+                  .dstStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                  .dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT,
+                  .buffer = point_grid_.index.buffer,
+                  .offset = read_offset * sizeof(uint32_t),
+                  .size = index_buffer_bytesize_,
+                },
+                {
+                  .srcStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                  .srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT,
+                  .dstStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                  .dstAccessMask = VK_ACCESS_SHADER_READ_BIT,
+                  .buffer = point_grid_.index.buffer,
+                  .offset = write_offset * sizeof(uint32_t),
+                  .size = index_buffer_bytesize_,
+                },
+              });
 
               index_buffer_binding ^= 1u;
             }
           }
         }
 
-        barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-        barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-        barrier.buffer = point_grid_.index.buffer;
-        barrier.offset = 0;
-        barrier.size = VK_WHOLE_SIZE;
-        vkCmdPipelineBarrier(
-          cmd.get_handle(),
-          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-          VK_PIPELINE_STAGE_VERTEX_SHADER_BIT,
-          0, 0, nullptr, 1, &barrier, 0, nullptr
-        );
+        cmd.pipeline_buffer_barriers({
+          {
+            .srcStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+            .srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT,
+            .dstStageMask = VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT,
+            .dstAccessMask = VK_ACCESS_SHADER_READ_BIT,
+            .buffer = point_grid_.index.buffer,
+          },
+        });
       }
 
       /* Render */
