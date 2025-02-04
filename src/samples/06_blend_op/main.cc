@@ -223,7 +223,6 @@ class SampleApp final : public Application {
 
     auto cmd = renderer_.begin_frame();
     {
-      /* As the pipeline shared the same layout, we can bind them just once directly. */
       cmd.bind_descriptor_set(graphics_.descriptor_set, graphics_.pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT);
 
       graphics_.push_constant.model.worldMatrix = world_matrix;
