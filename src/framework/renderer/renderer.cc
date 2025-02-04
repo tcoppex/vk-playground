@@ -254,12 +254,18 @@ std::shared_ptr<Framebuffer> Renderer::create_framebuffer() const {
 
 void Renderer::destroy_pipeline_layout(VkPipelineLayout layout) const {
   vkDestroyPipelineLayout(device_, layout, nullptr);
-  // layout = VK_NULL_HANDLE;
 }
 
 // ----------------------------------------------------------------------------
 
 VkPipelineLayout Renderer::create_pipeline_layout(PipelineLayoutDescriptor_t const& params) const {
+  for (size_t i = 1u; i < params.pushConstantRanges.size(); ++i) {
+    if (params.pushConstantRanges[i].offset == 0u) {
+      std::cerr << "[Warning] 'create_pipeline_layout' has constant ranges with no offsets." << std::endl << std::endl;
+      break;
+    }
+  }
+
   VkPipelineLayoutCreateInfo const pipeline_layout_create_info{
     .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
     .setLayoutCount = static_cast<uint32_t>(params.setLayouts.size()),
