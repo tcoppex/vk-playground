@@ -19,7 +19,7 @@ namespace shader_interop {
 class SampleApp final : public Application {
  public:
   // The sorting algorithm used support power-of-two sized buffer only.
-  static constexpr uint32_t kPointGridSize{ 512u };
+  static constexpr uint32_t kPointGridSize{ 1024u };
   static constexpr uint32_t kPointGridResolution{ kPointGridSize * kPointGridSize };
 
   using HostData_t = shader_interop::UniformData;
@@ -54,7 +54,7 @@ class SampleApp final : public Application {
     /* Initialize the scene data. */
     host_data_.scene.camera = {
       .viewMatrix = linalg::lookat_matrix(
-        vec3f(13.0f, 4.5f, 13.0f),
+        vec3f(15.0f, 5.0f, 15.0f),
         vec3f(0.0f, 0.0f, 0.0f),
         vec3f(0.0f, 1.0f, 0.0f)
       ),
@@ -79,10 +79,14 @@ class SampleApp final : public Application {
 
       /* We need to double the size of the device buffers as we
        * will use the vertex one as backup positions and the index one as
-       * it as a ping-pong buffer to sort indices between frames. */
+       * a ping-pong buffer to sort indices between frames.
+       *
+       * In a more complex case it would be more interesting to reset the particles
+       * via a compute shader, but here it cost about ~4Mb more per 256k particles.
+       */
       {
         auto &mesh = point_grid_;
-        Geometry::MakePointListPlane(mesh.geo, 12.0f, kPointGridSize, kPointGridSize);
+        Geometry::MakePointListPlane(mesh.geo, 16.0f, kPointGridSize, kPointGridSize);
 
         vertex_buffer_bytesize_ = mesh.geo.get_vertices().size();
         mesh.vertex = cmd.create_buffer_and_upload(
@@ -296,7 +300,7 @@ class SampleApp final : public Application {
   void frame() final {
     mat4 const world_matrix(
       linalg::mul(
-        lina::rotation_matrix_y(0.15f * get_frame_time()),
+        lina::rotation_matrix_y(0.05f * get_frame_time()),
         linalg::scaling_matrix(vec3(2.0f))
       )
     );

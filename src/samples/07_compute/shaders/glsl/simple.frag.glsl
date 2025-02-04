@@ -8,20 +8,19 @@
 // ----------------------------------------------------------------------------
 
 layout(location = 0) in vec2 vTexCoord;
+layout(location = 1) in vec3 vPosition;
 
 layout(location = 0) out vec4 fragColor;
 
 void main() {
+  float borderAlpha = 1.0 - smoothstep(180, 220, dot(vPosition, vPosition));
+
   vec2 pt = 2.0f * (vTexCoord - 0.5f);
-
-  vec2 shamble = vec2(0.5*sin(2.9*pt.y), 0.5*cos(2.4*pt.x));
-
   float d = 1.0f - abs(dot(pt, pt));
-  float alpha = smoothstep(0.75f, 0.85f, d);
+  float alpha = borderAlpha * smoothstep(0.65f, 0.85f, d);
 
   fragColor = vec4(vec3(d), alpha);
-
-  fragColor *= d * vec4(0.25, 0.5, 0.95, 0.175);
+  fragColor *= d * vec4(0.2, 0.65  * (0.75 + 0.25 * vPosition.y), 0.95 + 0.05 * vPosition.y, 0.25);
 }
 
 // ----------------------------------------------------------------------------

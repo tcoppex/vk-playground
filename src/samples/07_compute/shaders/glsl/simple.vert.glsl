@@ -47,6 +47,7 @@ const vec2 kLocalTexCoords[4] = vec2[](
 // ----------------------------------------------------------------------------
 
 layout(location = 0) out vec2 vTexCoord;
+layout(location = 1) out vec3 vPosition;
 
 // ----------------------------------------------------------------------------
 
@@ -77,13 +78,14 @@ void main() {
   vec3 vertex_offset = quad_right * quad_offset.x
                      + quad_up * quad_offset.y
                      ;
-
-  vec3 worldPos = vec3(worldMatrix * vec4(center, 1.0f)) + vertex_offset;
+  const vec3 worldPos = vec3(worldMatrix * vec4(center, 1.0f)) + vertex_offset;
 
   // --------------------------------
 
-  gl_Position = viewProj * vec4(worldPos, 1.0f);
+  vPosition = worldPos;
   vTexCoord = kLocalTexCoords[vertex_id];
+
+  gl_Position = viewProj * vec4(worldPos, 1.0f);
 }
 
 // ----------------------------------------------------------------------------
