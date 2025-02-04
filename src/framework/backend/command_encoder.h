@@ -19,6 +19,7 @@ class GenericCommandEncoder {
 
   GenericCommandEncoder(VkCommandBuffer command_buffer)
     : command_buffer_(command_buffer)
+    , currently_bound_pipeline_layout_{VK_NULL_HANDLE}
   {}
 
   virtual ~GenericCommandEncoder() {}
@@ -71,8 +72,49 @@ class GenericCommandEncoder {
     );
   }
 
+  // --- Pipeline ---
+
+  inline
+  void set_pipeline(PipelineInterface const& pipeline) {
+    currently_bound_pipeline_layout_ = pipeline.get_layout();
+    vkCmdBindPipeline(command_buffer_, pipeline.get_bind_point(), pipeline.get_handle());
+  }
+
+  // --- Descriptor Sets ---
+
+  void bind_descriptor_set(VkDescriptorSet const descriptor_set, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS) const {
+    GenericCommandEncoder::bind_descriptor_set(descriptor_set, currently_bound_pipeline_layout_, stage_flags);
+  }
+
+  // --- Push Constants ---
+
+  template<typename T> requires (!SpanConvertible<T>)
+  void push_constant(T const& value, VkPipelineLayout const pipeline_layout, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS, uint32_t const offset = 0u) const {
+    vkutils::PushConstant(command_buffer_, value, pipeline_layout, stage_flags, offset);
+  }
+
+  template<typename T> requires (SpanConvertible<T>)
+  void push_constants(T const& values, VkPipelineLayout const pipeline_layout, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS, uint32_t const offset = 0u) const {
+    vkutils::PushConstants(command_buffer_, values, pipeline_layout, stage_flags, offset);
+  }
+
+  template<typename T> requires (!SpanConvertible<T>)
+  void push_constant(T const& value, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS, uint32_t const offset = 0u) const {
+    assert(currently_bound_pipeline_layout_ != VK_NULL_HANDLE);
+    push_constant(value, currently_bound_pipeline_layout_, stage_flags, offset);
+  }
+
+  template<typename T> requires (SpanConvertible<T>)
+  void push_constants(T const& values, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS, uint32_t const offset = 0u) const {
+    assert(currently_bound_pipeline_layout_ != VK_NULL_HANDLE);
+    push_constants(values, currently_bound_pipeline_layout_, stage_flags, offset);
+  }
+
  protected:
   VkCommandBuffer command_buffer_{};
+
+ private:
+  VkPipelineLayout currently_bound_pipeline_layout_{};
 };
 
 /* -------------------------------------------------------------------------- */
@@ -212,44 +254,6 @@ class RenderPassEncoder : public GenericCommandEncoder {
     set_viewport_scissor({{0, 0}, extent}, flip_y);
   }
 
-  // --- Pipeline ---
-
-  inline
-  void set_pipeline(PipelineInterface const& pipeline) {
-    currently_bound_pipeline_layout_ = pipeline.get_layout();
-    vkCmdBindPipeline(command_buffer_, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.get_handle());
-  }
-
-  // --- Descriptor Sets ---
-
-  void bind_descriptor_set(VkDescriptorSet const descriptor_set, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS) const {
-    GenericCommandEncoder::bind_descriptor_set(descriptor_set, currently_bound_pipeline_layout_, stage_flags);
-  }
-
-  // --- Push Constants ---
-
-  template<typename T> requires (!SpanConvertible<T>)
-  void push_constant(T const& value, VkPipelineLayout const pipeline_layout, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS, uint32_t const offset = 0u) const {
-    vkutils::PushConstant(command_buffer_, value, pipeline_layout, stage_flags, offset);
-  }
-
-  template<typename T> requires (SpanConvertible<T>)
-  void push_constants(T const& values, VkPipelineLayout const pipeline_layout, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS, uint32_t const offset = 0u) const {
-    vkutils::PushConstants(command_buffer_, values, pipeline_layout, stage_flags, offset);
-  }
-
-  template<typename T> requires (!SpanConvertible<T>)
-  void push_constant(T const& value, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS, uint32_t const offset = 0u) const {
-    assert(currently_bound_pipeline_layout_ != VK_NULL_HANDLE);
-    push_constant(value, currently_bound_pipeline_layout_, stage_flags, offset);
-  }
-
-  template<typename T> requires (SpanConvertible<T>)
-  void push_constants(T const& values, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS, uint32_t const offset = 0u) const {
-    assert(currently_bound_pipeline_layout_ != VK_NULL_HANDLE);
-    push_constants(values, currently_bound_pipeline_layout_, stage_flags, offset);
-  }
-
   // --- Vertex Buffer ---
 
   inline
@@ -284,11 +288,7 @@ class RenderPassEncoder : public GenericCommandEncoder {
  private:
   RenderPassEncoder(VkCommandBuffer const command_buffer)
     : GenericCommandEncoder(command_buffer)
-    , currently_bound_pipeline_layout_{VK_NULL_HANDLE}
   {}
-
- private:
-  VkPipelineLayout currently_bound_pipeline_layout_{}; //
 
  public:
   friend class CommandEncoder;
