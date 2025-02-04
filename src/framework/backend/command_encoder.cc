@@ -43,12 +43,13 @@ void CommandEncoder::copy_buffer(Buffer_t const& src, size_t src_offset, Buffer_
 
 // ----------------------------------------------------------------------------
 
-Buffer_t CommandEncoder::create_buffer_and_upload(void const* host_data, size_t const host_data_size, VkBufferUsageFlags2KHR const usage, size_t const device_buffer_size) const {
+Buffer_t CommandEncoder::create_buffer_and_upload(void const* host_data, size_t const host_data_size, VkBufferUsageFlags2KHR const usage, size_t device_buffer_offet, size_t const device_buffer_size) const {
   assert(host_data != nullptr);
   assert(host_data_size > 0u);
 
   size_t const buffer_bytesize = (device_buffer_size > 0) ? device_buffer_size : host_data_size;
   assert(host_data_size <= buffer_bytesize);
+  // assert(device_buffer_offet + host_data_size < buffer_bytesize);
 
   // [TODO] Staging buffers need cleaning / garbage collection !
   auto staging_buffer{
@@ -61,7 +62,7 @@ Buffer_t CommandEncoder::create_buffer_and_upload(void const* host_data, size_t 
     VMA_MEMORY_USAGE_GPU_ONLY
   )};
 
-  copy_buffer(staging_buffer, 0u, buffer, 0u, host_data_size);
+  copy_buffer(staging_buffer, 0u, buffer, device_buffer_offet, host_data_size);
 
   return buffer;
 }
