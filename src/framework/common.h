@@ -22,12 +22,11 @@
 #include <type_traits>
 #include <vector>
 
-// linear algebra.
 #include "lina/lina.h"
 using namespace lina::aliases;
 
-// Utility functions.
 #include "framework/utils/utils.h"
+#include "framework/utils/logger.h"
 
 /* -------------------------------------------------------------------------- */
 
