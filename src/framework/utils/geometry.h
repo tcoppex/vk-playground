@@ -20,38 +20,49 @@ class Geometry {
   static constexpr float kDefaultRadius = 0.5f;
 
  public:
+  enum class Topology {
+    PointList,
+    TriangleList,
+    TriangleStrip,
+    kCount,
+    kUnknown
+  };
+
+  enum class IndexFormat {
+    U16,
+    U32,
+    kCount,
+    kUnknown
+  };
+
   enum class AttributeType {
     Position,
     Texcoord,
     Normal,
     Tangent,
-    kCount
+    Joints,
+    Weights,
+    kCount,
+    kUnknown
   };
 
   enum class AttributeFormat {
+    R_F32,
     RG_F32,
     RGB_F32,
     RGBA_F32,
-    kCount
-  };
-
-  enum class Topology {
-    PointList,
-    TriangleList,
-    TriangleStrip,
-    kCount
-  };
-
-  enum IndexFormat {
-    U16,
-    U32,
-    kCount
+    R_U32,
+    RGBA_U32,
+    R_U16,
+    RGBA_U16,
+    kCount,
+    kUnknown,
   };
 
   struct AttributeInfo {
-    AttributeFormat format;
-    uint32_t offset;
-    uint32_t stride;
+    AttributeFormat format{};
+    uint32_t offset{};
+    uint32_t stride{};
   };
 
  public:
@@ -96,14 +107,6 @@ class Geometry {
   
   ~Geometry() = default;
 
-  void add_vertices_data(uint8_t const* data, uint32_t bytesize);
-
-  void add_indices_data(IndexFormat format, uint32_t count, uint8_t const* data, uint32_t bytesize);
-
-  void add_attribute(AttributeType const type, AttributeInfo const& info);
-
-  void set_vertex_info(Topology topology, uint32_t vertex_count);
-
   Topology get_topology() const {
     return topology_;
   }
@@ -139,6 +142,17 @@ class Geometry {
   std::vector<uint8_t> const& get_vertices() const {
     return vertices_;
   }
+
+  void add_vertices_data(uint8_t const* data, uint32_t bytesize);
+
+  void add_indices_data(IndexFormat format, uint32_t count, uint8_t const* data, uint32_t bytesize);
+
+  void add_attribute(AttributeType const type, AttributeInfo const& info);
+
+  void set_vertex_info(Topology topology, uint32_t vertex_count);
+
+  // TODO
+  //void transform_attribute(AttributeType const type, mat4f const& transform_matrix);
 
  public:
   /* -- Vulkan Type Converters & Helpers -- */
