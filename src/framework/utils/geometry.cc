@@ -81,12 +81,12 @@ void Geometry::MakeCube(Geometry &geo, float size) {
 
   // --------
 
-  geo.indexFormat = IndexFormat::U16;
-  geo.topology = Topology::TriangleList;
-  geo.index_count = static_cast<uint32_t>(trilistIndices.size());
-  geo.vertex_count = static_cast<uint32_t>(vertexAttributesIndices.size());
+  geo.index_format_ = IndexFormat::U16;
+  geo.topology_ = Topology::TriangleList;
+  geo.index_count_ = static_cast<uint32_t>(trilistIndices.size());
+  geo.vertex_count_ = static_cast<uint32_t>(vertexAttributesIndices.size());
 
-  geo.attributes = {
+  geo.attributes_ = {
     {
       AttributeType::Position,
       {
@@ -113,14 +113,14 @@ void Geometry::MakeCube(Geometry &geo, float size) {
     },
   };
 
-  geo.indices.clear();
-  geo.indices.insert(
-    geo.indices.begin(),
+  geo.indices_.clear();
+  geo.indices_.insert(
+    geo.indices_.begin(),
     (uint8_t const*)trilistIndices.data(),
     (uint8_t const*)trilistIndices.data() + sizeof(trilistIndices)
   );
 
-  auto& v = geo.vertices;
+  auto& v = geo.vertices_;
   v.clear();
   v.reserve(vertexAttributesIndices.size() * sizeof(Vertex_t));
   for (auto const i : vertexAttributesIndices) {
@@ -183,12 +183,7 @@ void Geometry::MakePlane(Geometry &geo, float size, uint32_t resx, uint32_t resy
 
   /// --------------
 
-  geo.indexFormat = IndexFormat::U32;
-  geo.topology = Topology::TriangleStrip;
-  geo.index_count = index_count;
-  geo.vertex_count = vertex_count;
-
-  geo.attributes = {
+  geo.attributes_ = {
     {
       AttributeType::Position,
       {
@@ -215,29 +210,22 @@ void Geometry::MakePlane(Geometry &geo, float size, uint32_t resx, uint32_t resy
     },
   };
 
+
   /* Fill vertices. */
   {
     size_t const vertices_bytesize = vertices.size() * sizeof(vertices[0u]);
     uint8_t *const vertices_ptr = reinterpret_cast<uint8_t*>(vertices.data());
-    geo.vertices.clear();
-    geo.vertices.insert(
-      geo.vertices.end(),
-      vertices_ptr,
-      vertices_ptr + vertices_bytesize
-    );
+    geo.add_vertices_data(vertices_ptr, vertices_bytesize);
   }
 
   /* Fill indices. */
   {
     size_t const indices_bytesize = indices.size() * sizeof(indices[0u]);
     uint8_t *const indices_ptr = reinterpret_cast<uint8_t*>(indices.data());
-    geo.indices.clear();
-    geo.indices.insert(
-      geo.indices.end(),
-      indices_ptr,
-      indices_ptr + indices_bytesize
-    );
+    geo.add_indices_data(IndexFormat::U32, index_count, indices_ptr, indices_bytesize);
   }
+
+  geo.set_vertex_info(Topology::TriangleStrip, vertex_count);
 }
 
 // ----------------------------------------------------------------------------
@@ -249,8 +237,8 @@ void Geometry::MakeSphere(Geometry &geo, float radius, uint32_t resx, uint32_t r
   uint32_t const ncols = resx + 1u;
   uint32_t const nrows = resy + 1u;
 
-  geo.vertex_count = 2u + (nrows - 2u) * ncols;
-  std::vector<Vertex_t> vertices(geo.vertex_count);
+  uint32_t const vertex_count = 2u + (nrows - 2u) * ncols;
+  std::vector<Vertex_t> vertices(vertex_count);
 
   // Vertices data.
   {
@@ -302,12 +290,12 @@ void Geometry::MakeSphere(Geometry &geo, float radius, uint32_t resx, uint32_t r
       .texcoord = { 1.0f, 1.0f },
     };
 
-    assert(vertex_id == geo.vertex_count);
+    assert(vertex_id == vertex_count);
   }
 
   // Indices.
-  geo.index_count = 2u * (nrows - 3u) + 2u * ncols * (nrows - 1u);
-  std::vector<uint32_t> indices(geo.index_count);
+  uint32_t const index_count = 2u * (nrows - 3u) + 2u * ncols * (nrows - 1u);
+  std::vector<uint32_t> indices(index_count);
   {
     uint32_t index = 0u;
 
@@ -331,8 +319,8 @@ void Geometry::MakeSphere(Geometry &geo, float radius, uint32_t resx, uint32_t r
     }
 
     for (uint32_t i = 0u; i < ncols; ++i) {
-      indices[index++] = geo.vertex_count - 1u - ncols + i;
-      indices[index++] = geo.vertex_count - 1u;
+      indices[index++] = vertex_count - 1u - ncols + i;
+      indices[index++] = vertex_count - 1u;
     }
 
     // assert(index == geo.index_count);
@@ -340,10 +328,7 @@ void Geometry::MakeSphere(Geometry &geo, float radius, uint32_t resx, uint32_t r
 
   /// --------------
 
-  geo.indexFormat = IndexFormat::U32;
-  geo.topology = Topology::TriangleStrip;
-
-  geo.attributes = {
+  geo.attributes_ = {
     {
       AttributeType::Position,
       {
@@ -374,25 +359,17 @@ void Geometry::MakeSphere(Geometry &geo, float radius, uint32_t resx, uint32_t r
   {
     size_t const vertices_bytesize = vertices.size() * sizeof(vertices[0u]);
     uint8_t *const vertices_ptr = reinterpret_cast<uint8_t*>(vertices.data());
-    geo.vertices.clear();
-    geo.vertices.insert(
-      geo.vertices.end(),
-      vertices_ptr,
-      vertices_ptr + vertices_bytesize
-    );
+    geo.add_vertices_data(vertices_ptr, vertices_bytesize);
   }
 
   /* Fill indices. */
   {
     size_t const indices_bytesize = indices.size() * sizeof(indices[0u]);
     uint8_t *const indices_ptr = reinterpret_cast<uint8_t*>(indices.data());
-    geo.indices.clear();
-    geo.indices.insert(
-      geo.indices.end(),
-      indices_ptr,
-      indices_ptr + indices_bytesize
-    );
+    geo.add_indices_data(IndexFormat::U32, index_count, indices_ptr, indices_bytesize);
   }
+
+  geo.set_vertex_info(Topology::TriangleStrip, vertex_count);
 }
 
 // ----------------------------------------------------------------------------
@@ -475,12 +452,7 @@ void Geometry::MakeTorus(Geometry &geo, float major_radius, float minor_radius, 
 
   /// --------------
 
-  geo.indexFormat = IndexFormat::U32;
-  geo.topology = Topology::TriangleStrip;
-  geo.index_count = index_count;
-  geo.vertex_count = vertex_count;
-
-  geo.attributes = {
+  geo.attributes_ = {
     {
       AttributeType::Position,
       {
@@ -511,25 +483,17 @@ void Geometry::MakeTorus(Geometry &geo, float major_radius, float minor_radius, 
   {
     size_t const vertices_bytesize = vertices.size() * sizeof(vertices[0u]);
     uint8_t *const vertices_ptr = reinterpret_cast<uint8_t*>(vertices.data());
-    geo.vertices.clear();
-    geo.vertices.insert(
-      geo.vertices.end(),
-      vertices_ptr,
-      vertices_ptr + vertices_bytesize
-    );
+    geo.add_vertices_data(vertices_ptr, vertices_bytesize);
   }
 
   /* Fill indices. */
   {
     size_t const indices_bytesize = indices.size() * sizeof(indices[0u]);
     uint8_t *const indices_ptr = reinterpret_cast<uint8_t*>(indices.data());
-    geo.indices.clear();
-    geo.indices.insert(
-      geo.indices.end(),
-      indices_ptr,
-      indices_ptr + indices_bytesize
-    );
+    geo.add_indices_data(IndexFormat::U32, index_count, indices_ptr, indices_bytesize);
   }
+
+  geo.set_vertex_info(Topology::TriangleStrip, vertex_count);
 }
 
 // ----------------------------------------------------------------------------
@@ -561,12 +525,7 @@ void Geometry::MakePointListPlane(Geometry &geo, float size, uint32_t resx, uint
 
   /// --------------
 
-  geo.indexFormat = IndexFormat::U32;
-  geo.topology = Topology::PointList;
-  geo.index_count = vertex_count;
-  geo.vertex_count = vertex_count;
-
-  geo.attributes = {
+  geo.attributes_ = {
     {
       AttributeType::Position,
       {
@@ -581,31 +540,44 @@ void Geometry::MakePointListPlane(Geometry &geo, float size, uint32_t resx, uint
   {
     size_t const vertices_bytesize = vertices.size() * sizeof(vertices[0u]);
     uint8_t *const vertices_ptr = reinterpret_cast<uint8_t*>(vertices.data());
-    geo.vertices.clear();
-    geo.vertices.insert(
-      geo.vertices.end(),
-      vertices_ptr,
-      vertices_ptr + vertices_bytesize
-    );
+    geo.add_vertices_data(vertices_ptr, vertices_bytesize);
   }
 
   /* Fill indices. */
   {
     size_t const indices_bytesize = indices.size() * sizeof(indices[0u]);
     uint8_t *const indices_ptr = reinterpret_cast<uint8_t*>(indices.data());
-    geo.indices.clear();
-    geo.indices.insert(
-      geo.indices.end(),
-      indices_ptr,
-      indices_ptr + indices_bytesize
-    );
+    geo.add_indices_data(IndexFormat::U32, vertex_count, indices_ptr, indices_bytesize);
   }
+
+  geo.set_vertex_info(Topology::PointList, vertex_count);
 }
 
 // ----------------------------------------------------------------------------
 
-VkFormat Geometry::get_vk_format(AttributeType const attrib) const {
-  switch (get_format(attrib)) {
+void Geometry::add_vertices_data(uint8_t const* data, uint32_t bytesize) {
+  vertices_.insert(vertices_.end(), data, data + bytesize);
+}
+
+void Geometry::add_indices_data(IndexFormat format, uint32_t count, uint8_t const* data, uint32_t bytesize) {
+  index_format_= format;
+  index_count_ = count;
+  indices_.insert(indices_.cend(), data, data + bytesize);
+}
+
+void Geometry::add_attribute(AttributeType const type, AttributeInfo const& info) {
+  attributes_[type] = info;
+}
+
+void Geometry::set_vertex_info(Topology topology, uint32_t vertex_count) {
+  topology_ = topology;
+  vertex_count_ = vertex_count;
+}
+
+// ----------------------------------------------------------------------------
+
+VkFormat Geometry::get_vk_format(AttributeType const attrib_type) const {
+  switch (get_format(attrib_type)) {
     case AttributeFormat::RG_F32:
       return VK_FORMAT_R32G32_SFLOAT;
     break;
@@ -624,7 +596,7 @@ VkFormat Geometry::get_vk_format(AttributeType const attrib) const {
 }
 
 VkPrimitiveTopology Geometry::get_vk_primitive_topology() const {
-  switch (topology) {
+  switch (topology_) {
     case Topology::TriangleStrip:
       return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
 
@@ -638,7 +610,7 @@ VkPrimitiveTopology Geometry::get_vk_primitive_topology() const {
 }
 
 VkIndexType Geometry::get_vk_index_type() const {
-  switch (indexFormat) {
+  switch (index_format_) {
     case IndexFormat::U16:
       return VK_INDEX_TYPE_UINT16;
 
