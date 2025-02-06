@@ -49,7 +49,7 @@ cmake --build build --config Release
 * **[04_texturing](src/samples/04_texturing)**: Display a textured cube with a linear sampler (_Image, Sampler_).
 * **[05_stencil_op](src/samples/05_stencil_op)**: Stencil operations and instancing through a multi-passes portal effect (_Stencil, instancing_).
 * **[06_blend_op](src/samples/06_blend_op)**: Fast & simple billboarded GPU particles with additive blend operation (_Blending_).
-* **[07_compute](src/samples/07_compute)**: Waves simulation with sorted alpha-blended particles via compute shaders (_Compute Pipeline, Barrier_).
+* **[07_compute](src/samples/07_compute)**: Waves simulation with sorted alpha-blended particles (_Compute Pipeline, Buffer Barriers_).
 
 ### Dependencies
 
