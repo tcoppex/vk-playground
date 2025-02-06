@@ -218,11 +218,9 @@ class SampleApp final : public Application {
     /* Update the model world matrix. */
     {
       float const frame_time{ get_frame_time() };
-      auto const axis{
-        vec3f(0.2f * cosf(3.0f*frame_time), 0.8f, sinf(frame_time))
-      };
-      push_constant_.model.worldMatrix = linalg::rotation_matrix(
-        linalg::rotation_quat(linalg::normalize(axis), frame_time * 0.75f)
+      push_constant_.model.worldMatrix = lina::rotation_matrix_axis(
+        vec3f(0.2f * cosf(3.0f*frame_time), 0.8f, sinf(frame_time)),
+        frame_time * 0.75f
       );
     }
 
