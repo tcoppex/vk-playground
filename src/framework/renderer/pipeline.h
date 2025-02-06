@@ -34,6 +34,8 @@ struct PipelineLayoutDescriptor_t {
 
 // ----------------------------------------------------------------------------
 
+// GraphicsPipelineDescriptor_t::Vertex::Buffer
+
 // Descriptor structure to create GraphicsPipeline, à la WebGPU.
 struct GraphicsPipelineDescriptor_t {
   std::vector<VkDynamicState> dynamicStates{};
@@ -92,6 +94,9 @@ struct GraphicsPipelineDescriptor_t {
     VkFrontFace frontFace{};
   } primitive{};
 };
+
+using PipelineVertexBufferDescriptor = GraphicsPipelineDescriptor_t::Vertex::Buffer;
+using PipelineVertexBufferDescriptors = std::vector<PipelineVertexBufferDescriptor>;
 
 /* -------------------------------------------------------------------------- */
 
