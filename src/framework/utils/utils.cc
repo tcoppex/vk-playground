@@ -64,6 +64,16 @@ char* ReadBinaryFile(const char *filename, size_t *filesize) {
 
 // ----------------------------------------------------------------------------
 
+std::string ExtractBasename(std::string_view const& path) {
+  size_t start = path.find_last_of("/\\");
+  start = (start == std::string_view::npos) ? 0 : start + 1;
+  size_t end = path.find_last_of('.', path.length());
+  end = (end == std::string_view::npos || end < start) ? path.length() : end;
+  return std::string(path.substr(start, end - start));
+}
+
+// ----------------------------------------------------------------------------
+
 size_t AlignTo(size_t const byteLength, size_t const byteAlignment) {
   return (byteLength + byteAlignment - 1) / byteAlignment * byteAlignment;
 }
