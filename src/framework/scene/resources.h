@@ -7,6 +7,7 @@
 #include "stb/stb_image.h"
 
 #include "framework/common.h"
+#include "framework/renderer/pipeline.h"
 #include "framework/utils/geometry.h"
 
 namespace scene {
@@ -109,9 +110,27 @@ struct Skeleton {
 
 // ----------------------------------------------------------------------------
 
-struct Mesh : Geometry {
+//
+// IDEA :
+// share Geometry per mesh, Primitive only hold material and logic (offsets),
+// have either two device buffer per Mesh, or two per Resources
+//
+
+struct VertexGroup {
+  uint32_t vertexOffset;
+  uint32_t indexOffset;
+  uint32_t indexCount;
+};
+
+struct Primitive : Geometry {
   std::shared_ptr<Material> material;
+  // PipelineVertexBufferDescriptors vertex_buffer_descriptors;
+};
+
+struct Mesh {
+  std::vector<std::shared_ptr<Primitive>> primitives;
   std::shared_ptr<Skeleton> skeleton;
+  mat4f world_matrix{linalg::identity};
 };
 
 // ----------------------------------------------------------------------------
@@ -125,6 +144,9 @@ struct Resources {
   ResourceMap<Skeleton> skeletons{};
 
   std::vector<std::shared_ptr<Mesh>> meshes; //
+
+  // backend::Buffer_t vertex_buffer;
+  // backend::Buffer_t index_buffer;
 
   Resources() = default;
 
