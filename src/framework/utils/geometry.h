@@ -63,6 +63,7 @@ class Geometry {
     AttributeFormat format{};
     uint32_t offset{};
     uint32_t stride{};
+    uint32_t bufferOffset{}; // (identical bufferOffset == identical buffer view)
   };
 
  public:
@@ -71,7 +72,6 @@ class Geometry {
   /* Create a cube with interleaved Position, Normal and UV. */
   static void MakeCube(Geometry &geo, float size = kDefaultSize);
 
- public:
   // --- Indexed Triangle Strip ---
 
   /* Create a +Y plane with interleaved Position, Normal and UV. */
@@ -96,7 +96,6 @@ class Geometry {
     MakeTorus(geo, inner_radius + minor_radius, minor_radius, resx, resy);
   }
 
- public:
   // --- Indexed Point List ---
 
   /* Create a plane of points with float4 positions and an index buffer for sorting (when needed). */
@@ -143,7 +142,7 @@ class Geometry {
     return vertices_;
   }
 
-  void add_vertices_data(uint8_t const* data, uint32_t bytesize);
+  uint32_t add_vertices_data(uint8_t const* data, uint32_t bytesize);
 
   void add_indices_data(IndexFormat format, uint32_t count, uint8_t const* data, uint32_t bytesize);
 
@@ -157,13 +156,24 @@ class Geometry {
  public:
   /* -- Vulkan Type Converters & Helpers -- */
 
+  struct VulkanVertexBufferBinding {
+    uint32_t binding;
+    uint32_t offset;
+    uint32_t stride;
+    std::vector<VkVertexInputAttributeDescription> attributes;
+  };
+
   VkFormat get_vk_format(AttributeType const attrib_type) const;
 
   VkPrimitiveTopology get_vk_primitive_topology() const;
 
   VkIndexType get_vk_index_type() const;
 
+  std::vector<Geometry::VulkanVertexBufferBinding> get_vk_vertex_buffer_binding( std::map<AttributeType, uint32_t> const& attribute_to_location ) const;
+
+  // [DEPRECATED]
   std::vector<VkVertexInputAttributeDescription> get_vk_binding_attributes(uint32_t buffer_binding, std::map<AttributeType, uint32_t> const& attribute_to_location) const;
+
 
  private:
   Topology topology_{};

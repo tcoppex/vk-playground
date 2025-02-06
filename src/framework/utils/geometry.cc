@@ -555,8 +555,10 @@ void Geometry::MakePointListPlane(Geometry &geo, float size, uint32_t resx, uint
 
 // ----------------------------------------------------------------------------
 
-void Geometry::add_vertices_data(uint8_t const* data, uint32_t bytesize) {
+uint32_t Geometry::add_vertices_data(uint8_t const* data, uint32_t bytesize) {
+  uint32_t const offset = vertices_.size();
   vertices_.insert(vertices_.end(), data, data + bytesize);
+  return offset;
 }
 
 void Geometry::add_indices_data(IndexFormat format, uint32_t count, uint8_t const* data, uint32_t bytesize) {
@@ -618,6 +620,51 @@ VkIndexType Geometry::get_vk_index_type() const {
     case IndexFormat::U32:
       return VK_INDEX_TYPE_UINT32;
   }
+}
+
+std::vector<Geometry::VulkanVertexBufferBinding> Geometry::get_vk_vertex_buffer_binding( std::map<AttributeType, uint32_t> const& attribute_to_location ) const {
+  std::map<uint32_t, std::vector<AttributeType>> lut{};
+  for (auto const& kv : attributes_) {
+    auto const info = kv.second;
+    lut[info.bufferOffset].push_back(kv.first);
+  }
+
+  std::vector<VulkanVertexBufferBinding> result;
+
+  uint32_t binding = 0u;
+  for (auto const& kv : lut) {
+    std::vector<AttributeType> const& types = kv.second;
+    auto info = attributes_.find(types[0])->second;
+
+    uint32_t count = 0u;
+    for (auto const& type : types) {
+      count += (attribute_to_location.find(type) != attribute_to_location.end()) ? 1 : 0;
+    }
+    if (count <= 0u) {
+      continue;
+    }
+
+    VulkanVertexBufferBinding vbb{
+      .binding = binding,
+      .offset = kv.first,
+      .stride = info.stride,
+    };
+    for (auto const& type : types) {
+      if (auto it = attribute_to_location.find(type); it != attribute_to_location.end()) {
+        vbb.attributes.push_back({
+          .location = it->second,
+          .binding = binding,
+          .format = get_vk_format(type),
+          .offset = get_offset(type),
+        });
+      }
+    }
+
+    result.push_back(vbb);
+    ++binding;
+  }
+
+  return result;
 }
 
 std::vector<VkVertexInputAttributeDescription> Geometry::get_vk_binding_attributes(
