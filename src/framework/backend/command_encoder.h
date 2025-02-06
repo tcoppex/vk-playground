@@ -249,26 +249,22 @@ class RenderPassEncoder : public GenericCommandEncoder {
 
   void set_viewport_scissor(VkRect2D const rect, bool flip_y = kDefaultViewportFlipY) const;
 
-  inline
   void set_viewport_scissor(VkExtent2D const extent, bool flip_y = kDefaultViewportFlipY) const {
     set_viewport_scissor({{0, 0}, extent}, flip_y);
   }
 
   // --- Vertex Buffer ---
 
-  inline
-  void set_vertex_buffer(Buffer_t const& buffer, VkDeviceSize const offset = 0u) const {
-    vkCmdBindVertexBuffers(command_buffer_, 0u, 1u, &buffer.buffer, &offset);
+  void set_vertex_buffer(Buffer_t const& buffer, uint32_t binding = 0u, VkDeviceSize const offset = 0u) const {
+    vkCmdBindVertexBuffers(command_buffer_, binding, 1u, &buffer.buffer, &offset);
   }
 
-  inline
   void set_index_buffer(Buffer_t const& buffer, VkIndexType const index_type = VK_INDEX_TYPE_UINT32, VkDeviceSize const offset = 0u) const {
     vkCmdBindIndexBuffer2(command_buffer_, buffer.buffer, offset, VK_WHOLE_SIZE, index_type);
   }
 
   // --- Draw ---
 
-  inline
   void draw(uint32_t vertex_count,
             uint32_t instance_count = 1u,
             uint32_t first_vertex = 0u,
@@ -276,7 +272,6 @@ class RenderPassEncoder : public GenericCommandEncoder {
     vkCmdDraw(command_buffer_, vertex_count, instance_count, first_vertex, first_instance);
   }
 
-  inline
   void draw_indexed(uint32_t index_count,
                     uint32_t instance_count = 1u,
                     uint32_t first_index = 0u,
