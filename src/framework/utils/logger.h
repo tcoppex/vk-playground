@@ -28,6 +28,11 @@ extern "C" {
 #define LOGE(...) fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n");
 #endif
 
+#ifdef NDEBUG
+#undef LOGD
+#define LOGD(...)
+#endif
+
 /* -------------------------------------------------------------------------- */
 
 #define LOG_CHECK(x) assert(x)
