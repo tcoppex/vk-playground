@@ -416,7 +416,7 @@ Pipeline Renderer::create_graphics_pipeline(VkPipelineLayout pipeline_layout, Gr
     .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
     .depthClampEnable = VK_FALSE,
     .rasterizerDiscardEnable = VK_FALSE,
-    .polygonMode = VK_POLYGON_MODE_FILL,
+    .polygonMode = desc.primitive.polygonMode,
     .cullMode = desc.primitive.cullMode,
     .frontFace = desc.primitive.frontFace,
     .lineWidth = 1.0f, //
