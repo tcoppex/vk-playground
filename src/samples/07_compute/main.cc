@@ -312,11 +312,11 @@ class SampleApp final : public Application {
           offsetof(shader_interop::PushConstant, compute)
         );
 
-        /// 1) Simulate a simple particle system.
+        /// 1) Simulate a simple particle system (Wave simulations).
         cmd.set_pipeline(compute_pipelines_.at(Compute_Simulation));
         cmd.dispatch<shader_interop::kCompute_Simulation_kernelSize_x>(nelems);
 
-        /// 2) Fill the first part of indices buffer with continuous indices.
+        /// 2) Fill the first part of the indices buffer with continuous indices.
         cmd.set_pipeline(compute_pipelines_.at(Compute_FillIndices));
         cmd.dispatch<shader_interop::kCompute_FillIndex_kernelSize_x>(nelems);
 
@@ -330,7 +330,7 @@ class SampleApp final : public Application {
           }
         });
 
-        /// 3) Compute the particles dot product against the camera direction.
+        /// 3) Compute the particles dot products against the camera view direction.
         cmd.set_pipeline(compute_pipelines_.at(Compute_DotProduct));
         cmd.dispatch<shader_interop::kCompute_DotProduct_kernelSize_x>(nelems);
 
@@ -352,7 +352,7 @@ class SampleApp final : public Application {
         });
 
 
-        /// 2) Sort indices via their dot products using a simple bitonic sort.
+        /// 2) Sort indices via their dot products using a bitonic sort.
         cmd.set_pipeline(compute_pipelines_.at(Compute_SortIndices));
         {
           uint32_t const index_buffer_offset = point_grid_.geo.get_index_count();
@@ -462,8 +462,8 @@ class SampleApp final : public Application {
 
   VkPipelineLayout pipeline_layout_{};
 
-  Pipeline graphics_pipeline_{};
   std::array<Pipeline, Compute_kCount> compute_pipelines_{};
+  Pipeline graphics_pipeline_{};
 };
 
 // ----------------------------------------------------------------------------
