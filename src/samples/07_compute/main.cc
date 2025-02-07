@@ -313,11 +313,11 @@ class SampleApp final : public Application {
         );
 
         /// 1) Simulate a simple particle system (Wave simulations).
-        cmd.set_pipeline(compute_pipelines_.at(Compute_Simulation));
+        cmd.bind_pipeline(compute_pipelines_.at(Compute_Simulation));
         cmd.dispatch<shader_interop::kCompute_Simulation_kernelSize_x>(nelems);
 
         /// 2) Fill the first part of the indices buffer with continuous indices.
-        cmd.set_pipeline(compute_pipelines_.at(Compute_FillIndices));
+        cmd.bind_pipeline(compute_pipelines_.at(Compute_FillIndices));
         cmd.dispatch<shader_interop::kCompute_FillIndex_kernelSize_x>(nelems);
 
         cmd.pipeline_buffer_barriers({
@@ -331,7 +331,7 @@ class SampleApp final : public Application {
         });
 
         /// 3) Compute the particles dot products against the camera view direction.
-        cmd.set_pipeline(compute_pipelines_.at(Compute_DotProduct));
+        cmd.bind_pipeline(compute_pipelines_.at(Compute_DotProduct));
         cmd.dispatch<shader_interop::kCompute_DotProduct_kernelSize_x>(nelems);
 
         cmd.pipeline_buffer_barriers({
@@ -353,7 +353,7 @@ class SampleApp final : public Application {
 
 
         /// 2) Sort indices via their dot products using a bitonic sort.
-        cmd.set_pipeline(compute_pipelines_.at(Compute_SortIndices));
+        cmd.bind_pipeline(compute_pipelines_.at(Compute_SortIndices));
         {
           uint32_t const index_buffer_offset = point_grid_.geo.get_index_count();
           uint32_t index_buffer_binding = 0u;
@@ -428,7 +428,7 @@ class SampleApp final : public Application {
       {
         pass.set_viewport_scissor(viewport_size_);
 
-        pass.set_pipeline(graphics_pipeline_);
+        pass.bind_pipeline(graphics_pipeline_);
 
         push_constant_.graphics.model.worldMatrix = world_matrix;
         pass.push_constant(

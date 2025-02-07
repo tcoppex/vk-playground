@@ -173,8 +173,8 @@ class SampleApp final : public Application {
 
       auto pass = cmd.begin_rendering();
       {
-        pass.set_pipeline(graphics_pipeline_);
-        pass.set_vertex_buffer(vertex_buffer_);
+        pass.bind_pipeline(graphics_pipeline_);
+        pass.bind_vertex_buffer(vertex_buffer_);
 
         // Left-side.
         {

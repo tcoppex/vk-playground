@@ -28,8 +28,8 @@ class SampleApp final : public Application {
     Buffer_t index;
 
     void draw(RenderPassEncoder const& pass, uint32_t instance_count = 1u) const {
-      pass.set_vertex_buffer(vertex);
-      pass.set_index_buffer(index, geo.get_vk_index_type());
+      pass.bind_vertex_buffer(vertex);
+      pass.bind_index_buffer(index, geo.get_vk_index_type());
       pass.draw_indexed(geo.get_index_count(), instance_count);
     }
   };
@@ -347,19 +347,19 @@ class SampleApp final : public Application {
         pass.set_viewport_scissor(viewport_size_);
 
         // Draw the portal mask into the stencil buffer.
-        pass.set_pipeline(pipelines_[PipelineID::StencilMask]);
+        pass.bind_pipeline(pipelines_[PipelineID::StencilMask]);
         plane_.draw(pass);
 
         // Draw instanced rings when passing the stencil test.
-        pass.set_pipeline(pipelines_[PipelineID::StencilTest]);
+        pass.bind_pipeline(pipelines_[PipelineID::StencilTest]);
         torus_.draw(pass, 256u);
 
         // Draw the portal mask into the depth buffer.
-        pass.set_pipeline(pipelines_[PipelineID::DepthMask]);
+        pass.bind_pipeline(pipelines_[PipelineID::DepthMask]);
         plane_.draw(pass);
 
         // Draw regular objects 'outside' the portal.
-        pass.set_pipeline(pipelines_[PipelineID::Rendering]);
+        pass.bind_pipeline(pipelines_[PipelineID::Rendering]);
         {
           // Portal frame.
           torus_.draw(pass);

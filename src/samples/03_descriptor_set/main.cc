@@ -230,7 +230,7 @@ class SampleApp final : public Application {
       {
         pass.set_viewport_scissor(viewport_size_, kFlipScreenVertically);
 
-        pass.set_pipeline(graphics_pipeline_);
+        pass.bind_pipeline(graphics_pipeline_);
         pass.push_constant(push_constant_, VK_SHADER_STAGE_VERTEX_BIT);
 
         /**
@@ -242,17 +242,17 @@ class SampleApp final : public Application {
          **/
         pass.bind_descriptor_set(descriptor_set_, VK_SHADER_STAGE_VERTEX_BIT);
 
-        pass.set_vertex_buffer(vertex_buffer_);
+        pass.bind_vertex_buffer(vertex_buffer_);
 
         /**
-         * The 'set_index_buffer' function specifies the buffer from which indices
+         * The 'bind_index_buffer' function specifies the buffer from which indices
          * are retrieved during 'draw_indexed' operations. By default, it expects
          * an index buffer with 32-bit unsigned integers (uint32).
          *
          * The second parameter allows you to specify a different index type,
          * such as VK_INDEX_TYPE_UINT16, for compatibility with smaller index formats.
          */
-        pass.set_index_buffer(index_buffer_, VK_INDEX_TYPE_UINT16);
+        pass.bind_index_buffer(index_buffer_, VK_INDEX_TYPE_UINT16);
         pass.draw_indexed(kIndices.size());
       }
       cmd.end_rendering();

@@ -234,7 +234,7 @@ class SampleApp final : public Application {
       {
         pass.set_viewport_scissor(viewport_size_);
 
-        pass.set_pipeline(graphics_.pipeline);
+        pass.bind_pipeline(graphics_.pipeline);
 
         /* For each particle vertex we output two triangles to form a quad,
          * so (2 * 3 = 6) vertices per points.

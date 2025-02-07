@@ -222,13 +222,13 @@ class SampleApp final : public Application {
       {
         pass.set_viewport_scissor(viewport_size_);
 
-        pass.set_pipeline(graphics_pipeline_);
+        pass.bind_pipeline(graphics_pipeline_);
         {
           pass.push_constant(push_constant_, VK_SHADER_STAGE_VERTEX_BIT);
           pass.bind_descriptor_set(descriptor_set_, VK_SHADER_STAGE_VERTEX_BIT);
 
-          pass.set_vertex_buffer(vertex_buffer_);
-          pass.set_index_buffer(index_buffer_, index_type_);
+          pass.bind_vertex_buffer(vertex_buffer_);
+          pass.bind_index_buffer(index_buffer_, index_type_);
           pass.draw_indexed(index_count_);
         }
       }

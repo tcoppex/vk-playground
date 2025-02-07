@@ -75,7 +75,7 @@ class GenericCommandEncoder {
   // --- Pipeline ---
 
   inline
-  void set_pipeline(PipelineInterface const& pipeline) {
+  void bind_pipeline(PipelineInterface const& pipeline) {
     currently_bound_pipeline_layout_ = pipeline.get_layout();
     vkCmdBindPipeline(command_buffer_, pipeline.get_bind_point(), pipeline.get_handle());
   }
@@ -255,14 +255,18 @@ class RenderPassEncoder : public GenericCommandEncoder {
 
   // --- Vertex Buffer ---
 
-  void set_vertex_buffer(Buffer_t const& buffer, uint32_t binding = 0u, VkDeviceSize const offset = 0u) const {
-    // https://registry.khronos.org/vulkan/specs/latest/man/html/vkCmdBindVertexBuffers2.html
-    vkCmdBindVertexBuffers2(command_buffer_, binding, 1u, &buffer.buffer, &offset, nullptr, nullptr);
+  void bind_vertex_buffer(Buffer_t const& buffer, uint32_t binding = 0u, uint64_t const offset = 0u) const {
+    vkCmdBindVertexBuffers(command_buffer_, binding, 1u, &buffer.buffer, &offset);
   }
 
-  void set_index_buffer(Buffer_t const& buffer, VkIndexType const index_type = VK_INDEX_TYPE_UINT32, VkDeviceSize const offset = 0u) const {
+  void bind_vertex_buffer(Buffer_t const& buffer, uint32_t binding, uint64_t const offset, uint64_t const stride) const {
+    // VK_EXT_extended_dynamic_state or VK_VERSION_1_3
+    vkCmdBindVertexBuffers2(command_buffer_, binding, 1u, &buffer.buffer, &offset, nullptr, &stride);
+  }
+
+  void bind_index_buffer(Buffer_t const& buffer, VkIndexType const index_type = VK_INDEX_TYPE_UINT32, VkDeviceSize const offset = 0u, VkDeviceSize const size = VK_WHOLE_SIZE) const {
     // VK_KHR_maintenance5 or VK_VERSION_1_4
-    vkCmdBindIndexBuffer2(command_buffer_, buffer.buffer, offset, VK_WHOLE_SIZE, index_type);
+    vkCmdBindIndexBuffer2(command_buffer_, buffer.buffer, offset, size, index_type);
   }
 
   // --- Draw ---
