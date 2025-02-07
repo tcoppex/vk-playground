@@ -17,14 +17,14 @@ static float constexpr kTwoPi = 2.0f * kPi;
 
 /* Default interleaved attributes used to construct most geometries internally. */
 struct Vertex_t {
-  float position[3];
-  float normal[3];
-  float texcoord[2];
+  float position[3u];
+  float normal[3u];
+  float texcoord[2u];
 };
 
 /* Attribute used by point list. */
 struct Point_t {
-  float position[4];
+  float position[4u];
 };
 
 }
@@ -81,10 +81,20 @@ void Geometry::MakeCube(Geometry &geo, float size) {
 
   // --------
 
-  geo.index_format_ = IndexFormat::U16;
-  geo.topology_ = Topology::TriangleList;
-  geo.index_count_ = static_cast<uint32_t>(trilistIndices.size());
-  geo.vertex_count_ = static_cast<uint32_t>(vertexAttributesIndices.size());
+  geo.set_index_format(IndexFormat::U16);
+  geo.set_topology(Topology::TriangleList);
+
+  geo.add_indices_data((std::byte*)trilistIndices.data(), sizeof(trilistIndices));
+
+  geo.add_primitive({
+    .vertexCount = static_cast<uint32_t>(vertexAttributesIndices.size()),
+    .indexCount = static_cast<uint32_t>(trilistIndices.size()),
+    .bufferOffsets = {
+      {AttributeType::Position, 0ul},
+      {AttributeType::Normal, 0ul},
+      {AttributeType::Texcoord, 0ul}
+    }
+  });
 
   geo.attributes_ = {
     {
@@ -113,20 +123,13 @@ void Geometry::MakeCube(Geometry &geo, float size) {
     },
   };
 
-  geo.indices_.clear();
-  geo.indices_.insert(
-    geo.indices_.begin(),
-    (uint8_t const*)trilistIndices.data(),
-    (uint8_t const*)trilistIndices.data() + sizeof(trilistIndices)
-  );
-
   auto& v = geo.vertices_;
   v.clear();
   v.reserve(vertexAttributesIndices.size() * sizeof(Vertex_t));
   for (auto const i : vertexAttributesIndices) {
-    auto pos_ptr = reinterpret_cast<uint8_t const*>(&positions[i[0]]);
-    auto nor_ptr = reinterpret_cast<uint8_t const*>(&normals[i[1]]);
-    auto uv_ptr = reinterpret_cast<uint8_t const*>(&texcoords[i[2]]);
+    auto pos_ptr = reinterpret_cast<std::byte const*>(&positions[i[0]]);
+    auto nor_ptr = reinterpret_cast<std::byte const*>(&normals[i[1]]);
+    auto uv_ptr = reinterpret_cast<std::byte const*>(&texcoords[i[2]]);
     v.insert(v.end(), pos_ptr, pos_ptr + sizeof(Vertex_t::position));
     v.insert(v.end(), nor_ptr, nor_ptr + sizeof(Vertex_t::normal));
     v.insert(v.end(), uv_ptr, uv_ptr + sizeof(Vertex_t::texcoord));
@@ -183,6 +186,20 @@ void Geometry::MakePlane(Geometry &geo, float size, uint32_t resx, uint32_t resy
 
   /// --------------
 
+  geo.set_index_format(IndexFormat::U32);
+
+  geo.set_topology(Topology::TriangleStrip);
+
+  geo.add_primitive({
+    .vertexCount = vertex_count,
+    .indexCount = index_count,
+    .bufferOffsets = {
+      {AttributeType::Position, 0ul},
+      {AttributeType::Normal, 0ul},
+      {AttributeType::Texcoord, 0ul}
+    }
+  });
+
   geo.attributes_ = {
     {
       AttributeType::Position,
@@ -210,22 +227,19 @@ void Geometry::MakePlane(Geometry &geo, float size, uint32_t resx, uint32_t resy
     },
   };
 
-
   /* Fill vertices. */
   {
     size_t const vertices_bytesize = vertices.size() * sizeof(vertices[0u]);
-    uint8_t *const vertices_ptr = reinterpret_cast<uint8_t*>(vertices.data());
+    std::byte *const vertices_ptr = reinterpret_cast<std::byte*>(vertices.data());
     geo.add_vertices_data(vertices_ptr, vertices_bytesize);
   }
 
   /* Fill indices. */
   {
     size_t const indices_bytesize = indices.size() * sizeof(indices[0u]);
-    uint8_t *const indices_ptr = reinterpret_cast<uint8_t*>(indices.data());
-    geo.add_indices_data(IndexFormat::U32, index_count, indices_ptr, indices_bytesize);
+    std::byte *const indices_ptr = reinterpret_cast<std::byte*>(indices.data());
+    geo.add_indices_data(indices_ptr, indices_bytesize);
   }
-
-  geo.set_vertex_info(Topology::TriangleStrip, vertex_count);
 }
 
 // ----------------------------------------------------------------------------
@@ -328,6 +342,20 @@ void Geometry::MakeSphere(Geometry &geo, float radius, uint32_t resx, uint32_t r
 
   /// --------------
 
+  geo.set_index_format(IndexFormat::U32);
+
+  geo.set_topology(Topology::TriangleStrip);
+
+  geo.add_primitive({
+    .vertexCount = vertex_count,
+    .indexCount = index_count,
+    .bufferOffsets = {
+      {AttributeType::Position, 0ul},
+      {AttributeType::Normal, 0ul},
+      {AttributeType::Texcoord, 0ul}
+    }
+  });
+
   geo.attributes_ = {
     {
       AttributeType::Position,
@@ -358,18 +386,16 @@ void Geometry::MakeSphere(Geometry &geo, float radius, uint32_t resx, uint32_t r
   /* Fill vertices. */
   {
     size_t const vertices_bytesize = vertices.size() * sizeof(vertices[0u]);
-    uint8_t *const vertices_ptr = reinterpret_cast<uint8_t*>(vertices.data());
+    std::byte *const vertices_ptr = reinterpret_cast<std::byte*>(vertices.data());
     geo.add_vertices_data(vertices_ptr, vertices_bytesize);
   }
 
   /* Fill indices. */
   {
     size_t const indices_bytesize = indices.size() * sizeof(indices[0u]);
-    uint8_t *const indices_ptr = reinterpret_cast<uint8_t*>(indices.data());
-    geo.add_indices_data(IndexFormat::U32, index_count, indices_ptr, indices_bytesize);
+    std::byte *const indices_ptr = reinterpret_cast<std::byte*>(indices.data());
+    geo.add_indices_data(indices_ptr, indices_bytesize);
   }
-
-  geo.set_vertex_info(Topology::TriangleStrip, vertex_count);
 }
 
 // ----------------------------------------------------------------------------
@@ -429,7 +455,6 @@ void Geometry::MakeTorus(Geometry &geo, float major_radius, float minor_radius, 
     }
   }
 
-
   /* Set up triangle strip indices. */
   uint32_t const index_count = ((resx + 1u) * 2u) * resy + (resy - 1u) * 2u;
   std::vector<uint32_t> indices(index_count);
@@ -451,6 +476,20 @@ void Geometry::MakeTorus(Geometry &geo, float major_radius, float minor_radius, 
   }
 
   /// --------------
+
+  geo.set_index_format(IndexFormat::U32);
+
+  geo.set_topology(Topology::TriangleStrip);
+
+  geo.add_primitive({
+    .vertexCount = vertex_count,
+    .indexCount = index_count,
+    .bufferOffsets = {
+      {AttributeType::Position, 0ul},
+      {AttributeType::Normal, 0ul},
+      {AttributeType::Texcoord, 0ul}
+    }
+  });
 
   geo.attributes_ = {
     {
@@ -482,18 +521,16 @@ void Geometry::MakeTorus(Geometry &geo, float major_radius, float minor_radius, 
   /* Fill vertices. */
   {
     size_t const vertices_bytesize = vertices.size() * sizeof(vertices[0u]);
-    uint8_t *const vertices_ptr = reinterpret_cast<uint8_t*>(vertices.data());
+    std::byte *const vertices_ptr = reinterpret_cast<std::byte*>(vertices.data());
     geo.add_vertices_data(vertices_ptr, vertices_bytesize);
   }
 
   /* Fill indices. */
   {
     size_t const indices_bytesize = indices.size() * sizeof(indices[0u]);
-    uint8_t *const indices_ptr = reinterpret_cast<uint8_t*>(indices.data());
-    geo.add_indices_data(IndexFormat::U32, index_count, indices_ptr, indices_bytesize);
+    std::byte *const indices_ptr = reinterpret_cast<std::byte*>(indices.data());
+    geo.add_indices_data(indices_ptr, indices_bytesize);
   }
-
-  geo.set_vertex_info(Topology::TriangleStrip, vertex_count);
 }
 
 // ----------------------------------------------------------------------------
@@ -525,6 +562,18 @@ void Geometry::MakePointListPlane(Geometry &geo, float size, uint32_t resx, uint
 
   /// --------------
 
+  geo.set_index_format(IndexFormat::U32);
+
+  geo.set_topology(Topology::PointList);
+
+  geo.add_primitive({
+    .vertexCount = vertex_count,
+    .indexCount = vertex_count,
+    .bufferOffsets = {
+      {AttributeType::Position, 0ul},
+    }
+  });
+
   geo.attributes_ = {
     {
       AttributeType::Position,
@@ -539,41 +588,40 @@ void Geometry::MakePointListPlane(Geometry &geo, float size, uint32_t resx, uint
   /* Fill vertices. */
   {
     size_t const vertices_bytesize = vertices.size() * sizeof(vertices[0u]);
-    uint8_t *const vertices_ptr = reinterpret_cast<uint8_t*>(vertices.data());
+    std::byte *const vertices_ptr = reinterpret_cast<std::byte*>(vertices.data());
     geo.add_vertices_data(vertices_ptr, vertices_bytesize);
   }
 
   /* Fill indices. */
   {
     size_t const indices_bytesize = indices.size() * sizeof(indices[0u]);
-    uint8_t *const indices_ptr = reinterpret_cast<uint8_t*>(indices.data());
-    geo.add_indices_data(IndexFormat::U32, vertex_count, indices_ptr, indices_bytesize);
+    std::byte *const indices_ptr = reinterpret_cast<std::byte*>(indices.data());
+    geo.add_indices_data(indices_ptr, indices_bytesize);
   }
-
-  geo.set_vertex_info(Topology::PointList, vertex_count);
 }
 
 // ----------------------------------------------------------------------------
 
-uint32_t Geometry::add_vertices_data(uint8_t const* data, uint32_t bytesize) {
-  uint32_t const offset = vertices_.size();
+void Geometry::add_primitive(Primitive primitive) {
+  index_count_ += primitive.indexCount;
+  vertex_count_ += primitive.vertexCount;
+  primitives_.push_back(primitive);
+}
+
+uint64_t Geometry::add_vertices_data(std::byte const* data, uint32_t bytesize) {
+  uint64_t const offset = vertices_.size();
   vertices_.insert(vertices_.end(), data, data + bytesize);
   return offset;
 }
 
-void Geometry::add_indices_data(IndexFormat format, uint32_t count, uint8_t const* data, uint32_t bytesize) {
-  index_format_= format;
-  index_count_ = count;
+uint64_t Geometry::add_indices_data(std::byte const* data, uint32_t bytesize) {
+  uint64_t const offset = indices_.size();
   indices_.insert(indices_.cend(), data, data + bytesize);
+  return offset;
 }
 
 void Geometry::add_attribute(AttributeType const type, AttributeInfo const& info) {
   attributes_[type] = info;
-}
-
-void Geometry::set_vertex_info(Topology topology, uint32_t vertex_count) {
-  topology_ = topology;
-  vertex_count_ = vertex_count;
 }
 
 // ----------------------------------------------------------------------------
@@ -622,38 +670,51 @@ VkIndexType Geometry::get_vk_index_type() const {
   }
 }
 
-std::vector<Geometry::VulkanVertexBufferBinding> Geometry::get_vk_vertex_buffer_binding( std::map<AttributeType, uint32_t> const& attribute_to_location ) const {
-  std::map<uint32_t, std::vector<AttributeType>> lut{};
-  for (auto const& kv : attributes_) {
-    auto const info = kv.second;
-    lut[info.bufferOffset].push_back(kv.first);
+std::vector<Geometry::VulkanVertexBufferBinding> Geometry::get_vk_vertex_buffer_binding( AttributeLocationMap const& attribute_to_location, uint32_t const primitive_index ) const {
+  assert(primitive_index < primitives_.size());
+  auto const& primitive = primitives_[primitive_index];
+
+  // This reverse LUT helps us now which attributes are interleaved together.
+  std::map<uint64_t, std::vector<AttributeType>> lut{};
+  for (auto const& kv : primitive.bufferOffsets) {
+    lut[kv.second].push_back(kv.first);
   }
 
   std::vector<VulkanVertexBufferBinding> result;
+  uint32_t buffer_binding = 0u;
 
-  uint32_t binding = 0u;
   for (auto const& kv : lut) {
-    std::vector<AttributeType> const& types = kv.second;
-    auto info = attributes_.find(types[0])->second;
+    std::vector<AttributeType> const& types{ kv.second };
 
-    uint32_t count = 0u;
-    for (auto const& type : types) {
-      count += (attribute_to_location.find(type) != attribute_to_location.end()) ? 1 : 0;
-    }
-    if (count <= 0u) {
+    if (types.empty()) {
       continue;
     }
 
-    VulkanVertexBufferBinding vbb{
-      .binding = binding,
-      .offset = kv.first,
-      .stride = info.stride,
-    };
+    /* Be sure any of the attributes asked for exists */
+    bool exists = false;
     for (auto const& type : types) {
+      exists |= attribute_to_location.contains(type);
+    }
+    if (!exists) {
+      continue;
+    }
+
+    /* The stride is shared between attributes of the same binding. */
+    uint32_t const buffer_stride = attributes_.find(types[0u])->second.stride;
+    uint64_t const buffer_offset = kv.first;
+
+    VulkanVertexBufferBinding vbb{
+      .binding = buffer_binding,
+      .offset = buffer_offset,
+      .stride = buffer_stride,
+    };
+
+    for (auto const& type : types)
+    {
       if (auto it = attribute_to_location.find(type); it != attribute_to_location.end()) {
         vbb.attributes.push_back({
           .location = it->second,
-          .binding = binding,
+          .binding = buffer_binding,
           .format = get_vk_format(type),
           .offset = get_offset(type),
         });
@@ -661,16 +722,13 @@ std::vector<Geometry::VulkanVertexBufferBinding> Geometry::get_vk_vertex_buffer_
     }
 
     result.push_back(vbb);
-    ++binding;
+    ++buffer_binding;
   }
 
   return result;
 }
 
-std::vector<VkVertexInputAttributeDescription> Geometry::get_vk_binding_attributes(
-  uint32_t buffer_binding,
-  std::map<AttributeType, uint32_t> const& attribute_to_location
-) const {
+std::vector<VkVertexInputAttributeDescription> Geometry::get_vk_binding_attributes( uint32_t buffer_binding, AttributeLocationMap const& attribute_to_location ) const {
   std::vector<VkVertexInputAttributeDescription> result(attribute_to_location.size());
 
   std::transform(

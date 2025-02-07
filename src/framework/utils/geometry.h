@@ -35,17 +35,6 @@ class Geometry {
     kUnknown
   };
 
-  enum class AttributeType {
-    Position,
-    Texcoord,
-    Normal,
-    Tangent,
-    Joints,
-    Weights,
-    kCount,
-    kUnknown
-  };
-
   enum class AttributeFormat {
     R_F32,
     RG_F32,
@@ -59,11 +48,38 @@ class Geometry {
     kUnknown,
   };
 
+  enum class AttributeType {
+    Position,
+    Texcoord,
+    Normal,
+    Tangent,
+    Joints,
+    Weights,
+    kCount,
+    kUnknown
+  };
+
+  using AttributeLocationMap = std::map<AttributeType, uint32_t>;
+
+  /**
+   * When all attributes are != 0 the data are not interleaved and buffers should
+   * be bind separately, with offset depending on the number of elements and the
+   * format of attributes before them...
+   */
   struct AttributeInfo {
     AttributeFormat format{};
     uint32_t offset{};
     uint32_t stride{};
-    uint32_t bufferOffset{}; // (identical bufferOffset == identical buffer view)
+  };
+
+  // (this is used for rendering)
+  struct Primitive {
+    uint32_t vertexCount{};
+    uint32_t indexCount{};
+
+    // uint64_t vertexOffset{};
+    uint64_t indexOffset{};
+    std::map<AttributeType, uint64_t> bufferOffsets{};
   };
 
  public:
@@ -81,7 +97,7 @@ class Geometry {
   static void MakeSphere(Geometry &geo, float radius, uint32_t resx, uint32_t resy);
 
   static void MakeSphere(Geometry &geo, float radius = kDefaultRadius, uint32_t resolution = 32u) {
-    MakeSphere(geo, resolution, resolution, radius);
+    MakeSphere(geo, radius, resolution, resolution);
   }
 
   /* Create a torus with interleaved Position, Normal, and UV. */
@@ -114,6 +130,8 @@ class Geometry {
     return index_format_;
   }
 
+  /* RENAME 'get_total_X_count' */
+
   uint32_t get_index_count() const {
     return index_count_;
   }
@@ -134,31 +152,48 @@ class Geometry {
     return attributes_.at(attrib_type).stride;
   }
 
-  std::vector<uint8_t> const& get_indices() const {
+  std::vector<std::byte> const& get_indices() const {
     return indices_;
   }
 
-  std::vector<uint8_t> const& get_vertices() const {
+  std::vector<std::byte> const& get_vertices() const {
     return vertices_;
   }
 
-  uint32_t add_vertices_data(uint8_t const* data, uint32_t bytesize);
+  Primitive const& get_primitive(uint32_t const primitive_index = 0u) const {
+    return primitives_.at(primitive_index);
+  }
 
-  void add_indices_data(IndexFormat format, uint32_t count, uint8_t const* data, uint32_t bytesize);
+  uint32_t get_primitive_count() const {
+    return static_cast<uint32_t>(primitives_.size());
+  }
+
+  void set_topology(Topology const topology) {
+    topology_ = topology;
+  }
+
+  void set_index_format(IndexFormat const format) {
+    index_format_ = format;
+  }
+
+
+  uint64_t add_vertices_data(std::byte const* data, uint32_t bytesize);
+
+  uint64_t add_indices_data(std::byte const* data, uint32_t bytesize);
 
   void add_attribute(AttributeType const type, AttributeInfo const& info);
 
-  void set_vertex_info(Topology topology, uint32_t vertex_count);
-
-  // TODO
-  //void transform_attribute(AttributeType const type, mat4f const& transform_matrix);
+  void add_primitive(Primitive primitive);
 
  public:
   /* -- Vulkan Type Converters & Helpers -- */
 
   struct VulkanVertexBufferBinding {
+    // (bind vertex buffer)
     uint32_t binding;
-    uint32_t offset;
+    uint64_t offset;
+
+    // (vertex input)
     uint32_t stride;
     std::vector<VkVertexInputAttributeDescription> attributes;
   };
@@ -169,10 +204,10 @@ class Geometry {
 
   VkIndexType get_vk_index_type() const;
 
-  std::vector<Geometry::VulkanVertexBufferBinding> get_vk_vertex_buffer_binding( std::map<AttributeType, uint32_t> const& attribute_to_location ) const;
+  std::vector<Geometry::VulkanVertexBufferBinding> get_vk_vertex_buffer_binding( AttributeLocationMap const& attribute_to_location, uint32_t const primitive_index = 0u ) const;
 
   // [DEPRECATED]
-  std::vector<VkVertexInputAttributeDescription> get_vk_binding_attributes(uint32_t buffer_binding, std::map<AttributeType, uint32_t> const& attribute_to_location) const;
+  std::vector<VkVertexInputAttributeDescription> get_vk_binding_attributes(uint32_t buffer_binding, AttributeLocationMap const& attribute_to_location) const;
 
 
  private:
@@ -182,8 +217,10 @@ class Geometry {
   uint32_t vertex_count_{};
 
   std::map<AttributeType, AttributeInfo> attributes_{};
-  std::vector<uint8_t> indices_{};
-  std::vector<uint8_t> vertices_{};
+  std::vector<std::byte> indices_{};
+  std::vector<std::byte> vertices_{};
+
+  std::vector<Primitive> primitives_{};
 };
 
 /* -------------------------------------------------------------------------- */
