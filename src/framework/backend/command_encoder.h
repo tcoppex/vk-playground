@@ -256,10 +256,12 @@ class RenderPassEncoder : public GenericCommandEncoder {
   // --- Vertex Buffer ---
 
   void set_vertex_buffer(Buffer_t const& buffer, uint32_t binding = 0u, VkDeviceSize const offset = 0u) const {
-    vkCmdBindVertexBuffers(command_buffer_, binding, 1u, &buffer.buffer, &offset);
+    // https://registry.khronos.org/vulkan/specs/latest/man/html/vkCmdBindVertexBuffers2.html
+    vkCmdBindVertexBuffers2(command_buffer_, binding, 1u, &buffer.buffer, &offset, nullptr, nullptr);
   }
 
   void set_index_buffer(Buffer_t const& buffer, VkIndexType const index_type = VK_INDEX_TYPE_UINT32, VkDeviceSize const offset = 0u) const {
+    // VK_KHR_maintenance5 or VK_VERSION_1_4
     vkCmdBindIndexBuffer2(command_buffer_, buffer.buffer, offset, VK_WHOLE_SIZE, index_type);
   }
 
