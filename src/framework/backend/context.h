@@ -157,9 +157,9 @@ class Context {
     VkPhysicalDeviceTimelineSemaphoreFeaturesKHR timeline_semaphore{};
     VkPhysicalDeviceSynchronization2FeaturesKHR synchronization2{};
     VkPhysicalDeviceDescriptorIndexingFeaturesEXT descriptor_indexing{};
-    VkPhysicalDeviceExtendedDynamicStateFeaturesEXT dynamic_state{};
-    VkPhysicalDeviceExtendedDynamicState2FeaturesEXT dynamic_state2{};
-    VkPhysicalDeviceExtendedDynamicState3FeaturesEXT dynamic_state3{};
+    VkPhysicalDeviceExtendedDynamicStateFeaturesEXT extended_dynamic_state{};
+    VkPhysicalDeviceExtendedDynamicState2FeaturesEXT extended_dynamic_state2{};
+    VkPhysicalDeviceExtendedDynamicState3FeaturesEXT extended_dynamic_state3{};
     VkPhysicalDeviceVertexInputDynamicStateFeaturesEXT vertex_input_dynamic_state{};
   } feature_;
 

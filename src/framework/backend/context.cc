@@ -303,19 +303,19 @@ bool Context::init_device() {
 
     add_device_feature(
       VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME,
-      feature_.dynamic_state,
+      feature_.extended_dynamic_state,
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_FEATURES_EXT
     );
 
     add_device_feature(
       VK_EXT_EXTENDED_DYNAMIC_STATE_2_EXTENSION_NAME,
-      feature_.dynamic_state2,
+      feature_.extended_dynamic_state2,
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_2_FEATURES_EXT
     );
 
     add_device_feature(
       VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME,
-      feature_.dynamic_state3,
+      feature_.extended_dynamic_state3,
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_3_FEATURES_EXT
     );
 
