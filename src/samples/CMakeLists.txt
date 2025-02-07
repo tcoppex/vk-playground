@@ -46,6 +46,7 @@ function(add_simple_demo dirname)
     # Define VK_NO_PROTOTYPES to avoid including Vulkan prototypes
     # This is necessary because we are using volk to load Vulkan functions
     VK_NO_PROTOTYPES
+    _USE_MATH_DEFINES
   )
 
   set_target_output_directory(${dirname} ${PROJECT_BINARY_DIR})

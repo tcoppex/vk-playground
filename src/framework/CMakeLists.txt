@@ -37,6 +37,7 @@ target_compile_definitions(${target} PRIVATE
   # Define VK_NO_PROTOTYPES to avoid including Vulkan prototypes
   # This is necessary because we are using volk to load Vulkan functions
   VK_NO_PROTOTYPES
+  _USE_MATH_DEFINES
 )
 
 target_compile_options(${target} PRIVATE

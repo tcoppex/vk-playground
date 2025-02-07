@@ -44,7 +44,7 @@ Buffer_t ResourceAllocator::create_buffer(
 
   if constexpr (kAutoAlignBufferSize) {
     if (auto const new_size{ utils::AlignTo256(size) }; new_size != size) {
-      fprintf(stderr, "%s: change size from %lu to %lu.\n", __FUNCTION__, size, new_size);
+      fprintf(stderr, "%s: change size from %llu to %llu.\n", __FUNCTION__, size, new_size);
       size = new_size;
     }
   }

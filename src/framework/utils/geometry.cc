@@ -1,10 +1,10 @@
 #include "framework/utils/geometry.h"
 
-#define _USE_MATH_DEFINES
 #include <cmath>
 #include <cassert>
 #include <cstddef>
 
+#include <algorithm>
 #include <array>
 #include <numeric>
 

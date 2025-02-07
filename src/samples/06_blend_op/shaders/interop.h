@@ -4,6 +4,7 @@
 // ---------------------------------------------------------------------------
 
 #ifdef __cplusplus
+#include <cstdint>
 #define UINT uint32_t
 #else
 #define UINT uint
