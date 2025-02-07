@@ -198,6 +198,8 @@ class Geometry {
     std::vector<VkVertexInputAttributeDescription> attributes;
   };
 
+  using VulkanVertexBufferBindings = std::vector<VulkanVertexBufferBinding>;
+
   VkFormat get_vk_format(AttributeType const attrib_type) const;
 
   VkPrimitiveTopology get_vk_primitive_topology() const;
