@@ -24,7 +24,7 @@ std::string GetTextureRefID(cgltf_texture const& texture, std::string_view alt) 
 
 Geometry::AttributeType GetAttributeType(cgltf_attribute const& attribute) {
   if (attribute.index != 0u) {
-    LOGE("[GLTF] Unsupported multiple attribute of same type %s", attribute.name);
+    LOGE("[GLTF] Unsupported multiple attribute of same type %s.", attribute.name);
     return Geometry::AttributeType::kUnknown;
   }
 
@@ -48,7 +48,7 @@ Geometry::AttributeType GetAttributeType(cgltf_attribute const& attribute) {
       return Geometry::AttributeType::Weights;
 
     default:
-      LOGE("[GLTF] Unsupported attribute type %s", attribute.name);
+      LOGE("[GLTF] Unsupported attribute type %s.", attribute.name);
       return Geometry::AttributeType::kUnknown;
   }
 }
@@ -80,7 +80,7 @@ Geometry::AttributeFormat GetAttributeFormat(cgltf_accessor const* accessor) {
       return Geometry::AttributeFormat::RG_F32;
 
     default:
-      LOGE("[GLTF] Unsupported accessor format");
+      LOGE("[GLTF] Unsupported accessor format.");
       return Geometry::AttributeFormat::kUnknown;
   }
 }
@@ -94,27 +94,34 @@ Geometry::IndexFormat GetIndexFormat(cgltf_accessor const* accessor) {
       return Geometry::IndexFormat::U16;
     }
   }
-  LOGE("[GLTF] Unsupported index format");
+  LOGE("[GLTF] Unsupported index format.");
   return Geometry::IndexFormat::kUnknown;
 }
 
 Geometry::Topology GetTopology(cgltf_primitive const& primitive) {
   switch (primitive.type) {
-    case cgltf_primitive_type_points:
-      return Geometry::Topology::PointList;
-
     case cgltf_primitive_type_triangles:
       return Geometry::Topology::TriangleList;
 
     case cgltf_primitive_type_triangle_strip:
       return Geometry::Topology::TriangleStrip;
 
+    case cgltf_primitive_type_points:
+      return Geometry::Topology::PointList;
+
     default:
+      LOGE("[GLTF] Unsupported topology.");
       return Geometry::Topology::kUnknown;
   }
 }
 
+} // namespace ""
+
 // ----------------------------------------------------------------------------
+
+/* ---- GLTF extractor ---- */
+
+namespace {
 
 void ExtractTextures(std::string const& basename, std::unordered_map<void const*, std::string> const& texture_map, cgltf_data const* data, scene::host::Resources& R) {
   int const kDefaultNumChannels = 4;
@@ -161,13 +168,7 @@ void ExtractTextures(std::string const& basename, std::unordered_map<void const*
   }
 }
 
-void ExtractMaterials(
-  std::string const& basename,
-  std::unordered_map<void const*, std::string> &texture_map,
-  std::unordered_map<void const*, std::string> &material_map,
-  cgltf_data const* data,
-  scene::host::Resources& R
-)
+void ExtractMaterials(std::string const& basename, std::unordered_map<void const*, std::string> &texture_map, std::unordered_map<void const*, std::string> &material_map, cgltf_data const* data, scene::host::Resources& R)
 {
   auto textureRef = [&texture_map](cgltf_texture const& texture, std::string_view suffix) {
     auto ref = GetTextureRefID(texture, suffix);
@@ -182,6 +183,7 @@ void ExtractMaterials(
                              : basename + std::string("::Material_" + std::to_string(i));
     material_map[&mat] = material_name;
 
+    // if (R.materials.find(material_name) == R.materials.end()) continue;
     LOG_CHECK(R.materials.find(material_name) == R.materials.end());
 
     auto material = std::make_shared<scene::host::Material>();
@@ -227,7 +229,7 @@ void ExtractMaterials(
 }
 
 void ExtractMeshes(std::string const& basename, std::unordered_map<void const*, std::string> const& material_map, cgltf_data const* data, scene::host::Resources& R) {
-  // Preprocess meshes nodes.
+  /* Preprocess meshes nodes. */
   std::vector<uint32_t> meshNodeIndices;
   for (cgltf_size i = 0; i < data->nodes_count; ++i) {
     cgltf_node const& node = data->nodes[i];
@@ -241,22 +243,31 @@ void ExtractMeshes(std::string const& basename, std::unordered_map<void const*, 
   }
   R.meshes.reserve(meshNodeIndices.size());
 
+  // Utility function.
+  auto isAccessorOffsetFlat{[](cgltf_accessor const* acc) -> bool {
+    size_t const kAccessorOffsetLimit = 2048;
+    return (acc->offset == 0) || (acc->offset >= kAccessorOffsetLimit);
+  }};
+
+  bool constexpr bRestructureData = false;
+  std::vector<Vertex> vertices{};
+
+  /**
+   * Each Mesh hold its geometry,
+   * each primitive consist of a material and offset in the mesh geometry.
+   * We assume every primitives of a Mesh have the same topology / attributes
+   ***/
+
   // Parse each mesh nodes (for primitives & skeleton).
   for (auto i : meshNodeIndices) {
     cgltf_node const& node = data->nodes[i];
-    // cgltf_mesh const& mesh = *(node.mesh);
 
-    auto mesh = std::make_shared<scene::host::Mesh>();
-    mesh->primitives.reserve(node.mesh->primitives_count);
+    uint32_t total_vertex_count = 0u;
+    std::vector<uint32_t> prim_indices;
 
-    // Root transform.
-    cgltf_node_transform_world(&node, lina::ptr(mesh->world_matrix));
-
-    // Primitives.
+    // Preprocess primitives.
     for (cgltf_size j = 0; j < node.mesh->primitives_count; ++j) {
       cgltf_primitive const& prim = node.mesh->primitives[j];
-
-      LOGI("-------\n << PRIMITIVE %03u", j);
 
       // [Check] Has Attributes.
       if (prim.attributes_count <= 0u) {
@@ -269,123 +280,142 @@ void ExtractMeshes(std::string const& basename, std::unordered_map<void const*, 
         continue;
       }
       // [Check] Non triangles primitives.
-      // if (prim.type != cgltf_primitive_type_triangles) {
-      //   LOGW("[GLTF] Non TRIANGLES primitives are not supported.");
-      //   continue;
-      // }
+      if (prim.type != cgltf_primitive_type_triangles) {
+        LOGW("[GLTF] The mesh contains non TRIANGLES primitives.");
+        // continue;
+      }
       // [Check] Morph targets.
       if (prim.targets_count > 0) {
         LOGW("[GLTF] Morph targets are not supported.");
       }
-
-      auto primitive = std::make_shared<scene::host::Primitive>();
-
-      //--------------------------------------------------
-
-      // (Primitive buffer are copied "as is" but it might be better to force
-      //  them to our own internal layout)
-
-      /* Retrieve attributes parameters. */
-      std::map<cgltf_buffer*, cgltf_buffer*> buffers{};
-      std::map<cgltf_buffer_view*, cgltf_buffer_view*> bufferviews{};
-      std::map<cgltf_accessor const*, cgltf_accessor const*> accessors{};
-      std::map<cgltf_accessor const*, uint32_t> accessor_buffer_offsets{};
-
-      uint32_t vertex_count = 0;
-      bool isSparse = false;
+      // [Check] Sparse attributes.
+      bool is_sparse = false;
       for (cgltf_size k = 0; k < prim.attributes_count; ++k) {
         cgltf_attribute const& attribute = prim.attributes[k];
         cgltf_accessor const* accessor = attribute.data;
         if (accessor->is_sparse) {
-          isSparse = true;
+          LOGW("[GLTF] Sparse attributes are not supported.");
+          is_sparse = true;
           break;
         }
-        accessors[accessor] = accessor;
+      }
+      if (is_sparse) {
+        continue;
+      }
 
-        auto buffer_view = accessor->buffer_view;
-        bufferviews[buffer_view] = bufferviews[buffer_view];
+      total_vertex_count += prim.attributes[0].data->count;
+      prim_indices.push_back(j);
+    }
 
-        auto buffer = buffer_view->buffer;
-        buffers[buffer] = buffer;
+    if (prim_indices.empty()) {
+      LOGW("[GLTF] A Mesh was bypassed due to unsupported features.");
+      continue;
+    }
+    LOGD(">> total vertices : %u\n", total_vertex_count);
 
-        vertex_count = accessor->count;
+    auto mesh = std::make_shared<scene::host::Mesh>();
 
-        if (auto type = GetAttributeType(attribute); type != Geometry::AttributeType::kUnknown) {
-          LOGD("%s", attribute.name);
-          LOGD("offset %lu %lu", buffer_view->offset, accessor->offset);
-          LOGD("stride %lu %lu", buffer_view->stride, accessor->stride);
-          LOGD("size %lu \t count %lu", buffer_view->size, accessor->count);
-          LOGD(" ");
+    cgltf_node_transform_world(&node, lina::ptr(mesh->world_matrix));
+    mesh->primitive_materials.resize(prim_indices.size());
 
-          uint32_t bufferOffset;
-          uint32_t accessorOffset(0);
-          if ((accessor->offset == 0) || (accessor->offset >= 2048)) {
-            bufferOffset = primitive->add_vertices_data(
-              reinterpret_cast<uint8_t*>(buffer_view->buffer->data) + buffer_view->offset + accessor->offset,
+
+    // -----------------
+
+    if constexpr (bRestructureData) {
+      vertices.resize(total_vertex_count);
+
+    } else {
+
+      /* Setup the shared attributes from the first primitive.
+       *
+       * This suppose all mesh primitives share the same layout.
+       */
+
+      {
+        cgltf_primitive const& prim = node.mesh->primitives[prim_indices.at(0)];
+
+        mesh->set_topology(GetTopology(prim));
+
+        for (cgltf_size j = 0; j < prim.attributes_count; ++j) {
+          cgltf_attribute const& attribute = prim.attributes[j];
+          cgltf_accessor const* accessor = attribute.data;
+
+          if (auto type = GetAttributeType(attribute); type != Geometry::AttributeType::kUnknown) {
+            size_t const accessorOffset{ isAccessorOffsetFlat(accessor) ? 0u : accessor->offset };
+            mesh->add_attribute(type, {
+              .format = GetAttributeFormat(accessor),
+              .offset = static_cast<uint32_t>(accessorOffset),
+              .stride = static_cast<uint32_t>(accessor->stride),
+            });
+          }
+        }
+      }
+
+      /* Parse the primitives. */
+      for (uint32_t j = 0u; j < prim_indices.size(); ++j) {
+        cgltf_primitive const& prim = node.mesh->primitives[prim_indices.at(j)];
+        LOG_CHECK(GetTopology(prim) == mesh->get_topology());
+
+        Geometry::Primitive primitive{};
+
+        /* Retrieve primitive attributes offsets, when relevant. */
+        std::map<cgltf_accessor const*, uint64_t> accessor_buffer_offsets{};
+
+        for (cgltf_size k = 0; k < prim.attributes_count; ++k) {
+          cgltf_attribute const& attribute = prim.attributes[k];
+
+          if (auto type = GetAttributeType(attribute); type != Geometry::AttributeType::kUnknown) {
+            auto accessor = attribute.data;
+            auto buffer_view = accessor->buffer_view;
+
+            uint64_t bufferOffset{};
+            if (isAccessorOffsetFlat(accessor)) {
+              bufferOffset = mesh->add_vertices_data(
+                reinterpret_cast<std::byte const*>(buffer_view->buffer->data) + buffer_view->offset + accessor->offset,
+                buffer_view->size
+              );
+              accessor_buffer_offsets[accessor] = bufferOffset;
+            } else {
+              bufferOffset = accessor_buffer_offsets[accessor];
+            }
+            primitive.vertexCount = accessor->count;
+            primitive.bufferOffsets[type] = bufferOffset;
+          }
+        }
+
+        if (prim.indices) {
+          cgltf_accessor const* accessor = prim.indices;
+          cgltf_buffer_view const* buffer_view = accessor->buffer_view;
+          cgltf_buffer const* buffer = buffer_view->buffer;
+
+          if (auto index_format = GetIndexFormat(accessor); index_format != Geometry::IndexFormat::kUnknown) {
+            mesh->set_index_format(index_format);
+
+            uint64_t indicesOffset = mesh->add_indices_data(
+              reinterpret_cast<std::byte const*>(buffer->data) + buffer_view->offset + accessor->offset, //
               buffer_view->size
             );
-            accessor_buffer_offsets[accessor] = bufferOffset;
-            LOGW("[GLTF] added %u vertices, from an offset of %lu bytes, for a buffer of %lu bytes.", vertex_count, buffer_view->offset, buffer_view->size);
-          } else {
-            bufferOffset = accessor_buffer_offsets[accessor];
-            accessorOffset = static_cast<uint32_t>(accessor->offset);
+            primitive.indexCount = accessor->count;
+            primitive.indexOffset = indicesOffset; //
+
+            // LOGD("[GLTF] added %lu indices, for a buffer of %lu bytes, to an offset of %lu bytes.\n",
+            //   accessor->count, /*buffer_view->offset, accessor->offset,*/ buffer_view->size, indicesOffset
+            // );
           }
-          LOGD(">> %lu %u\n", accessor->offset, bufferOffset);
-
-          primitive->add_attribute(type, {
-            .format = GetAttributeFormat(accessor),
-            .offset = accessorOffset,
-            .stride = static_cast<uint32_t>(accessor->stride),
-            .bufferOffset = bufferOffset, //
-          });
         }
-      }
 
-      /* Check the attributes are neither sparse nor on different buffer. */
-      if (isSparse) {
-        LOGW("[GLTF] sparse attributes are not supported.");
-        continue;
-      }
-      if (buffers.size() > 1) {
-        LOGW("[GLTF] attributes on multiple buffers are not supported.");
-        continue;
-      }
-
-      LOGD("accessors.size : %lu", accessors.size());
-      LOGD("bufferviews.size : %lu", bufferviews.size());
-
-      // Issue when hte model use multiple buffers offset
-      // for (auto key : bufferviews)
-      // {
-      //   auto buffer_view = key.first;
-      //   primitive->add_vertices_data(reinterpret_cast<uint8_t*>(buffer_view->buffer->data) + buffer_view->offset, buffer_view->size); // XXXX
-      //   LOGW("[GLTF] added %u vertices, from an offset of %lu bytes, for a buffer of %lu bytes.", vertex_count, buffer_view->offset, buffer_view->size);
-      // }
-      primitive->set_vertex_info(GetTopology(prim), vertex_count);
-      //--------------------------------------------------
-
-      if (prim.indices) {
-        cgltf_accessor const* accessor = prim.indices;
-        cgltf_buffer_view const* buffer_view = accessor->buffer_view;
-        cgltf_buffer const* buffer = buffer_view->buffer;
-        if (auto index_format = GetIndexFormat(accessor); index_format != Geometry::IndexFormat::kUnknown) {
-          primitive->add_indices_data(index_format, accessor->count, reinterpret_cast<uint8_t*>(buffer->data) + buffer_view->offset, buffer_view->size);
-          LOGD("[GLTF] added %lu indices, from an offset of %lu bytes, for a buffer of %lu bytes.", accessor->count, buffer_view->offset, buffer_view->size);
+        // Assign material when availables.
+        if (prim.material) {
+          if (auto it = material_map.find(prim.material); it != material_map.cend()) {
+            mesh->primitive_materials[j] = R.materials[it->second];
+          }
         }
-      } else {
-        LOGD("[GLFW] no indices.");
-      }
-      LOGD(" ");
 
-      // Assign material when availables.
-      if (prim.material) {
-        if (auto it = material_map.find(prim.material); it != material_map.cend()) {
-          primitive->material = R.materials[it->second];
-        }
+        mesh->add_primitive(primitive);
       }
-
-      mesh->primitives.push_back(std::move(primitive));
     }
+
+    // -----------------
 
     // Skeleton.
     if (cgltf_skin const* skin = node.skin; skin) {
@@ -443,12 +473,6 @@ void ExtractMeshes(std::string const& basename, std::unordered_map<void const*, 
     }
 
     R.meshes.push_back(mesh);
-    // R.meshes.insert(
-    //   R.meshes.begin(),
-    //   std::make_move_iterator(primitives.begin()),
-    //   std::make_move_iterator(primitives.end())
-    // );
-    // primitives.clear();
   }
 }
 

@@ -113,24 +113,21 @@ struct Skeleton {
 //
 // IDEA :
 // share Geometry per mesh, Primitive only hold material and logic (offsets),
-// have either two device buffer per Mesh, or two per Resources
+// Have two device buffers per Resources : one for vertex, one for index.
 //
 
-struct VertexGroup {
-  uint32_t vertexOffset;
-  uint32_t indexOffset;
-  uint32_t indexCount;
-};
+struct Mesh : Geometry {
+  Mesh() = default;
 
-struct Primitive : Geometry {
-  std::shared_ptr<Material> material;
-  // PipelineVertexBufferDescriptors vertex_buffer_descriptors;
-};
+  std::vector<std::shared_ptr<Material>> primitive_materials; //
 
-struct Mesh {
-  std::vector<std::shared_ptr<Primitive>> primitives;
   std::shared_ptr<Skeleton> skeleton;
   mat4f world_matrix{linalg::identity};
+
+  // uint32_t vertexOffset;
+  // uint32_t indexOffset;
+
+  // PipelineVertexBufferDescriptors vertex_buffer_descriptors;
 };
 
 // ----------------------------------------------------------------------------
