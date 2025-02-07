@@ -670,7 +670,7 @@ VkIndexType Geometry::get_vk_index_type() const {
   }
 }
 
-std::vector<Geometry::VulkanVertexBufferBinding> Geometry::get_vk_vertex_buffer_binding( AttributeLocationMap const& attribute_to_location, uint32_t const primitive_index ) const {
+Geometry::VertexBufferBindings Geometry::get_vk_vertex_buffer_binding( AttributeLocationMap const& attribute_to_location, uint32_t const primitive_index ) const {
   assert(primitive_index < primitives_.size());
   auto const& primitive = primitives_[primitive_index];
 
@@ -680,7 +680,7 @@ std::vector<Geometry::VulkanVertexBufferBinding> Geometry::get_vk_vertex_buffer_
     lut[kv.second].push_back(kv.first);
   }
 
-  std::vector<VulkanVertexBufferBinding> result;
+  std::vector<VertexBufferBinding> result;
   uint32_t buffer_binding = 0u;
 
   for (auto const& kv : lut) {
@@ -703,7 +703,7 @@ std::vector<Geometry::VulkanVertexBufferBinding> Geometry::get_vk_vertex_buffer_
     uint32_t const buffer_stride = attributes_.find(types[0u])->second.stride;
     uint64_t const buffer_offset = kv.first;
 
-    VulkanVertexBufferBinding vbb{
+    VertexBufferBinding vbb{
       .binding = buffer_binding,
       .offset = buffer_offset,
       .stride = buffer_stride,

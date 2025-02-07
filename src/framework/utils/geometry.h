@@ -188,7 +188,7 @@ class Geometry {
  public:
   /* -- Vulkan Type Converters & Helpers -- */
 
-  struct VulkanVertexBufferBinding {
+  struct VertexBufferBinding {
     // (bind vertex buffer)
     uint32_t binding;
     uint64_t offset;
@@ -198,7 +198,7 @@ class Geometry {
     std::vector<VkVertexInputAttributeDescription> attributes;
   };
 
-  using VulkanVertexBufferBindings = std::vector<VulkanVertexBufferBinding>;
+  using VertexBufferBindings = std::vector<VertexBufferBinding>;
 
   VkFormat get_vk_format(AttributeType const attrib_type) const;
 
@@ -206,7 +206,7 @@ class Geometry {
 
   VkIndexType get_vk_index_type() const;
 
-  std::vector<Geometry::VulkanVertexBufferBinding> get_vk_vertex_buffer_binding( AttributeLocationMap const& attribute_to_location, uint32_t const primitive_index = 0u ) const;
+  VertexBufferBindings get_vk_vertex_buffer_binding( AttributeLocationMap const& attribute_to_location, uint32_t const primitive_index = 0u ) const;
 
   // [DEPRECATED]
   std::vector<VkVertexInputAttributeDescription> get_vk_binding_attributes(uint32_t buffer_binding, AttributeLocationMap const& attribute_to_location) const;
