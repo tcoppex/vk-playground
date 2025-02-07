@@ -99,14 +99,14 @@ class Context {
   }
 
   template<typename F>
-  bool add_device_feature(char const* extension_name, F& feature, F const& feature_entry, std::vector<char const*> const& dependencies = {}) {
+  bool add_device_feature(char const* extension_name, F& feature, VkStructureType sType, std::vector<char const*> const& dependencies = {}) {
     if (!has_extension(extension_name, available_device_extensions_)) {
       fprintf(stderr, "[Vulkan] Feature extension \"%s\" is not available.\n", extension_name);
       return false;
     }
 
     // Add to DeviceFeatures2.
-    feature = feature_entry;
+    feature = { .sType = sType };
     vkutils::PushNextVKStruct(&feature_.base, &feature);
 
     // Add extensions dependencies.
@@ -155,11 +155,12 @@ class Context {
     VkPhysicalDeviceMaintenance5FeaturesKHR maintenance5{};
     VkPhysicalDeviceMaintenance6FeaturesKHR maintenance6{};
     VkPhysicalDeviceTimelineSemaphoreFeaturesKHR timeline_semaphore{};
+    VkPhysicalDeviceSynchronization2FeaturesKHR synchronization2{};
     VkPhysicalDeviceDescriptorIndexingFeaturesEXT descriptor_indexing{};
     VkPhysicalDeviceExtendedDynamicStateFeaturesEXT dynamic_state{};
     VkPhysicalDeviceExtendedDynamicState2FeaturesEXT dynamic_state2{};
     VkPhysicalDeviceExtendedDynamicState3FeaturesEXT dynamic_state3{};
-    VkPhysicalDeviceSynchronization2FeaturesKHR synchronization2{};
+    VkPhysicalDeviceVertexInputDynamicStateFeaturesEXT vertex_input_dynamic_state{};
   } feature_;
 
   GPUProperties_t properties_;

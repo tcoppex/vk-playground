@@ -256,98 +256,83 @@ bool Context::init_device() {
     add_device_feature(
       VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
       feature_.buffer_device_address,
-      {
-        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_KHR,
-      }
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_KHR
     );
 
     add_device_feature(
       VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME,
       feature_.dynamic_rendering,
-      {
-        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR,
-        .dynamicRendering = VK_TRUE,
-      }
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR
     );
 
     add_device_feature(
       VK_KHR_MAINTENANCE_4_EXTENSION_NAME,
       feature_.maintenance4,
-      {
-        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_4_FEATURES_KHR,
-      }
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_4_FEATURES_KHR
     );
 
     add_device_feature(
       VK_KHR_MAINTENANCE_5_EXTENSION_NAME,
       feature_.maintenance5,
-      {
-        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_5_FEATURES_KHR,
-      }
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_5_FEATURES_KHR
     );
 
     add_device_feature(
       VK_KHR_MAINTENANCE_6_EXTENSION_NAME,
       feature_.maintenance6,
-      {
-        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_6_FEATURES_KHR,
-      }
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_6_FEATURES_KHR
     );
 
     add_device_feature(
       VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME,
       feature_.timeline_semaphore,
-      {
-        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES,
-        .timelineSemaphore = VK_TRUE,
-      }
-    );
-
-    add_device_feature(
-      VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
-      feature_.descriptor_indexing,
-      {
-        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES,
-        .descriptorBindingPartiallyBound = VK_TRUE,
-        .runtimeDescriptorArray = VK_TRUE,
-      }
-    );
-
-    add_device_feature(
-      VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME,
-      feature_.dynamic_state,
-      {
-        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_FEATURES_EXT,
-      }
-    );
-
-    add_device_feature(
-      VK_EXT_EXTENDED_DYNAMIC_STATE_2_EXTENSION_NAME,
-      feature_.dynamic_state2,
-      {
-        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_2_FEATURES_EXT,
-      }
-    );
-
-    add_device_feature(
-      VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME,
-      feature_.dynamic_state3,
-      {
-        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_3_FEATURES_EXT,
-      }
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES
     );
 
     add_device_feature(
       VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME,
       feature_.synchronization2,
-      {
-        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES_KHR,
-        .synchronization2 = VK_TRUE,
-      }
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES_KHR
+    );
+
+    add_device_feature(
+      VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
+      feature_.descriptor_indexing,
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES
+    );
+
+    add_device_feature(
+      VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME,
+      feature_.dynamic_state,
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_FEATURES_EXT
+    );
+
+    add_device_feature(
+      VK_EXT_EXTENDED_DYNAMIC_STATE_2_EXTENSION_NAME,
+      feature_.dynamic_state2,
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_2_FEATURES_EXT
+    );
+
+    add_device_feature(
+      VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME,
+      feature_.dynamic_state3,
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_3_FEATURES_EXT
+    );
+
+    add_device_feature(
+      VK_EXT_VERTEX_INPUT_DYNAMIC_STATE_EXTENSION_NAME,
+      feature_.vertex_input_dynamic_state,
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_INPUT_DYNAMIC_STATE_FEATURES_EXT
     );
 
     vkGetPhysicalDeviceFeatures2(gpu_, &feature_.base);
   }
+  LOG_CHECK(feature_.dynamic_rendering.dynamicRendering);
+  LOG_CHECK(feature_.timeline_semaphore.timelineSemaphore);
+  LOG_CHECK(feature_.synchronization2.synchronization2);
+  LOG_CHECK(feature_.descriptor_indexing.descriptorBindingPartiallyBound);
+  LOG_CHECK(feature_.descriptor_indexing.runtimeDescriptorArray);
+  LOG_CHECK(feature_.vertex_input_dynamic_state.vertexInputDynamicState);
 
   /* Search for a queue family with Graphics support. */
   uint32_t const queue_family_count{static_cast<uint32_t>(properties_.queue_families2.size())};
@@ -393,6 +378,7 @@ bool Context::init_device() {
     bind_func(vkQueueSubmit2, vkQueueSubmit2KHR);
     bind_func(vkCmdBeginRendering, vkCmdBeginRenderingKHR);
     bind_func(vkCmdEndRendering, vkCmdEndRenderingKHR);
+    bind_func(vkCmdBindVertexBuffers2, vkCmdBindVertexBuffers2EXT);
     bind_func(vkCmdBindIndexBuffer2, vkCmdBindIndexBuffer2KHR);
   }
 
