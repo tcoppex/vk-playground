@@ -2,30 +2,51 @@
 
 /* -------------------------------------------------------------------------- */
 
-inline
+void GenericCommandEncoder::bind_descriptor_set(VkDescriptorSet const descriptor_set, VkPipelineLayout const pipeline_layout, VkShaderStageFlags const stage_flags) const {
+  VkBindDescriptorSetsInfoKHR const bind_desc_sets_info{
+    .sType = VK_STRUCTURE_TYPE_BIND_DESCRIPTOR_SETS_INFO_KHR,
+    .stageFlags = stage_flags,
+    .layout = pipeline_layout,
+    .firstSet = 0u,
+    .descriptorSetCount = 1u, //
+    .pDescriptorSets = &descriptor_set,
+  };
+  // (requires VK_KHR_maintenance6 or VK_VERSION_1_4)
+  vkCmdBindDescriptorSets2KHR(command_buffer_, &bind_desc_sets_info);
+}
+
+// ----------------------------------------------------------------------------
+
+void GenericCommandEncoder::pipeline_buffer_barriers(std::vector<VkBufferMemoryBarrier2> buffers) const {
+  for (auto& bb : buffers) {
+    bb.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2;
+    bb.srcQueueFamilyIndex = (bb.srcQueueFamilyIndex == 0u) ? VK_QUEUE_FAMILY_IGNORED : bb.srcQueueFamilyIndex; //
+    bb.dstQueueFamilyIndex = (bb.dstQueueFamilyIndex == 0u) ? VK_QUEUE_FAMILY_IGNORED : bb.dstQueueFamilyIndex; //
+    bb.size = (bb.size == 0ULL) ? VK_WHOLE_SIZE : bb.size;
+  }
+  VkDependencyInfo const dependency{
+    .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+    .bufferMemoryBarrierCount = static_cast<uint32_t>(buffers.size()),
+    .pBufferMemoryBarriers = buffers.data(),
+  };
+  // (requires VK_KHR_synchronization2 or VK_VERSION_1_3)
+  vkCmdPipelineBarrier2(command_buffer_, &dependency);
+}
+
+/* -------------------------------------------------------------------------- */
+
 void CommandEncoder::copy_buffer(Buffer_t const& src, Buffer_t const& dst, std::vector<VkBufferCopy> const& regions) const {
   vkCmdCopyBuffer(command_buffer_, src.buffer, dst.buffer, static_cast<uint32_t>(regions.size()), regions.data());
 
-  // VkBufferMemoryBarrier bufferBarrier = {
-  //   .sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
-  //   .srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
-  //   .dstAccessMask = VK_ACCESS_UNIFORM_READ_BIT,
-  //   .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-  //   .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-  //   .buffer = dst.buffer,
-  //   .offset = 0,
-  //   .size = VK_WHOLE_SIZE,
-  // };
-
-  // vkCmdPipelineBarrier(
-  //   command_buffer_,
-  //   VK_PIPELINE_STAGE_TRANSFER_BIT,           // Source stage: Transfer writes
-  //   VK_PIPELINE_STAGE_VERTEX_SHADER_BIT,      // Destination stage: Uniform reads in vertex shader
-  //   0,                                        // No dependency flags
-  //   0, nullptr,                               // No memory barriers
-  //   1, &bufferBarrier,                        // Single buffer memory barrier
-  //   0, nullptr                                // No image memory barriers
-  // );
+  // pipeline_buffer_barriers({
+  //   {
+  //     .srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+  //     .srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
+  //     .dstStageMask = VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT, //
+  //     .dstAccessMask = VK_ACCESS_UNIFORM_READ_BIT, //
+  //     .buffer = dst.buffer,
+  //   }
+  // });
 }
 
 // ----------------------------------------------------------------------------
@@ -49,12 +70,13 @@ Buffer_t CommandEncoder::create_buffer_and_upload(void const* host_data, size_t 
 
   size_t const buffer_bytesize = (device_buffer_size > 0) ? device_buffer_size : host_data_size;
   assert(host_data_size <= buffer_bytesize);
-  // assert(device_buffer_offet + host_data_size < buffer_bytesize);
 
+  // ----------------
   // [TODO] Staging buffers need cleaning / garbage collection !
   auto staging_buffer{
     allocator_->create_staging_buffer(buffer_bytesize, host_data, host_data_size)   //
   };
+  // ----------------
 
   auto buffer{allocator_->create_buffer(
     static_cast<VkDeviceSize>(buffer_bytesize),
@@ -220,7 +242,6 @@ void CommandEncoder::end_render_pass() const {
   vkCmdEndRenderPass(command_buffer_);
 }
 
-/* -------------------------------------------------------------------------- */
 /* -------------------------------------------------------------------------- */
 
 void RenderPassEncoder::set_viewport(float x, float y, float width, float height, bool flip_y) const {

@@ -3,14 +3,13 @@
 
 /* -------------------------------------------------------------------------- */
 
-#include <span>
 #include "framework/backend/types.h"
 
 /* -------------------------------------------------------------------------- */
 
 class ResourceAllocator {
  public:
-  static constexpr size_t kDefaultStagingBufferSize{64 * 1024 * 1024};
+  static constexpr size_t kDefaultStagingBufferSize{ 32u * 1024u * 1024u };
   static constexpr bool kAutoAlignBufferSize{ false };
 
  public:

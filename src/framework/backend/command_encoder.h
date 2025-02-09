@@ -2,6 +2,7 @@
 #define HELLOVK_FRAMEWORK_BACKEND_COMMAND_ENCODER_H
 
 #include "framework/backend/allocator.h"
+#include "framework/backend/types.h"
 #include "framework/backend/vk_utils.h"
 
 class RenderPassEncoder;
@@ -30,60 +31,10 @@ class GenericCommandEncoder {
 
   // --- Descriptor Sets ---
 
-  void bind_descriptor_set(VkDescriptorSet const descriptor_set, VkPipelineLayout const pipeline_layout, VkShaderStageFlags const stage_flags) const {
-    VkBindDescriptorSetsInfoKHR const bind_desc_sets_info{
-      .sType = VK_STRUCTURE_TYPE_BIND_DESCRIPTOR_SETS_INFO_KHR,
-      .stageFlags = stage_flags,
-      .layout = pipeline_layout,
-      .firstSet = 0u,
-      .descriptorSetCount = 1u, // 
-      .pDescriptorSets = &descriptor_set,
-    };
-    // (requires VK_KHR_maintenance6 or VK_VERSION_1_4)
-    vkCmdBindDescriptorSets2KHR(command_buffer_, &bind_desc_sets_info);
-  }
+  void bind_descriptor_set(VkDescriptorSet const descriptor_set, VkPipelineLayout const pipeline_layout, VkShaderStageFlags const stage_flags) const;
 
-  // --- Pipeline Barrier ---
-
-  void pipeline_buffer_barriers(std::vector<VkBufferMemoryBarrier2> buffers) const {
-    for (auto& bb : buffers) {
-      bb.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2;
-      bb.srcQueueFamilyIndex = (bb.srcQueueFamilyIndex == 0u) ? VK_QUEUE_FAMILY_IGNORED : bb.srcQueueFamilyIndex; //
-      bb.dstQueueFamilyIndex = (bb.dstQueueFamilyIndex == 0u) ? VK_QUEUE_FAMILY_IGNORED : bb.dstQueueFamilyIndex; //
-      bb.size = (bb.size == 0ULL) ? VK_WHOLE_SIZE : bb.size;
-    }
-    VkDependencyInfo const dependency{
-      .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-      .bufferMemoryBarrierCount = static_cast<uint32_t>(buffers.size()),
-      .pBufferMemoryBarriers = buffers.data(),
-    };
-    // (requires VK_KHR_synchronization2 or VK_VERSION_1_3)
-    vkCmdPipelineBarrier2(command_buffer_, &dependency);
-  }
-
-  // --- Compute ---
-
-  template<uint32_t tX = 1u, uint32_t tY = 1u, uint32_t tZ = 1u>
-  void dispatch(uint32_t x = 1u, uint32_t y = 1u, uint32_t z = 1u) {
-    vkCmdDispatch(command_buffer_,
-      vkutils::GetKernelGridDim(x, tX),
-      vkutils::GetKernelGridDim(y, tY),
-      vkutils::GetKernelGridDim(z, tZ)
-    );
-  }
-
-  // --- Pipeline ---
-
-  inline
-  void bind_pipeline(PipelineInterface const& pipeline) {
-    currently_bound_pipeline_layout_ = pipeline.get_layout();
-    vkCmdBindPipeline(command_buffer_, pipeline.get_bind_point(), pipeline.get_handle());
-  }
-
-  // --- Descriptor Sets ---
-
-  void bind_descriptor_set(VkDescriptorSet const descriptor_set, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS) const {
-    GenericCommandEncoder::bind_descriptor_set(descriptor_set, currently_bound_pipeline_layout_, stage_flags);
+  void bind_descriptor_set(VkDescriptorSet const descriptor_set, VkShaderStageFlags const stage_flags) const {
+    bind_descriptor_set(descriptor_set, currently_bound_pipeline_layout_, stage_flags);
   }
 
   // --- Push Constants ---
@@ -108,6 +59,29 @@ class GenericCommandEncoder {
   void push_constants(T const& values, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS, uint32_t const offset = 0u) const {
     assert(currently_bound_pipeline_layout_ != VK_NULL_HANDLE);
     push_constants(values, currently_bound_pipeline_layout_, stage_flags, offset);
+  }
+
+  // --- Pipeline ---
+
+  void bind_pipeline(PipelineInterface const& pipeline) {
+    currently_bound_pipeline_layout_ = pipeline.get_layout();
+    vkCmdBindPipeline(command_buffer_, pipeline.get_bind_point(), pipeline.get_handle());
+  }
+
+  // --- Pipeline Barrier ---
+
+  /* The buffers are sent by value to be modified. */
+  void pipeline_buffer_barriers(std::vector<VkBufferMemoryBarrier2> buffers) const;
+
+  // --- Compute ---
+
+  template<uint32_t tX = 1u, uint32_t tY = 1u, uint32_t tZ = 1u>
+  void dispatch(uint32_t x = 1u, uint32_t y = 1u, uint32_t z = 1u) {
+    vkCmdDispatch(command_buffer_,
+      vkutils::GetKernelGridDim(x, tX),
+      vkutils::GetKernelGridDim(y, tY),
+      vkutils::GetKernelGridDim(z, tZ)
+    );
   }
 
  protected:
@@ -253,7 +227,17 @@ class RenderPassEncoder : public GenericCommandEncoder {
     set_viewport_scissor({{0, 0}, extent}, flip_y);
   }
 
-  // --- Vertex Buffer ---
+  // --- Vertex Input ---
+
+  void set_vertex_input(VertexInputDescriptor const& vertex_input_descriptor) const {
+    vkCmdSetVertexInputEXT(
+      command_buffer_,
+      static_cast<uint32_t>(vertex_input_descriptor.bindings.size()),
+      vertex_input_descriptor.bindings.data(),
+      static_cast<uint32_t>(vertex_input_descriptor.attributes.size()),
+      vertex_input_descriptor.attributes.data()
+    );
+  }
 
   void bind_vertex_buffer(Buffer_t const& buffer, uint32_t binding = 0u, uint64_t const offset = 0u) const {
     vkCmdBindVertexBuffers(command_buffer_, binding, 1u, &buffer.buffer, &offset);
