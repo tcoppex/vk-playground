@@ -79,7 +79,7 @@ class Renderer : public RTInterface {
 
   // --- Descriptor Set Layout ---
 
-  VkDescriptorSetLayout create_descriptor_set_layout(std::vector<DescriptorSetLayoutParams_t> const& params) const;
+  VkDescriptorSetLayout create_descriptor_set_layout(std::vector<DescriptorSetLayoutParams> const& params) const;
 
   void destroy_descriptor_set_layout(VkDescriptorSetLayout& layout) const;
 
@@ -89,9 +89,9 @@ class Renderer : public RTInterface {
 
   VkDescriptorSet create_descriptor_set(VkDescriptorSetLayout const layout) const;
 
-  VkDescriptorSet create_descriptor_set(VkDescriptorSetLayout const layout, std::vector<DescriptorSetWriteEntry_t> const& entries) const;
+  VkDescriptorSet create_descriptor_set(VkDescriptorSetLayout const layout, std::vector<DescriptorSetWriteEntry> const& entries) const;
 
-  void update_descriptor_set(VkDescriptorSet const& descriptor_set, std::vector<DescriptorSetWriteEntry_t> const& entries) const;
+  void update_descriptor_set(VkDescriptorSet const& descriptor_set, std::vector<DescriptorSetWriteEntry> const& entries) const;
 
   // --- Texture / Sampler ---
 

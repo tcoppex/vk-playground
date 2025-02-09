@@ -96,7 +96,7 @@ struct ShaderModule_t {
 
 // ----------------------------------------------------------------------------
 
-struct DescriptorSetLayoutParams_t {
+struct DescriptorSetLayoutParams {
   uint32_t                 binding;
   VkDescriptorType         descriptorType;
   uint32_t                 descriptorCount;
@@ -105,7 +105,7 @@ struct DescriptorSetLayoutParams_t {
   VkDescriptorBindingFlags bindingFlags;
 };
 
-struct DescriptorSetWriteEntry_t {
+struct DescriptorSetWriteEntry {
   // (use an union instead ?)
   struct Resource {
     VkDescriptorImageInfo image{};
@@ -150,6 +150,16 @@ class PipelineInterface {
   VkPipelineLayout pipeline_layout_{};
   VkPipeline pipeline_{};
   VkPipelineBindPoint bind_point_{};
+};
+
+// ----------------------------------------------------------------------------
+
+// Vertex Input
+
+struct VertexInputDescriptor {
+  std::vector<VkVertexInputBindingDescription2EXT> bindings{};
+  std::vector<VkVertexInputAttributeDescription2EXT> attributes{};
+  std::vector<uint64_t> vertexBufferOffsets{};
 };
 
 // ----------------------------------------------------------------------------

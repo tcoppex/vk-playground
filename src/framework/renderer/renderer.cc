@@ -571,7 +571,7 @@ void Renderer::destroy_pipeline(Pipeline const& pipeline) const {
 
 // ----------------------------------------------------------------------------
 
-VkDescriptorSetLayout Renderer::create_descriptor_set_layout(std::vector<DescriptorSetLayoutParams_t> const& params) const {
+VkDescriptorSetLayout Renderer::create_descriptor_set_layout(std::vector<DescriptorSetLayoutParams> const& params) const {
   std::vector<VkDescriptorSetLayoutBinding> entries;
   std::vector<VkDescriptorBindingFlags> flags;
 
@@ -645,7 +645,7 @@ VkDescriptorSet Renderer::create_descriptor_set(VkDescriptorSetLayout const layo
 
 // ----------------------------------------------------------------------------
 
-VkDescriptorSet Renderer::create_descriptor_set(VkDescriptorSetLayout const layout, std::vector<DescriptorSetWriteEntry_t> const& entries) const {
+VkDescriptorSet Renderer::create_descriptor_set(VkDescriptorSetLayout const layout, std::vector<DescriptorSetWriteEntry> const& entries) const {
   auto const descriptor_set{ create_descriptor_set(layout) };
   update_descriptor_set(descriptor_set, entries);
   return descriptor_set;
@@ -653,7 +653,7 @@ VkDescriptorSet Renderer::create_descriptor_set(VkDescriptorSetLayout const layo
 
 // ----------------------------------------------------------------------------
 
-void Renderer::update_descriptor_set(VkDescriptorSet const& descriptor_set, std::vector<DescriptorSetWriteEntry_t> const& entries) const {
+void Renderer::update_descriptor_set(VkDescriptorSet const& descriptor_set, std::vector<DescriptorSetWriteEntry> const& entries) const {
   if (entries.empty()) {
     return;
   }
