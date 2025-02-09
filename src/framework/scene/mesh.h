@@ -38,8 +38,7 @@ struct Mesh : Geometry {
 
   PipelineVertexBufferDescriptors get_vk_pipeline_vertex_buffer_descriptors() const;
 
-  /* Call initialize_submesh_descriptors beforehand. */
-  PipelineVertexBufferDescriptors get_vk_pipeline_vertex_buffer_descriptors(AttributeLocationMap const& attribute_to_location);
+  // PipelineVertexBufferDescriptors get_vk_pipeline_vertex_buffer_descriptors(AttributeLocationMap const& attribute_to_location);
 
   VkIndexType get_vk_index_type() const;
 

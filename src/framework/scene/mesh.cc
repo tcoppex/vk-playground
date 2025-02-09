@@ -62,13 +62,6 @@ PipelineVertexBufferDescriptors Mesh::get_vk_pipeline_vertex_buffer_descriptors(
 
 // ----------------------------------------------------------------------------
 
-PipelineVertexBufferDescriptors Mesh::get_vk_pipeline_vertex_buffer_descriptors(AttributeLocationMap const& attribute_to_location) {
-  initialize_submesh_descriptors(attribute_to_location);
-  return get_vk_pipeline_vertex_buffer_descriptors();
-}
-
-// ----------------------------------------------------------------------------
-
 VkPrimitiveTopology Mesh::get_vk_primitive_topology() const {
   switch (get_topology()) {
     case Topology::TriangleStrip:
