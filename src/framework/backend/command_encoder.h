@@ -286,6 +286,9 @@ class RenderPassEncoder : public GenericCommandEncoder {
     vkCmdDrawIndexed(command_buffer_, index_count, instance_count, first_index, vertex_offset, first_instance);
   }
 
+  // [WIP]
+  void draw(DrawDescriptor const& desc, Buffer_t const& vertex_buffer, Buffer_t const& index_buffer) const;
+
  private:
   RenderPassEncoder(VkCommandBuffer const command_buffer)
     : GenericCommandEncoder(command_buffer)

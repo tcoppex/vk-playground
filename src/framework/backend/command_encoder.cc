@@ -262,4 +262,21 @@ void RenderPassEncoder::set_viewport_scissor(VkRect2D const rect, bool flip_y) c
   set_scissor(rect.offset.x, rect.offset.y, rect.extent.width, rect.extent.height);
 }
 
+// ----------------------------------------------------------------------------
+
+void RenderPassEncoder::draw(DrawDescriptor const& desc, Buffer_t const& vertex_buffer, Buffer_t const& index_buffer) const {
+  set_vertex_input(desc.vertexInput);
+
+  for (uint32_t i = 0u; i < desc.vertexInput.bindings.size(); ++i) {
+    bind_vertex_buffer(vertex_buffer, desc.vertexInput.bindings[i].binding, desc.vertexInput.vertexBufferOffsets[i]);
+  }
+
+  if (desc.indexCount > 0) [[likely]] {
+    bind_index_buffer(index_buffer, desc.indexType, desc.indexOffset);
+    draw_indexed(desc.indexCount, desc.instanceCount);
+  } else {
+    draw(desc.vertexCount, desc.instanceCount);
+  }
+}
+
 /* -------------------------------------------------------------------------- */

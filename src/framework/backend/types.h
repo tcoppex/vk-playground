@@ -164,6 +164,23 @@ struct VertexInputDescriptor {
 
 // ----------------------------------------------------------------------------
 
+/* [WIP] generic requirements to draw something. */
+struct DrawDescriptor {
+  // (vertex input)
+  VertexInputDescriptor vertexInput{};
+
+  // (index input)
+  uint64_t indexOffset{};
+  VkIndexType indexType{};
+
+  // (draw parameters)
+  uint32_t indexCount{};
+  uint32_t vertexCount{};
+  uint32_t instanceCount{1u};
+};
+
+// ----------------------------------------------------------------------------
+
 /* Interface to dynamic rendering */
 struct RTInterface {
   RTInterface() = default;
