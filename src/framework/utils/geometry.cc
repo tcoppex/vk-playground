@@ -1,9 +1,10 @@
 #include "framework/utils/geometry.h"
 
+#ifndef _USE_MATH_DEFINES
 #define _USE_MATH_DEFINES
+#endif
 #include <cmath>
 #include <cassert>
-#include <cstddef>
 
 #include <array>
 #include <numeric>
@@ -602,6 +603,11 @@ void Geometry::MakePointListPlane(Geometry &geo, float size, uint32_t resx, uint
 
 // ----------------------------------------------------------------------------
 
+void Geometry::clear_indices_and_vertices() {
+  indices_.clear();
+  vertices_.clear();
+}
+
 void Geometry::add_primitive(Primitive primitive) {
   index_count_ += primitive.indexCount;
   vertex_count_ += primitive.vertexCount;
@@ -622,130 +628,6 @@ uint64_t Geometry::add_indices_data(std::byte const* data, uint32_t bytesize) {
 
 void Geometry::add_attribute(AttributeType const type, AttributeInfo const& info) {
   attributes_[type] = info;
-}
-
-// ----------------------------------------------------------------------------
-
-VkFormat Geometry::get_vk_format(AttributeType const attrib_type) const {
-  switch (get_format(attrib_type)) {
-    case AttributeFormat::RG_F32:
-      return VK_FORMAT_R32G32_SFLOAT;
-    break;
-
-    case AttributeFormat::RGB_F32:
-      return VK_FORMAT_R32G32B32_SFLOAT;
-    break;
-
-    case AttributeFormat::RGBA_F32:
-      return VK_FORMAT_R32G32B32A32_SFLOAT;
-    break;
-
-    default:
-      return VK_FORMAT_UNDEFINED;
-  }
-}
-
-VkPrimitiveTopology Geometry::get_vk_primitive_topology() const {
-  switch (topology_) {
-    case Topology::TriangleStrip:
-      return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
-
-    case Topology::TriangleList:
-      return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-
-    default:
-    case Topology::PointList:
-      return VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
-  }
-}
-
-VkIndexType Geometry::get_vk_index_type() const {
-  switch (index_format_) {
-    case IndexFormat::U16:
-      return VK_INDEX_TYPE_UINT16;
-
-    default:
-    case IndexFormat::U32:
-      return VK_INDEX_TYPE_UINT32;
-  }
-}
-
-Geometry::VertexBufferBindings Geometry::get_vk_vertex_buffer_binding( AttributeLocationMap const& attribute_to_location, uint32_t const primitive_index ) const {
-  assert(primitive_index < primitives_.size());
-  auto const& primitive = primitives_[primitive_index];
-
-  // This reverse LUT helps us now which attributes are interleaved together.
-  std::map<uint64_t, std::vector<AttributeType>> lut{};
-  for (auto const& kv : primitive.bufferOffsets) {
-    lut[kv.second].push_back(kv.first);
-  }
-
-  std::vector<VertexBufferBinding> result;
-  uint32_t buffer_binding = 0u;
-
-  for (auto const& kv : lut) {
-    std::vector<AttributeType> const& types{ kv.second };
-
-    if (types.empty()) {
-      continue;
-    }
-
-    /* Be sure any of the attributes asked for exists */
-    bool exists = false;
-    for (auto const& type : types) {
-      exists |= attribute_to_location.contains(type);
-    }
-    if (!exists) {
-      continue;
-    }
-
-    /* The stride is shared between attributes of the same binding. */
-    uint32_t const buffer_stride = attributes_.find(types[0u])->second.stride;
-    uint64_t const buffer_offset = kv.first;
-
-    VertexBufferBinding vbb{
-      .binding = buffer_binding,
-      .offset = buffer_offset,
-      .stride = buffer_stride,
-    };
-
-    for (auto const& type : types)
-    {
-      if (auto it = attribute_to_location.find(type); it != attribute_to_location.end()) {
-        vbb.attributes.push_back({
-          .location = it->second,
-          .binding = buffer_binding,
-          .format = get_vk_format(type),
-          .offset = get_offset(type),
-        });
-      }
-    }
-
-    result.push_back(vbb);
-    ++buffer_binding;
-  }
-
-  return result;
-}
-
-std::vector<VkVertexInputAttributeDescription> Geometry::get_vk_binding_attributes( uint32_t buffer_binding, AttributeLocationMap const& attribute_to_location ) const {
-  std::vector<VkVertexInputAttributeDescription> result(attribute_to_location.size());
-
-  std::transform(
-    attribute_to_location.cbegin(),
-    attribute_to_location.cend(),
-    result.begin(),
-    [&](auto const& kv) -> VkVertexInputAttributeDescription {
-      return {
-        .location = kv.second,
-        .binding = buffer_binding,
-        .format = get_vk_format(kv.first),
-        .offset = get_offset(kv.first),
-      };
-    }
-  );
-
-  return result;
 }
 
 /* -------------------------------------------------------------------------- */

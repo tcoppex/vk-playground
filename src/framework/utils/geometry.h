@@ -5,8 +5,10 @@
 
 #include <vulkan/vulkan.h>
 
-#include <vector>
+#include <cstddef>
+#include <cstdint>
 #include <map>
+#include <vector>
 
 // ----------------------------------------------------------------------------
 
@@ -60,6 +62,7 @@ class Geometry {
   };
 
   using AttributeLocationMap = std::map<AttributeType, uint32_t>;
+  using AttributeOffsetMap   = std::map<AttributeType, uint64_t>;
 
   /**
    * When all attributes are != 0 the data are not interleaved and buffers should
@@ -72,14 +75,12 @@ class Geometry {
     uint32_t stride{};
   };
 
-  // (this is used for rendering)
   struct Primitive {
     uint32_t vertexCount{};
     uint32_t indexCount{};
 
-    // uint64_t vertexOffset{};
     uint64_t indexOffset{};
-    std::map<AttributeType, uint64_t> bufferOffsets{};
+    AttributeOffsetMap bufferOffsets{};
   };
 
  public:
@@ -114,7 +115,7 @@ class Geometry {
 
   // --- Indexed Point List ---
 
-  /* Create a plane of points with float4 positions and an index buffer for sorting (when needed). */
+  /* Create a plane of points with float4 positions and an index buffer. */
   static void MakePointListPlane(Geometry &geo, float size = kDefaultSize, uint32_t resx = 1u, uint32_t resy = 1u);
 
  public:
@@ -176,6 +177,7 @@ class Geometry {
     index_format_ = format;
   }
 
+  void clear_indices_and_vertices();
 
   uint64_t add_vertices_data(std::byte const* data, uint32_t bytesize);
 
@@ -185,32 +187,9 @@ class Geometry {
 
   void add_primitive(Primitive primitive);
 
- public:
-  /* -- Vulkan Type Converters & Helpers -- */
-
-  struct VertexBufferBinding {
-    // (bind vertex buffer)
-    uint32_t binding;
-    uint64_t offset;
-
-    // (vertex input)
-    uint32_t stride;
-    std::vector<VkVertexInputAttributeDescription> attributes;
-  };
-
-  using VertexBufferBindings = std::vector<VertexBufferBinding>;
-
-  VkFormat get_vk_format(AttributeType const attrib_type) const;
-
-  VkPrimitiveTopology get_vk_primitive_topology() const;
-
-  VkIndexType get_vk_index_type() const;
-
-  VertexBufferBindings get_vk_vertex_buffer_binding( AttributeLocationMap const& attribute_to_location, uint32_t const primitive_index = 0u ) const;
-
-  // [DEPRECATED]
-  std::vector<VkVertexInputAttributeDescription> get_vk_binding_attributes(uint32_t buffer_binding, AttributeLocationMap const& attribute_to_location) const;
-
+ protected:
+  std::map<AttributeType, AttributeInfo> attributes_{};
+  std::vector<Primitive> primitives_{};
 
  private:
   Topology topology_{};
@@ -218,13 +197,10 @@ class Geometry {
   uint32_t index_count_{};
   uint32_t vertex_count_{};
 
-  std::map<AttributeType, AttributeInfo> attributes_{};
   std::vector<std::byte> indices_{};
   std::vector<std::byte> vertices_{};
-
-  std::vector<Primitive> primitives_{};
 };
 
 /* -------------------------------------------------------------------------- */
 
-#endif
+#endif // UTILS_GEOMETRY_H
