@@ -7,7 +7,7 @@
 /* -------------------------------------------------------------------------- */
 
 #include "framework/application.h"
-#include "framework/utils/geometry.h"
+#include "framework/scene/mesh.h"
 
 namespace shader_interop {
 #include "shaders/interop.h"
@@ -48,15 +48,8 @@ class SampleApp final : public Application {
       ),
     };
 
-    /* Create a cube mesh procedurally on the host.
-     * We have no need to keep it on memory after initialization so we just
-     * save the attribute we need. */
-    Geometry cube_geo;
-    {
-      Geometry::MakeCube(cube_geo);
-      index_type_ = cube_geo.get_vk_index_type();
-      index_count_ = cube_geo.get_index_count();
-    }
+    /* Create a cube mesh procedurally on the host. */
+    Geometry::MakeCube(cube_);
 
     /* Create Buffers & Image(s). */
     {
@@ -69,13 +62,16 @@ class SampleApp final : public Application {
 
       /* Transfer the cube geometry (vertices attributes & indices) to the device. */
       vertex_buffer_ = cmd.create_buffer_and_upload(
-        cube_geo.get_vertices(),
+        cube_.get_vertices(),
         VK_BUFFER_USAGE_2_VERTEX_BUFFER_BIT
       );
       index_buffer_ = cmd.create_buffer_and_upload(
-        cube_geo.get_indices(),
+        cube_.get_indices(),
         VK_BUFFER_USAGE_2_INDEX_BUFFER_BIT
       );
+
+      /* We don't need to keep the host data so we can clear them. */
+      cube_.clear_indices_and_vertices();
 
       /* Load a texture using the current transient command encoder. */
       if (std::string fn{ASSETS_DIR "textures/whynot.png"}; !renderer_.load_texture_2d(cmd, fn, image_)) {
@@ -150,16 +146,11 @@ class SampleApp final : public Application {
       graphics_pipeline_ = renderer_.create_graphics_pipeline(pipeline_layout, {
         .vertex = {
           .module = shaders[0u].module,
-          .buffers = {
-            {
-              .stride = cube_geo.get_stride(),
-              .attributes =  cube_geo.get_vk_binding_attributes(0u, {
-                { Geometry::AttributeType::Position, shader_interop::kAttribLocation_Position },
-                { Geometry::AttributeType::Texcoord, shader_interop::kAttribLocation_Texcoord },
-                { Geometry::AttributeType::Normal, shader_interop::kAttribLocation_Normal },
-              }),
-            }
-          }
+          .buffers = cube_.get_vk_pipeline_vertex_buffer_descriptors({
+            { Geometry::AttributeType::Position, shader_interop::kAttribLocation_Position },
+            { Geometry::AttributeType::Texcoord, shader_interop::kAttribLocation_Texcoord },
+            { Geometry::AttributeType::Normal, shader_interop::kAttribLocation_Normal },
+          }),
         },
         .fragment = {
           .module = shaders[1u].module,
@@ -181,7 +172,7 @@ class SampleApp final : public Application {
           .depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL,
         },
         .primitive = {
-          .topology = cube_geo.get_vk_primitive_topology(),
+          .topology = cube_.get_vk_primitive_topology(),
           .cullMode = VK_CULL_MODE_BACK_BIT,
         }
       });
@@ -228,8 +219,8 @@ class SampleApp final : public Application {
           pass.bind_descriptor_set(descriptor_set_, VK_SHADER_STAGE_VERTEX_BIT);
 
           pass.bind_vertex_buffer(vertex_buffer_);
-          pass.bind_index_buffer(index_buffer_, index_type_);
-          pass.draw_indexed(index_count_);
+          pass.bind_index_buffer(index_buffer_, cube_.get_vk_index_type());
+          pass.draw_indexed(cube_.get_index_count());
         }
       }
       cmd.end_rendering();
@@ -241,11 +232,9 @@ class SampleApp final : public Application {
   std::shared_ptr<ResourceAllocator> allocator_{};
 
   HostData_t host_data_{};
-  VkIndexType index_type_{};
-  uint32_t index_count_{};
-
   Buffer_t uniform_buffer_{};
 
+  scene::Mesh cube_{};
   Buffer_t vertex_buffer_{};
   Buffer_t index_buffer_{};
 
