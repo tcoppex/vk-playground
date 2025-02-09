@@ -1,29 +1,46 @@
 #include "framework/scene/resources.h"
-#include "framework/utils/utils.h"
 
 extern "C" {
 #define CGLTF_IMPLEMENTATION
 #include "cgltf.h"
 
-// #define STBI_ONLY_PNG
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb/stb_image.h"
 }
 
+#include "framework/utils/utils.h"
+#include "framework/backend/context.h"
+
 /* -------------------------------------------------------------------------- */
+
+/* ---- Helpers ---- */
 
 namespace {
 
+/* Internal helper structure to post-process gltf data */
+// struct MeshData {
+//   std::vector<float> positions;
+//   std::vector<float> texcoords;
+//   std::vector<float> normals;
+//   std::vector<float> tangents;
+//   std::vector<uint16_t> joints;
+//   std::vector<float> weights;
+// };
+
+struct Vertex {
+  vec3f position;
+  vec3f normal;
+  vec2f texcoord;
+};
+
 std::string GetTextureRefID(cgltf_texture const& texture, std::string_view alt) {
   auto const& image = texture.image;
-  std::string ref{image->name ? image->name : image->uri ? image->uri
-                              : std::string(alt)}
-                              ;
+  std::string ref{image->name ? image->name : (image->uri ? image->uri : std::string(alt))};
   return ref;
 }
 
 Geometry::AttributeType GetAttributeType(cgltf_attribute const& attribute) {
-  if (attribute.index != 0u) {
+  if (attribute.index != 0u) [[unlikely]] {
     LOGE("[GLTF] Unsupported multiple attribute of same type %s.", attribute.name);
     return Geometry::AttributeType::kUnknown;
   }
@@ -86,7 +103,7 @@ Geometry::AttributeFormat GetAttributeFormat(cgltf_accessor const* accessor) {
 }
 
 Geometry::IndexFormat GetIndexFormat(cgltf_accessor const* accessor) {
-  if (accessor->type == cgltf_type_scalar) {
+  if (accessor->type == cgltf_type_scalar) [[likely]] {
     if (accessor->component_type == cgltf_component_type_r_32u) {
       return Geometry::IndexFormat::U32;
     }
@@ -123,7 +140,7 @@ Geometry::Topology GetTopology(cgltf_primitive const& primitive) {
 
 namespace {
 
-void ExtractTextures(std::string const& basename, std::unordered_map<void const*, std::string> const& texture_map, cgltf_data const* data, scene::host::Resources& R) {
+void ExtractTextures(std::string const& basename, std::unordered_map<void const*, std::string> const& texture_map, cgltf_data const* data, scene::Resources& R) {
   int const kDefaultNumChannels = 4;
   stbi_set_flip_vertically_on_load(false);
 
@@ -139,7 +156,7 @@ void ExtractTextures(std::string const& basename, std::unordered_map<void const*
         ref = GetTextureRefID(texture, std::string(basename) + "::Texture_" + std::to_string(i));
       }
 
-      auto image = std::make_shared<scene::host::Image>();
+      auto image = std::make_shared<scene::Image>();
 
       if (auto bufferView = img->buffer_view; bufferView) {
         stbi_uc const* bufferData = reinterpret_cast<stbi_uc const*>(bufferView->buffer->data) + bufferView->offset;
@@ -159,7 +176,7 @@ void ExtractTextures(std::string const& basename, std::unordered_map<void const*
 
       // Reference into the scene structure.
       if (image->pixels != nullptr) {
-        LOGI("[GLTF] Texture %s has been loaded.", ref.c_str());
+        // LOGI("[GLTF] Texture %s has been loaded.", ref.c_str());
         R.images[ref] = std::move(image);
       } else {
         LOGW("[GLTF] Texture %s failed to be loaded.", ref.c_str());
@@ -168,8 +185,7 @@ void ExtractTextures(std::string const& basename, std::unordered_map<void const*
   }
 }
 
-void ExtractMaterials(std::string const& basename, std::unordered_map<void const*, std::string> &texture_map, std::unordered_map<void const*, std::string> &material_map, cgltf_data const* data, scene::host::Resources& R)
-{
+void ExtractMaterials(std::string const& basename, std::unordered_map<void const*, std::string> &texture_map, std::unordered_map<void const*, std::string> &material_map, cgltf_data const* data, scene::Resources& R) {
   auto textureRef = [&texture_map](cgltf_texture const& texture, std::string_view suffix) {
     auto ref = GetTextureRefID(texture, suffix);
     texture_map[&texture] = ref;
@@ -186,7 +202,7 @@ void ExtractMaterials(std::string const& basename, std::unordered_map<void const
     // if (R.materials.find(material_name) == R.materials.end()) continue;
     LOG_CHECK(R.materials.find(material_name) == R.materials.end());
 
-    auto material = std::make_shared<scene::host::Material>();
+    auto material = std::make_shared<scene::Material>();
     material->name = material_name;
 
     std::string const texture_prefix = basename + "::Texture_";
@@ -228,7 +244,7 @@ void ExtractMaterials(std::string const& basename, std::unordered_map<void const
   }
 }
 
-void ExtractMeshes(std::string const& basename, std::unordered_map<void const*, std::string> const& material_map, cgltf_data const* data, scene::host::Resources& R) {
+void ExtractMeshes(std::string const& basename, std::unordered_map<void const*, std::string> const& material_map, cgltf_data const* data, scene::Resources& R) {
   /* Preprocess meshes nodes. */
   std::vector<uint32_t> meshNodeIndices;
   for (cgltf_size i = 0; i < data->nodes_count; ++i) {
@@ -262,8 +278,8 @@ void ExtractMeshes(std::string const& basename, std::unordered_map<void const*, 
   for (auto i : meshNodeIndices) {
     cgltf_node const& node = data->nodes[i];
 
-    uint32_t total_vertex_count = 0u;
-    std::vector<uint32_t> prim_indices;
+    uint32_t total_vertex_count{0u};
+    std::vector<uint32_t> prim_indices{};
 
     // Preprocess primitives.
     for (cgltf_size j = 0; j < node.mesh->primitives_count; ++j) {
@@ -313,11 +329,10 @@ void ExtractMeshes(std::string const& basename, std::unordered_map<void const*, 
     }
     LOGD(">> total vertices : %u\n", total_vertex_count);
 
-    auto mesh = std::make_shared<scene::host::Mesh>();
+    auto mesh = std::make_shared<scene::Mesh>();
 
     cgltf_node_transform_world(&node, lina::ptr(mesh->world_matrix));
-    mesh->primitive_materials.resize(prim_indices.size());
-
+    mesh->submeshes.resize(prim_indices.size(), {.parent = mesh});
 
     // -----------------
 
@@ -407,7 +422,7 @@ void ExtractMeshes(std::string const& basename, std::unordered_map<void const*, 
         // Assign material when availables.
         if (prim.material) {
           if (auto it = material_map.find(prim.material); it != material_map.cend()) {
-            mesh->primitive_materials[j] = R.materials[it->second];
+            mesh->submeshes[j].material = R.materials[it->second];
           }
         }
 
@@ -423,14 +438,14 @@ void ExtractMeshes(std::string const& basename, std::unordered_map<void const*, 
                                        : std::string(basename + "::Skeleton_" + std::to_string(i));
       auto skel_it = R.skeletons.find(skinName);
 
-      std::shared_ptr<scene::host::Skeleton> skeleton;
+      std::shared_ptr<scene::Skeleton> skeleton;
 
       if (skel_it != R.skeletons.end()) {
         skeleton = skel_it->second;
       } else [[likely]] {
         cgltf_size const jointCount = skin->joints_count;
 
-        skeleton = std::make_shared<scene::host::Skeleton>(jointCount);
+        skeleton = std::make_shared<scene::Skeleton>(jointCount);
 
         // LUT Map to find parent nodes index.
         std::unordered_map<cgltf_node const*, int32_t> joint_indices(jointCount);
@@ -476,7 +491,7 @@ void ExtractMeshes(std::string const& basename, std::unordered_map<void const*, 
   }
 }
 
-void ExtractAnimations(std::string const& basename, cgltf_data const* data, scene::host::Resources& R) {
+void ExtractAnimations(std::string const& basename, cgltf_data const* data, scene::Resources& R) {
   if (!data || (data->animations_count == 0u)) {
     return;
   } else if (R.skeletons.empty()) {
@@ -521,7 +536,7 @@ void ExtractAnimations(std::string const& basename, cgltf_data const* data, scen
     LOG_CHECK(animation.samplers_count == animation.channels_count);
 
     // Find animation's skeleton.
-    std::shared_ptr<scene::host::Skeleton> skeleton{nullptr};
+    std::shared_ptr<scene::Skeleton> skeleton{nullptr};
     if (auto skelname_it = animationName_to_SkeletonName.find(clipName); skelname_it != animationName_to_SkeletonName.end()) {
       auto skelname = skelname_it->second;
       if (auto skel_it = R.skeletons.find(skelname); skel_it != R.skeletons.end()) {
@@ -561,7 +576,7 @@ void ExtractAnimations(std::string const& basename, cgltf_data const* data, scen
     }
 
     // Create the animation clip.
-    auto clip = std::make_shared<scene::host::AnimationClip>();
+    auto clip = std::make_shared<scene::AnimationClip>();
     float const clipDuration = inputs.back();
     clip->setup(clipName, sampleCount, clipDuration, skeleton->jointCount());
 
@@ -686,9 +701,8 @@ void ExtractAnimations(std::string const& basename, cgltf_data const* data, scen
 /* -------------------------------------------------------------------------- */
 
 namespace scene {
-namespace host {
 
-bool Resources::loadFromFile(std::string_view const& filename) {
+bool Resources::load_from_file(std::string_view const& filename) {
   utils::FileReader file;
 
   if (!file.read(filename)) {
@@ -713,10 +727,10 @@ bool Resources::loadFromFile(std::string_view const& filename) {
     return false;
   }
 
-  auto basename = utils::ExtractBasename(filename);
+  std::string const basename{ utils::ExtractBasename(filename) };
+  std::unordered_map<void const*, std::string> texture_map{};
+  std::unordered_map<void const*, std::string> material_map{};
 
-  std::unordered_map<void const*, std::string> texture_map;
-  std::unordered_map<void const*, std::string> material_map;
   ExtractMaterials(basename, texture_map, material_map, data, *this);
   ExtractTextures(basename, texture_map, data, *this);
   ExtractMeshes(basename, material_map, data, *this);
@@ -733,7 +747,27 @@ bool Resources::loadFromFile(std::string_view const& filename) {
   return true;
 }
 
-}  // namespace host
+void Resources::initialize_submesh_descriptors(Mesh::AttributeLocationMap const& attribute_to_location) {
+  vertex_buffer_size = 0u;
+  index_buffer_size = 0u;
+
+  for (auto& mesh : meshes) {
+    mesh->vertex_offset = vertex_buffer_size;
+    mesh->index_offset = index_buffer_size;
+    mesh->vertex_size = mesh->get_vertices().size();
+    mesh->index_size = mesh->get_indices().size();
+
+    vertex_buffer_size += mesh->vertex_size;
+    index_buffer_size += mesh->index_size;
+
+    mesh->initialize_submesh_descriptors(attribute_to_location);
+  }
+
+  uint32_t const kMegabyte = 1024 * 1024;
+  LOGI("> vertex buffer size %f Mb", vertex_buffer_size / static_cast<float>(kMegabyte));
+  LOGI("> index buffer size %f Mb ", index_buffer_size / static_cast<float>(kMegabyte));
+}
+
 }  // namespace scene
 
 /* -------------------------------------------------------------------------- */
