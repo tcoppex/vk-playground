@@ -51,6 +51,13 @@ class SampleApp final : public Application {
     /* Create a cube mesh procedurally on the host. */
     Geometry::MakeCube(cube_);
 
+    /* Map to bind vertex attributes with their shader input location. */
+    cube_.initialize_submesh_descriptors({
+      { Geometry::AttributeType::Position, shader_interop::kAttribLocation_Position },
+      { Geometry::AttributeType::Texcoord, shader_interop::kAttribLocation_Texcoord },
+      { Geometry::AttributeType::Normal, shader_interop::kAttribLocation_Normal },
+    });
+
     /* Create Buffers & Image(s). */
     {
       auto cmd = context_.create_transient_command_encoder();
@@ -146,11 +153,11 @@ class SampleApp final : public Application {
       graphics_pipeline_ = renderer_.create_graphics_pipeline(pipeline_layout, {
         .vertex = {
           .module = shaders[0u].module,
-          .buffers = cube_.get_vk_pipeline_vertex_buffer_descriptors({
-            { Geometry::AttributeType::Position, shader_interop::kAttribLocation_Position },
-            { Geometry::AttributeType::Texcoord, shader_interop::kAttribLocation_Texcoord },
-            { Geometry::AttributeType::Normal, shader_interop::kAttribLocation_Normal },
-          }),
+          /* Get buffer descriptors compatible with the mesh vertex inputs.
+           *
+           * Most Geometry::MakeX functions used the same interleaved layout,
+           * so they can be used interchangeably on the same static pipeline.*/
+          .buffers = cube_.get_vk_pipeline_vertex_buffer_descriptors(),
         },
         .fragment = {
           .module = shaders[1u].module,
@@ -221,6 +228,8 @@ class SampleApp final : public Application {
           pass.bind_vertex_buffer(vertex_buffer_);
           pass.bind_index_buffer(index_buffer_, cube_.get_vk_index_type());
           pass.draw_indexed(cube_.get_index_count());
+
+          // pass.draw(cube_.get_draw_descriptor(), vertex_buffer_, index_buffer_);
         }
       }
       cmd.end_rendering();

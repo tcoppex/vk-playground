@@ -7,7 +7,7 @@
 /* -------------------------------------------------------------------------- */
 
 #include "framework/application.h"
-#include "framework/utils/geometry.h"
+#include "framework/scene/mesh.h"
 
 namespace shader_interop {
 #include "shaders/interop.h"
@@ -21,16 +21,14 @@ class SampleApp final : public Application {
 
   static constexpr float kPortalSize = 2.35f;
 
-  /* Helper to handle static mesh resources. */
-  struct Mesh_t {
-    Geometry geo;
+  struct StaticMesh_t : scene::Mesh {
     Buffer_t vertex;
     Buffer_t index;
 
     void draw(RenderPassEncoder const& pass, uint32_t instance_count = 1u) const {
       pass.bind_vertex_buffer(vertex);
-      pass.bind_index_buffer(index, geo.get_vk_index_type());
-      pass.draw_indexed(geo.get_index_count(), instance_count);
+      pass.bind_index_buffer(index, get_vk_index_type());
+      pass.draw_indexed(get_index_count(), instance_count);
     }
   };
 
@@ -80,35 +78,50 @@ class SampleApp final : public Application {
         VK_BUFFER_USAGE_2_UNIFORM_BUFFER_BIT
       );
 
+      /* Map to bind vertex attributes with their shader input location. */
+      Geometry::AttributeLocationMap const attrib_location_map{
+        { Geometry::AttributeType::Position, shader_interop::kAttribLocation_Position },
+        { Geometry::AttributeType::Texcoord, shader_interop::kAttribLocation_Texcoord },
+        { Geometry::AttributeType::Normal, shader_interop::kAttribLocation_Normal },
+      };
+
       // Plane
       {
         auto &mesh = plane_;
-        Geometry::MakePlane(mesh.geo, kPortalSize);
+        Geometry::MakePlane(mesh, kPortalSize);
+
+        /* Initialize the descriptors used to bind vertex inputs. */
+        mesh.initialize_submesh_descriptors(attrib_location_map);
 
         mesh.vertex = cmd.create_buffer_and_upload(
-          mesh.geo.get_vertices(),
+          mesh.get_vertices(),
           VK_BUFFER_USAGE_2_VERTEX_BUFFER_BIT
         );
         mesh.index = cmd.create_buffer_and_upload(
-          mesh.geo.get_indices(),
+          mesh.get_indices(),
           VK_BUFFER_USAGE_2_INDEX_BUFFER_BIT
         );
+        mesh.clear_indices_and_vertices();
       }
 
       // Torus
       {
         auto &mesh = torus_;
+
         float const r = 0.5f * kPortalSize;
-        Geometry::MakeTorus2(mesh.geo, r, r * lina::kSqrtTwo, 48u, 32u);
+        Geometry::MakeTorus2(mesh, r, r * lina::kSqrtTwo, 48u, 32u);
+
+        mesh.initialize_submesh_descriptors(attrib_location_map);
 
         mesh.vertex = cmd.create_buffer_and_upload(
-          mesh.geo.get_vertices(),
+          mesh.get_vertices(),
           VK_BUFFER_USAGE_2_VERTEX_BUFFER_BIT
         );
         mesh.index = cmd.create_buffer_and_upload(
-          mesh.geo.get_indices(),
+          mesh.get_indices(),
           VK_BUFFER_USAGE_2_INDEX_BUFFER_BIT
         );
+        mesh.clear_indices_and_vertices();
       }
 
       context_.finish_transient_command_encoder(cmd);
@@ -161,16 +174,11 @@ class SampleApp final : public Application {
       GraphicsPipelineDescriptor_t mask_pipeline_descriptor{
         .vertex = {
           .module = shaders[0u].module,
-          .buffers = {
-            {
-              .stride = plane_.geo.get_stride(),
-              .attributes =  plane_.geo.get_vk_binding_attributes(0u, {
-                { Geometry::AttributeType::Position, shader_interop::kAttribLocation_Position },
-                { Geometry::AttributeType::Texcoord, shader_interop::kAttribLocation_Texcoord },
-                { Geometry::AttributeType::Normal, shader_interop::kAttribLocation_Normal },
-              }),
-            }
-          }
+          /* Get buffer descriptors compatible with the mesh vertex inputs.
+           *
+           * Most Geometry::MakeX functions used the same interleaved layout,
+           * so they can be used interchangeably on the same static pipeline.*/
+          .buffers = plane_.get_vk_pipeline_vertex_buffer_descriptors(),
         },
         .fragment = {
           .module = shaders[2u].module,
@@ -198,7 +206,7 @@ class SampleApp final : public Application {
           },
         },
         .primitive = {
-          .topology = plane_.geo.get_vk_primitive_topology(),
+          .topology = plane_.get_vk_primitive_topology(),
           .cullMode = VK_CULL_MODE_BACK_BIT,
         }
       };
@@ -210,16 +218,7 @@ class SampleApp final : public Application {
       pipelines_[PipelineID::StencilTest] = renderer_.create_graphics_pipeline(pipeline_layout_, {
         .vertex = {
           .module = shaders[1u].module,
-          .buffers = {
-            {
-              .stride = torus_.geo.get_stride(),
-              .attributes =  torus_.geo.get_vk_binding_attributes(0u, {
-                { Geometry::AttributeType::Position, shader_interop::kAttribLocation_Position },
-                { Geometry::AttributeType::Texcoord, shader_interop::kAttribLocation_Texcoord },
-                { Geometry::AttributeType::Normal, shader_interop::kAttribLocation_Normal },
-              }),
-            }
-          }
+          .buffers = torus_.get_vk_pipeline_vertex_buffer_descriptors(),
         },
         .fragment = {
           .module = shaders[2u].module,
@@ -251,7 +250,7 @@ class SampleApp final : public Application {
           },
         },
         .primitive = {
-          .topology = torus_.geo.get_vk_primitive_topology(),
+          .topology = torus_.get_vk_primitive_topology(),
           .cullMode = VK_CULL_MODE_BACK_BIT,
         }
       });
@@ -264,16 +263,7 @@ class SampleApp final : public Application {
       pipelines_[PipelineID::Rendering] = renderer_.create_graphics_pipeline(pipeline_layout_, {
         .vertex = {
           .module = shaders[0u].module,
-          .buffers = {
-            {
-              .stride = torus_.geo.get_stride(),
-              .attributes =  torus_.geo.get_vk_binding_attributes(0u, {
-                { Geometry::AttributeType::Position, shader_interop::kAttribLocation_Position },
-                { Geometry::AttributeType::Texcoord, shader_interop::kAttribLocation_Texcoord },
-                { Geometry::AttributeType::Normal, shader_interop::kAttribLocation_Normal },
-              }),
-            }
-          }
+          .buffers = torus_.get_vk_pipeline_vertex_buffer_descriptors(),
         },
         .fragment = {
           .module = shaders[2u].module,
@@ -295,7 +285,7 @@ class SampleApp final : public Application {
           .depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL,
         },
         .primitive = {
-          .topology = torus_.geo.get_vk_primitive_topology(),
+          .topology = torus_.get_vk_primitive_topology(),
           .cullMode = VK_CULL_MODE_BACK_BIT,
         }
       });
@@ -384,8 +374,8 @@ class SampleApp final : public Application {
   HostData_t host_data_{};
   Buffer_t uniform_buffer_{};
 
-  Mesh_t plane_;
-  Mesh_t torus_;
+  StaticMesh_t plane_;
+  StaticMesh_t torus_;
 
   VkPipelineLayout pipeline_layout_{};
   VkDescriptorSetLayout descriptor_set_layout_{};
