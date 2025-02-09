@@ -4,24 +4,13 @@
 
 namespace scene {
 
-VkPrimitiveTopology Mesh::get_vk_primitive_topology() const {
-  switch (get_topology()) {
-    case Topology::TriangleStrip:
-      return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
-
-    case Topology::TriangleList:
-      return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-
-    default:
-    case Topology::PointList:
-      return VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
-  }
-}
-
-// ----------------------------------------------------------------------------
-
 void Mesh::initialize_submesh_descriptors(AttributeLocationMap const& attribute_to_location) {
-  assert( get_primitive_count() == submeshes.size() );
+  if (submeshes.empty()) {
+    submeshes.resize(get_primitive_count(), {.parent = this});
+  } else {
+    assert( get_primitive_count() == submeshes.size() );
+  }
+
   for (uint32_t i = 0u; i < get_primitive_count(); ++i) {
     auto const& prim{ get_primitive(i) };
     auto& submesh{ submeshes.at(i) };
@@ -33,6 +22,64 @@ void Mesh::initialize_submesh_descriptors(AttributeLocationMap const& attribute_
       .indexCount = prim.indexCount,
       .instanceCount = 1u,
     };
+  }
+}
+
+// ----------------------------------------------------------------------------
+
+PipelineVertexBufferDescriptors Mesh::get_vk_pipeline_vertex_buffer_descriptors() const {
+  assert( !submeshes.empty() );
+  auto const& vi{ submeshes.at(0u).draw_descriptor.vertexInput };
+
+  PipelineVertexBufferDescriptors result(vi.bindings.size());
+
+  std::transform(
+    vi.bindings.cbegin(),
+    vi.bindings.cend(),
+    result.begin(),
+    [&vi](auto const& binding) -> PipelineVertexBufferDescriptor {
+      std::vector<VkVertexInputAttributeDescription> attribs{};
+      for (auto const& attrib : vi.attributes) {
+        if (attrib.binding == binding.binding) {
+          attribs.push_back({
+            .location = attrib.location,
+            .binding = attrib.binding,
+            .format = attrib.format,
+            .offset = attrib.offset,
+          });
+        }
+      }
+      return {
+        .stride = binding.stride,
+        .inputRate = binding.inputRate,
+        .attributes = attribs,
+      };
+    }
+  );
+
+  return result;
+}
+
+// ----------------------------------------------------------------------------
+
+PipelineVertexBufferDescriptors Mesh::get_vk_pipeline_vertex_buffer_descriptors(AttributeLocationMap const& attribute_to_location) {
+  initialize_submesh_descriptors(attribute_to_location);
+  return get_vk_pipeline_vertex_buffer_descriptors();
+}
+
+// ----------------------------------------------------------------------------
+
+VkPrimitiveTopology Mesh::get_vk_primitive_topology() const {
+  switch (get_topology()) {
+    case Topology::TriangleStrip:
+      return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+
+    case Topology::TriangleList:
+      return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+
+    default:
+    case Topology::PointList:
+      return VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
   }
 }
 

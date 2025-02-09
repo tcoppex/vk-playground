@@ -286,6 +286,7 @@ void RenderPassEncoder::set_viewport_scissor(VkRect2D const rect, bool flip_y) c
 // ----------------------------------------------------------------------------
 
 void RenderPassEncoder::draw(DrawDescriptor const& desc, Buffer_t const& vertex_buffer, Buffer_t const& index_buffer) const {
+  // [TODO] disable when vertex input is not dynamic.
   set_vertex_input(desc.vertexInput);
 
   for (uint32_t i = 0u; i < desc.vertexInput.bindings.size(); ++i) {

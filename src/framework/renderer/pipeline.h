@@ -49,7 +49,7 @@ struct GraphicsPipelineDescriptor_t {
 
     VkShaderModule module{}; //
     std::string entryPoint{};
-    std::vector<Buffer> buffers{};
+    std::vector<Vertex::Buffer> buffers{};
   } vertex{};
 
   struct Fragment {

@@ -332,7 +332,7 @@ void ExtractMeshes(std::string const& basename, std::unordered_map<void const*, 
     auto mesh = std::make_shared<scene::Mesh>();
 
     cgltf_node_transform_world(&node, lina::ptr(mesh->world_matrix));
-    mesh->submeshes.resize(prim_indices.size(), {.parent = mesh});
+    mesh->submeshes.resize(prim_indices.size(), {.parent = mesh.get()});
 
     // -----------------
 
