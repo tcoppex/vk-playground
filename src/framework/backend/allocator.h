@@ -3,6 +3,7 @@
 
 /* -------------------------------------------------------------------------- */
 
+#include "framework/common.h"
 #include "framework/backend/types.h"
 
 /* -------------------------------------------------------------------------- */
@@ -61,7 +62,6 @@ class ResourceAllocator {
   void create_image_with_view(VkImageCreateInfo const& image_info, VkImageViewCreateInfo const& view_info, Image_t *image) const;
 
   void destroy_image(Image_t *image) const;
-
 
  private:
   VkDevice device_{};

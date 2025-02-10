@@ -5,6 +5,7 @@
 
 #include <chrono>
 
+#include "framework/common.h"
 #include "framework/backend/context.h"
 #include "framework/renderer/renderer.h"
 #include "framework/wm/event_callbacks.h"
