@@ -11,7 +11,7 @@
 void Renderer::init(Context const& context, std::shared_ptr<ResourceAllocator> allocator, VkSurfaceKHR const surface) {
   ctx_ptr_ = &context;
   device_ = context.get_device();
-  graphics_queue_ = context.get_graphics_queue();
+  main_queue_ = context.get_main_queue();
   allocator_ = allocator;
 
   /* Initialize the swapchain. */
@@ -32,7 +32,7 @@ void Renderer::init(Context const& context, std::shared_ptr<ResourceAllocator> a
     timeline_.frames.resize(frame_count);
     VkCommandPoolCreateInfo const command_pool_create_info{
       .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-      .queueFamilyIndex = graphics_queue_.family_index,
+      .queueFamilyIndex = main_queue_.family_index,
     };
     for (uint64_t i = 0u; i < frame_count; ++i) {
       auto& frame = timeline_.frames[i];
@@ -197,10 +197,10 @@ void Renderer::end_frame() {
     .pSignalSemaphoreInfos = signal_semaphores.data(),
   };
 
-  CHECK_VK( vkQueueSubmit2(graphics_queue_.queue, 1u, &submit_info_2, nullptr) );
+  CHECK_VK( vkQueueSubmit2(main_queue_.queue, 1u, &submit_info_2, nullptr) );
 
   /* Display and swap buffers. */
-  swapchain_.present_and_swap(graphics_queue_.queue); //
+  swapchain_.present_and_swap(main_queue_.queue); //
   timeline_.frame_index = swapchain_.get_current_swap_index();
 }
 

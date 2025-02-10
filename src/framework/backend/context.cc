@@ -17,7 +17,7 @@ bool Context::init(std::vector<char const*> const& instance_extensions) {
     VkCommandPoolCreateInfo const command_pool_create_info{
       .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
       .flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
-      .queueFamilyIndex = graphics_queue_.family_index,
+      .queueFamilyIndex = main_queue_.family_index,
     };
     CHECK_VK(vkCreateCommandPool(device_, &command_pool_create_info, nullptr, &transient_command_pool_));
   }
@@ -160,7 +160,7 @@ void Context::finish_transient_command_encoder(CommandEncoder const& encoder) co
     .commandBufferInfoCount = 1u,
     .pCommandBufferInfos = &cb_submit_info,
   };
-  CHECK_VK( vkQueueSubmit2(graphics_queue_.queue, 1u, &submit_info_2, fence) );
+  CHECK_VK( vkQueueSubmit2(main_queue_.queue, 1u, &submit_info_2, fence) );
   CHECK_VK( vkWaitForFences(device_, 1u, &fence, VK_TRUE, UINT64_MAX) );
   vkDestroyFence(device_, fence, nullptr);
 
@@ -334,17 +334,22 @@ bool Context::init_device() {
   LOG_CHECK(feature_.descriptor_indexing.runtimeDescriptorArray);
   LOG_CHECK(feature_.vertex_input_dynamic_state.vertexInputDynamicState);
 
-  /* Search for a queue family with Graphics support. */
+  /* Search for a queue family with Graphics, Transfer, and Compute support. */
+  VkQueueFlags const required_flags{
+      VK_QUEUE_GRAPHICS_BIT
+    | VK_QUEUE_TRANSFER_BIT
+    | VK_QUEUE_COMPUTE_BIT
+  };
   uint32_t const queue_family_count{static_cast<uint32_t>(properties_.queue_families2.size())};
   for (uint32_t i = 0u; i < queue_family_count; ++i) {
     auto const& queue_flags = properties_.queue_families2[i].queueFamilyProperties.queueFlags;
-    if (queue_flags & VK_QUEUE_GRAPHICS_BIT) {
-      graphics_queue_.family_index = i;
-      graphics_queue_.queue_index = 0u;
+    if (required_flags == (queue_flags & required_flags)) {
+      main_queue_.family_index = i;
+      main_queue_.queue_index = 0u;
       break;
     }
   }
-  if (UINT32_MAX == graphics_queue_.family_index) {
+  if (UINT32_MAX == main_queue_.family_index) {
     fprintf(stderr, "Error: could not find a queue family with graphics support.\n");
     return false;
   }
@@ -352,7 +357,7 @@ bool Context::init_device() {
   float const queue_priorities{1.0f};
   VkDeviceQueueCreateInfo const queue_info{
     .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-    .queueFamilyIndex = graphics_queue_.family_index,
+    .queueFamilyIndex = main_queue_.family_index,
     .queueCount = 1u,
     .pQueuePriorities = &queue_priorities,
   };
@@ -382,7 +387,7 @@ bool Context::init_device() {
     bind_func(vkCmdBindIndexBuffer2, vkCmdBindIndexBuffer2KHR);
   }
 
-  vkGetDeviceQueue(device_, graphics_queue_.family_index, graphics_queue_.queue_index, &graphics_queue_.queue);
+  vkGetDeviceQueue(device_, main_queue_.family_index, main_queue_.queue_index, &main_queue_.queue);
 
   return true;
 }

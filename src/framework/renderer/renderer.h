@@ -70,6 +70,7 @@ class Renderer : public RTInterface {
 
   // Specialized version that create the layout internally.
   Pipeline create_graphics_pipeline(PipelineLayoutDescriptor_t const& layout_desc, GraphicsPipelineDescriptor_t const& desc) const;
+
   Pipeline create_graphics_pipeline(GraphicsPipelineDescriptor_t const& desc) const;
 
   void create_compute_pipelines(VkPipelineLayout pipeline_layout, std::vector<ShaderModule_t> const& modules, Pipeline *pipelines) const;
@@ -96,6 +97,7 @@ class Renderer : public RTInterface {
   // --- Texture / Sampler ---
 
   bool load_texture_2d(CommandEncoder const& cmd, std::string_view const& filename, Image_t &image) const;
+
   bool load_texture_2d(std::string_view const& filename, Image_t &image) const;
 
   VkSampler get_default_sampler() const {
@@ -171,7 +173,7 @@ class Renderer : public RTInterface {
   /* Copy references for quick access */
   Context const* ctx_ptr_{};
   VkDevice device_{};
-  Queue_t graphics_queue_{};
+  Queue_t main_queue_{};
   std::shared_ptr<ResourceAllocator> allocator_{};
 
   /* Swapchain. */

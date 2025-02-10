@@ -22,31 +22,31 @@ class Context {
   bool init(std::vector<char const*> const& instance_extensions);
   void deinit();
 
-  inline VkInstance get_instance() const {
+  VkInstance get_instance() const {
     return instance_;
   }
 
-  inline VkPhysicalDevice get_gpu() const {
+  VkPhysicalDevice get_gpu() const {
     return gpu_;
   }
 
-  inline VkDevice get_device() const {
+  VkDevice get_device() const {
     return device_;
   }
 
-  inline Queue_t get_graphics_queue() const {
-    return graphics_queue_;
+  Queue_t get_main_queue() const {
+    return main_queue_;
   }
 
-  inline GPUProperties_t const& get_gpu_properties() const {
+  GPUProperties_t const& get_gpu_properties() const {
     return properties_;
   }
 
-  inline VkCommandPool get_transient_command_pool() const {
+  VkCommandPool get_transient_command_pool() const {
     return transient_command_pool_;
   }
 
-  inline std::shared_ptr<ResourceAllocator> get_resource_allocator() const {
+  std::shared_ptr<ResourceAllocator> get_resource_allocator() const {
     return resource_allocator_;
   }
 
@@ -168,7 +168,7 @@ class Context {
   VkInstance instance_{};
   VkPhysicalDevice gpu_{};
   VkDevice device_{};
-  Queue_t graphics_queue_{};
+  Queue_t main_queue_{};
   VkCommandPool transient_command_pool_{};
 
   std::shared_ptr<ResourceAllocator> resource_allocator_{};
