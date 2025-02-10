@@ -215,7 +215,7 @@ void Context::select_gpu() {
   uint32_t gpu_count{0u};
   CHECK_VK( vkEnumeratePhysicalDevices(instance_, &gpu_count, nullptr) );
   if (0u == gpu_count) {
-    fprintf(stderr, "[Error] Vulkan: no GPUs were available.\n");
+    LOGE("Vulkan: no GPUs were available.\n");
     exit(EXIT_FAILURE);
   }
   std::vector<VkPhysicalDevice> gpus(gpu_count);
@@ -350,7 +350,7 @@ bool Context::init_device() {
     }
   }
   if (UINT32_MAX == main_queue_.family_index) {
-    fprintf(stderr, "Error: could not find a queue family with graphics support.\n");
+    LOGE("Could not find a queue family with the requested support.\n");
     return false;
   }
 
