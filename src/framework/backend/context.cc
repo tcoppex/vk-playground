@@ -142,7 +142,7 @@ CommandEncoder Context::create_transient_command_encoder() const {
 
 // ----------------------------------------------------------------------------
 
-void Context::finish_transient_command_encoder(CommandEncoder const& encoder) const {
+void Context::finish_transient_command_encoder(CommandEncoder const& encoder, Context::TargetQueue const& target_queue) const {
   encoder.end();
 
   VkFenceCreateInfo const fence_info{
@@ -160,7 +160,14 @@ void Context::finish_transient_command_encoder(CommandEncoder const& encoder) co
     .commandBufferInfoCount = 1u,
     .pCommandBufferInfos = &cb_submit_info,
   };
-  CHECK_VK( vkQueueSubmit2(main_queue_.queue, 1u, &submit_info_2, fence) );
+
+  VkQueue const queue{
+    (target_queue == TargetQueue::Main) ? main_queue_.queue : transfer_queue_.queue
+  };
+
+  CHECK_VK( vkQueueSubmit2(queue, 1u, &submit_info_2, fence) );
+
+
   CHECK_VK( vkWaitForFences(device_, 1u, &fence, VK_TRUE, UINT64_MAX) );
   vkDestroyFence(device_, fence, nullptr);
 
@@ -334,39 +341,76 @@ bool Context::init_device() {
   LOG_CHECK(feature_.descriptor_indexing.runtimeDescriptorArray);
   LOG_CHECK(feature_.vertex_input_dynamic_state.vertexInputDynamicState);
 
-  /* Search for a queue family with Graphics, Transfer, and Compute support. */
-  VkQueueFlags const required_flags{
-      VK_QUEUE_GRAPHICS_BIT
-    | VK_QUEUE_TRANSFER_BIT
-    | VK_QUEUE_COMPUTE_BIT
+  // --------------------
+
+  /* Find specific Queues Family */
+  std::array<float, 2u> constexpr priorities{
+    1.0f,     // MAIN Queue        (Graphics, Transfer, Compute)
+    0.75f     // TRANSFERT Queue   (Transfer)
   };
-  uint32_t const queue_family_count{static_cast<uint32_t>(properties_.queue_families2.size())};
-  for (uint32_t i = 0u; i < queue_family_count; ++i) {
-    auto const& queue_flags = properties_.queue_families2[i].queueFamilyProperties.queueFlags;
-    if (required_flags == (queue_flags & required_flags)) {
-      main_queue_.family_index = i;
-      main_queue_.queue_index = 0u;
-      break;
+  std::vector<std::pair<Queue_t*, VkQueueFlags>> const queues{
+    { &main_queue_,       VK_QUEUE_GRAPHICS_BIT
+                        | VK_QUEUE_TRANSFER_BIT
+                        | VK_QUEUE_COMPUTE_BIT },
+
+    { &transfer_queue_,   VK_QUEUE_TRANSFER_BIT },
+  };
+
+  std::vector<VkDeviceQueueCreateInfo> queue_create_infos{};
+  std::vector<std::vector<float>> queue_priorities{};
+  {
+    uint32_t const queue_family_count{static_cast<uint32_t>(properties_.queue_families2.size())};
+
+    std::vector<VkDeviceQueueCreateInfo> queue_infos(queue_family_count, {
+      .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+      .queueCount = 0u,
+    });
+
+    queue_priorities.resize(queue_family_count, {});
+
+    for (size_t j = 0u; j < queues.size(); ++j) {
+      auto& pair = queues[j];
+
+
+      for (uint32_t i = 0u; i < queue_family_count; ++i) {
+        auto const& queue_family_props = properties_.queue_families2[i].queueFamilyProperties;
+        auto const& queue_flags = queue_family_props.queueFlags;
+
+        if ((pair.second == (queue_flags & pair.second))
+         && (queue_infos[i].queueCount < queue_family_props.queueCount))
+        {
+          pair.first->family_index = i;
+          pair.first->queue_index = queue_infos[i].queueCount;
+
+          queue_priorities[i].push_back(priorities[j]);
+
+          queue_infos[i].queueFamilyIndex = i;
+          queue_infos[i].pQueuePriorities = queue_priorities[i].data();
+          queue_infos[i].queueCount += 1u;
+          // LOGI("%d %f %u", i, priorities[j], queue_infos[i].queueCount);
+          break;
+        }
+      }
+
+      if (UINT32_MAX == pair.first->family_index) {
+        LOGE("Could not find a queue family with the requested support %08x.", pair.second);
+        return false;
+      }
+    }
+
+    for (uint32_t i = 0u; i < queue_family_count; ++i) {
+      if (queue_infos[i].queueCount > 0u) {
+        queue_create_infos.push_back(queue_infos[i]);
+      }
     }
   }
-  if (UINT32_MAX == main_queue_.family_index) {
-    LOGE("Could not find a queue family with the requested support.\n");
-    return false;
-  }
 
-  float const queue_priorities{1.0f};
-  VkDeviceQueueCreateInfo const queue_info{
-    .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-    .queueFamilyIndex = main_queue_.family_index,
-    .queueCount = 1u,
-    .pQueuePriorities = &queue_priorities,
-  };
-
+  /* Create logical device. */
   VkDeviceCreateInfo const device_info{
     .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
     .pNext = &feature_.base,
-    .queueCreateInfoCount = 1u,
-    .pQueueCreateInfos = &queue_info,
+    .queueCreateInfoCount = static_cast<uint32_t>(queue_create_infos.size()),
+    .pQueueCreateInfos = queue_create_infos.data(),
     .enabledExtensionCount = static_cast<uint32_t>(device_extension_names_.size()),
     .ppEnabledExtensionNames = device_extension_names_.data(),
   };
@@ -387,7 +431,11 @@ bool Context::init_device() {
     bind_func(vkCmdBindIndexBuffer2, vkCmdBindIndexBuffer2KHR);
   }
 
-  vkGetDeviceQueue(device_, main_queue_.family_index, main_queue_.queue_index, &main_queue_.queue);
+  /* Retrieved requested queues. */
+  for (auto& pair : queues) {
+    auto *queue = pair.first;
+    vkGetDeviceQueue(device_, queue->family_index, queue->queue_index, &queue->queue);
+  }
 
   return true;
 }

@@ -11,6 +11,13 @@
 
 class Context {
  public:
+  enum class TargetQueue {
+    Main,
+    Transfer,
+    kCount,
+  };
+
+ public:
   Context() :
     instance_{VK_NULL_HANDLE},
     gpu_{VK_NULL_HANDLE},
@@ -66,7 +73,7 @@ class Context {
 
   CommandEncoder create_transient_command_encoder() const;
 
-  void finish_transient_command_encoder(CommandEncoder const& encoder) const;
+  void finish_transient_command_encoder(CommandEncoder const& encoder, Context::TargetQueue const& target_queue = TargetQueue::Main) const;
 
   /* Shortcut to transition image layouts. */
   void transition_images_layout(std::vector<Image_t> const& images, VkImageLayout const src_layout, VkImageLayout const dst_layout) const {
@@ -168,7 +175,13 @@ class Context {
   VkInstance instance_{};
   VkPhysicalDevice gpu_{};
   VkDevice device_{};
+
+  /* Queue used for graphics, transfer, and compute */
   Queue_t main_queue_{};
+
+  /* Queue only used for transfer. */
+  Queue_t transfer_queue_{};
+
   VkCommandPool transient_command_pool_{};
 
   std::shared_ptr<ResourceAllocator> resource_allocator_{};
