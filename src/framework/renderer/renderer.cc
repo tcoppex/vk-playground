@@ -28,7 +28,7 @@ void Renderer::init(Context const& context, std::shared_ptr<ResourceAllocator> a
   {
     uint64_t const frame_count = swapchain_.get_image_count();
 
-    // Initialize frames command buffers.
+    // Initialize per-frame command buffers.
     timeline_.frames.resize(frame_count);
     VkCommandPoolCreateInfo const command_pool_create_info{
       .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
@@ -658,40 +658,55 @@ void Renderer::update_descriptor_set(VkDescriptorSet const& descriptor_set, std:
     return;
   }
 
-  /* Copy entries to be able to update them. */
-  auto updated_entries{ entries };
-
-  std::vector<VkWriteDescriptorSet> write_descriptor_sets{};
+  std::vector<VkWriteDescriptorSet> write_descriptor_sets;
   write_descriptor_sets.reserve(entries.size());
 
-  for (auto &entry : updated_entries) {
-    bool const has_image{ entry.resource.image.sampler != VK_NULL_HANDLE };
-    bool const has_buffer{ entry.resource.buffer.buffer != VK_NULL_HANDLE };
-    bool const has_bufferView{ entry.resource.bufferView != VK_NULL_HANDLE };
-    assert(has_image != has_buffer || has_image != has_bufferView || has_buffer != has_bufferView);
+  std::vector<DescriptorSetWriteEntry> updated_entries{entries};
 
-    if (has_buffer) {
-      /* Instead of an error we force range to whole size if none were provided. */
-      if (entry.resource.buffer.range == 0) {
-        entry.resource.buffer.range = VK_WHOLE_SIZE;
-      }
+  for (auto& entry : updated_entries) {
+    VkWriteDescriptorSet write_descriptor_set{};
+
+    write_descriptor_set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    write_descriptor_set.dstSet = descriptor_set;
+    write_descriptor_set.dstBinding = entry.binding;
+    write_descriptor_set.dstArrayElement = 0u;
+
+    switch (entry.type) {
+      case VK_DESCRIPTOR_TYPE_SAMPLER:
+      case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
+      case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+      case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+        write_descriptor_set.descriptorType = entry.type;
+        write_descriptor_set.descriptorCount = 1u;
+        write_descriptor_set.pImageInfo = &entry.resource.image;
+        break;
+
+      case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+      case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+      case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
+      case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
+        if (entry.resource.buffer.range == 0) {
+          entry.resource.buffer.range = VK_WHOLE_SIZE;
+        }
+        write_descriptor_set.descriptorType = entry.type;
+        write_descriptor_set.descriptorCount = 1u;
+        write_descriptor_set.pBufferInfo = &entry.resource.buffer;
+        break;
+
+      case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
+        write_descriptor_set.descriptorType = entry.type;
+        write_descriptor_set.descriptorCount = 1u;
+        write_descriptor_set.pTexelBufferView = &entry.resource.bufferView;
+        break;
+
+      default:
+        LOGE("Unknown descriptor type: %d", static_cast<int>(entry.type));
+        continue;
     }
 
-    VkWriteDescriptorSet const write_descriptor_set{
-      .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-      .dstSet = descriptor_set,
-      .dstBinding = entry.binding,
-      .dstArrayElement = 0u, // (not used)
-      .descriptorCount = 1u, // (not used)
-      .descriptorType = entry.type,
-      .pImageInfo = has_image ? &entry.resource.image : nullptr,
-      .pBufferInfo = has_buffer ? &entry.resource.buffer : nullptr,
-      .pTexelBufferView = has_bufferView ? &entry.resource.bufferView : nullptr,
-    };
     write_descriptor_sets.push_back(write_descriptor_set);
   }
 
-  // (only write operations are currently accepted)
   vkUpdateDescriptorSets(
     device_,
     static_cast<uint32_t>(write_descriptor_sets.size()),
