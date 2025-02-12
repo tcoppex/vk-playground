@@ -125,17 +125,17 @@ class SampleApp final : public Application {
         {
           .binding = shader_interop::kDescriptorSetBinding_UniformBuffer,
           .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-          .resource = { .buffer = { uniform_buffer_.buffer } }
+          .buffers = { { uniform_buffer_.buffer } }
         },
         {
           .binding = shader_interop::kDescriptorSetBinding_StorageBuffer_Position,
           .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-          .resource = { .buffer = { point_grid_.vertex.buffer } }
+          .buffers = { { point_grid_.vertex.buffer } }
         },
         {
           .binding = shader_interop::kDescriptorSetBinding_StorageBuffer_Index,
           .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-          .resource = { .buffer = { point_grid_.index.buffer } }
+          .buffers = { { point_grid_.index.buffer } }
         },
       });
     }

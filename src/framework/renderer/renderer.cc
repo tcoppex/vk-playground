@@ -665,40 +665,42 @@ void Renderer::update_descriptor_set(VkDescriptorSet const& descriptor_set, std:
   std::vector<DescriptorSetWriteEntry> updated_entries{entries};
 
   for (auto& entry : updated_entries) {
-    VkWriteDescriptorSet write_descriptor_set{};
-
-    write_descriptor_set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    write_descriptor_set.dstSet = descriptor_set;
-    write_descriptor_set.dstBinding = entry.binding;
-    write_descriptor_set.dstArrayElement = 0u;
+    VkWriteDescriptorSet write_descriptor_set{
+      .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+      .dstSet = descriptor_set,
+      .dstBinding = entry.binding,
+      .dstArrayElement = 0u,
+      .descriptorType = entry.type,
+    };
 
     switch (entry.type) {
       case VK_DESCRIPTOR_TYPE_SAMPLER:
       case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
       case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
       case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
-        write_descriptor_set.descriptorType = entry.type;
-        write_descriptor_set.descriptorCount = 1u;
-        write_descriptor_set.pImageInfo = &entry.resource.image;
-        break;
+        LOG_CHECK(entry.buffers.empty() && entry.bufferViews.empty());
+
+        write_descriptor_set.pImageInfo = entry.images.data();
+        write_descriptor_set.descriptorCount = static_cast<uint32_t>(entry.images.size());
+      break;
 
       case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
       case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
       case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
       case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
-        if (entry.resource.buffer.range == 0) {
-          entry.resource.buffer.range = VK_WHOLE_SIZE;
+        LOG_CHECK(entry.images.empty() && entry.bufferViews.empty());
+        for (auto &buf : entry.buffers) {
+          buf.range = (buf.range == 0) ? VK_WHOLE_SIZE : buf.range;
         }
-        write_descriptor_set.descriptorType = entry.type;
-        write_descriptor_set.descriptorCount = 1u;
-        write_descriptor_set.pBufferInfo = &entry.resource.buffer;
-        break;
+        write_descriptor_set.pBufferInfo = entry.buffers.data();
+        write_descriptor_set.descriptorCount = static_cast<uint32_t>(entry.buffers.size());
+      break;
 
       case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
-        write_descriptor_set.descriptorType = entry.type;
-        write_descriptor_set.descriptorCount = 1u;
-        write_descriptor_set.pTexelBufferView = &entry.resource.bufferView;
-        break;
+        LOG_CHECK(entry.images.empty() && entry.buffers.empty());
+        write_descriptor_set.pTexelBufferView = entry.bufferViews.data();
+        write_descriptor_set.descriptorCount = static_cast<uint32_t>(entry.bufferViews.size());
+      break;
 
       default:
         LOGE("Unknown descriptor type: %d", static_cast<int>(entry.type));

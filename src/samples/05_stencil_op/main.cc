@@ -146,7 +146,7 @@ class SampleApp final : public Application {
         {
           .binding = shader_interop::kDescriptorSetBinding_UniformBuffer,
           .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-          .resource = { .buffer = { uniform_buffer_.buffer } }
+          .buffers = { { uniform_buffer_.buffer } }
         },
       });
     }

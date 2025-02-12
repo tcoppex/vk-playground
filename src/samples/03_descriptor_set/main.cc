@@ -122,7 +122,7 @@ class SampleApp final : public Application {
         {
           .binding = kDescSetUniformBinding,
           .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-          .resource = { .buffer = { uniform_buffer_.buffer } }
+          .buffers = { { uniform_buffer_.buffer } }
         }
       });
     }

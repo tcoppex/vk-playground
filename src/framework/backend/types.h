@@ -106,16 +106,11 @@ struct DescriptorSetLayoutParams {
 };
 
 struct DescriptorSetWriteEntry {
-  // (use an union instead ?)
-  struct Resource {
-    VkDescriptorImageInfo image{};
-    VkDescriptorBufferInfo buffer{};
-    VkBufferView bufferView{};
-  };
-
   uint32_t binding{};
   VkDescriptorType type{};
-  Resource resource{};
+  std::vector<VkDescriptorImageInfo> images{};
+  std::vector<VkDescriptorBufferInfo> buffers{};
+  std::vector<VkBufferView> bufferViews{};
 };
 
 // ----------------------------------------------------------------------------

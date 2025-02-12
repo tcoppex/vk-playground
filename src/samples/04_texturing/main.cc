@@ -117,13 +117,13 @@ class SampleApp final : public Application {
         {
           .binding = shader_interop::kDescriptorSetBinding_UniformBuffer,
           .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-          .resource = { .buffer = { uniform_buffer_.buffer } }
+          .buffers = { { uniform_buffer_.buffer } }
         },
         {
           .binding = shader_interop::kDescriptorSetBinding_Sampler,
           .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-          .resource = {
-            .image = {
+          .images = {
+            {
               .sampler = renderer_.get_default_sampler(),
               .imageView = image_.view,
               .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
