@@ -14,12 +14,16 @@ bool Context::init(std::vector<char const*> const& instance_extensions) {
 
   /* Create a transient CommandPool for temporary command buffers. */
   {
-    VkCommandPoolCreateInfo const command_pool_create_info{
+    VkCommandPoolCreateInfo command_pool_create_info{
       .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
       .flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
-      .queueFamilyIndex = main_queue_.family_index,
     };
-    CHECK_VK(vkCreateCommandPool(device_, &command_pool_create_info, nullptr, &transient_command_pool_));
+
+    for (uint32_t i = 0u; i < static_cast<uint32_t>(TargetQueue::kCount); ++i) {
+      auto const target = static_cast<TargetQueue>(i);
+      command_pool_create_info.queueFamilyIndex = get_queue(target).family_index;
+      CHECK_VK(vkCreateCommandPool(device_, &command_pool_create_info, nullptr, &transient_command_pools_[target]));
+    }
   }
 
   resource_allocator_ = std::make_shared<ResourceAllocator>();
@@ -37,7 +41,8 @@ bool Context::init(std::vector<char const*> const& instance_extensions) {
 void Context::deinit() {
   vkDeviceWaitIdle(device_);
   resource_allocator_->deinit();
-  vkDestroyCommandPool(device_, transient_command_pool_, nullptr);
+  vkDestroyCommandPool(device_, transient_command_pools_[TargetQueue::Main], nullptr);
+  vkDestroyCommandPool(device_, transient_command_pools_[TargetQueue::Transfer], nullptr);
   vkDestroyDevice(device_, nullptr);
   vkDestroyInstance(instance_, nullptr);
 }
@@ -122,18 +127,18 @@ void Context::release_shader_modules(std::vector<ShaderModule_t> const& shaders)
 
 // ----------------------------------------------------------------------------
 
-CommandEncoder Context::create_transient_command_encoder() const {
+CommandEncoder Context::create_transient_command_encoder(Context::TargetQueue const& target_queue) const {
   VkCommandBuffer cmd{};
 
   VkCommandBufferAllocateInfo const alloc_info{
     .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-    .commandPool = transient_command_pool_,
+    .commandPool = transient_command_pools_[target_queue],
     .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
     .commandBufferCount = 1u,
   };
   CHECK_VK(vkAllocateCommandBuffers(device_, &alloc_info, &cmd));
 
-  auto encoder = CommandEncoder(device_, resource_allocator_, cmd);
+  auto encoder{ CommandEncoder(cmd, static_cast<uint32_t>(target_queue), device_, resource_allocator_) };
 
   encoder.begin();
 
@@ -142,7 +147,7 @@ CommandEncoder Context::create_transient_command_encoder() const {
 
 // ----------------------------------------------------------------------------
 
-void Context::finish_transient_command_encoder(CommandEncoder const& encoder, Context::TargetQueue const& target_queue) const {
+void Context::finish_transient_command_encoder(CommandEncoder const& encoder) const {
   encoder.end();
 
   VkFenceCreateInfo const fence_info{
@@ -161,17 +166,16 @@ void Context::finish_transient_command_encoder(CommandEncoder const& encoder, Co
     .pCommandBufferInfos = &cb_submit_info,
   };
 
-  VkQueue const queue{
-    (target_queue == TargetQueue::Main) ? main_queue_.queue : transfer_queue_.queue
+  auto const target_queue{
+    static_cast<TargetQueue>(encoder.get_target_queue_index())
   };
 
-  CHECK_VK( vkQueueSubmit2(queue, 1u, &submit_info_2, fence) );
-
+  CHECK_VK( vkQueueSubmit2(get_queue(target_queue).queue, 1u, &submit_info_2, fence) );
 
   CHECK_VK( vkWaitForFences(device_, 1u, &fence, VK_TRUE, UINT64_MAX) );
   vkDestroyFence(device_, fence, nullptr);
 
-  vkFreeCommandBuffers(device_, transient_command_pool_, 1u, &encoder.command_buffer_);
+  vkFreeCommandBuffers(device_, transient_command_pools_[target_queue], 1u, &encoder.command_buffer_);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -349,11 +353,11 @@ bool Context::init_device() {
     0.75f     // TRANSFERT Queue   (Transfer)
   };
   std::vector<std::pair<Queue_t*, VkQueueFlags>> const queues{
-    { &main_queue_,       VK_QUEUE_GRAPHICS_BIT
-                        | VK_QUEUE_TRANSFER_BIT
-                        | VK_QUEUE_COMPUTE_BIT },
+    { &queues_[TargetQueue::Main],      VK_QUEUE_GRAPHICS_BIT
+                                      | VK_QUEUE_TRANSFER_BIT
+                                      | VK_QUEUE_COMPUTE_BIT  },
 
-    { &transfer_queue_,   VK_QUEUE_TRANSFER_BIT },
+    { &queues_[TargetQueue::Transfer],  VK_QUEUE_TRANSFER_BIT },
   };
 
   std::vector<VkDeviceQueueCreateInfo> queue_create_infos{};

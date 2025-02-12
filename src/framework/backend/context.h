@@ -41,16 +41,12 @@ class Context {
     return device_;
   }
 
-  Queue_t get_main_queue() const {
-    return main_queue_;
+  Queue_t const& get_queue(TargetQueue const target = TargetQueue::Main) const {
+    return queues_[target];
   }
 
   GPUProperties_t const& get_gpu_properties() const {
     return properties_;
-  }
-
-  VkCommandPool get_transient_command_pool() const {
-    return transient_command_pool_;
   }
 
   std::shared_ptr<ResourceAllocator> get_resource_allocator() const {
@@ -71,9 +67,9 @@ class Context {
 
   // --- Command Encoder ---
 
-  CommandEncoder create_transient_command_encoder() const;
+  CommandEncoder create_transient_command_encoder(Context::TargetQueue const& target_queue = TargetQueue::Main) const;
 
-  void finish_transient_command_encoder(CommandEncoder const& encoder, Context::TargetQueue const& target_queue = TargetQueue::Main) const;
+  void finish_transient_command_encoder(CommandEncoder const& encoder) const;
 
   /* Shortcut to transition image layouts. */
   void transition_images_layout(std::vector<Image_t> const& images, VkImageLayout const src_layout, VkImageLayout const dst_layout) const {
@@ -176,13 +172,8 @@ class Context {
   VkPhysicalDevice gpu_{};
   VkDevice device_{};
 
-  /* Queue used for graphics, transfer, and compute */
-  Queue_t main_queue_{};
-
-  /* Queue only used for transfer. */
-  Queue_t transfer_queue_{};
-
-  VkCommandPool transient_command_pool_{};
+  EnumArray<Queue_t, TargetQueue> queues_{};
+  EnumArray<VkCommandPool, TargetQueue> transient_command_pools_{};
 
   std::shared_ptr<ResourceAllocator> resource_allocator_{};
 };

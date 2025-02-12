@@ -18,8 +18,9 @@ class GenericCommandEncoder {
  public:
   GenericCommandEncoder() = default;
 
-  GenericCommandEncoder(VkCommandBuffer command_buffer)
+  GenericCommandEncoder(VkCommandBuffer command_buffer, uint32_t target_queue_index)
     : command_buffer_(command_buffer)
+    , target_queue_index_{target_queue_index}
     , currently_bound_pipeline_layout_{VK_NULL_HANDLE}
   {}
 
@@ -27,6 +28,10 @@ class GenericCommandEncoder {
 
   VkCommandBuffer get_handle() {
     return command_buffer_;
+  }
+
+  uint32_t get_target_queue_index() const {
+    return target_queue_index_;
   }
 
   // --- Descriptor Sets ---
@@ -86,6 +91,7 @@ class GenericCommandEncoder {
 
  protected:
   VkCommandBuffer command_buffer_{};
+  uint32_t target_queue_index_{};
 
  private:
   VkPipelineLayout currently_bound_pipeline_layout_{};
@@ -170,8 +176,8 @@ class CommandEncoder : public GenericCommandEncoder {
   CommandEncoder() = default;
 
  private:
-  CommandEncoder(VkDevice const device, std::shared_ptr<ResourceAllocator> allocator, VkCommandBuffer const command_buffer)
-    : GenericCommandEncoder(command_buffer)
+  CommandEncoder(VkCommandBuffer const command_buffer, uint32_t target_queue_index, VkDevice const device, std::shared_ptr<ResourceAllocator> allocator)
+    : GenericCommandEncoder(command_buffer, target_queue_index)
     , device_{device}
     , allocator_{allocator}
   {}
@@ -274,8 +280,8 @@ class RenderPassEncoder : public GenericCommandEncoder {
   void draw(DrawDescriptor const& desc, Buffer_t const& vertex_buffer, Buffer_t const& index_buffer) const;
 
  private:
-  RenderPassEncoder(VkCommandBuffer const command_buffer)
-    : GenericCommandEncoder(command_buffer)
+  RenderPassEncoder(VkCommandBuffer const command_buffer, uint32_t target_queue_index)
+    : GenericCommandEncoder(command_buffer, target_queue_index)
   {}
 
  public:

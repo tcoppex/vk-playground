@@ -3,13 +3,14 @@
 
 /* -------------------------------------------------------------------------- */
 
+#include "framework/backend/context.h"
 #include "framework/backend/swapchain.h"
 #include "framework/backend/command_encoder.h"
 #include "framework/renderer/pipeline.h"
 
 /* -------------------------------------------------------------------------- */
 
-class Context;
+// class Context;
 class RenderTarget;
 class Framebuffer;
 
@@ -177,8 +178,8 @@ class Renderer : public RTInterface {
   /* Copy references for quick access */
   Context const* ctx_ptr_{};
   VkDevice device_{};
-  Queue_t main_queue_{};
   std::shared_ptr<ResourceAllocator> allocator_{};
+  Context::TargetQueue target_queue_{};
 
   /* Swapchain. */
   Swapchain swapchain_{};

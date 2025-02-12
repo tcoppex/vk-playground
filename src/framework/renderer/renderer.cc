@@ -11,8 +11,8 @@
 void Renderer::init(Context const& context, std::shared_ptr<ResourceAllocator> allocator, VkSurfaceKHR const surface) {
   ctx_ptr_ = &context;
   device_ = context.get_device();
-  main_queue_ = context.get_main_queue();
   allocator_ = allocator;
+  target_queue_ = Context::TargetQueue::Main; //
 
   /* Initialize the swapchain. */
   swapchain_.init(context, surface);
@@ -32,7 +32,7 @@ void Renderer::init(Context const& context, std::shared_ptr<ResourceAllocator> a
     timeline_.frames.resize(frame_count);
     VkCommandPoolCreateInfo const command_pool_create_info{
       .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-      .queueFamilyIndex = main_queue_.family_index,
+      .queueFamilyIndex = context.get_queue(target_queue_).family_index,
     };
     for (uint64_t i = 0u; i < frame_count; ++i) {
       auto& frame = timeline_.frames[i];
@@ -126,7 +126,7 @@ CommandEncoder Renderer::begin_frame() {
   CHECK_VK( vkResetCommandPool(device_, frame.command_pool, 0u) );
 
   //------------
-  cmd_ = CommandEncoder(device_, allocator_, frame.command_buffer);
+  cmd_ = CommandEncoder(frame.command_buffer, (uint32_t)target_queue_, device_, allocator_);
   cmd_.default_render_target_ptr_ = this;
   cmd_.begin();
   //------------
@@ -197,10 +197,11 @@ void Renderer::end_frame() {
     .pSignalSemaphoreInfos = signal_semaphores.data(),
   };
 
-  CHECK_VK( vkQueueSubmit2(main_queue_.queue, 1u, &submit_info_2, nullptr) );
+  VkQueue const queue{ctx_ptr_->get_queue(target_queue_).queue};
+  CHECK_VK( vkQueueSubmit2(queue, 1u, &submit_info_2, nullptr) );
 
   /* Display and swap buffers. */
-  swapchain_.present_and_swap(main_queue_.queue); //
+  swapchain_.present_and_swap(queue); //
   timeline_.frame_index = swapchain_.get_current_swap_index();
 }
 
@@ -719,7 +720,7 @@ void Renderer::update_descriptor_set(VkDescriptorSet const& descriptor_set, std:
 // ----------------------------------------------------------------------------
 
 Image_t Renderer::create_image_2d(uint32_t width, uint32_t height, uint32_t layer_count, VkFormat const format) const {
-  VkImageCreateInfo image_info{
+  VkImageCreateInfo const image_info{
     .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
     .imageType = VK_IMAGE_TYPE_2D,
     .format = format,
@@ -729,7 +730,7 @@ Image_t Renderer::create_image_2d(uint32_t width, uint32_t height, uint32_t laye
       1u
     },
     .mipLevels = 1u, //
-    .arrayLayers = 1u,
+    .arrayLayers = layer_count,
     .samples = VK_SAMPLE_COUNT_1_BIT,
     .tiling = VK_IMAGE_TILING_OPTIMAL,
     .usage = VK_IMAGE_USAGE_SAMPLED_BIT
@@ -741,8 +742,8 @@ Image_t Renderer::create_image_2d(uint32_t width, uint32_t height, uint32_t laye
 
   VkImageViewCreateInfo view_info{
     .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-    .viewType = VK_IMAGE_VIEW_TYPE_2D,
-    .format = format,
+    .viewType = (image_info.arrayLayers > 1u) ? VK_IMAGE_VIEW_TYPE_2D_ARRAY : VK_IMAGE_VIEW_TYPE_2D,
+    .format = image_info.format,
     .components = {
       VK_COMPONENT_SWIZZLE_R,
       VK_COMPONENT_SWIZZLE_G,
@@ -751,21 +752,27 @@ Image_t Renderer::create_image_2d(uint32_t width, uint32_t height, uint32_t laye
     },
     .subresourceRange = {
       .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-      .levelCount = 1u,
-      .layerCount = layer_count,
+      .baseMipLevel = 0u,
+      .levelCount = image_info.mipLevels,
+      .baseArrayLayer = 0u,
+      .layerCount = image_info.arrayLayers,
     },
   };
 
   Image_t image;
   allocator_->create_image_with_view(image_info, view_info, &image);
+
   return image;
 }
 
 // ----------------------------------------------------------------------------
 
 bool Renderer::load_image_2d(CommandEncoder const& cmd, std::string_view const& filename, Image_t &image) const {
+  uint32_t constexpr kForcedChannelCount{ 4u }; //
+  bool const isSRGB{ false }; //
+
   int x, y, num_channels;
-  stbi_uc* data = stbi_load(filename.data(), &x, &y, &num_channels, 4);
+  stbi_uc* data = stbi_load(filename.data(), &x, &y, &num_channels, kForcedChannelCount); //
   if (!data) {
     return false;
   }
@@ -775,35 +782,25 @@ bool Renderer::load_image_2d(CommandEncoder const& cmd, std::string_view const& 
     .height = static_cast<uint32_t>(y),
     .depth = 1u,
   };
+  VkFormat const format{ (isSRGB) ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM }; //
 
-  image = create_image_2d(extent.width, extent.height, 1u, VK_FORMAT_R8G8B8A8_UNORM);
+  image = create_image_2d(extent.width, extent.height, 1u, format);
 
   /* Copy host data to a staging buffer. */
-  uint32_t const bytesize = static_cast<uint32_t>(4 * x * y);
+  uint32_t const bytesize{ kForcedChannelCount * extent.width * extent.height };
   auto staging_buffer = allocator_->create_staging_buffer(bytesize, data); //
   stbi_image_free(data);
 
-  /* Transfer staging device buffer to image memory, with appropriate layout. */
+  /* Transfer staging device buffer to image memory. */
   {
+    VkImageLayout const transfer_layout{ VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL };
+
     // [TODO ?]
     // Use a large enough dedicated staging buffer and store images
     // to be transfered later on in a batch.
-
-    VkImageLayout const transfer_layout{ VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL };
-
-    cmd.transition_images_layout(
-      { image },
-      VK_IMAGE_LAYOUT_UNDEFINED,
-      transfer_layout
-    );
-
+    cmd.transition_images_layout({ image }, VK_IMAGE_LAYOUT_UNDEFINED, transfer_layout);
     cmd.copy_buffer_to_image(staging_buffer, image, extent, transfer_layout);
-
-    cmd.transition_images_layout(
-      { image },
-      transfer_layout,
-      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-    );
+    cmd.transition_images_layout({ image }, transfer_layout, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
   }
 
   return true;

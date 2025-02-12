@@ -136,7 +136,7 @@ RenderPassEncoder CommandEncoder::begin_rendering(RenderPassDescriptor_t const& 
   };
   vkCmdBeginRenderingKHR(command_buffer_, &rendering_info);
 
-  return RenderPassEncoder(command_buffer_);
+  return RenderPassEncoder(command_buffer_, get_target_queue_index());
 }
 
 // ----------------------------------------------------------------------------
@@ -233,7 +233,7 @@ RenderPassEncoder CommandEncoder::begin_render_pass(RPInterface const& render_pa
   };
   vkCmdBeginRenderPass(command_buffer_, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
-  return RenderPassEncoder(command_buffer_);
+  return RenderPassEncoder(command_buffer_, get_target_queue_index());
 }
 
 // ----------------------------------------------------------------------------
