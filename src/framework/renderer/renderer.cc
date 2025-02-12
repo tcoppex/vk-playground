@@ -718,22 +718,14 @@ void Renderer::update_descriptor_set(VkDescriptorSet const& descriptor_set, std:
 
 // ----------------------------------------------------------------------------
 
-bool Renderer::load_texture_2d(CommandEncoder const& cmd, std::string_view const& filename, Image_t &image) const {
-  int x, y, num_channels;
-  stbi_uc* data = stbi_load(filename.data(), &x, &y, &num_channels, 4);
-  if (!data) {
-    return false;
-  }
-
-  uint32_t const bytesize = static_cast<uint32_t>(4 * x * y);
-
+Image_t Renderer::create_image_2d(uint32_t width, uint32_t height, uint32_t layer_count, VkFormat const format) const {
   VkImageCreateInfo image_info{
     .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
     .imageType = VK_IMAGE_TYPE_2D,
-    .format = VK_FORMAT_R8G8B8A8_UNORM,
+    .format = format,
     .extent = {
-      static_cast<uint32_t>(x),
-      static_cast<uint32_t>(y),
+      width,
+      height,
       1u
     },
     .mipLevels = 1u, //
@@ -750,7 +742,7 @@ bool Renderer::load_texture_2d(CommandEncoder const& cmd, std::string_view const
   VkImageViewCreateInfo view_info{
     .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
     .viewType = VK_IMAGE_VIEW_TYPE_2D,
-    .format = VK_FORMAT_R8G8B8A8_UNORM,
+    .format = format,
     .components = {
       VK_COMPONENT_SWIZZLE_R,
       VK_COMPONENT_SWIZZLE_G,
@@ -760,13 +752,34 @@ bool Renderer::load_texture_2d(CommandEncoder const& cmd, std::string_view const
     .subresourceRange = {
       .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
       .levelCount = 1u,
-      .layerCount = 1u,
+      .layerCount = layer_count,
     },
   };
 
+  Image_t image;
   allocator_->create_image_with_view(image_info, view_info, &image);
+  return image;
+}
+
+// ----------------------------------------------------------------------------
+
+bool Renderer::load_image_2d(CommandEncoder const& cmd, std::string_view const& filename, Image_t &image) const {
+  int x, y, num_channels;
+  stbi_uc* data = stbi_load(filename.data(), &x, &y, &num_channels, 4);
+  if (!data) {
+    return false;
+  }
+
+  VkExtent3D const extent{
+    .width = static_cast<uint32_t>(x),
+    .height = static_cast<uint32_t>(y),
+    .depth = 1u,
+  };
+
+  image = create_image_2d(extent.width, extent.height, 1u, VK_FORMAT_R8G8B8A8_UNORM);
 
   /* Copy host data to a staging buffer. */
+  uint32_t const bytesize = static_cast<uint32_t>(4 * x * y);
   auto staging_buffer = allocator_->create_staging_buffer(bytesize, data); //
   stbi_image_free(data);
 
@@ -784,7 +797,7 @@ bool Renderer::load_texture_2d(CommandEncoder const& cmd, std::string_view const
       transfer_layout
     );
 
-    cmd.copy_buffer_to_image(staging_buffer, image, image_info.extent, transfer_layout);
+    cmd.copy_buffer_to_image(staging_buffer, image, extent, transfer_layout);
 
     cmd.transition_images_layout(
       { image },
@@ -798,9 +811,9 @@ bool Renderer::load_texture_2d(CommandEncoder const& cmd, std::string_view const
 
 // ----------------------------------------------------------------------------
 
-bool Renderer::load_texture_2d(std::string_view const& filename, Image_t &image) const {
+bool Renderer::load_image_2d(std::string_view const& filename, Image_t &image) const {
   auto cmd = ctx_ptr_->create_transient_command_encoder();
-  bool result = load_texture_2d(cmd, filename, image);
+  bool result = load_image_2d(cmd, filename, image);
   ctx_ptr_->finish_transient_command_encoder(cmd);
   return result;
 }

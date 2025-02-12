@@ -94,11 +94,15 @@ class Renderer : public RTInterface {
 
   void update_descriptor_set(VkDescriptorSet const& descriptor_set, std::vector<DescriptorSetWriteEntry> const& entries) const;
 
-  // --- Texture / Sampler ---
+  // --- Texture ---
 
-  bool load_texture_2d(CommandEncoder const& cmd, std::string_view const& filename, Image_t &image) const;
+  Image_t create_image_2d(uint32_t width, uint32_t height, uint32_t layer_count, VkFormat const format) const;
 
-  bool load_texture_2d(std::string_view const& filename, Image_t &image) const;
+  bool load_image_2d(CommandEncoder const& cmd, std::string_view const& filename, Image_t &image) const;
+
+  bool load_image_2d(std::string_view const& filename, Image_t &image) const;
+
+  // --- Sampler ---
 
   VkSampler get_default_sampler() const {
     return linear_sampler_;

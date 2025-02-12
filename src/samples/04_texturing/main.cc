@@ -81,7 +81,7 @@ class SampleApp final : public Application {
       cube_.clear_indices_and_vertices();
 
       /* Load a texture using the current transient command encoder. */
-      if (std::string fn{ASSETS_DIR "textures/whynot.png"}; !renderer_.load_texture_2d(cmd, fn, image_)) {
+      if (std::string fn{ASSETS_DIR "textures/whynot.png"}; !renderer_.load_image_2d(cmd, fn, image_)) {
         fprintf(stderr, "The texture image '%s' could not be found.\n", fn.c_str());
       }
 
@@ -90,7 +90,7 @@ class SampleApp final : public Application {
 
     /* Alternatively, the texture could have been loaded directly using an
      * internal transient command encoder. */
-    // renderer_.load_texture_2d(path_to_texture, image_);
+    // renderer_.load_image_2d(path_to_texture, image_);
 
     /* Descriptor set. */
     {
