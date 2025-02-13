@@ -19,6 +19,7 @@
 #include <memory>
 #include <span>
 #include <string_view>
+#include <thread>
 #include <type_traits>
 #include <vector>
 
