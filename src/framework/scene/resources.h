@@ -1,8 +1,6 @@
 #ifndef HELLO_VK_FRAMEWORK_SCENE_RESOURCES_H
 #define HELLO_VK_FRAMEWORK_SCENE_RESOURCES_H
 
-#include <string_view>
-#include <thread>
 #include <unordered_map>
 
 #include "stb/stb_image.h"
@@ -14,6 +12,7 @@
 #include "framework/scene/mesh.h"
 
 class Context;
+class ResourceAllocator;
 
 namespace scene {
 
@@ -35,6 +34,8 @@ struct Resources {
   uint32_t total_image_size{0u};
 
   Resources() = default;
+
+  void release(std::shared_ptr<ResourceAllocator> allocator);
 
   Resources(std::string_view const& filename) {
     load_from_file(filename);

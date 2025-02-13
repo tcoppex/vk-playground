@@ -739,6 +739,12 @@ void ExtractAnimations(std::string const& basename, cgltf_data const* data, scen
 
 namespace scene {
 
+void Resources::release(std::shared_ptr<ResourceAllocator> allocator) {
+  for (auto& tex : textures) {
+    allocator->destroy_image(&tex);
+  }
+}
+
 bool Resources::load_from_file(std::string_view const& filename) {
   utils::FileReader file;
 
