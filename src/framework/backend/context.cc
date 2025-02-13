@@ -182,9 +182,12 @@ void Context::finish_transient_command_encoder(CommandEncoder const& encoder) co
 /* -------------------------------------------------------------------------- */
 
 void Context::init_instance(std::vector<char const*> const& instance_extensions) {
-  if (enable_validation_layers) {
+
+#ifndef NDEBUG
+  if constexpr (kEnableDebugValidationLayer) {
     instance_layer_names_.push_back("VK_LAYER_KHRONOS_validation");
   }
+#endif
 
   uint32_t extension_count{0u};
   vkEnumerateInstanceExtensionProperties(nullptr, &extension_count, nullptr);
@@ -343,6 +346,7 @@ bool Context::init_device() {
   LOG_CHECK(feature_.synchronization2.synchronization2);
   LOG_CHECK(feature_.descriptor_indexing.descriptorBindingPartiallyBound);
   LOG_CHECK(feature_.descriptor_indexing.runtimeDescriptorArray);
+  LOG_CHECK(feature_.descriptor_indexing.shaderSampledImageArrayNonUniformIndexing);
   LOG_CHECK(feature_.vertex_input_dynamic_state.vertexInputDynamicState);
 
   // --------------------
