@@ -73,23 +73,26 @@ class Context {
 
   /* Shortcut to transition image layouts. */
   void transition_images_layout(std::vector<backend::Image> const& images, VkImageLayout const src_layout, VkImageLayout const dst_layout) const {
-    auto cmd{ create_transient_command_encoder() };
+    auto cmd{ create_transient_command_encoder(TargetQueue::Transfer) };
     cmd.transition_images_layout(images, src_layout, dst_layout);
     finish_transient_command_encoder(cmd);
   }
 
-  /* Example of a direct command utility. */
-  // template<typename T>
-  // void create_and_upload_storage(std::span<T> const& host_data) {
-  //   auto cmd = create_transient_command_encoder();
-  //   auto buffer = cmd.create_buffer_and_upload(
-  //     host_data,
-  //       VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
-  //     | usage_flags
-  //   );
-  //   graphics_queue().submit({ cmd.finish() });
-  //   return buffer;
-  // }
+  template<typename T> requires (SpanConvertible<T>)
+  backend::Buffer create_buffer_and_upload(T const& host_data, VkBufferUsageFlags2KHR const usage, size_t device_buffer_offset = 0u, size_t const device_buffer_size = 0u) const {
+    auto const host_span{ std::span(host_data) };
+    size_t const bytesize{ sizeof(typename decltype(host_span)::element_type) * host_span.size() };
+    return create_buffer_and_upload(host_span.data(), bytesize, usage, device_buffer_offset, device_buffer_size);
+  }
+
+  backend::Buffer create_buffer_and_upload(void const* host_data, size_t const host_data_size, VkBufferUsageFlags2KHR const usage, size_t device_buffer_offset = 0u, size_t const device_buffer_size = 0u) const {
+    auto cmd{ create_transient_command_encoder(TargetQueue::Transfer) };
+    backend::Buffer buffer{
+      cmd.create_buffer_and_upload(host_data, host_data_size, usage, device_buffer_offset, device_buffer_size)
+    };
+    finish_transient_command_encoder(cmd);
+    return buffer;
+  }
 
  private:
   bool has_extension(std::string_view const& name, std::vector<VkExtensionProperties> const& extensions) const {
