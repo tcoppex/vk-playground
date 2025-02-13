@@ -50,7 +50,6 @@ class Renderer : public backend::RTInterface {
  public:
   /* ----- Factory ----- */
 
-
   // --- Render Target (Dynamic Rendering) ---
 
   std::shared_ptr<RenderTarget> create_render_target() const;

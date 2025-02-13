@@ -48,7 +48,7 @@ class SampleApp final : public Application {
       ),
     };
 
-    /* Create a cube mesh procedurally on the host. */
+    /* Create a cube mesh procedurally on the host, with a default size value. */
     Geometry::MakeCube(cube_);
 
     /* Map to bind vertex attributes with their shader input location. */
@@ -77,9 +77,6 @@ class SampleApp final : public Application {
         VK_BUFFER_USAGE_2_INDEX_BUFFER_BIT
       );
 
-      /* We don't need to keep the host data so we can clear them. */
-      cube_.clear_indices_and_vertices();
-
       /* Load a texture using the current transient command encoder. */
       if (std::string fn{ASSETS_DIR "textures/whynot.png"}; !renderer_.load_image_2d(cmd, fn, image_)) {
         fprintf(stderr, "The texture image '%s' could not be found.\n", fn.c_str());
@@ -88,9 +85,12 @@ class SampleApp final : public Application {
       context_.finish_transient_command_encoder(cmd);
     }
 
-    /* Alternatively, the texture could have been loaded directly using an
+    /* Alternatively the texture could have been loaded directly using an
      * internal transient command encoder. */
     // renderer_.load_image_2d(path_to_texture, image_);
+
+    /* We don't need to keep the host data so we can clear them. */
+    cube_.clear_indices_and_vertices();
 
     /* Descriptor set. */
     {
@@ -207,7 +207,6 @@ class SampleApp final : public Application {
     {
       float const frame_time{ get_frame_time() };
 
-      // rotation_matrix_axis automatically normalize the given axis.
       push_constant_.model.worldMatrix = lina::rotation_matrix_axis(
         vec3(3.0f * frame_time, 0.8f, sinf(frame_time)),
         frame_time * 0.62f
@@ -222,8 +221,8 @@ class SampleApp final : public Application {
 
         pass.bind_pipeline(graphics_pipeline_);
         {
-          pass.push_constant(push_constant_, VK_SHADER_STAGE_VERTEX_BIT);
           pass.bind_descriptor_set(descriptor_set_, VK_SHADER_STAGE_VERTEX_BIT);
+          pass.push_constant(push_constant_, VK_SHADER_STAGE_VERTEX_BIT);
 
           pass.bind_vertex_buffer(vertex_buffer_);
           pass.bind_index_buffer(index_buffer_, cube_.get_vk_index_type());
@@ -246,7 +245,6 @@ class SampleApp final : public Application {
   scene::Mesh cube_{};
   backend::Buffer vertex_buffer_{};
   backend::Buffer index_buffer_{};
-
   backend::Image image_{};
 
   VkDescriptorSetLayout descriptor_set_layout_{};

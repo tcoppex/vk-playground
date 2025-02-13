@@ -130,9 +130,10 @@ class PipelineInterface {
 
 // ----------------------------------------------------------------------------
 
-/* Interface to dynamic rendering */
+/* Interface for dynamic rendering. */
 struct RTInterface {
   RTInterface() = default;
+
   virtual ~RTInterface() {}
 
   // -- Getters --
@@ -166,6 +167,7 @@ struct RTInterface {
 /* Interface for legacy rendering, via RenderPass and Framebuffer. */
 struct RPInterface {
   RPInterface() = default;
+
   virtual ~RPInterface() {}
 
   virtual VkRenderPass get_render_pass() const = 0;
@@ -185,10 +187,10 @@ struct RPInterface {
 // [to be moved elsewhere (probably Renderer)]
 
 struct RenderPassDescriptor {
-  std::vector<VkRenderingAttachmentInfo> colorAttachments;
-  VkRenderingAttachmentInfo depthAttachment;
-  VkRenderingAttachmentInfo stencilAttachment;
-  VkRect2D renderArea;
+  std::vector<VkRenderingAttachmentInfo> colorAttachments{};
+  VkRenderingAttachmentInfo depthAttachment{};
+  VkRenderingAttachmentInfo stencilAttachment{};
+  VkRect2D renderArea{};
 };
 
 struct DescriptorSetLayoutParams {

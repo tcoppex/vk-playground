@@ -188,7 +188,7 @@ void ExtractTextures(std::string const& basename, std::unordered_map<void const*
 
         R.total_image_size += 4u * image->width * image->height; //
 
-        LOGD("**** %lu  %u  %u*%u", bufferView->size, 4u * image->width * image->height, image->width, image->height);
+        // LOGD("**** %lu  %u  %u*%u", bufferView->size, 4u * image->width * image->height, image->width, image->height);
       } else {
         LOGW("Texture %s unsupported.", ref.c_str());
         continue;
@@ -455,7 +455,7 @@ void ExtractMeshes(std::string const& basename, std::unordered_map<void const*, 
         if (prim.material) {
           if (auto it = material_map.find(prim.material); it != material_map.cend()) {
             mesh->submeshes[j].material = R.materials[it->second];
-            LOGD(" *** submeshes has a material named '%s'", it->second.c_str());
+            // LOGD(" *** submeshes has a material named '%s'", it->second.c_str());
           } else {
             LOGD("material not found !");
           }
@@ -769,7 +769,7 @@ bool Resources::load_from_file(std::string_view const& filename) {
   std::unordered_map<void const*, std::string> material_map{};
 
   // (hack) prepass to give proper name to texture when they've got none.
-  ExtractMaterials(basename, texture_map, material_map, data, *this);
+  // ExtractMaterials(basename, texture_map, material_map, data, *this);
 
   auto extract_materials{[&]() {
     ExtractTextures(basename, texture_map, data, *this);
