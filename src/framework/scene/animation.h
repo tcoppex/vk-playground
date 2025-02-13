@@ -8,7 +8,7 @@ namespace scene {
 /* -------------------------------------------------------------------------- */
 
 template<typename T>
-using JointBuffer_t = std::vector<T>;
+using JointBuffer = std::vector<T>;
 
 struct Pose {
   struct Transform {
@@ -17,7 +17,7 @@ struct Pose {
     float scale = 1.0f;
   };
 
-  JointBuffer_t<Transform> joints{};
+  JointBuffer<Transform> joints{};
 };
 
 struct AnimationClip {
@@ -41,10 +41,10 @@ struct AnimationClip {
 };
 
 struct Skeleton {
-  JointBuffer_t<std::string> names{};
-  JointBuffer_t<int32_t> parents{};
-  JointBuffer_t<mat4f> inverse_bind_matrices{};
-  JointBuffer_t<mat4f> global_bind_matrices{};
+  JointBuffer<std::string> names{};
+  JointBuffer<int32_t> parents{};
+  JointBuffer<mat4f> inverse_bind_matrices{};
+  JointBuffer<mat4f> global_bind_matrices{};
 
   std::unordered_map<std::string, int32_t> index_map{};
   std::vector<std::shared_ptr<AnimationClip>> clips{};
