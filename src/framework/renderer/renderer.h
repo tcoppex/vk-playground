@@ -74,6 +74,7 @@ class Renderer : public backend::RTInterface {
   Pipeline create_graphics_pipeline(GraphicsPipelineDescriptor_t const& desc) const;
 
   void create_compute_pipelines(VkPipelineLayout pipeline_layout, std::vector<backend::ShaderModule> const& modules, Pipeline *pipelines) const;
+
   Pipeline create_compute_pipeline(VkPipelineLayout pipeline_layout, backend::ShaderModule const& module) const;
 
   void destroy_pipeline(Pipeline const& pipeline) const;
@@ -95,8 +96,6 @@ class Renderer : public backend::RTInterface {
   void update_descriptor_set(VkDescriptorSet const& descriptor_set, std::vector<DescriptorSetWriteEntry> const& entries) const;
 
   // --- Texture ---
-
-  backend::Image create_image_2d(uint32_t width, uint32_t height, uint32_t layer_count, VkFormat const format) const;
 
   bool load_image_2d(CommandEncoder const& cmd, std::string_view const& filename, backend::Image &image) const;
 

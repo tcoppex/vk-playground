@@ -28,7 +28,7 @@ Framebuffer::Framebuffer(
   , dimension_(desc.dimension)
 {
   clear_values_.resize(Framebuffer::kBufferNameCount, {});
-  depth_stencil_ = context.create_depth_stencil_image_2d(desc.depth_format, dimension_);
+  depth_stencil_ = context.create_image_2d(dimension_.width, dimension_.height, 1u, desc.depth_format);
   init_render_pass(desc.color_format);
   init_framebuffer(desc);
 }

@@ -55,7 +55,7 @@ class Context {
 
   // --- Image ---
 
-  backend::Image create_depth_stencil_image_2d(VkFormat const format, VkExtent2D const dimension) const;
+  backend::Image create_image_2d(uint32_t width, uint32_t height, uint32_t layer_count, VkFormat const format, VkImageUsageFlags const extra_usage = {}) const;
 
   // --- Shader Module ---
 
@@ -104,15 +104,11 @@ class Context {
   template<typename F>
   bool add_device_feature(char const* extension_name, F& feature, VkStructureType sType, std::vector<char const*> const& dependencies = {}) {
     if (!has_extension(extension_name, available_device_extensions_)) {
-      fprintf(stderr, "[Vulkan] Feature extension \"%s\" is not available.\n", extension_name);
+      LOGI("[Vulkan] Feature extension \"%s\" is not available.\n", extension_name);
       return false;
     }
-
-    // Add to DeviceFeatures2.
     feature = { .sType = sType };
     vkutils::PushNextVKStruct(&feature_.base, &feature);
-
-    // Add extensions dependencies.
     if (!dependencies.empty()) {
       device_extension_names_.insert(
         device_extension_names_.end(),
@@ -120,10 +116,7 @@ class Context {
         dependencies.end()
       );
     }
-
-    // Add feature extensions.
     device_extension_names_.push_back(extension_name);
-    
     return true;
   }
 
@@ -166,14 +159,14 @@ class Context {
     VkPhysicalDeviceVertexInputDynamicStateFeaturesEXT vertex_input_dynamic_state{};
   } feature_;
 
-  backend::GPUProperties properties_;
-
   VkInstance instance_{};
   VkPhysicalDevice gpu_{};
   VkDevice device_{};
 
   EnumArray<backend::Queue, TargetQueue> queues_{};
   EnumArray<VkCommandPool, TargetQueue> transient_command_pools_{};
+
+  backend::GPUProperties properties_{};
 
   std::shared_ptr<ResourceAllocator> resource_allocator_{};
 };

@@ -18,10 +18,8 @@ void Renderer::init(Context const& context, std::shared_ptr<ResourceAllocator> a
   swapchain_.init(context, surface);
 
   /* Create a default depth stencil buffer. */
-  depth_stencil_ = context.create_depth_stencil_image_2d(
-    get_valid_depth_format(), //
-    swapchain_.get_surface_size()
-  );
+  VkExtent2D const dimension{swapchain_.get_surface_size()};
+  depth_stencil_ = context.create_image_2d(dimension.width, dimension.height, 1u, get_valid_depth_format());
 
   /* Initialize resources for the semaphore timeline. */
   // See https://docs.vulkan.org/samples/latest/samples/extensions/timeline_semaphore/README.html
@@ -721,54 +719,6 @@ void Renderer::update_descriptor_set(VkDescriptorSet const& descriptor_set, std:
 
 // ----------------------------------------------------------------------------
 
-backend::Image Renderer::create_image_2d(uint32_t width, uint32_t height, uint32_t layer_count, VkFormat const format) const {
-  VkImageCreateInfo const image_info{
-    .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-    .imageType = VK_IMAGE_TYPE_2D,
-    .format = format,
-    .extent = {
-      width,
-      height,
-      1u
-    },
-    .mipLevels = 1u, //
-    .arrayLayers = layer_count,
-    .samples = VK_SAMPLE_COUNT_1_BIT,
-    .tiling = VK_IMAGE_TILING_OPTIMAL,
-    .usage = VK_IMAGE_USAGE_SAMPLED_BIT
-           | VK_IMAGE_USAGE_TRANSFER_DST_BIT
-           ,
-    .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-    .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-  };
-
-  VkImageViewCreateInfo view_info{
-    .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-    .viewType = (image_info.arrayLayers > 1u) ? VK_IMAGE_VIEW_TYPE_2D_ARRAY : VK_IMAGE_VIEW_TYPE_2D,
-    .format = image_info.format,
-    .components = {
-      VK_COMPONENT_SWIZZLE_R,
-      VK_COMPONENT_SWIZZLE_G,
-      VK_COMPONENT_SWIZZLE_B,
-      VK_COMPONENT_SWIZZLE_A,
-    },
-    .subresourceRange = {
-      .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-      .baseMipLevel = 0u,
-      .levelCount = image_info.mipLevels,
-      .baseArrayLayer = 0u,
-      .layerCount = image_info.arrayLayers,
-    },
-  };
-
-  backend::Image image;
-  allocator_->create_image_with_view(image_info, view_info, &image);
-
-  return image;
-}
-
-// ----------------------------------------------------------------------------
-
 bool Renderer::load_image_2d(CommandEncoder const& cmd, std::string_view const& filename, backend::Image &image) const {
   uint32_t constexpr kForcedChannelCount{ 4u }; //
   bool const isSRGB{ false }; //
@@ -786,7 +736,9 @@ bool Renderer::load_image_2d(CommandEncoder const& cmd, std::string_view const& 
   };
   VkFormat const format{ (isSRGB) ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM }; //
 
-  image = create_image_2d(extent.width, extent.height, 1u, format);
+  image = ctx_ptr_->create_image_2d(
+    extent.width, extent.height, 1u, format, VK_IMAGE_USAGE_TRANSFER_DST_BIT
+  );
 
   /* Copy host data to a staging buffer. */
   uint32_t const bytesize{ kForcedChannelCount * extent.width * extent.height };

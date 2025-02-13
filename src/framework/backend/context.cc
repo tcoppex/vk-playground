@@ -49,50 +49,64 @@ void Context::deinit() {
 
 // ----------------------------------------------------------------------------
 
-backend::Image Context::create_depth_stencil_image_2d(VkFormat const format, VkExtent2D const dimension) const {
-  backend::Image depth_stencil{};
+backend::Image Context::create_image_2d(uint32_t width, uint32_t height, uint32_t layer_count, VkFormat const format, VkImageUsageFlags const extra_usage) const {
+  VkImageUsageFlags usage{
+      VK_IMAGE_USAGE_SAMPLED_BIT
+    | extra_usage
+  };
 
-  VkImageUsageFlags usage{ VK_IMAGE_USAGE_SAMPLED_BIT };
   VkImageAspectFlags aspect_mask{ VK_IMAGE_ASPECT_COLOR_BIT };
 
   // [TODO] check format is a valid depth one too.
   if (vkutils::IsValidStencilFormat(format)) {
     usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-    aspect_mask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+
+    aspect_mask = VK_IMAGE_ASPECT_DEPTH_BIT
+                | VK_IMAGE_ASPECT_STENCIL_BIT
+                ;
   }
 
-  VkImageCreateInfo const image_create_info{
+  VkImageCreateInfo const image_info{
     .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
     .imageType = VK_IMAGE_TYPE_2D,
     .format = format,
     .extent = {
-      .width = dimension.width,
-      .height = dimension.height,
-      .depth = 1u,
+      width,
+      height,
+      1u
     },
-    .mipLevels = 1u,
-    .arrayLayers = 1u,
+    .mipLevels = 1u, //
+    .arrayLayers = layer_count,
     .samples = VK_SAMPLE_COUNT_1_BIT,
     .tiling = VK_IMAGE_TILING_OPTIMAL,
     .usage = usage,
     .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
     .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
   };
-  VkImageViewCreateInfo const image_view_info{
+
+  VkImageViewCreateInfo view_info{
     .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-    .viewType = VK_IMAGE_VIEW_TYPE_2D,
-    .format = image_create_info.format,
+    .viewType = (image_info.arrayLayers > 1u) ? VK_IMAGE_VIEW_TYPE_2D_ARRAY : VK_IMAGE_VIEW_TYPE_2D,
+    .format = image_info.format,
+    .components = {
+      VK_COMPONENT_SWIZZLE_R,
+      VK_COMPONENT_SWIZZLE_G,
+      VK_COMPONENT_SWIZZLE_B,
+      VK_COMPONENT_SWIZZLE_A,
+    },
     .subresourceRange = {
       .aspectMask = aspect_mask,
       .baseMipLevel = 0u,
-      .levelCount = image_create_info.mipLevels,
+      .levelCount = image_info.mipLevels,
       .baseArrayLayer = 0u,
-      .layerCount = image_create_info.arrayLayers,
+      .layerCount = image_info.arrayLayers,
     },
   };
-  resource_allocator_->create_image_with_view(image_create_info, image_view_info, &depth_stencil);
 
-  return depth_stencil;
+  backend::Image image;
+  resource_allocator_->create_image_with_view(image_info, view_info, &image);
+
+  return image;
 }
 
 // ----------------------------------------------------------------------------

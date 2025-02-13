@@ -94,7 +94,7 @@ void RenderTarget::resize(Context const& context, VkExtent2D const extent) {
 
   /* Create an optional depth-stencil buffer. */
   if (depth_stencil_.format != VK_FORMAT_UNDEFINED) {
-    depth_stencil_ = context.create_depth_stencil_image_2d(depth_stencil_.format, extent_);
+    depth_stencil_ = context.create_image_2d(extent_.width, extent_.height, 1u, depth_stencil_.format);
   }
   // -------
 }
