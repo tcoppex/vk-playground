@@ -46,12 +46,29 @@ class GenericCommandEncoder {
 
   template<typename T> requires (!SpanConvertible<T>)
   void push_constant(T const& value, VkPipelineLayout const pipeline_layout, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS, uint32_t const offset = 0u) const {
-    vkutils::PushConstant(command_buffer_, value, pipeline_layout, stage_flags, offset);
+    VkPushConstantsInfoKHR const push_info{
+      .sType = VK_STRUCTURE_TYPE_PUSH_CONSTANTS_INFO_KHR,
+      .layout = pipeline_layout,
+      .stageFlags = stage_flags,
+      .offset = offset,
+      .size = static_cast<uint32_t>(sizeof(T)),
+      .pValues = &value,
+    };
+    vkCmdPushConstants2KHR(command_buffer_, &push_info);
   }
 
   template<typename T> requires (SpanConvertible<T>)
   void push_constants(T const& values, VkPipelineLayout const pipeline_layout, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS, uint32_t const offset = 0u) const {
-    vkutils::PushConstants(command_buffer_, values, pipeline_layout, stage_flags, offset);
+    auto const span_values{ std::span(values) };
+    VkPushConstantsInfoKHR const push_info{
+      .sType = VK_STRUCTURE_TYPE_PUSH_CONSTANTS_INFO_KHR,
+      .layout = pipeline_layout,
+      .stageFlags = stage_flags,
+      .offset = offset,
+      .size = sizeof(typename decltype(span_values)::value_type) * span_values.size(),
+      .pValues = span_values.data(),
+    };
+    vkCmdPushConstants2KHR(command_buffer_, &push_info);
   }
 
   template<typename T> requires (!SpanConvertible<T>)
@@ -157,18 +174,6 @@ class CommandEncoder : public GenericCommandEncoder {
   /* Legacy rendering. */
   RenderPassEncoder begin_render_pass(backend::RPInterface const& render_pass) const;
   void end_render_pass() const;
-
-  // --- Push Constants ---
-
-  template<typename T> requires (!SpanConvertible<T>)
-  void push_constant(T const& value, VkPipelineLayout const pipeline_layout, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS, uint32_t const offset = 0u) const {
-    vkutils::PushConstant(command_buffer_, value, pipeline_layout, stage_flags, offset);
-  }
-
-  template<typename T> requires (SpanConvertible<T>)
-  void push_constants(T const& values, VkPipelineLayout const pipeline_layout, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS, uint32_t const offset = 0u) const {
-    vkutils::PushConstants(command_buffer_, values, pipeline_layout, stage_flags, offset);
-  }
 
  protected:
   CommandEncoder() = default;
