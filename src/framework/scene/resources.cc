@@ -140,8 +140,9 @@ Geometry::Topology GetTopology(cgltf_primitive const& primitive) {
 
 namespace {
 
-void ExtractTextures(std::string const& basename, std::unordered_map<void const*, std::string> const& texture_map, cgltf_data const* data, scene::Resources& R) {
-  int const kDefaultNumChannels = 4;
+void ExtractTextures(std::string const& basename, std::unordered_map<void const*, std::string> & texture_map, cgltf_data const* data, scene::Resources& R) {
+  int constexpr kDefaultNumChannels{ 4 }; //
+
   stbi_set_flip_vertically_on_load(false);
 
   for (cgltf_size i = 0; i < data->textures_count; ++i) {
@@ -154,6 +155,11 @@ void ExtractTextures(std::string const& basename, std::unordered_map<void const*
         ref = it->second;
       } else {
         ref = GetTextureRefID(texture, std::string(basename) + "::Texture_" + std::to_string(i));
+        texture_map[&texture] = ref;
+      }
+
+      if (auto it = R.images.find(ref); it != R.images.end()) {
+        continue;
       }
 
       auto image = std::make_shared<scene::Image>();
@@ -161,14 +167,28 @@ void ExtractTextures(std::string const& basename, std::unordered_map<void const*
       if (auto bufferView = img->buffer_view; bufferView) {
         stbi_uc const* bufferData = reinterpret_cast<stbi_uc const*>(bufferView->buffer->data) + bufferView->offset;
         int32_t const bufferSize = static_cast<int32_t>(bufferView->size);
-        image->pixels.reset(stbi_load_from_memory(
+
+
+        auto pixel_data = stbi_load_from_memory(
           bufferData,
           bufferSize,
           &image->width,
           &image->height,
           &image->channels,
           kDefaultNumChannels
-        ));
+        );
+
+
+        if (pixel_data) {
+          image->pixels.reset(pixel_data);
+        } else {
+          LOGW("Fail to load texture %s.", ref.c_str());
+          continue;
+        }
+
+        R.total_image_size += 4u * image->width * image->height; //
+
+        LOGD("**** %lu  %u  %u*%u", bufferView->size, 4u * image->width * image->height, image->width, image->height);
       } else {
         LOGW("Texture %s unsupported.", ref.c_str());
         continue;
@@ -176,10 +196,10 @@ void ExtractTextures(std::string const& basename, std::unordered_map<void const*
 
       // Reference into the scene structure.
       if (image->pixels != nullptr) {
-        // LOGI("[GLTF] Texture %s has been loaded.", ref.c_str());
+        LOGI("[GLTF] Texture \"%s\" has been loaded.", ref.c_str());
         R.images[ref] = std::move(image);
       } else {
-        LOGW("[GLTF] Texture %s failed to be loaded.", ref.c_str());
+        LOGW("[GLTF] Texture \"%s\" failed to be loaded.", ref.c_str());
       }
     }
   }
@@ -188,6 +208,9 @@ void ExtractTextures(std::string const& basename, std::unordered_map<void const*
 void ExtractMaterials(std::string const& basename, std::unordered_map<void const*, std::string> &texture_map, std::unordered_map<void const*, std::string> &material_map, cgltf_data const* data, scene::Resources& R) {
   auto textureRef = [&texture_map](cgltf_texture const& texture, std::string_view suffix) {
     auto ref = GetTextureRefID(texture, suffix);
+    if (auto it = texture_map.find(&texture); it != texture_map.end()) {
+      return it->second;
+    }
     texture_map[&texture] = ref;
     return ref;
   };
@@ -196,16 +219,21 @@ void ExtractMaterials(std::string const& basename, std::unordered_map<void const
     cgltf_material const& mat = data->materials[i];
 
     auto const material_name = mat.name ? mat.name
-                             : basename + std::string("::Material_" + std::to_string(i));
+                                        : std::string(basename + "::Material_" + std::to_string(i));
     material_map[&mat] = material_name;
 
     // if (R.materials.find(material_name) == R.materials.end()) continue;
-    LOG_CHECK(R.materials.find(material_name) == R.materials.end());
+    // LOG_CHECK(R.materials.find(material_name) == R.materials.end());
 
-    auto material = std::make_shared<scene::Material>();
-    material->name = material_name;
+    std::shared_ptr<scene::Material> material;
+    if (auto it = R.materials.find(material_name); it != R.materials.end()) {
+      material = it->second;
+    } else {
+      material = std::make_shared<scene::Material>();
+      material->name = material_name;
+    }
 
-    std::string const texture_prefix = basename + "::Texture_";
+    std::string const texture_prefix{ basename + "::Texture_" };
 
     // [wip] PBR MetallicRoughness.
     if (mat.has_pbr_metallic_roughness) {
@@ -219,12 +247,16 @@ void ExtractMaterials(std::string const& basename, std::unordered_map<void const
         auto ref = textureRef(*tex, texture_prefix + "Albedo");
         if (auto it = R.images.find(ref); it != R.images.end()) {
           material->albedoTexture = it->second;
+        } else {
+          LOGD("Fails to find albedo texture '%s'", ref.c_str());
         }
       }
       if (const cgltf_texture* tex = pbr_mr.metallic_roughness_texture.texture; tex) {
         auto ref = textureRef(*tex, texture_prefix + "MetallicRough");
         if (auto it = R.images.find(ref); it != R.images.end()) {
           material->ormTexture = it->second;
+        } else {
+          LOGD("Fails to find metallic rough texture '%s'", ref.c_str());
         }
       }
     } else {
@@ -347,7 +379,7 @@ void ExtractMeshes(std::string const& basename, std::unordered_map<void const*, 
        */
 
       {
-        cgltf_primitive const& prim = node.mesh->primitives[prim_indices.at(0)];
+        cgltf_primitive const& prim{ node.mesh->primitives[prim_indices.at(0)] };
 
         mesh->set_topology(GetTopology(prim));
 
@@ -368,7 +400,7 @@ void ExtractMeshes(std::string const& basename, std::unordered_map<void const*, 
 
       /* Parse the primitives. */
       for (uint32_t j = 0u; j < prim_indices.size(); ++j) {
-        cgltf_primitive const& prim = node.mesh->primitives[prim_indices.at(j)];
+        cgltf_primitive const& prim{ node.mesh->primitives[prim_indices.at(j)] };
         LOG_CHECK(GetTopology(prim) == mesh->get_topology());
 
         Geometry::Primitive primitive{};
@@ -423,7 +455,12 @@ void ExtractMeshes(std::string const& basename, std::unordered_map<void const*, 
         if (prim.material) {
           if (auto it = material_map.find(prim.material); it != material_map.cend()) {
             mesh->submeshes[j].material = R.materials[it->second];
+            LOGD(" *** submeshes has a material named '%s'", it->second.c_str());
+          } else {
+            LOGD("material not found !");
           }
+        } else {
+          LOGD("no material for this prim ('parrently) !");
         }
 
         mesh->add_primitive(primitive);
@@ -473,7 +510,7 @@ void ExtractMeshes(std::string const& basename, std::unordered_map<void const*, 
           // Retrieve local matrices.
           auto &matrices = skeleton->inverse_bind_matrices;
           auto const bufferSize = (sizeof(matrices[0]) / sizeof(*lina::ptr(matrices[0]))) * matrices.size();
-          LOG_CHECK(bufferSize == 16 * jointCount);
+          LOG_CHECK(bufferSize == (16 * jointCount));
           cgltf_accessor_unpack_floats(skin->inverse_bind_matrices, lina::ptr(matrices[0]), bufferSize);
 
           // Transform them to world space.
@@ -731,13 +768,34 @@ bool Resources::load_from_file(std::string_view const& filename) {
   std::unordered_map<void const*, std::string> texture_map{};
   std::unordered_map<void const*, std::string> material_map{};
 
+  // (hack) prepass to give proper name to texture when they've got none.
   ExtractMaterials(basename, texture_map, material_map, data, *this);
-  ExtractTextures(basename, texture_map, data, *this);
-  ExtractMeshes(basename, material_map, data, *this);
-  ExtractAnimations(basename, data, *this);
+
+  auto extract_materials{[&]() {
+    ExtractTextures(basename, texture_map, data, *this);
+    ExtractMaterials(basename, texture_map, material_map, data, *this);
+  }};
+
+  // (mesh depends will try to retrieve stuff from t1, so we might need a postprocess pass instead)
+  auto extract_meshes{[&]() {
+    ExtractMeshes(basename, material_map, data, *this);
+    ExtractAnimations(basename, data, *this);
+  }};
+
+#if 0
+  // We'll need a proper pass to be sure there is no issue.
+  std::thread t1(extract_materials);
+  std::thread t2(extract_meshes);
+  t1.join();
+  t2.join();
+#else
+  extract_materials();
+  extract_meshes();
+#endif
 
   std::cout << "Image count : " << images.size() << std::endl;
   std::cout << "Material count : " << materials.size() << std::endl;
+
   std::cout << "Skeleton count : " << skeletons.size() << std::endl;
   std::cout << "Animation count : " << animations.size() << std::endl;
   std::cout << "Mesh count : " << meshes.size() << std::endl;
@@ -763,9 +821,10 @@ void Resources::initialize_submesh_descriptors(Mesh::AttributeLocationMap const&
     mesh->initialize_submesh_descriptors(attribute_to_location);
   }
 
-  uint32_t const kMegabyte = 1024 * 1024;
+  uint32_t const kMegabyte{ 1024u * 1024u };
   LOGI("> vertex buffer size %f Mb", vertex_buffer_size / static_cast<float>(kMegabyte));
   LOGI("> index buffer size %f Mb ", index_buffer_size / static_cast<float>(kMegabyte));
+  LOGI("> total image size %f Mb ", total_image_size / static_cast<float>(kMegabyte));
 }
 
 }  // namespace scene

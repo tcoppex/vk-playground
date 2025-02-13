@@ -227,7 +227,7 @@ class RenderPassEncoder : public GenericCommandEncoder {
  public:
   ~RenderPassEncoder() {}
 
-  // --- Dynamic Viewport / Scissor ---
+  // --- Dynamic States ---
 
   void set_viewport(float x, float y, float width, float height, bool flip_y = kDefaultViewportFlipY) const;
 
@@ -250,6 +250,8 @@ class RenderPassEncoder : public GenericCommandEncoder {
       vertex_input_descriptor.attributes.data()
     );
   }
+
+  // --- Buffer binding ---
 
   void bind_vertex_buffer(Buffer_t const& buffer, uint32_t binding = 0u, uint64_t const offset = 0u) const {
     vkCmdBindVertexBuffers(command_buffer_, binding, 1u, &buffer.buffer, &offset);

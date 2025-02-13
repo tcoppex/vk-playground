@@ -28,11 +28,11 @@ struct Resources {
   ResourceMap<Skeleton> skeletons{};
 
   std::vector<std::shared_ptr<Mesh>> meshes{}; //
+  std::vector<Image_t> textures{}; //
 
   uint32_t vertex_buffer_size{0u};
   uint32_t index_buffer_size{0u};
-  // Buffer_t vertex_buffer;
-  // Buffer_t index_buffer;
+  uint32_t total_image_size{0u};
 
   Resources() = default;
 

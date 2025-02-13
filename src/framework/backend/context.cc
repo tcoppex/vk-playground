@@ -52,7 +52,14 @@ void Context::deinit() {
 Image_t Context::create_depth_stencil_image_2d(VkFormat const format, VkExtent2D const dimension) const {
   Image_t depth_stencil{};
 
-  // [TODO] check format is a valid depth_stencil one.
+  VkImageUsageFlags usage{ VK_IMAGE_USAGE_SAMPLED_BIT };
+  VkImageAspectFlags aspect_mask{ VK_IMAGE_ASPECT_COLOR_BIT };
+
+  // [TODO] check format is a valid depth one too.
+  if (vkutils::IsValidStencilFormat(format)) {
+    usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+    aspect_mask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+  }
 
   VkImageCreateInfo const image_create_info{
     .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
@@ -67,24 +74,20 @@ Image_t Context::create_depth_stencil_image_2d(VkFormat const format, VkExtent2D
     .arrayLayers = 1u,
     .samples = VK_SAMPLE_COUNT_1_BIT,
     .tiling = VK_IMAGE_TILING_OPTIMAL,
-    .usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT
-           | VK_IMAGE_USAGE_SAMPLED_BIT //
-           ,
+    .usage = usage,
     .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-  };
-  VkImageAspectFlagBits const stencil_mask{
-    vkutils::IsValidStencilFormat(depth_stencil.format) ? VK_IMAGE_ASPECT_STENCIL_BIT : VK_IMAGE_ASPECT_NONE_KHR
+    .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
   };
   VkImageViewCreateInfo const image_view_info{
     .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
     .viewType = VK_IMAGE_VIEW_TYPE_2D,
     .format = image_create_info.format,
     .subresourceRange = {
-      .aspectMask = static_cast<VkImageAspectFlags>(VK_IMAGE_ASPECT_DEPTH_BIT | stencil_mask),
+      .aspectMask = aspect_mask,
       .baseMipLevel = 0u,
-      .levelCount = 1u,
+      .levelCount = image_create_info.mipLevels,
       .baseArrayLayer = 0u,
-      .layerCount = 1u,
+      .layerCount = image_create_info.arrayLayers,
     },
   };
   resource_allocator_->create_image_with_view(image_create_info, image_view_info, &depth_stencil);
