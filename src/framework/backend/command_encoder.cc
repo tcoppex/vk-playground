@@ -54,7 +54,7 @@ void CommandEncoder::copy_buffer(backend::Buffer const& src, size_t src_offset, 
 
 // ----------------------------------------------------------------------------
 
-backend::Buffer CommandEncoder::create_buffer_and_upload(void const* host_data, size_t const host_data_size, VkBufferUsageFlags2KHR const usage, size_t device_buffer_offet, size_t const device_buffer_size) const {
+backend::Buffer CommandEncoder::create_buffer_and_upload(void const* host_data, size_t const host_data_size, VkBufferUsageFlags2KHR const usage, size_t device_buffer_offset, size_t const device_buffer_size) const {
   assert(host_data != nullptr);
   assert(host_data_size > 0u);
 
@@ -74,7 +74,7 @@ backend::Buffer CommandEncoder::create_buffer_and_upload(void const* host_data, 
     VMA_MEMORY_USAGE_GPU_ONLY
   )};
 
-  copy_buffer(staging_buffer, 0u, buffer, device_buffer_offet, host_data_size);
+  copy_buffer(staging_buffer, 0u, buffer, device_buffer_offset, host_data_size);
 
   return buffer;
 }

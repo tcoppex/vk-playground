@@ -24,10 +24,12 @@ class ResourceAllocator {
 
   // ----- Buffer -----
 
-  backend::Buffer create_buffer(VkDeviceSize const size,
-                         VkBufferUsageFlags2KHR const usage,
-                         VmaMemoryUsage const memory_usage = VMA_MEMORY_USAGE_AUTO,
-                         VmaAllocationCreateFlags const flags = {}) const;
+  backend::Buffer create_buffer(
+    VkDeviceSize const size,
+    VkBufferUsageFlags2KHR const usage,
+    VmaMemoryUsage const memory_usage = VMA_MEMORY_USAGE_AUTO,
+    VmaAllocationCreateFlags const flags = {}
+  ) const;
 
   backend::Buffer create_staging_buffer(size_t const bytesize = kDefaultStagingBufferSize, void const* host_data = nullptr, size_t host_data_size = 0u);
 
@@ -43,7 +45,7 @@ class ResourceAllocator {
   );
 
   void upload_host_to_device(void const* host_data, size_t const bytesize, backend::Buffer const& dst_buffer) {
-    write_buffer(dst_buffer, 0, host_data, 0, bytesize);
+    write_buffer(dst_buffer, 0u, host_data, 0u, bytesize);
   }
   // ------------------------
 
