@@ -174,10 +174,6 @@ class SampleApp final : public Application {
       GraphicsPipelineDescriptor_t mask_pipeline_descriptor{
         .vertex = {
           .module = shaders[0u].module,
-          /* Get buffer descriptors compatible with the mesh vertex inputs.
-           *
-           * Most Geometry::MakeX functions used the same interleaved layout,
-           * so they can be used interchangeably on the same static pipeline.*/
           .buffers = plane_.get_vk_pipeline_vertex_buffer_descriptors(),
         },
         .fragment = {
