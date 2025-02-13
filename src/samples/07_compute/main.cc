@@ -35,8 +35,8 @@ class SampleApp final : public Application {
 
   struct Mesh_t {
     Geometry geo;
-    Buffer_t vertex;
-    Buffer_t index;
+    backend::Buffer vertex;
+    backend::Buffer index;
   };
 
  public:
@@ -453,8 +453,8 @@ class SampleApp final : public Application {
   uint32_t vertex_buffer_bytesize_{};
   uint32_t index_buffer_bytesize_{};
 
-  Buffer_t uniform_buffer_{};
-  Buffer_t dot_product_buffer_{};
+  backend::Buffer uniform_buffer_{};
+  backend::Buffer dot_product_buffer_{};
 
   VkDescriptorSetLayout descriptor_set_layout_{};
   VkDescriptorSet descriptor_set_{};

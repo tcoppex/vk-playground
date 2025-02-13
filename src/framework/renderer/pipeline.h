@@ -9,13 +9,13 @@ class Renderer;
 
 // ----------------------------------------------------------------------------
 
-class Pipeline : public PipelineInterface {
+class Pipeline : public backend::PipelineInterface {
  public:
   Pipeline() = default;
   ~Pipeline() = default;
 
   Pipeline(VkPipelineLayout layout, VkPipeline pipeline, VkPipelineBindPoint bind_point, bool use_internal_layout = false)
-   : PipelineInterface(layout, pipeline, bind_point)
+   : backend::PipelineInterface(layout, pipeline, bind_point)
    , use_internal_layout_{use_internal_layout}
   {}
 

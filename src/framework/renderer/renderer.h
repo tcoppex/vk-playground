@@ -30,7 +30,7 @@ class Framebuffer;
  *        form of the current swapchain image.
  *
  **/
-class Renderer : public RTInterface {
+class Renderer : public backend::RTInterface {
  public:
   static constexpr VkClearValue kDefaultColorClearValue{{{1.0f, 0.25f, 0.75f, 1.0f}}};
 
@@ -74,8 +74,8 @@ class Renderer : public RTInterface {
 
   Pipeline create_graphics_pipeline(GraphicsPipelineDescriptor_t const& desc) const;
 
-  void create_compute_pipelines(VkPipelineLayout pipeline_layout, std::vector<ShaderModule_t> const& modules, Pipeline *pipelines) const;
-  Pipeline create_compute_pipeline(VkPipelineLayout pipeline_layout, ShaderModule_t const& module) const;
+  void create_compute_pipelines(VkPipelineLayout pipeline_layout, std::vector<backend::ShaderModule> const& modules, Pipeline *pipelines) const;
+  Pipeline create_compute_pipeline(VkPipelineLayout pipeline_layout, backend::ShaderModule const& module) const;
 
   void destroy_pipeline(Pipeline const& pipeline) const;
 
@@ -97,11 +97,11 @@ class Renderer : public RTInterface {
 
   // --- Texture ---
 
-  Image_t create_image_2d(uint32_t width, uint32_t height, uint32_t layer_count, VkFormat const format) const;
+  backend::Image create_image_2d(uint32_t width, uint32_t height, uint32_t layer_count, VkFormat const format) const;
 
-  bool load_image_2d(CommandEncoder const& cmd, std::string_view const& filename, Image_t &image) const;
+  bool load_image_2d(CommandEncoder const& cmd, std::string_view const& filename, backend::Image &image) const;
 
-  bool load_image_2d(std::string_view const& filename, Image_t &image) const;
+  bool load_image_2d(std::string_view const& filename, backend::Image &image) const;
 
   // --- Sampler ---
 
@@ -120,17 +120,17 @@ class Renderer : public RTInterface {
     return 1u;
   }
 
-  std::vector<Image_t> const& get_color_attachments() const final {
+  std::vector<backend::Image> const& get_color_attachments() const final {
     // (special behavior, just used here, updating it elsewhere is non practical)
     const_cast<Renderer*>(this)->proxy_swap_attachment_ = { get_color_attachment() };
     return proxy_swap_attachment_;
   }
 
-  Image_t const& get_color_attachment(uint32_t i = 0u) const final {
+  backend::Image const& get_color_attachment(uint32_t i = 0u) const final {
     return swapchain_.get_current_swap_image();
   }
 
-  Image_t const& get_depth_stencil_attachment() const final {
+  backend::Image const& get_depth_stencil_attachment() const final {
     return depth_stencil_;
   }
 
@@ -183,10 +183,10 @@ class Renderer : public RTInterface {
 
   /* Swapchain. */
   Swapchain swapchain_{};
-  std::vector<Image_t> proxy_swap_attachment_{};
+  std::vector<backend::Image> proxy_swap_attachment_{};
 
   /* Default depth-stencil buffer. */
-  Image_t depth_stencil_{};
+  backend::Image depth_stencil_{};
 
   /* Timeline frame resources */
   Timeline_t timeline_;

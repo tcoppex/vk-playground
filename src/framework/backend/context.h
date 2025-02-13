@@ -41,11 +41,11 @@ class Context {
     return device_;
   }
 
-  Queue_t const& get_queue(TargetQueue const target = TargetQueue::Main) const {
+  backend::Queue const& get_queue(TargetQueue const target = TargetQueue::Main) const {
     return queues_[target];
   }
 
-  GPUProperties_t const& get_gpu_properties() const {
+  backend::GPUProperties const& get_gpu_properties() const {
     return properties_;
   }
 
@@ -55,15 +55,15 @@ class Context {
 
   // --- Image ---
 
-  Image_t create_depth_stencil_image_2d(VkFormat const format, VkExtent2D const dimension) const;
+  backend::Image create_depth_stencil_image_2d(VkFormat const format, VkExtent2D const dimension) const;
 
   // --- Shader Module ---
 
-  ShaderModule_t create_shader_module(std::string_view const& directory, std::string_view const& shader_name) const;
+  backend::ShaderModule create_shader_module(std::string_view const& directory, std::string_view const& shader_name) const;
 
-  std::vector<ShaderModule_t> create_shader_modules(std::string_view const& directory, std::vector<std::string_view> const& shader_names) const;
+  std::vector<backend::ShaderModule> create_shader_modules(std::string_view const& directory, std::vector<std::string_view> const& shader_names) const;
 
-  void release_shader_modules(std::vector<ShaderModule_t> const& shaders) const;
+  void release_shader_modules(std::vector<backend::ShaderModule> const& shaders) const;
 
   // --- Command Encoder ---
 
@@ -72,7 +72,7 @@ class Context {
   void finish_transient_command_encoder(CommandEncoder const& encoder) const;
 
   /* Shortcut to transition image layouts. */
-  void transition_images_layout(std::vector<Image_t> const& images, VkImageLayout const src_layout, VkImageLayout const dst_layout) const {
+  void transition_images_layout(std::vector<backend::Image> const& images, VkImageLayout const src_layout, VkImageLayout const dst_layout) const {
     auto cmd{ create_transient_command_encoder() };
     cmd.transition_images_layout(images, src_layout, dst_layout);
     finish_transient_command_encoder(cmd);
@@ -166,13 +166,13 @@ class Context {
     VkPhysicalDeviceVertexInputDynamicStateFeaturesEXT vertex_input_dynamic_state{};
   } feature_;
 
-  GPUProperties_t properties_;
+  backend::GPUProperties properties_;
 
   VkInstance instance_{};
   VkPhysicalDevice gpu_{};
   VkDevice device_{};
 
-  EnumArray<Queue_t, TargetQueue> queues_{};
+  EnumArray<backend::Queue, TargetQueue> queues_{};
   EnumArray<VkCommandPool, TargetQueue> transient_command_pools_{};
 
   std::shared_ptr<ResourceAllocator> resource_allocator_{};

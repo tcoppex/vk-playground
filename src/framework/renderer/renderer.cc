@@ -526,7 +526,7 @@ Pipeline Renderer::create_graphics_pipeline(GraphicsPipelineDescriptor_t const& 
 
 // ----------------------------------------------------------------------------
 
-void Renderer::create_compute_pipelines(VkPipelineLayout pipeline_layout, std::vector<ShaderModule_t> const& modules, Pipeline *pipelines) const {
+void Renderer::create_compute_pipelines(VkPipelineLayout pipeline_layout, std::vector<backend::ShaderModule> const& modules, Pipeline *pipelines) const {
   assert(pipelines != nullptr);
 
   std::vector<VkComputePipelineCreateInfo> pipeline_infos(modules.size(), {
@@ -555,7 +555,7 @@ void Renderer::create_compute_pipelines(VkPipelineLayout pipeline_layout, std::v
 
 // ----------------------------------------------------------------------------
 
-Pipeline Renderer::create_compute_pipeline(VkPipelineLayout pipeline_layout, ShaderModule_t const& module) const {
+Pipeline Renderer::create_compute_pipeline(VkPipelineLayout pipeline_layout, backend::ShaderModule const& module) const {
   Pipeline p;
   create_compute_pipelines(pipeline_layout, { module }, &p);
   return p;
@@ -721,7 +721,7 @@ void Renderer::update_descriptor_set(VkDescriptorSet const& descriptor_set, std:
 
 // ----------------------------------------------------------------------------
 
-Image_t Renderer::create_image_2d(uint32_t width, uint32_t height, uint32_t layer_count, VkFormat const format) const {
+backend::Image Renderer::create_image_2d(uint32_t width, uint32_t height, uint32_t layer_count, VkFormat const format) const {
   VkImageCreateInfo const image_info{
     .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
     .imageType = VK_IMAGE_TYPE_2D,
@@ -761,7 +761,7 @@ Image_t Renderer::create_image_2d(uint32_t width, uint32_t height, uint32_t laye
     },
   };
 
-  Image_t image;
+  backend::Image image;
   allocator_->create_image_with_view(image_info, view_info, &image);
 
   return image;
@@ -769,7 +769,7 @@ Image_t Renderer::create_image_2d(uint32_t width, uint32_t height, uint32_t laye
 
 // ----------------------------------------------------------------------------
 
-bool Renderer::load_image_2d(CommandEncoder const& cmd, std::string_view const& filename, Image_t &image) const {
+bool Renderer::load_image_2d(CommandEncoder const& cmd, std::string_view const& filename, backend::Image &image) const {
   uint32_t constexpr kForcedChannelCount{ 4u }; //
   bool const isSRGB{ false }; //
 
@@ -810,7 +810,7 @@ bool Renderer::load_image_2d(CommandEncoder const& cmd, std::string_view const& 
 
 // ----------------------------------------------------------------------------
 
-bool Renderer::load_image_2d(std::string_view const& filename, Image_t &image) const {
+bool Renderer::load_image_2d(std::string_view const& filename, backend::Image &image) const {
   auto cmd = ctx_ptr_->create_transient_command_encoder();
   bool result = load_image_2d(cmd, filename, image);
   ctx_ptr_->finish_transient_command_encoder(cmd);

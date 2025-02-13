@@ -264,10 +264,10 @@ class SampleApp final : public Application {
   std::shared_ptr<ResourceAllocator> allocator_{};
 
   HostData_t host_data_{};
-  Buffer_t uniform_buffer_{};
+  backend::Buffer uniform_buffer_{};
 
-  Buffer_t vertex_buffer_{};
-  Buffer_t index_buffer_{};
+  backend::Buffer vertex_buffer_{};
+  backend::Buffer index_buffer_{};
 
   VkDescriptorSetLayout descriptor_set_layout_{};
   VkDescriptorSet descriptor_set_{};

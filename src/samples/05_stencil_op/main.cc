@@ -22,8 +22,8 @@ class SampleApp final : public Application {
   static constexpr float kPortalSize = 2.35f;
 
   struct StaticMesh_t : scene::Mesh {
-    Buffer_t vertex;
-    Buffer_t index;
+    backend::Buffer vertex;
+    backend::Buffer index;
 
     void draw(RenderPassEncoder const& pass, uint32_t instance_count = 1u) const {
       pass.bind_vertex_buffer(vertex);
@@ -368,7 +368,7 @@ class SampleApp final : public Application {
   std::shared_ptr<ResourceAllocator> allocator_;
 
   HostData_t host_data_{};
-  Buffer_t uniform_buffer_{};
+  backend::Buffer uniform_buffer_{};
 
   StaticMesh_t plane_;
   StaticMesh_t torus_;

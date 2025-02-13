@@ -49,8 +49,8 @@ void Context::deinit() {
 
 // ----------------------------------------------------------------------------
 
-Image_t Context::create_depth_stencil_image_2d(VkFormat const format, VkExtent2D const dimension) const {
-  Image_t depth_stencil{};
+backend::Image Context::create_depth_stencil_image_2d(VkFormat const format, VkExtent2D const dimension) const {
+  backend::Image depth_stencil{};
 
   VkImageUsageFlags usage{ VK_IMAGE_USAGE_SAMPLED_BIT };
   VkImageAspectFlags aspect_mask{ VK_IMAGE_ASPECT_COLOR_BIT };
@@ -97,7 +97,7 @@ Image_t Context::create_depth_stencil_image_2d(VkFormat const format, VkExtent2D
 
 // ----------------------------------------------------------------------------
 
-ShaderModule_t Context::create_shader_module(std::string_view const& directory, std::string_view const& shader_name) const {
+backend::ShaderModule Context::create_shader_module(std::string_view const& directory, std::string_view const& shader_name) const {
   return {
     .module = vkutils::CreateShaderModule(device_, directory.data(), shader_name.data()),
   };
@@ -105,8 +105,8 @@ ShaderModule_t Context::create_shader_module(std::string_view const& directory, 
 
 // ----------------------------------------------------------------------------
 
-std::vector<ShaderModule_t> Context::create_shader_modules(std::string_view const& directory, std::vector<std::string_view> const& shader_names) const {
-  std::vector<ShaderModule_t> shaders{};
+std::vector<backend::ShaderModule> Context::create_shader_modules(std::string_view const& directory, std::vector<std::string_view> const& shader_names) const {
+  std::vector<backend::ShaderModule> shaders{};
   shaders.reserve(shader_names.size());
   std::transform(
     shader_names.begin(),
@@ -122,7 +122,7 @@ std::vector<ShaderModule_t> Context::create_shader_modules(std::string_view cons
 
 // ----------------------------------------------------------------------------
 
-void Context::release_shader_modules(std::vector<ShaderModule_t> const& shaders) const {
+void Context::release_shader_modules(std::vector<backend::ShaderModule> const& shaders) const {
   for (auto const& shader : shaders) {
     vkDestroyShaderModule(device_, shader.module, nullptr);
   }
@@ -359,7 +359,7 @@ bool Context::init_device() {
     1.0f,     // MAIN Queue        (Graphics, Transfer, Compute)
     0.75f     // TRANSFERT Queue   (Transfer)
   };
-  std::vector<std::pair<Queue_t*, VkQueueFlags>> const queues{
+  std::vector<std::pair<backend::Queue*, VkQueueFlags>> const queues{
     { &queues_[TargetQueue::Main],      VK_QUEUE_GRAPHICS_BIT
                                       | VK_QUEUE_TRANSFER_BIT
                                       | VK_QUEUE_COMPUTE_BIT  },

@@ -204,7 +204,7 @@ class SampleApp final : public Application {
   }
 
  private:
-  Buffer_t vertex_buffer_;
+  backend::Buffer vertex_buffer_;
   Pipeline graphics_pipeline_;
 };
 

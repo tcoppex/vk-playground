@@ -18,7 +18,7 @@ class ResourceAllocator;
  *
  * Can only be instantiated by 'Renderer'.
  **/
-class Framebuffer final : public RPInterface {
+class Framebuffer final : public backend::RPInterface {
  public:
   enum BufferName {
     COLOR,
@@ -92,7 +92,7 @@ class Framebuffer final : public RPInterface {
   VkExtent2D dimension_{};
   std::vector<VkClearValue> clear_values_{};
 
-  Image_t depth_stencil_{};
+  backend::Image depth_stencil_{};
   VkRenderPass render_pass_{};
   std::vector<VkFramebuffer> framebuffers_{};
 };

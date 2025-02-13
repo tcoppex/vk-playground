@@ -28,7 +28,7 @@ struct Resources {
   ResourceMap<Skeleton> skeletons{};
 
   std::vector<std::shared_ptr<Mesh>> meshes{}; //
-  std::vector<Image_t> textures{}; //
+  std::vector<backend::Image> textures{}; //
 
   uint32_t vertex_buffer_size{0u};
   uint32_t index_buffer_size{0u};
