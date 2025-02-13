@@ -37,16 +37,6 @@ void GenericCommandEncoder::pipeline_buffer_barriers(std::vector<VkBufferMemoryB
 
 void CommandEncoder::copy_buffer(Buffer_t const& src, Buffer_t const& dst, std::vector<VkBufferCopy> const& regions) const {
   vkCmdCopyBuffer(command_buffer_, src.buffer, dst.buffer, static_cast<uint32_t>(regions.size()), regions.data());
-
-  // pipeline_buffer_barriers({
-  //   {
-  //     .srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-  //     .srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
-  //     .dstStageMask = VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT, //
-  //     .dstAccessMask = VK_ACCESS_UNIFORM_READ_BIT, //
-  //     .buffer = dst.buffer,
-  //   }
-  // });
 }
 
 // ----------------------------------------------------------------------------

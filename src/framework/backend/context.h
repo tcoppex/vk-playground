@@ -132,7 +132,7 @@ class Context {
   bool init_device();
 
  private:
-  bool enable_validation_layers = true;
+  static constexpr bool kEnableDebugValidationLayer{ true };
 
   std::vector<VkExtensionProperties> available_instance_extensions_{};
   std::vector<VkExtensionProperties> available_device_extensions_{};

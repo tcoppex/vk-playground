@@ -139,10 +139,16 @@ class CommandEncoder : public GenericCommandEncoder {
 
   void copy_buffer_to_image(Buffer_t const& src, Image_t const& dst, VkExtent3D extent, VkImageLayout image_layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) const {
     VkBufferImageCopy const copy{
+      .bufferOffset = 0lu,
+      .bufferRowLength = 0u,
+      .bufferImageHeight = 0u,
       .imageSubresource = {
         .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-        .layerCount = 1u
+        .mipLevel = 0u,
+        .baseArrayLayer = 0u,
+        .layerCount = 1u,
       },
+      .imageOffset = {},
       .imageExtent = extent,
     };
     vkCmdCopyBufferToImage(command_buffer_, src.buffer, dst.image, image_layout, 1u, &copy);
