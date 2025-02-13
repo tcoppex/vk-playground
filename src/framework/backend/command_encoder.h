@@ -239,7 +239,10 @@ class RenderPassEncoder : public GenericCommandEncoder {
     set_viewport_scissor({{0, 0}, extent}, flip_y);
   }
 
-  // --- Vertex Input ---
+  void set_primitive_topology(VkPrimitiveTopology const topology) const {
+    // VK_EXT_extended_dynamic_state or VK_VERSION_1_3
+    vkCmdSetPrimitiveTopologyEXT(command_buffer_, topology);
+  }
 
   void set_vertex_input(VertexInputDescriptor const& vertex_input_descriptor) const {
     vkCmdSetVertexInputEXT(
