@@ -244,6 +244,14 @@ CPMAddPackage(
 )
 set(GLFW_INCLUDE_DIR ${glfw_SOURCE_DIR}/include)
 
+# Include CGLTF
+CPMAddPackage(
+  NAME cgltf
+  GITHUB_REPOSITORY jkuhlmann/cgltf
+  GIT_TAG v1.14
+)
+set(CGLTF_INCLUDE_DIR ${cgltf_SOURCE_DIR})
+
 # Include Volk
 CPMAddPackage(
   NAME volk
@@ -280,6 +288,7 @@ list(APPEND SharedLibs
 
 list(APPEND SharedIncludeDirs
   ${GLFW_INCLUDE_DIR}
+  ${CGLTF_INCLUDE_DIR}
   ${LINALG_INCLUDE_DIR}
   ${PROJECT_SOURCE_DIR}
   ${PROJECT_THIRD_PARTY_DIR}

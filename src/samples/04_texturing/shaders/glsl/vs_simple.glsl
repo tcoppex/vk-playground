@@ -37,7 +37,10 @@ void main() {
 
   // Vertex outputs.
   // vNormal = normalize(mat3(worldMatrix) * inNormal);
-  vTexcoord = vec2(inTexcoord.x, 1.0 - inTexcoord.y);
+
+  vTexcoord = inTexcoord.xy;
+  vTexcoord = vec2(vTexcoord.x, 1.0 - vTexcoord.y);
+
   gl_Position = modelViewProj * vec4(inPosition, 1.0);
 }
 

@@ -15,7 +15,7 @@ class ResourceAllocator;
  *
  * Can only be instantiated by 'Renderer'.
  **/
-class RenderTarget : public RTInterface {
+class RenderTarget : public backend::RTInterface {
  public:
   struct Descriptor_t {
     std::vector<VkFormat> color_formats{};
@@ -45,15 +45,15 @@ class RenderTarget : public RTInterface {
     return static_cast<uint32_t>(colors_.size());
   }
 
-  inline std::vector<Image_t> const& get_color_attachments() const final {
+  inline std::vector<backend::Image> const& get_color_attachments() const final {
     return colors_;
   }
 
-  inline Image_t const& get_color_attachment(uint32_t i = 0) const final {
+  inline backend::Image const& get_color_attachment(uint32_t i = 0) const final {
     return colors_.at(i);
   }
 
-  inline Image_t const& get_depth_stencil_attachment() const final {
+  inline backend::Image const& get_depth_stencil_attachment() const final {
     return depth_stencil_;
   }
 
@@ -86,8 +86,8 @@ class RenderTarget : public RTInterface {
   VkSampleCountFlagBits sample_count_{VK_SAMPLE_COUNT_1_BIT};
   // VkSampler sampler_{};
 
-  std::vector<Image_t> colors_{};
-  Image_t depth_stencil_{};
+  std::vector<backend::Image> colors_{};
+  backend::Image depth_stencil_{};
 
   std::vector<VkClearValue> color_clear_values_{};
   VkClearValue depth_stencil_clear_value_{};

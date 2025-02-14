@@ -39,30 +39,30 @@
 #endif
 #endif
 
+namespace backend {
+
 /* -------------------------------------------------------------------------- */
 
 // Resource Allocator
 
-struct Buffer_t {
+struct Buffer {
   VkBuffer buffer{};
   VmaAllocation allocation{};
   VkDeviceAddress address{};
-  // VkDescriptorBufferInfo buffer_desc;
 };
 
-struct Image_t {
+struct Image {
   VkImage image{};
   VmaAllocation allocation{};
   VkImageView view{};
   VkFormat format{};
-  // VkDescriptorImageInfo desc_info;
 };
 
 // ----------------------------------------------------------------------------
 
 // Context
 
-struct GPUProperties_t {
+struct GPUProperties {
   VkPhysicalDeviceProperties2 gpu2{
     .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2
   };
@@ -84,38 +84,14 @@ struct GPUProperties_t {
   }
 };
 
-struct Queue_t {
+struct Queue {
   VkQueue queue{};
   uint32_t family_index{UINT32_MAX};
   uint32_t queue_index{UINT32_MAX};
 };
 
-struct ShaderModule_t {
+struct ShaderModule {
   VkShaderModule module;
-};
-
-// ----------------------------------------------------------------------------
-
-struct DescriptorSetLayoutParams_t {
-  uint32_t                 binding;
-  VkDescriptorType         descriptorType;
-  uint32_t                 descriptorCount;
-  VkShaderStageFlags       stageFlags;
-  const VkSampler*         pImmutableSamplers;
-  VkDescriptorBindingFlags bindingFlags;
-};
-
-struct DescriptorSetWriteEntry_t {
-  // (use an union instead ?)
-  struct Resource {
-    VkDescriptorImageInfo image{};
-    VkDescriptorBufferInfo buffer{};
-    VkBufferView bufferView{};
-  };
-
-  uint32_t binding{};
-  VkDescriptorType type{};
-  Resource resource{};
 };
 
 // ----------------------------------------------------------------------------
@@ -154,9 +130,10 @@ class PipelineInterface {
 
 // ----------------------------------------------------------------------------
 
-/* Interface to dynamic rendering */
+/* Interface for dynamic rendering. */
 struct RTInterface {
   RTInterface() = default;
+
   virtual ~RTInterface() {}
 
   // -- Getters --
@@ -165,11 +142,11 @@ struct RTInterface {
 
   virtual uint32_t get_color_attachment_count() const = 0;
 
-  virtual std::vector<Image_t> const& get_color_attachments() const = 0;
+  virtual std::vector<backend::Image> const& get_color_attachments() const = 0;
 
-  virtual Image_t const& get_color_attachment(uint32_t i = 0u) const = 0;
+  virtual backend::Image const& get_color_attachment(uint32_t i = 0u) const = 0;
 
-  virtual Image_t const& get_depth_stencil_attachment() const = 0;
+  virtual backend::Image const& get_depth_stencil_attachment() const = 0;
 
   virtual VkClearValue get_color_clear_value(uint32_t i = 0u) const = 0;
 
@@ -190,6 +167,7 @@ struct RTInterface {
 /* Interface for legacy rendering, via RenderPass and Framebuffer. */
 struct RPInterface {
   RPInterface() = default;
+
   virtual ~RPInterface() {}
 
   virtual VkRenderPass get_render_pass() const = 0;
@@ -199,6 +177,55 @@ struct RPInterface {
   virtual VkExtent2D get_surface_size() const = 0;
 
   virtual std::vector<VkClearValue> const& get_clear_values() const = 0;
+};
+
+} // namespace "backend"
+
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+
+// [to be moved elsewhere (probably Renderer)]
+
+struct RenderPassDescriptor {
+  std::vector<VkRenderingAttachmentInfo> colorAttachments{};
+  VkRenderingAttachmentInfo depthAttachment{};
+  VkRenderingAttachmentInfo stencilAttachment{};
+  VkRect2D renderArea{};
+};
+
+struct DescriptorSetLayoutParams {
+  uint32_t binding{};
+  VkDescriptorType descriptorType{};
+  uint32_t descriptorCount{};
+  VkShaderStageFlags stageFlags{};
+  VkSampler const* pImmutableSamplers{};
+  VkDescriptorBindingFlags bindingFlags{};
+};
+
+struct DescriptorSetWriteEntry {
+  uint32_t binding{};
+  VkDescriptorType type{};
+  std::vector<VkDescriptorImageInfo> images{};
+  std::vector<VkDescriptorBufferInfo> buffers{};
+  std::vector<VkBufferView> bufferViews{};
+};
+
+struct VertexInputDescriptor {
+  std::vector<VkVertexInputBindingDescription2EXT> bindings{};
+  std::vector<VkVertexInputAttributeDescription2EXT> attributes{};
+  std::vector<uint64_t> vertexBufferOffsets{};
+};
+
+/* [WIP] generic requirements to draw something. */
+struct DrawDescriptor {
+  VertexInputDescriptor vertexInput{};
+
+  uint64_t indexOffset{};
+  VkIndexType indexType{};
+
+  uint32_t indexCount{};
+  uint32_t vertexCount{};
+  uint32_t instanceCount{1u};
 };
 
 /* -------------------------------------------------------------------------- */

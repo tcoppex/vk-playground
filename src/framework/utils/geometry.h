@@ -5,8 +5,10 @@
 
 #include <vulkan/vulkan.h>
 
-#include <vector>
+#include <cstddef>
+#include <cstdint>
 #include <map>
+#include <vector>
 
 // ----------------------------------------------------------------------------
 
@@ -20,38 +22,65 @@ class Geometry {
   static constexpr float kDefaultRadius = 0.5f;
 
  public:
+  enum class Topology {
+    PointList,
+    TriangleList,
+    TriangleStrip,
+    kCount,
+    kUnknown
+  };
+
+  enum class IndexFormat {
+    U16,
+    U32,
+    kCount,
+    kUnknown
+  };
+
+  enum class AttributeFormat {
+    R_F32,
+    RG_F32,
+    RGB_F32,
+    RGBA_F32,
+    R_U32,
+    RGBA_U32,
+    R_U16,
+    RGBA_U16,
+    kCount,
+    kUnknown,
+  };
+
   enum class AttributeType {
     Position,
     Texcoord,
     Normal,
     Tangent,
-    kCount
+    Joints,
+    Weights,
+    kCount,
+    kUnknown
   };
 
-  enum class AttributeFormat {
-    RG_F32,
-    RGB_F32,
-    RGBA_F32,
-    kCount
+  using AttributeLocationMap = std::map<AttributeType, uint32_t>;
+  using AttributeOffsetMap   = std::map<AttributeType, uint64_t>;
+
+  /**
+   * When all attributes are != 0 the data are not interleaved and buffers should
+   * be bind separately, with offset depending on the number of elements and the
+   * format of attributes before them...
+   */
+  struct AttributeInfo {
+    AttributeFormat format{};
+    uint32_t offset{};
+    uint32_t stride{};
   };
 
-  enum class Topology {
-    PointList,
-    TriangleList,
-    TriangleStrip,
-    kCount
-  };
+  struct Primitive {
+    uint32_t vertexCount{};
+    uint32_t indexCount{};
 
-  enum IndexFormat {
-    U16,
-    U32,
-    kCount
-  };
-
-  struct AttributeInfo_t {
-    AttributeFormat format;
-    uint32_t offset;
-    uint32_t stride;
+    uint64_t indexOffset{};
+    AttributeOffsetMap bufferOffsets{};
   };
 
  public:
@@ -60,7 +89,6 @@ class Geometry {
   /* Create a cube with interleaved Position, Normal and UV. */
   static void MakeCube(Geometry &geo, float size = kDefaultSize);
 
- public:
   // --- Indexed Triangle Strip ---
 
   /* Create a +Y plane with interleaved Position, Normal and UV. */
@@ -70,7 +98,7 @@ class Geometry {
   static void MakeSphere(Geometry &geo, float radius, uint32_t resx, uint32_t resy);
 
   static void MakeSphere(Geometry &geo, float radius = kDefaultRadius, uint32_t resolution = 32u) {
-    MakeSphere(geo, resolution, resolution, radius);
+    MakeSphere(geo, radius, resolution, resolution);
   }
 
   /* Create a torus with interleaved Position, Normal, and UV. */
@@ -85,10 +113,9 @@ class Geometry {
     MakeTorus(geo, inner_radius + minor_radius, minor_radius, resx, resy);
   }
 
- public:
   // --- Indexed Point List ---
 
-  /* Create a plane of points with float4 positions and an index buffer for sorting (when needed). */
+  /* Create a plane of points with float4 positions and an index buffer. */
   static void MakePointListPlane(Geometry &geo, float size = kDefaultSize, uint32_t resx = 1u, uint32_t resy = 1u);
 
  public:
@@ -97,66 +124,83 @@ class Geometry {
   ~Geometry() = default;
 
   Topology get_topology() const {
-    return topology;
+    return topology_;
   }
 
   IndexFormat get_index_format() const {
-    return indexFormat;
+    return index_format_;
   }
 
+  /* RENAME 'get_total_X_count' */
+
   uint32_t get_index_count() const {
-    return index_count;
+    return index_count_;
   }
 
   uint32_t get_vertex_count() const {
-    return vertex_count;
+    return vertex_count_;
   }
 
-  AttributeFormat get_format(AttributeType const attrib) const {
-    return attributes.at(attrib).format;
+  AttributeFormat get_format(AttributeType const attrib_type) const {
+    return attributes_.at(attrib_type).format;
   }
 
-  uint32_t get_offset(AttributeType const attrib) const {
-    return attributes.at(attrib).offset;
+  uint32_t get_offset(AttributeType const attrib_type) const {
+    return attributes_.at(attrib_type).offset;
   }
 
-  uint32_t get_stride(AttributeType const attrib = AttributeType::Position) const {
-    return attributes.at(attrib).stride;
+  uint32_t get_stride(AttributeType const attrib_type = AttributeType::Position) const {
+    return attributes_.at(attrib_type).stride;
   }
 
-  std::vector<uint8_t> const& get_indices() const {
-    return indices;
+  std::vector<std::byte> const& get_indices() const {
+    return indices_;
   }
 
-  std::vector<uint8_t> const& get_vertices() const {
-    return vertices;
+  std::vector<std::byte> const& get_vertices() const {
+    return vertices_;
   }
 
- public:
-  /* -- Vulkan Type Converters & Helpers -- */
+  Primitive const& get_primitive(uint32_t const primitive_index = 0u) const {
+    return primitives_.at(primitive_index);
+  }
 
-  VkFormat get_vk_format(AttributeType const attrib) const;
+  uint32_t get_primitive_count() const {
+    return static_cast<uint32_t>(primitives_.size());
+  }
 
-  VkPrimitiveTopology get_vk_primitive_topology() const;
+  void set_topology(Topology const topology) {
+    topology_ = topology;
+  }
 
-  VkIndexType get_vk_index_type() const;
+  void set_index_format(IndexFormat const format) {
+    index_format_ = format;
+  }
 
-  std::vector<VkVertexInputAttributeDescription> get_vk_binding_attributes(
-    uint32_t buffer_binding,
-    std::map<AttributeType, uint32_t> const& attribute_to_location
-  ) const;
+  void clear_indices_and_vertices();
+
+  uint64_t add_vertices_data(std::byte const* data, uint32_t bytesize);
+
+  uint64_t add_indices_data(std::byte const* data, uint32_t bytesize);
+
+  void add_attribute(AttributeType const type, AttributeInfo const& info);
+
+  void add_primitive(Primitive primitive);
+
+ protected:
+  std::map<AttributeType, AttributeInfo> attributes_{};
+  std::vector<Primitive> primitives_{};
 
  private:
-  Topology topology{};
-  IndexFormat indexFormat{};
-  uint32_t index_count{};
-  uint32_t vertex_count{};
+  Topology topology_{};
+  IndexFormat index_format_{};
+  uint32_t index_count_{};
+  uint32_t vertex_count_{};
 
-  std::map<AttributeType, AttributeInfo_t> attributes{};
-  std::vector<uint8_t> indices{};
-  std::vector<uint8_t> vertices{};
+  std::vector<std::byte> indices_{};
+  std::vector<std::byte> vertices_{};
 };
 
 /* -------------------------------------------------------------------------- */
 
-#endif
+#endif // UTILS_GEOMETRY_H

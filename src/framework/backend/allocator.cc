@@ -34,17 +34,17 @@ void ResourceAllocator::deinit() {
 
 // ----------------------------------------------------------------------------
 
-Buffer_t ResourceAllocator::create_buffer(
+backend::Buffer ResourceAllocator::create_buffer(
   VkDeviceSize size,
   VkBufferUsageFlags2KHR usage,
   VmaMemoryUsage memory_usage,
   VmaAllocationCreateFlags flags
 ) const {
-  Buffer_t buffer{};
+  backend::Buffer buffer{};
 
   if constexpr (kAutoAlignBufferSize) {
     if (auto const new_size{ utils::AlignTo256(size) }; new_size != size) {
-      fprintf(stderr, "%s: change size from %lu to %lu.\n", __FUNCTION__, size, new_size);
+      LOGW("%s: change size from %lu to %lu.\n", __FUNCTION__, (uint64_t)size, (uint64_t)new_size);
       size = new_size;
     }
   }
@@ -84,13 +84,13 @@ Buffer_t ResourceAllocator::create_buffer(
 
 // ----------------------------------------------------------------------------
 
-Buffer_t ResourceAllocator::create_staging_buffer(size_t const bytesize, void const* host_data, size_t host_data_size) {
+backend::Buffer ResourceAllocator::create_staging_buffer(size_t const bytesize, void const* host_data, size_t host_data_size) {
   assert(host_data_size <= bytesize);
 
   // TODO : use a pool to reuse some staging buffer.
 
   // Create buffer.
-  Buffer_t staging_buffer{create_buffer(
+  backend::Buffer staging_buffer{create_buffer(
     static_cast<VkDeviceSize>(bytesize),
     VK_BUFFER_USAGE_2_TRANSFER_SRC_BIT_KHR,
     VMA_MEMORY_USAGE_CPU_TO_GPU,
@@ -107,7 +107,7 @@ Buffer_t ResourceAllocator::create_staging_buffer(size_t const bytesize, void co
 // ----------------------------------------------------------------------------
 
 void ResourceAllocator::write_buffer(
-  Buffer_t const& dst_buffer, size_t const dst_offset,
+  backend::Buffer const& dst_buffer, size_t const dst_offset,
   void const* host_data, size_t const host_offset, size_t const bytesize
 ) {
   assert(host_data != nullptr);
@@ -134,7 +134,7 @@ void ResourceAllocator::clear_staging_buffers() {
 
 // ----------------------------------------------------------------------------
 
-void ResourceAllocator::create_image(VkImageCreateInfo const& image_info, Image_t *image) const {
+void ResourceAllocator::create_image(VkImageCreateInfo const& image_info, backend::Image *image) const {
   assert( image_info.format != VK_FORMAT_UNDEFINED );
 
   VmaAllocationCreateInfo const alloc_create_info{
@@ -149,7 +149,7 @@ void ResourceAllocator::create_image(VkImageCreateInfo const& image_info, Image_
 
 // ----------------------------------------------------------------------------
 
-void ResourceAllocator::create_image_with_view(VkImageCreateInfo const& image_info, VkImageViewCreateInfo const& view_info, Image_t *image) const {
+void ResourceAllocator::create_image_with_view(VkImageCreateInfo const& image_info, VkImageViewCreateInfo const& view_info, backend::Image *image) const {
   assert( view_info.format == image_info.format );
 
   create_image(image_info, image);
@@ -160,7 +160,7 @@ void ResourceAllocator::create_image_with_view(VkImageCreateInfo const& image_in
 
 // ----------------------------------------------------------------------------
 
-void ResourceAllocator::destroy_image(Image_t *image) const {
+void ResourceAllocator::destroy_image(backend::Image *image) const {
   vmaDestroyImage(allocator_, image->image, image->allocation);
   image->image = VK_NULL_HANDLE;
   if (image->view != VK_NULL_HANDLE) {

@@ -3,13 +3,16 @@
 
 /* -------------------------------------------------------------------------- */
 
+#include "framework/backend/context.h"
 #include "framework/backend/swapchain.h"
 #include "framework/backend/command_encoder.h"
 #include "framework/renderer/pipeline.h"
 
+#include "framework/scene/resources.h" //
+
 /* -------------------------------------------------------------------------- */
 
-class Context;
+// class Context;
 class RenderTarget;
 class Framebuffer;
 
@@ -29,7 +32,7 @@ class Framebuffer;
  *        form of the current swapchain image.
  *
  **/
-class Renderer : public RTInterface {
+class Renderer : public backend::RTInterface {
  public:
   static constexpr VkClearValue kDefaultColorClearValue{{{1.0f, 0.25f, 0.75f, 1.0f}}};
 
@@ -48,7 +51,6 @@ class Renderer : public RTInterface {
 
  public:
   /* ----- Factory ----- */
-
 
   // --- Render Target (Dynamic Rendering) ---
 
@@ -70,16 +72,18 @@ class Renderer : public RTInterface {
 
   // Specialized version that create the layout internally.
   Pipeline create_graphics_pipeline(PipelineLayoutDescriptor_t const& layout_desc, GraphicsPipelineDescriptor_t const& desc) const;
+
   Pipeline create_graphics_pipeline(GraphicsPipelineDescriptor_t const& desc) const;
 
-  void create_compute_pipelines(VkPipelineLayout pipeline_layout, std::vector<ShaderModule_t> const& modules, Pipeline *pipelines) const;
-  Pipeline create_compute_pipeline(VkPipelineLayout pipeline_layout, ShaderModule_t const& module) const;
+  void create_compute_pipelines(VkPipelineLayout pipeline_layout, std::vector<backend::ShaderModule> const& modules, Pipeline *pipelines) const;
+
+  Pipeline create_compute_pipeline(VkPipelineLayout pipeline_layout, backend::ShaderModule const& module) const;
 
   void destroy_pipeline(Pipeline const& pipeline) const;
 
   // --- Descriptor Set Layout ---
 
-  VkDescriptorSetLayout create_descriptor_set_layout(std::vector<DescriptorSetLayoutParams_t> const& params) const;
+  VkDescriptorSetLayout create_descriptor_set_layout(std::vector<DescriptorSetLayoutParams> const& params) const;
 
   void destroy_descriptor_set_layout(VkDescriptorSetLayout& layout) const;
 
@@ -89,18 +93,23 @@ class Renderer : public RTInterface {
 
   VkDescriptorSet create_descriptor_set(VkDescriptorSetLayout const layout) const;
 
-  VkDescriptorSet create_descriptor_set(VkDescriptorSetLayout const layout, std::vector<DescriptorSetWriteEntry_t> const& entries) const;
+  VkDescriptorSet create_descriptor_set(VkDescriptorSetLayout const layout, std::vector<DescriptorSetWriteEntry> const& entries) const;
 
-  void update_descriptor_set(VkDescriptorSet const& descriptor_set, std::vector<DescriptorSetWriteEntry_t> const& entries) const;
+  void update_descriptor_set(VkDescriptorSet const& descriptor_set, std::vector<DescriptorSetWriteEntry> const& entries) const;
 
-  // --- Texture / Sampler ---
+  // --- Texture ---
 
-  bool load_texture_2d(CommandEncoder const& cmd, std::string_view const& filename, Image_t &image) const;
-  bool load_texture_2d(std::string_view const& filename, Image_t &image) const;
+  bool load_image_2d(CommandEncoder const& cmd, std::string_view const& filename, backend::Image &image) const;
+
+  bool load_image_2d(std::string_view const& filename, backend::Image &image) const;
+
+  // --- Sampler ---
 
   VkSampler get_default_sampler() const {
     return linear_sampler_;
   }
+
+  std::shared_ptr<scene::Resources> load_and_upload(std::string_view gltf_filename, scene::Mesh::AttributeLocationMap const& attribute_to_location);
 
  public:
   /* ----- RTInterface Overrides ----- */
@@ -113,17 +122,17 @@ class Renderer : public RTInterface {
     return 1u;
   }
 
-  std::vector<Image_t> const& get_color_attachments() const final {
+  std::vector<backend::Image> const& get_color_attachments() const final {
     // (special behavior, just used here, updating it elsewhere is non practical)
     const_cast<Renderer*>(this)->proxy_swap_attachment_ = { get_color_attachment() };
     return proxy_swap_attachment_;
   }
 
-  Image_t const& get_color_attachment(uint32_t i = 0u) const final {
+  backend::Image const& get_color_attachment(uint32_t i = 0u) const final {
     return swapchain_.get_current_swap_image();
   }
 
-  Image_t const& get_depth_stencil_attachment() const final {
+  backend::Image const& get_depth_stencil_attachment() const final {
     return depth_stencil_;
   }
 
@@ -171,15 +180,15 @@ class Renderer : public RTInterface {
   /* Copy references for quick access */
   Context const* ctx_ptr_{};
   VkDevice device_{};
-  Queue_t graphics_queue_{};
   std::shared_ptr<ResourceAllocator> allocator_{};
+  Context::TargetQueue target_queue_{};
 
   /* Swapchain. */
   Swapchain swapchain_{};
-  std::vector<Image_t> proxy_swap_attachment_{};
+  std::vector<backend::Image> proxy_swap_attachment_{};
 
   /* Default depth-stencil buffer. */
-  Image_t depth_stencil_{};
+  backend::Image depth_stencil_{};
 
   /* Timeline frame resources */
   Timeline_t timeline_;

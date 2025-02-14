@@ -2,35 +2,46 @@
 
 /* -------------------------------------------------------------------------- */
 
-inline
-void CommandEncoder::copy_buffer(Buffer_t const& src, Buffer_t const& dst, std::vector<VkBufferCopy> const& regions) const {
-  vkCmdCopyBuffer(command_buffer_, src.buffer, dst.buffer, static_cast<uint32_t>(regions.size()), regions.data());
-
-  // VkBufferMemoryBarrier bufferBarrier = {
-  //   .sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
-  //   .srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
-  //   .dstAccessMask = VK_ACCESS_UNIFORM_READ_BIT,
-  //   .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-  //   .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-  //   .buffer = dst.buffer,
-  //   .offset = 0,
-  //   .size = VK_WHOLE_SIZE,
-  // };
-
-  // vkCmdPipelineBarrier(
-  //   command_buffer_,
-  //   VK_PIPELINE_STAGE_TRANSFER_BIT,           // Source stage: Transfer writes
-  //   VK_PIPELINE_STAGE_VERTEX_SHADER_BIT,      // Destination stage: Uniform reads in vertex shader
-  //   0,                                        // No dependency flags
-  //   0, nullptr,                               // No memory barriers
-  //   1, &bufferBarrier,                        // Single buffer memory barrier
-  //   0, nullptr                                // No image memory barriers
-  // );
+void GenericCommandEncoder::bind_descriptor_set(VkDescriptorSet const descriptor_set, VkPipelineLayout const pipeline_layout, VkShaderStageFlags const stage_flags) const {
+  VkBindDescriptorSetsInfoKHR const bind_desc_sets_info{
+    .sType = VK_STRUCTURE_TYPE_BIND_DESCRIPTOR_SETS_INFO_KHR,
+    .stageFlags = stage_flags,
+    .layout = pipeline_layout,
+    .firstSet = 0u,
+    .descriptorSetCount = 1u, //
+    .pDescriptorSets = &descriptor_set,
+  };
+  // (requires VK_KHR_maintenance6 or VK_VERSION_1_4)
+  vkCmdBindDescriptorSets2KHR(command_buffer_, &bind_desc_sets_info);
 }
 
 // ----------------------------------------------------------------------------
 
-void CommandEncoder::copy_buffer(Buffer_t const& src, size_t src_offset, Buffer_t const& dst, size_t dst_offet, size_t size) const {
+void GenericCommandEncoder::pipeline_buffer_barriers(std::vector<VkBufferMemoryBarrier2> buffers) const {
+  for (auto& bb : buffers) {
+    bb.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2;
+    bb.srcQueueFamilyIndex = (bb.srcQueueFamilyIndex == 0u) ? VK_QUEUE_FAMILY_IGNORED : bb.srcQueueFamilyIndex; //
+    bb.dstQueueFamilyIndex = (bb.dstQueueFamilyIndex == 0u) ? VK_QUEUE_FAMILY_IGNORED : bb.dstQueueFamilyIndex; //
+    bb.size = (bb.size == 0ULL) ? VK_WHOLE_SIZE : bb.size;
+  }
+  VkDependencyInfo const dependency{
+    .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+    .bufferMemoryBarrierCount = static_cast<uint32_t>(buffers.size()),
+    .pBufferMemoryBarriers = buffers.data(),
+  };
+  // (requires VK_KHR_synchronization2 or VK_VERSION_1_3)
+  vkCmdPipelineBarrier2(command_buffer_, &dependency);
+}
+
+/* -------------------------------------------------------------------------- */
+
+void CommandEncoder::copy_buffer(backend::Buffer const& src, backend::Buffer const& dst, std::vector<VkBufferCopy> const& regions) const {
+  vkCmdCopyBuffer(command_buffer_, src.buffer, dst.buffer, static_cast<uint32_t>(regions.size()), regions.data());
+}
+
+// ----------------------------------------------------------------------------
+
+void CommandEncoder::copy_buffer(backend::Buffer const& src, size_t src_offset, backend::Buffer const& dst, size_t dst_offet, size_t size) const {
   assert(size > 0);
   copy_buffer(src, dst, {
     {
@@ -43,18 +54,19 @@ void CommandEncoder::copy_buffer(Buffer_t const& src, size_t src_offset, Buffer_
 
 // ----------------------------------------------------------------------------
 
-Buffer_t CommandEncoder::create_buffer_and_upload(void const* host_data, size_t const host_data_size, VkBufferUsageFlags2KHR const usage, size_t device_buffer_offet, size_t const device_buffer_size) const {
+backend::Buffer CommandEncoder::create_buffer_and_upload(void const* host_data, size_t const host_data_size, VkBufferUsageFlags2KHR const usage, size_t device_buffer_offset, size_t const device_buffer_size) const {
   assert(host_data != nullptr);
   assert(host_data_size > 0u);
 
   size_t const buffer_bytesize = (device_buffer_size > 0) ? device_buffer_size : host_data_size;
   assert(host_data_size <= buffer_bytesize);
-  // assert(device_buffer_offet + host_data_size < buffer_bytesize);
 
+  // ----------------
   // [TODO] Staging buffers need cleaning / garbage collection !
   auto staging_buffer{
     allocator_->create_staging_buffer(buffer_bytesize, host_data, host_data_size)   //
   };
+  // ----------------
 
   auto buffer{allocator_->create_buffer(
     static_cast<VkDeviceSize>(buffer_bytesize),
@@ -62,7 +74,7 @@ Buffer_t CommandEncoder::create_buffer_and_upload(void const* host_data, size_t 
     VMA_MEMORY_USAGE_GPU_ONLY
   )};
 
-  copy_buffer(staging_buffer, 0u, buffer, device_buffer_offet, host_data_size);
+  copy_buffer(staging_buffer, 0u, buffer, device_buffer_offset, host_data_size);
 
   return buffer;
 }
@@ -70,7 +82,7 @@ Buffer_t CommandEncoder::create_buffer_and_upload(void const* host_data, size_t 
 // ----------------------------------------------------------------------------
 
 void CommandEncoder::transition_images_layout(
-  std::vector<Image_t> const& images,
+  std::vector<backend::Image> const& images,
   VkImageLayout const src_layout,
   VkImageLayout const dst_layout
 ) const {
@@ -102,7 +114,7 @@ void CommandEncoder::transition_images_layout(
 
 // ----------------------------------------------------------------------------
 
-RenderPassEncoder CommandEncoder::begin_rendering(RenderPassDescriptor_t const& desc) const {
+RenderPassEncoder CommandEncoder::begin_rendering(RenderPassDescriptor const& desc) const {
   VkRenderingInfoKHR const rendering_info{
     .sType                = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR,
     .renderArea           = desc.renderArea,
@@ -114,12 +126,12 @@ RenderPassEncoder CommandEncoder::begin_rendering(RenderPassDescriptor_t const& 
   };
   vkCmdBeginRenderingKHR(command_buffer_, &rendering_info);
 
-  return RenderPassEncoder(command_buffer_);
+  return RenderPassEncoder(command_buffer_, get_target_queue_index());
 }
 
 // ----------------------------------------------------------------------------
 
-RenderPassEncoder CommandEncoder::begin_rendering(RTInterface const& render_target) {
+RenderPassEncoder CommandEncoder::begin_rendering(backend::RTInterface const& render_target) {
   assert( render_target.get_color_attachment_count() == 1u );
 
   /* Dynamic rendering required color images to be in color_attachment layout. */
@@ -196,7 +208,7 @@ void CommandEncoder::end_rendering() {
 
 // ----------------------------------------------------------------------------
 
-RenderPassEncoder CommandEncoder::begin_render_pass(RPInterface const& render_pass) const {
+RenderPassEncoder CommandEncoder::begin_render_pass(backend::RPInterface const& render_pass) const {
   auto const& clear_values = render_pass.get_clear_values();
 
   VkRenderPassBeginInfo const render_pass_begin_info{
@@ -211,7 +223,7 @@ RenderPassEncoder CommandEncoder::begin_render_pass(RPInterface const& render_pa
   };
   vkCmdBeginRenderPass(command_buffer_, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
-  return RenderPassEncoder(command_buffer_);
+  return RenderPassEncoder(command_buffer_, get_target_queue_index());
 }
 
 // ----------------------------------------------------------------------------
@@ -220,7 +232,6 @@ void CommandEncoder::end_render_pass() const {
   vkCmdEndRenderPass(command_buffer_);
 }
 
-/* -------------------------------------------------------------------------- */
 /* -------------------------------------------------------------------------- */
 
 void RenderPassEncoder::set_viewport(float x, float y, float width, float height, bool flip_y) const {
@@ -260,6 +271,24 @@ void RenderPassEncoder::set_viewport_scissor(VkRect2D const rect, bool flip_y) c
   float const h = static_cast<float>(rect.extent.height);
   set_viewport(x, y, w, h, flip_y);
   set_scissor(rect.offset.x, rect.offset.y, rect.extent.width, rect.extent.height);
+}
+
+// ----------------------------------------------------------------------------
+
+void RenderPassEncoder::draw(DrawDescriptor const& desc, backend::Buffer const& vertex_buffer, backend::Buffer const& index_buffer) const {
+  // [TODO] disable when vertex input is not dynamic.
+  set_vertex_input(desc.vertexInput);
+
+  for (uint32_t i = 0u; i < desc.vertexInput.bindings.size(); ++i) {
+    bind_vertex_buffer(vertex_buffer, desc.vertexInput.bindings[i].binding, desc.vertexInput.vertexBufferOffsets[i]);
+  }
+
+  if (desc.indexCount > 0) [[likely]] {
+    bind_index_buffer(index_buffer, desc.indexType, desc.indexOffset);
+    draw_indexed(desc.indexCount, desc.instanceCount);
+  } else {
+    draw(desc.vertexCount, desc.instanceCount);
+  }
 }
 
 /* -------------------------------------------------------------------------- */

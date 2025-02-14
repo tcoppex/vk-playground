@@ -9,13 +9,13 @@ class Renderer;
 
 // ----------------------------------------------------------------------------
 
-class Pipeline : public PipelineInterface {
+class Pipeline : public backend::PipelineInterface {
  public:
   Pipeline() = default;
   ~Pipeline() = default;
 
   Pipeline(VkPipelineLayout layout, VkPipeline pipeline, VkPipelineBindPoint bind_point, bool use_internal_layout = false)
-   : PipelineInterface(layout, pipeline, bind_point)
+   : backend::PipelineInterface(layout, pipeline, bind_point)
    , use_internal_layout_{use_internal_layout}
   {}
 
@@ -34,6 +34,8 @@ struct PipelineLayoutDescriptor_t {
 
 // ----------------------------------------------------------------------------
 
+// GraphicsPipelineDescriptor_t::Vertex::Buffer
+
 // Descriptor structure to create GraphicsPipeline, à la WebGPU.
 struct GraphicsPipelineDescriptor_t {
   std::vector<VkDynamicState> dynamicStates{};
@@ -47,7 +49,7 @@ struct GraphicsPipelineDescriptor_t {
 
     VkShaderModule module{}; //
     std::string entryPoint{};
-    std::vector<Buffer> buffers{};
+    std::vector<Vertex::Buffer> buffers{};
   } vertex{};
 
   struct Fragment {
@@ -92,6 +94,9 @@ struct GraphicsPipelineDescriptor_t {
     VkFrontFace frontFace{};
   } primitive{};
 };
+
+using PipelineVertexBufferDescriptor = GraphicsPipelineDescriptor_t::Vertex::Buffer;
+using PipelineVertexBufferDescriptors = std::vector<PipelineVertexBufferDescriptor>;
 
 /* -------------------------------------------------------------------------- */
 

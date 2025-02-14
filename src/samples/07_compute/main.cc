@@ -35,8 +35,8 @@ class SampleApp final : public Application {
 
   struct Mesh_t {
     Geometry geo;
-    Buffer_t vertex;
-    Buffer_t index;
+    backend::Buffer vertex;
+    backend::Buffer index;
   };
 
  public:
@@ -163,22 +163,22 @@ class SampleApp final : public Application {
         {
           .binding = shader_interop::kDescriptorSetBinding_UniformBuffer,
           .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-          .resource = { .buffer = { uniform_buffer_.buffer } }
+          .buffers = { { uniform_buffer_.buffer } }
         },
         {
           .binding = shader_interop::kDescriptorSetBinding_StorageBuffer_Position,
           .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-          .resource = { .buffer = { point_grid_.vertex.buffer } }
+          .buffers = { { point_grid_.vertex.buffer } }
         },
         {
           .binding = shader_interop::kDescriptorSetBinding_StorageBuffer_Index,
           .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-          .resource = { .buffer = { point_grid_.index.buffer } }
+          .buffers = { { point_grid_.index.buffer } }
         },
         {
           .binding = shader_interop::kDescriptorSetBinding_StorageBuffer_DotProduct,
           .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-          .resource = { .buffer = { dot_product_buffer_.buffer } }
+          .buffers = { { dot_product_buffer_.buffer } }
         },
       });
     }
@@ -312,12 +312,12 @@ class SampleApp final : public Application {
           offsetof(shader_interop::PushConstant, compute)
         );
 
-        /// 1) Simulate a simple particle system.
-        cmd.set_pipeline(compute_pipelines_.at(Compute_Simulation));
+        /// 1) Simulate a simple particle system (Wave simulations).
+        cmd.bind_pipeline(compute_pipelines_.at(Compute_Simulation));
         cmd.dispatch<shader_interop::kCompute_Simulation_kernelSize_x>(nelems);
 
-        /// 2) Fill the first part of indices buffer with continuous indices.
-        cmd.set_pipeline(compute_pipelines_.at(Compute_FillIndices));
+        /// 2) Fill the first part of the indices buffer with continuous indices.
+        cmd.bind_pipeline(compute_pipelines_.at(Compute_FillIndices));
         cmd.dispatch<shader_interop::kCompute_FillIndex_kernelSize_x>(nelems);
 
         cmd.pipeline_buffer_barriers({
@@ -330,8 +330,8 @@ class SampleApp final : public Application {
           }
         });
 
-        /// 3) Compute the particles dot product against the camera direction.
-        cmd.set_pipeline(compute_pipelines_.at(Compute_DotProduct));
+        /// 3) Compute the particles dot products against the camera view direction.
+        cmd.bind_pipeline(compute_pipelines_.at(Compute_DotProduct));
         cmd.dispatch<shader_interop::kCompute_DotProduct_kernelSize_x>(nelems);
 
         cmd.pipeline_buffer_barriers({
@@ -352,8 +352,8 @@ class SampleApp final : public Application {
         });
 
 
-        /// 2) Sort indices via their dot products using a simple bitonic sort.
-        cmd.set_pipeline(compute_pipelines_.at(Compute_SortIndices));
+        /// 2) Sort indices via their dot products using a bitonic sort.
+        cmd.bind_pipeline(compute_pipelines_.at(Compute_SortIndices));
         {
           uint32_t const index_buffer_offset = point_grid_.geo.get_index_count();
           uint32_t index_buffer_binding = 0u;
@@ -428,7 +428,7 @@ class SampleApp final : public Application {
       {
         pass.set_viewport_scissor(viewport_size_);
 
-        pass.set_pipeline(graphics_pipeline_);
+        pass.bind_pipeline(graphics_pipeline_);
 
         push_constant_.graphics.model.worldMatrix = world_matrix;
         pass.push_constant(
@@ -453,8 +453,8 @@ class SampleApp final : public Application {
   uint32_t vertex_buffer_bytesize_{};
   uint32_t index_buffer_bytesize_{};
 
-  Buffer_t uniform_buffer_{};
-  Buffer_t dot_product_buffer_{};
+  backend::Buffer uniform_buffer_{};
+  backend::Buffer dot_product_buffer_{};
 
   VkDescriptorSetLayout descriptor_set_layout_{};
   VkDescriptorSet descriptor_set_{};
@@ -462,8 +462,8 @@ class SampleApp final : public Application {
 
   VkPipelineLayout pipeline_layout_{};
 
-  Pipeline graphics_pipeline_{};
   std::array<Pipeline, Compute_kCount> compute_pipelines_{};
+  Pipeline graphics_pipeline_{};
 };
 
 // ----------------------------------------------------------------------------

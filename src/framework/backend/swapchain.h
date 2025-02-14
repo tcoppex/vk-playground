@@ -41,11 +41,11 @@ class Swapchain {
     return swap_images_.at(0).format;
   }
 
-  inline std::vector<Image_t> const& get_swap_images() const {
+  inline std::vector<backend::Image> const& get_swap_images() const {
     return swap_images_;
   }
 
-  inline Image_t const& get_current_swap_image() const {
+  inline backend::Image const& get_current_swap_image() const {
     return swap_images_.at(current_swap_index_);
   }
 
@@ -70,7 +70,7 @@ class Swapchain {
 
   VkSwapchainKHR swapchain_{};
 
-  std::vector<Image_t> swap_images_{};
+  std::vector<backend::Image> swap_images_{};
   std::vector<SwapSynchronizer_t> swap_syncs_{};
 
   uint32_t image_count_{};

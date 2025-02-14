@@ -8,7 +8,7 @@
 //        - Transient command buffer,
 //        - RenderPassEncoder commands:
 //            * Dynamic Viewport / Scissor states,
-//            * set_pipeline / set_vertex_buffer / draw.
+//            * bind_pipeline / bind_vertex_buffer / draw.
 //
 //
 /* -------------------------------------------------------------------------- */
@@ -155,9 +155,9 @@ class SampleApp final : public Application {
        **/
       pass.set_viewport_scissor(viewport_size_, false);
 
-      // pass.set_pipeline(graphics_pipeline_);
-      pass.set_pipeline(graphics_pipeline_);
-      pass.set_vertex_buffer(vertex_buffer_);
+      // pass.bind_pipeline(graphics_pipeline_);
+      pass.bind_pipeline(graphics_pipeline_);
+      pass.bind_vertex_buffer(vertex_buffer_);
       pass.draw(kVertices.size());
     }
     cmd.end_rendering();
@@ -166,7 +166,7 @@ class SampleApp final : public Application {
   }
 
  private:
-  Buffer_t vertex_buffer_;
+  backend::Buffer vertex_buffer_;
   Pipeline graphics_pipeline_;
 };
 

@@ -14,12 +14,16 @@ bool Context::init(std::vector<char const*> const& instance_extensions) {
 
   /* Create a transient CommandPool for temporary command buffers. */
   {
-    VkCommandPoolCreateInfo const command_pool_create_info{
+    VkCommandPoolCreateInfo command_pool_create_info{
       .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
       .flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
-      .queueFamilyIndex = graphics_queue_.family_index,
     };
-    CHECK_VK(vkCreateCommandPool(device_, &command_pool_create_info, nullptr, &transient_command_pool_));
+
+    for (uint32_t i = 0u; i < static_cast<uint32_t>(TargetQueue::kCount); ++i) {
+      auto const target = static_cast<TargetQueue>(i);
+      command_pool_create_info.queueFamilyIndex = get_queue(target).family_index;
+      CHECK_VK(vkCreateCommandPool(device_, &command_pool_create_info, nullptr, &transient_command_pools_[target]));
+    }
   }
 
   resource_allocator_ = std::make_shared<ResourceAllocator>();
@@ -37,59 +41,77 @@ bool Context::init(std::vector<char const*> const& instance_extensions) {
 void Context::deinit() {
   vkDeviceWaitIdle(device_);
   resource_allocator_->deinit();
-  vkDestroyCommandPool(device_, transient_command_pool_, nullptr);
+  vkDestroyCommandPool(device_, transient_command_pools_[TargetQueue::Main], nullptr);
+  vkDestroyCommandPool(device_, transient_command_pools_[TargetQueue::Transfer], nullptr);
   vkDestroyDevice(device_, nullptr);
   vkDestroyInstance(instance_, nullptr);
 }
 
 // ----------------------------------------------------------------------------
 
-Image_t Context::create_depth_stencil_image_2d(VkFormat const format, VkExtent2D const dimension) const {
-  Image_t depth_stencil{};
+backend::Image Context::create_image_2d(uint32_t width, uint32_t height, uint32_t layer_count, VkFormat const format, VkImageUsageFlags const extra_usage) const {
+  VkImageUsageFlags usage{
+      VK_IMAGE_USAGE_SAMPLED_BIT
+    | extra_usage
+  };
 
-  // [TODO] check format is a valid depth_stencil one.
+  VkImageAspectFlags aspect_mask{ VK_IMAGE_ASPECT_COLOR_BIT };
 
-  VkImageCreateInfo const image_create_info{
+  // [TODO] check format is a valid depth one too.
+  if (vkutils::IsValidStencilFormat(format)) {
+    usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+
+    aspect_mask = VK_IMAGE_ASPECT_DEPTH_BIT
+                | VK_IMAGE_ASPECT_STENCIL_BIT
+                ;
+  }
+
+  VkImageCreateInfo const image_info{
     .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
     .imageType = VK_IMAGE_TYPE_2D,
     .format = format,
     .extent = {
-      .width = dimension.width,
-      .height = dimension.height,
-      .depth = 1u,
+      width,
+      height,
+      1u
     },
-    .mipLevels = 1u,
-    .arrayLayers = 1u,
+    .mipLevels = 1u, //
+    .arrayLayers = layer_count,
     .samples = VK_SAMPLE_COUNT_1_BIT,
     .tiling = VK_IMAGE_TILING_OPTIMAL,
-    .usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT
-           | VK_IMAGE_USAGE_SAMPLED_BIT //
-           ,
+    .usage = usage,
     .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+    .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
   };
-  VkImageAspectFlagBits const stencil_mask{
-    vkutils::IsValidStencilFormat(depth_stencil.format) ? VK_IMAGE_ASPECT_STENCIL_BIT : VK_IMAGE_ASPECT_NONE_KHR
-  };
-  VkImageViewCreateInfo const image_view_info{
+
+  VkImageViewCreateInfo view_info{
     .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-    .viewType = VK_IMAGE_VIEW_TYPE_2D,
-    .format = image_create_info.format,
+    .viewType = (image_info.arrayLayers > 1u) ? VK_IMAGE_VIEW_TYPE_2D_ARRAY : VK_IMAGE_VIEW_TYPE_2D,
+    .format = image_info.format,
+    .components = {
+      VK_COMPONENT_SWIZZLE_R,
+      VK_COMPONENT_SWIZZLE_G,
+      VK_COMPONENT_SWIZZLE_B,
+      VK_COMPONENT_SWIZZLE_A,
+    },
     .subresourceRange = {
-      .aspectMask = static_cast<VkImageAspectFlags>(VK_IMAGE_ASPECT_DEPTH_BIT | stencil_mask),
+      .aspectMask = aspect_mask,
       .baseMipLevel = 0u,
-      .levelCount = 1u,
+      .levelCount = image_info.mipLevels,
       .baseArrayLayer = 0u,
-      .layerCount = 1u,
+      .layerCount = image_info.arrayLayers,
     },
   };
-  resource_allocator_->create_image_with_view(image_create_info, image_view_info, &depth_stencil);
 
-  return depth_stencil;
+  backend::Image image;
+  resource_allocator_->create_image_with_view(image_info, view_info, &image);
+
+  return image;
 }
 
 // ----------------------------------------------------------------------------
 
-ShaderModule_t Context::create_shader_module(std::string_view const& directory, std::string_view const& shader_name) const {
+backend::ShaderModule Context::create_shader_module(std::string_view const& directory, std::string_view const& shader_name) const {
   return {
     .module = vkutils::CreateShaderModule(device_, directory.data(), shader_name.data()),
   };
@@ -97,8 +119,8 @@ ShaderModule_t Context::create_shader_module(std::string_view const& directory, 
 
 // ----------------------------------------------------------------------------
 
-std::vector<ShaderModule_t> Context::create_shader_modules(std::string_view const& directory, std::vector<std::string_view> const& shader_names) const {
-  std::vector<ShaderModule_t> shaders{};
+std::vector<backend::ShaderModule> Context::create_shader_modules(std::string_view const& directory, std::vector<std::string_view> const& shader_names) const {
+  std::vector<backend::ShaderModule> shaders{};
   shaders.reserve(shader_names.size());
   std::transform(
     shader_names.begin(),
@@ -114,7 +136,7 @@ std::vector<ShaderModule_t> Context::create_shader_modules(std::string_view cons
 
 // ----------------------------------------------------------------------------
 
-void Context::release_shader_modules(std::vector<ShaderModule_t> const& shaders) const {
+void Context::release_shader_modules(std::vector<backend::ShaderModule> const& shaders) const {
   for (auto const& shader : shaders) {
     vkDestroyShaderModule(device_, shader.module, nullptr);
   }
@@ -122,18 +144,18 @@ void Context::release_shader_modules(std::vector<ShaderModule_t> const& shaders)
 
 // ----------------------------------------------------------------------------
 
-CommandEncoder Context::create_transient_command_encoder() const {
+CommandEncoder Context::create_transient_command_encoder(Context::TargetQueue const& target_queue) const {
   VkCommandBuffer cmd{};
 
   VkCommandBufferAllocateInfo const alloc_info{
     .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-    .commandPool = transient_command_pool_,
+    .commandPool = transient_command_pools_[target_queue],
     .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
     .commandBufferCount = 1u,
   };
   CHECK_VK(vkAllocateCommandBuffers(device_, &alloc_info, &cmd));
 
-  auto encoder = CommandEncoder(device_, resource_allocator_, cmd);
+  auto encoder{ CommandEncoder(cmd, static_cast<uint32_t>(target_queue), device_, resource_allocator_) };
 
   encoder.begin();
 
@@ -160,20 +182,29 @@ void Context::finish_transient_command_encoder(CommandEncoder const& encoder) co
     .commandBufferInfoCount = 1u,
     .pCommandBufferInfos = &cb_submit_info,
   };
-  CHECK_VK( vkQueueSubmit2(graphics_queue_.queue, 1u, &submit_info_2, fence) );
+
+  auto const target_queue{
+    static_cast<TargetQueue>(encoder.get_target_queue_index())
+  };
+
+  CHECK_VK( vkQueueSubmit2(get_queue(target_queue).queue, 1u, &submit_info_2, fence) );
+
   CHECK_VK( vkWaitForFences(device_, 1u, &fence, VK_TRUE, UINT64_MAX) );
   vkDestroyFence(device_, fence, nullptr);
 
-  vkFreeCommandBuffers(device_, transient_command_pool_, 1u, &encoder.command_buffer_);
+  vkFreeCommandBuffers(device_, transient_command_pools_[target_queue], 1u, &encoder.command_buffer_);
 }
 
 /* -------------------------------------------------------------------------- */
 /* -------------------------------------------------------------------------- */
 
 void Context::init_instance(std::vector<char const*> const& instance_extensions) {
-  if (enable_validation_layers) {
+
+#ifndef NDEBUG
+  if constexpr (kEnableDebugValidationLayer) {
     instance_layer_names_.push_back("VK_LAYER_KHRONOS_validation");
   }
+#endif
 
   uint32_t extension_count{0u};
   vkEnumerateInstanceExtensionProperties(nullptr, &extension_count, nullptr);
@@ -215,7 +246,7 @@ void Context::select_gpu() {
   uint32_t gpu_count{0u};
   CHECK_VK( vkEnumeratePhysicalDevices(instance_, &gpu_count, nullptr) );
   if (0u == gpu_count) {
-    fprintf(stderr, "[Error] Vulkan: no GPUs were available.\n");
+    LOGE("Vulkan: no GPUs were available.\n");
     exit(EXIT_FAILURE);
   }
   std::vector<VkPhysicalDevice> gpus(gpu_count);
@@ -256,127 +287,155 @@ bool Context::init_device() {
     add_device_feature(
       VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
       feature_.buffer_device_address,
-      {
-        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_KHR,
-      }
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_KHR
     );
 
     add_device_feature(
       VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME,
       feature_.dynamic_rendering,
-      {
-        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR,
-        .dynamicRendering = VK_TRUE,
-      }
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR
     );
 
     add_device_feature(
       VK_KHR_MAINTENANCE_4_EXTENSION_NAME,
       feature_.maintenance4,
-      {
-        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_4_FEATURES_KHR,
-      }
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_4_FEATURES_KHR
     );
 
     add_device_feature(
       VK_KHR_MAINTENANCE_5_EXTENSION_NAME,
       feature_.maintenance5,
-      {
-        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_5_FEATURES_KHR,
-      }
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_5_FEATURES_KHR
     );
 
     add_device_feature(
       VK_KHR_MAINTENANCE_6_EXTENSION_NAME,
       feature_.maintenance6,
-      {
-        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_6_FEATURES_KHR,
-      }
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_6_FEATURES_KHR
     );
 
     add_device_feature(
       VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME,
       feature_.timeline_semaphore,
-      {
-        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES,
-        .timelineSemaphore = VK_TRUE,
-      }
-    );
-
-    add_device_feature(
-      VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
-      feature_.descriptor_indexing,
-      {
-        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES,
-        .descriptorBindingPartiallyBound = VK_TRUE,
-        .runtimeDescriptorArray = VK_TRUE,
-      }
-    );
-
-    add_device_feature(
-      VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME,
-      feature_.dynamic_state,
-      {
-        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_FEATURES_EXT,
-      }
-    );
-
-    add_device_feature(
-      VK_EXT_EXTENDED_DYNAMIC_STATE_2_EXTENSION_NAME,
-      feature_.dynamic_state2,
-      {
-        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_2_FEATURES_EXT,
-      }
-    );
-
-    add_device_feature(
-      VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME,
-      feature_.dynamic_state3,
-      {
-        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_3_FEATURES_EXT,
-      }
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES
     );
 
     add_device_feature(
       VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME,
       feature_.synchronization2,
-      {
-        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES_KHR,
-        .synchronization2 = VK_TRUE,
-      }
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES_KHR
+    );
+
+    add_device_feature(
+      VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
+      feature_.descriptor_indexing,
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES
+    );
+
+    add_device_feature(
+      VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME,
+      feature_.extended_dynamic_state,
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_FEATURES_EXT
+    );
+
+    add_device_feature(
+      VK_EXT_EXTENDED_DYNAMIC_STATE_2_EXTENSION_NAME,
+      feature_.extended_dynamic_state2,
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_2_FEATURES_EXT
+    );
+
+    add_device_feature(
+      VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME,
+      feature_.extended_dynamic_state3,
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_3_FEATURES_EXT
+    );
+
+    add_device_feature(
+      VK_EXT_VERTEX_INPUT_DYNAMIC_STATE_EXTENSION_NAME,
+      feature_.vertex_input_dynamic_state,
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_INPUT_DYNAMIC_STATE_FEATURES_EXT
     );
 
     vkGetPhysicalDeviceFeatures2(gpu_, &feature_.base);
   }
+  LOG_CHECK(feature_.dynamic_rendering.dynamicRendering);
+  LOG_CHECK(feature_.timeline_semaphore.timelineSemaphore);
+  LOG_CHECK(feature_.synchronization2.synchronization2);
+  LOG_CHECK(feature_.descriptor_indexing.descriptorBindingPartiallyBound);
+  LOG_CHECK(feature_.descriptor_indexing.runtimeDescriptorArray);
+  LOG_CHECK(feature_.descriptor_indexing.shaderSampledImageArrayNonUniformIndexing);
+  LOG_CHECK(feature_.vertex_input_dynamic_state.vertexInputDynamicState);
 
-  /* Search for a queue family with Graphics support. */
-  uint32_t const queue_family_count{static_cast<uint32_t>(properties_.queue_families2.size())};
-  for (uint32_t i = 0u; i < queue_family_count; ++i) {
-    auto const& queue_flags = properties_.queue_families2[i].queueFamilyProperties.queueFlags;
-    if (queue_flags & VK_QUEUE_GRAPHICS_BIT) {
-      graphics_queue_.family_index = i;
-      graphics_queue_.queue_index = 0u;
-      break;
-    }
-  }
-  if (UINT32_MAX == graphics_queue_.family_index) {
-    fprintf(stderr, "Error: could not find a queue family with graphics support.\n");
-    return false;
-  }
+  // --------------------
 
-  float const queue_priorities{1.0f};
-  VkDeviceQueueCreateInfo const queue_info{
-    .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-    .queueFamilyIndex = graphics_queue_.family_index,
-    .queueCount = 1u,
-    .pQueuePriorities = &queue_priorities,
+  /* Find specific Queues Family */
+  std::array<float, 2u> constexpr priorities{
+    1.0f,     // MAIN Queue        (Graphics, Transfer, Compute)
+    0.75f     // TRANSFERT Queue   (Transfer)
+  };
+  std::vector<std::pair<backend::Queue*, VkQueueFlags>> const queues{
+    { &queues_[TargetQueue::Main],      VK_QUEUE_GRAPHICS_BIT
+                                      | VK_QUEUE_TRANSFER_BIT
+                                      | VK_QUEUE_COMPUTE_BIT  },
+
+    { &queues_[TargetQueue::Transfer],  VK_QUEUE_TRANSFER_BIT },
   };
 
+  std::vector<VkDeviceQueueCreateInfo> queue_create_infos{};
+  std::vector<std::vector<float>> queue_priorities{};
+  {
+    uint32_t const queue_family_count{static_cast<uint32_t>(properties_.queue_families2.size())};
+
+    std::vector<VkDeviceQueueCreateInfo> queue_infos(queue_family_count, {
+      .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+      .queueCount = 0u,
+    });
+
+    queue_priorities.resize(queue_family_count, {});
+
+    for (size_t j = 0u; j < queues.size(); ++j) {
+      auto& pair = queues[j];
+
+
+      for (uint32_t i = 0u; i < queue_family_count; ++i) {
+        auto const& queue_family_props = properties_.queue_families2[i].queueFamilyProperties;
+        auto const& queue_flags = queue_family_props.queueFlags;
+
+        if ((pair.second == (queue_flags & pair.second))
+         && (queue_infos[i].queueCount < queue_family_props.queueCount))
+        {
+          pair.first->family_index = i;
+          pair.first->queue_index = queue_infos[i].queueCount;
+
+          queue_priorities[i].push_back(priorities[j]);
+
+          queue_infos[i].queueFamilyIndex = i;
+          queue_infos[i].pQueuePriorities = queue_priorities[i].data();
+          queue_infos[i].queueCount += 1u;
+          // LOGI("%d %f %u", i, priorities[j], queue_infos[i].queueCount);
+          break;
+        }
+      }
+
+      if (UINT32_MAX == pair.first->family_index) {
+        LOGE("Could not find a queue family with the requested support %08x.", pair.second);
+        return false;
+      }
+    }
+
+    for (uint32_t i = 0u; i < queue_family_count; ++i) {
+      if (queue_infos[i].queueCount > 0u) {
+        queue_create_infos.push_back(queue_infos[i]);
+      }
+    }
+  }
+
+  /* Create logical device. */
   VkDeviceCreateInfo const device_info{
     .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
     .pNext = &feature_.base,
-    .queueCreateInfoCount = 1u,
-    .pQueueCreateInfos = &queue_info,
+    .queueCreateInfoCount = static_cast<uint32_t>(queue_create_infos.size()),
+    .pQueueCreateInfos = queue_create_infos.data(),
     .enabledExtensionCount = static_cast<uint32_t>(device_extension_names_.size()),
     .ppEnabledExtensionNames = device_extension_names_.data(),
   };
@@ -393,10 +452,15 @@ bool Context::init_device() {
     bind_func(vkQueueSubmit2, vkQueueSubmit2KHR);
     bind_func(vkCmdBeginRendering, vkCmdBeginRenderingKHR);
     bind_func(vkCmdEndRendering, vkCmdEndRenderingKHR);
+    bind_func(vkCmdBindVertexBuffers2, vkCmdBindVertexBuffers2EXT);
     bind_func(vkCmdBindIndexBuffer2, vkCmdBindIndexBuffer2KHR);
   }
 
-  vkGetDeviceQueue(device_, graphics_queue_.family_index, graphics_queue_.queue_index, &graphics_queue_.queue);
+  /* Retrieved requested queues. */
+  for (auto& pair : queues) {
+    auto *queue = pair.first;
+    vkGetDeviceQueue(device_, queue->family_index, queue->queue_index, &queue->queue);
+  }
 
   return true;
 }

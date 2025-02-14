@@ -4,37 +4,33 @@
 #include "framework/renderer/render_target.h"
 #include "framework/renderer/framebuffer.h"
 
-#define STBI_ONLY_PNG
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb/stb_image.h"
+#include "stb/stb_image.h" //
 
 /* -------------------------------------------------------------------------- */
 
 void Renderer::init(Context const& context, std::shared_ptr<ResourceAllocator> allocator, VkSurfaceKHR const surface) {
   ctx_ptr_ = &context;
   device_ = context.get_device();
-  graphics_queue_ = context.get_graphics_queue();
   allocator_ = allocator;
+  target_queue_ = Context::TargetQueue::Main; //
 
   /* Initialize the swapchain. */
   swapchain_.init(context, surface);
 
   /* Create a default depth stencil buffer. */
-  depth_stencil_ = context.create_depth_stencil_image_2d(
-    get_valid_depth_format(), //
-    swapchain_.get_surface_size()
-  );
+  VkExtent2D const dimension{swapchain_.get_surface_size()};
+  depth_stencil_ = context.create_image_2d(dimension.width, dimension.height, 1u, get_valid_depth_format());
 
   /* Initialize resources for the semaphore timeline. */
   // See https://docs.vulkan.org/samples/latest/samples/extensions/timeline_semaphore/README.html
   {
     uint64_t const frame_count = swapchain_.get_image_count();
 
-    // Initialize frames command buffers.
+    // Initialize per-frame command buffers.
     timeline_.frames.resize(frame_count);
     VkCommandPoolCreateInfo const command_pool_create_info{
       .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-      .queueFamilyIndex = graphics_queue_.family_index,
+      .queueFamilyIndex = context.get_queue(target_queue_).family_index,
     };
     for (uint64_t i = 0u; i < frame_count; ++i) {
       auto& frame = timeline_.frames[i];
@@ -128,7 +124,7 @@ CommandEncoder Renderer::begin_frame() {
   CHECK_VK( vkResetCommandPool(device_, frame.command_pool, 0u) );
 
   //------------
-  cmd_ = CommandEncoder(device_, allocator_, frame.command_buffer);
+  cmd_ = CommandEncoder(frame.command_buffer, (uint32_t)target_queue_, device_, allocator_);
   cmd_.default_render_target_ptr_ = this;
   cmd_.begin();
   //------------
@@ -199,10 +195,11 @@ void Renderer::end_frame() {
     .pSignalSemaphoreInfos = signal_semaphores.data(),
   };
 
-  CHECK_VK( vkQueueSubmit2(graphics_queue_.queue, 1u, &submit_info_2, nullptr) );
+  VkQueue const queue{ctx_ptr_->get_queue(target_queue_).queue};
+  CHECK_VK( vkQueueSubmit2(queue, 1u, &submit_info_2, nullptr) );
 
   /* Display and swap buffers. */
-  swapchain_.present_and_swap(graphics_queue_.queue); //
+  swapchain_.present_and_swap(queue); //
   timeline_.frame_index = swapchain_.get_current_swap_index();
 }
 
@@ -286,7 +283,7 @@ Pipeline Renderer::create_graphics_pipeline(VkPipelineLayout pipeline_layout, Gr
   assert( desc.fragment.module != VK_NULL_HANDLE );
   // assert( !desc.vertex.buffers.empty() );
   assert( !desc.fragment.targets.empty() );
-  assert( desc.fragment.targets[0].format != VK_FORMAT_UNDEFINED );
+  // assert( desc.fragment.targets[0].format != VK_FORMAT_UNDEFINED );
 
   // Default color blend attachment.
   std::vector<VkPipelineColorBlendAttachmentState> color_blend_attachments{
@@ -311,8 +308,10 @@ Pipeline Renderer::create_graphics_pipeline(VkPipelineLayout pipeline_layout, Gr
   VkPipelineRenderingCreateInfo dynamic_rendering_create_info{};
   std::vector<VkFormat> color_attachments(desc.fragment.targets.size());
   {
+    /* (~) If no depth format is setup, use the renderer's one. */
     VkFormat const depth_format{
-      desc.depthStencil.format
+      (desc.depthStencil.format != VK_FORMAT_UNDEFINED) ? desc.depthStencil.format
+                                                        : get_depth_stencil_attachment().format
     };
     VkFormat const stencil_format{
       vkutils::IsValidStencilFormat(depth_format) ? depth_format : VK_FORMAT_UNDEFINED
@@ -322,7 +321,12 @@ Pipeline Renderer::create_graphics_pipeline(VkPipelineLayout pipeline_layout, Gr
     for (size_t i = 0; i < color_attachments.size(); ++i) {
       auto &target = desc.fragment.targets[i];
 
-      color_attachments[i] = target.format;
+      /* (~) If no color format is setup, use the renderer's one. */
+      VkFormat const color_format{
+        (target.format != VK_FORMAT_UNDEFINED) ? target.format
+                                               : get_color_attachment(/*i*/).format
+      };
+      color_attachments[i] = color_format;
 
       color_blend_attachments[i] = {
         .blendEnable = target.blend.enable,
@@ -418,7 +422,7 @@ Pipeline Renderer::create_graphics_pipeline(VkPipelineLayout pipeline_layout, Gr
     .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
     .depthClampEnable = VK_FALSE,
     .rasterizerDiscardEnable = VK_FALSE,
-    .polygonMode = VK_POLYGON_MODE_FILL,
+    .polygonMode = desc.primitive.polygonMode,
     .cullMode = desc.primitive.cullMode,
     .frontFace = desc.primitive.frontFace,
     .lineWidth = 1.0f, //
@@ -527,7 +531,7 @@ Pipeline Renderer::create_graphics_pipeline(GraphicsPipelineDescriptor_t const& 
 
 // ----------------------------------------------------------------------------
 
-void Renderer::create_compute_pipelines(VkPipelineLayout pipeline_layout, std::vector<ShaderModule_t> const& modules, Pipeline *pipelines) const {
+void Renderer::create_compute_pipelines(VkPipelineLayout pipeline_layout, std::vector<backend::ShaderModule> const& modules, Pipeline *pipelines) const {
   assert(pipelines != nullptr);
 
   std::vector<VkComputePipelineCreateInfo> pipeline_infos(modules.size(), {
@@ -556,7 +560,7 @@ void Renderer::create_compute_pipelines(VkPipelineLayout pipeline_layout, std::v
 
 // ----------------------------------------------------------------------------
 
-Pipeline Renderer::create_compute_pipeline(VkPipelineLayout pipeline_layout, ShaderModule_t const& module) const {
+Pipeline Renderer::create_compute_pipeline(VkPipelineLayout pipeline_layout, backend::ShaderModule const& module) const {
   Pipeline p;
   create_compute_pipelines(pipeline_layout, { module }, &p);
   return p;
@@ -573,7 +577,7 @@ void Renderer::destroy_pipeline(Pipeline const& pipeline) const {
 
 // ----------------------------------------------------------------------------
 
-VkDescriptorSetLayout Renderer::create_descriptor_set_layout(std::vector<DescriptorSetLayoutParams_t> const& params) const {
+VkDescriptorSetLayout Renderer::create_descriptor_set_layout(std::vector<DescriptorSetLayoutParams> const& params) const {
   std::vector<VkDescriptorSetLayoutBinding> entries;
   std::vector<VkDescriptorBindingFlags> flags;
 
@@ -647,7 +651,7 @@ VkDescriptorSet Renderer::create_descriptor_set(VkDescriptorSetLayout const layo
 
 // ----------------------------------------------------------------------------
 
-VkDescriptorSet Renderer::create_descriptor_set(VkDescriptorSetLayout const layout, std::vector<DescriptorSetWriteEntry_t> const& entries) const {
+VkDescriptorSet Renderer::create_descriptor_set(VkDescriptorSetLayout const layout, std::vector<DescriptorSetWriteEntry> const& entries) const {
   auto const descriptor_set{ create_descriptor_set(layout) };
   update_descriptor_set(descriptor_set, entries);
   return descriptor_set;
@@ -655,45 +659,62 @@ VkDescriptorSet Renderer::create_descriptor_set(VkDescriptorSetLayout const layo
 
 // ----------------------------------------------------------------------------
 
-void Renderer::update_descriptor_set(VkDescriptorSet const& descriptor_set, std::vector<DescriptorSetWriteEntry_t> const& entries) const {
+void Renderer::update_descriptor_set(VkDescriptorSet const& descriptor_set, std::vector<DescriptorSetWriteEntry> const& entries) const {
   if (entries.empty()) {
     return;
   }
 
-  /* Copy entries to be able to update them. */
-  auto updated_entries{ entries };
-
-  std::vector<VkWriteDescriptorSet> write_descriptor_sets{};
+  std::vector<VkWriteDescriptorSet> write_descriptor_sets;
   write_descriptor_sets.reserve(entries.size());
 
-  for (auto &entry : updated_entries) {
-    bool const has_image{ entry.resource.image.sampler != VK_NULL_HANDLE };
-    bool const has_buffer{ entry.resource.buffer.buffer != VK_NULL_HANDLE };
-    bool const has_bufferView{ entry.resource.bufferView != VK_NULL_HANDLE };
-    assert(has_image != has_buffer || has_image != has_bufferView || has_buffer != has_bufferView);
+  std::vector<DescriptorSetWriteEntry> updated_entries{entries};
 
-    if (has_buffer) {
-      /* Instead of an error we force range to whole size if none were provided. */
-      if (entry.resource.buffer.range == 0) {
-        entry.resource.buffer.range = VK_WHOLE_SIZE;
-      }
-    }
-
-    VkWriteDescriptorSet const write_descriptor_set{
+  for (auto& entry : updated_entries) {
+    VkWriteDescriptorSet write_descriptor_set{
       .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
       .dstSet = descriptor_set,
       .dstBinding = entry.binding,
-      .dstArrayElement = 0u, // (not used)
-      .descriptorCount = 1u, // (not used)
+      .dstArrayElement = 0u,
       .descriptorType = entry.type,
-      .pImageInfo = has_image ? &entry.resource.image : nullptr,
-      .pBufferInfo = has_buffer ? &entry.resource.buffer : nullptr,
-      .pTexelBufferView = has_bufferView ? &entry.resource.bufferView : nullptr,
     };
+
+    switch (entry.type) {
+      case VK_DESCRIPTOR_TYPE_SAMPLER:
+      case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
+      case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+      case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+        LOG_CHECK(entry.buffers.empty() && entry.bufferViews.empty());
+
+        write_descriptor_set.pImageInfo = entry.images.data();
+        write_descriptor_set.descriptorCount = static_cast<uint32_t>(entry.images.size());
+      break;
+
+      case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+      case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+      case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
+      case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
+        LOG_CHECK(entry.images.empty() && entry.bufferViews.empty());
+        for (auto &buf : entry.buffers) {
+          buf.range = (buf.range == 0) ? VK_WHOLE_SIZE : buf.range;
+        }
+        write_descriptor_set.pBufferInfo = entry.buffers.data();
+        write_descriptor_set.descriptorCount = static_cast<uint32_t>(entry.buffers.size());
+      break;
+
+      case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
+        LOG_CHECK(entry.images.empty() && entry.buffers.empty());
+        write_descriptor_set.pTexelBufferView = entry.bufferViews.data();
+        write_descriptor_set.descriptorCount = static_cast<uint32_t>(entry.bufferViews.size());
+      break;
+
+      default:
+        LOGE("Unknown descriptor type: %d", static_cast<int>(entry.type));
+        continue;
+    }
+
     write_descriptor_sets.push_back(write_descriptor_set);
   }
 
-  // (only write operations are currently accepted)
   vkUpdateDescriptorSets(
     device_,
     static_cast<uint32_t>(write_descriptor_sets.size()),
@@ -705,79 +726,42 @@ void Renderer::update_descriptor_set(VkDescriptorSet const& descriptor_set, std:
 
 // ----------------------------------------------------------------------------
 
-bool Renderer::load_texture_2d(CommandEncoder const& cmd, std::string_view const& filename, Image_t &image) const {
+bool Renderer::load_image_2d(CommandEncoder const& cmd, std::string_view const& filename, backend::Image &image) const {
+  uint32_t constexpr kForcedChannelCount{ 4u }; //
+  bool const isSRGB{ false }; //
+
   int x, y, num_channels;
-  stbi_uc* data = stbi_load(filename.data(), &x, &y, &num_channels, 4);
+  stbi_uc* data = stbi_load(filename.data(), &x, &y, &num_channels, kForcedChannelCount); //
   if (!data) {
     return false;
   }
 
-  uint32_t const bytesize = static_cast<uint32_t>(4 * x * y);
-
-  VkImageCreateInfo image_info{
-    .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-    .imageType = VK_IMAGE_TYPE_2D,
-    .format = VK_FORMAT_R8G8B8A8_UNORM,
-    .extent = {
-      static_cast<uint32_t>(x),
-      static_cast<uint32_t>(y),
-      1u
-    },
-    .mipLevels = 1u, //
-    .arrayLayers = 1u,
-    .samples = VK_SAMPLE_COUNT_1_BIT,
-    .tiling = VK_IMAGE_TILING_OPTIMAL,
-    .usage = VK_IMAGE_USAGE_SAMPLED_BIT
-           | VK_IMAGE_USAGE_TRANSFER_DST_BIT
-           ,
-    .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-    .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+  VkExtent3D const extent{
+    .width = static_cast<uint32_t>(x),
+    .height = static_cast<uint32_t>(y),
+    .depth = 1u,
   };
+  VkFormat const format{ (isSRGB) ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM }; //
 
-  VkImageViewCreateInfo view_info{
-    .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-    .viewType = VK_IMAGE_VIEW_TYPE_2D,
-    .format = VK_FORMAT_R8G8B8A8_UNORM,
-    .components = {
-      VK_COMPONENT_SWIZZLE_R,
-      VK_COMPONENT_SWIZZLE_G,
-      VK_COMPONENT_SWIZZLE_B,
-      VK_COMPONENT_SWIZZLE_A,
-    },
-    .subresourceRange = {
-      .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-      .levelCount = 1u,
-      .layerCount = 1u,
-    },
-  };
-
-  allocator_->create_image_with_view(image_info, view_info, &image);
+  image = ctx_ptr_->create_image_2d(
+    extent.width, extent.height, 1u, format, VK_IMAGE_USAGE_TRANSFER_DST_BIT
+  );
 
   /* Copy host data to a staging buffer. */
+  uint32_t const bytesize{ kForcedChannelCount * extent.width * extent.height };
   auto staging_buffer = allocator_->create_staging_buffer(bytesize, data); //
   stbi_image_free(data);
 
-  /* Transfer staging device buffer to image memory, with appropriate layout. */
+  /* Transfer staging device buffer to image memory. */
   {
+    VkImageLayout const transfer_layout{ VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL };
+
     // [TODO ?]
     // Use a large enough dedicated staging buffer and store images
     // to be transfered later on in a batch.
-
-    VkImageLayout const transfer_layout{ VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL };
-
-    cmd.transition_images_layout(
-      { image },
-      VK_IMAGE_LAYOUT_UNDEFINED,
-      transfer_layout
-    );
-
-    cmd.copy_buffer_to_image(staging_buffer, image, image_info.extent, transfer_layout);
-
-    cmd.transition_images_layout(
-      { image },
-      transfer_layout,
-      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-    );
+    cmd.transition_images_layout({ image }, VK_IMAGE_LAYOUT_UNDEFINED, transfer_layout);
+    cmd.copy_buffer_to_image(staging_buffer, image, extent, transfer_layout);
+    cmd.transition_images_layout({ image }, transfer_layout, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
   }
 
   return true;
@@ -785,11 +769,21 @@ bool Renderer::load_texture_2d(CommandEncoder const& cmd, std::string_view const
 
 // ----------------------------------------------------------------------------
 
-bool Renderer::load_texture_2d(std::string_view const& filename, Image_t &image) const {
+bool Renderer::load_image_2d(std::string_view const& filename, backend::Image &image) const {
   auto cmd = ctx_ptr_->create_transient_command_encoder();
-  bool result = load_texture_2d(cmd, filename, image);
+  bool result = load_image_2d(cmd, filename, image);
   ctx_ptr_->finish_transient_command_encoder(cmd);
   return result;
+}
+
+// ----------------------------------------------------------------------------
+
+std::shared_ptr<scene::Resources> Renderer::load_and_upload(std::string_view gltf_filename, scene::Mesh::AttributeLocationMap const& attribute_to_location) {
+  auto R = std::make_shared<scene::Resources>();
+  R->load_from_file(gltf_filename);
+  R->initialize_submesh_descriptors(attribute_to_location);
+  R->upload_to_device(*ctx_ptr_);
+  return R;
 }
 
 /* -------------------------------------------------------------------------- */

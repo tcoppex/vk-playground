@@ -4,6 +4,7 @@
 // ---------------------------------------------------------------------------
 
 #ifdef __cplusplus
+#include <cstdint>
 #define UINT uint32_t
 #else
 #define UINT uint
@@ -20,8 +21,6 @@ const UINT kCompute_Simulation_kernelSize_x = 256;
 const UINT kCompute_FillIndex_kernelSize_x = 256;
 const UINT kCompute_DotProduct_kernelSize_x = 256;
 const UINT kCompute_SortIndex_kernelSize_x = 256;
-
-#undef UINT
 
 const float kTwoPi = 6.28318530718f;
 
@@ -55,12 +54,12 @@ struct PushConstant_Graphics {
 struct PushConstant_Compute {
   Model model;
   float time;
-  uint numElems;
-  uint padding_[2];
-  uint readOffset;
-  uint writeOffset;
-  uint blockWidth;
-  uint maxBlockWidth;
+  UINT numElems;
+  UINT padding_[2];
+  UINT readOffset;
+  UINT writeOffset;
+  UINT blockWidth;
+  UINT maxBlockWidth;
 };
 
 // ---------------------------------------------------------------------------
@@ -71,5 +70,7 @@ struct PushConstant {
 };
 
 // ---------------------------------------------------------------------------
+
+#undef UINT
 
 #endif

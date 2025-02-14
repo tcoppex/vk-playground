@@ -7,7 +7,7 @@
 /* -------------------------------------------------------------------------- */
 
 #include "framework/application.h"
-#include "framework/utils/geometry.h"
+#include "framework/scene/mesh.h"
 
 namespace shader_interop {
 #include "shaders/interop.h"
@@ -48,15 +48,15 @@ class SampleApp final : public Application {
       ),
     };
 
-    /* Create a cube mesh procedurally on the host.
-     * We have no need to keep it on memory after initialization so we just
-     * save the attribute we need. */
-    Geometry cube_geo;
-    {
-      Geometry::MakeCube(cube_geo);
-      index_type_ = cube_geo.get_vk_index_type();
-      index_count_ = cube_geo.get_index_count();
-    }
+    /* Create a cube mesh procedurally on the host, with a default size value. */
+    Geometry::MakeCube(cube_);
+
+    /* Map to bind vertex attributes with their shader input location. */
+    cube_.initialize_submesh_descriptors({
+      { Geometry::AttributeType::Position, shader_interop::kAttribLocation_Position },
+      { Geometry::AttributeType::Texcoord, shader_interop::kAttribLocation_Texcoord },
+      { Geometry::AttributeType::Normal, shader_interop::kAttribLocation_Normal },
+    });
 
     /* Create Buffers & Image(s). */
     {
@@ -69,25 +69,28 @@ class SampleApp final : public Application {
 
       /* Transfer the cube geometry (vertices attributes & indices) to the device. */
       vertex_buffer_ = cmd.create_buffer_and_upload(
-        cube_geo.get_vertices(),
+        cube_.get_vertices(),
         VK_BUFFER_USAGE_2_VERTEX_BUFFER_BIT
       );
       index_buffer_ = cmd.create_buffer_and_upload(
-        cube_geo.get_indices(),
+        cube_.get_indices(),
         VK_BUFFER_USAGE_2_INDEX_BUFFER_BIT
       );
 
       /* Load a texture using the current transient command encoder. */
-      if (std::string fn{ASSETS_DIR "textures/whynot.png"}; !renderer_.load_texture_2d(cmd, fn, image_)) {
+      if (std::string fn{ASSETS_DIR "textures/whynot.png"}; !renderer_.load_image_2d(cmd, fn, image_)) {
         fprintf(stderr, "The texture image '%s' could not be found.\n", fn.c_str());
       }
 
       context_.finish_transient_command_encoder(cmd);
     }
 
-    /* Alternatively, the texture could have been loaded directly using an
+    /* Alternatively the texture could have been loaded directly using an
      * internal transient command encoder. */
-    // renderer_.load_texture_2d(path_to_texture, image_);
+    // renderer_.load_image_2d(path_to_texture, image_);
+
+    /* We don't need to keep the host data so we can clear them. */
+    cube_.clear_indices_and_vertices();
 
     /* Descriptor set. */
     {
@@ -114,13 +117,13 @@ class SampleApp final : public Application {
         {
           .binding = shader_interop::kDescriptorSetBinding_UniformBuffer,
           .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-          .resource = { .buffer = { uniform_buffer_.buffer } }
+          .buffers = { { uniform_buffer_.buffer } }
         },
         {
           .binding = shader_interop::kDescriptorSetBinding_Sampler,
           .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-          .resource = {
-            .image = {
+          .images = {
+            {
               .sampler = renderer_.get_default_sampler(),
               .imageView = image_.view,
               .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
@@ -150,16 +153,11 @@ class SampleApp final : public Application {
       graphics_pipeline_ = renderer_.create_graphics_pipeline(pipeline_layout, {
         .vertex = {
           .module = shaders[0u].module,
-          .buffers = {
-            {
-              .stride = cube_geo.get_stride(),
-              .attributes =  cube_geo.get_vk_binding_attributes(0u, {
-                { Geometry::AttributeType::Position, shader_interop::kAttribLocation_Position },
-                { Geometry::AttributeType::Texcoord, shader_interop::kAttribLocation_Texcoord },
-                { Geometry::AttributeType::Normal, shader_interop::kAttribLocation_Normal },
-              }),
-            }
-          }
+          /* Get buffer descriptors compatible with the mesh vertex inputs.
+           *
+           * Most Geometry::MakeX functions used the same interleaved layout,
+           * so they can be used interchangeably on the same static pipeline.*/
+          .buffers = cube_.get_vk_pipeline_vertex_buffer_descriptors(),
         },
         .fragment = {
           .module = shaders[1u].module,
@@ -181,7 +179,7 @@ class SampleApp final : public Application {
           .depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL,
         },
         .primitive = {
-          .topology = cube_geo.get_vk_primitive_topology(),
+          .topology = cube_.get_vk_primitive_topology(),
           .cullMode = VK_CULL_MODE_BACK_BIT,
         }
       });
@@ -209,7 +207,6 @@ class SampleApp final : public Application {
     {
       float const frame_time{ get_frame_time() };
 
-      // rotation_matrix_axis automatically normalize the given axis.
       push_constant_.model.worldMatrix = lina::rotation_matrix_axis(
         vec3(3.0f * frame_time, 0.8f, sinf(frame_time)),
         frame_time * 0.62f
@@ -222,14 +219,16 @@ class SampleApp final : public Application {
       {
         pass.set_viewport_scissor(viewport_size_);
 
-        pass.set_pipeline(graphics_pipeline_);
+        pass.bind_pipeline(graphics_pipeline_);
         {
-          pass.push_constant(push_constant_, VK_SHADER_STAGE_VERTEX_BIT);
           pass.bind_descriptor_set(descriptor_set_, VK_SHADER_STAGE_VERTEX_BIT);
+          pass.push_constant(push_constant_, VK_SHADER_STAGE_VERTEX_BIT);
 
-          pass.set_vertex_buffer(vertex_buffer_);
-          pass.set_index_buffer(index_buffer_, index_type_);
-          pass.draw_indexed(index_count_);
+          pass.bind_vertex_buffer(vertex_buffer_);
+          pass.bind_index_buffer(index_buffer_, cube_.get_vk_index_type());
+          pass.draw_indexed(cube_.get_index_count());
+
+          // pass.draw(cube_.get_draw_descriptor(), vertex_buffer_, index_buffer_);
         }
       }
       cmd.end_rendering();
@@ -241,15 +240,12 @@ class SampleApp final : public Application {
   std::shared_ptr<ResourceAllocator> allocator_{};
 
   HostData_t host_data_{};
-  VkIndexType index_type_{};
-  uint32_t index_count_{};
+  backend::Buffer uniform_buffer_{};
 
-  Buffer_t uniform_buffer_{};
-
-  Buffer_t vertex_buffer_{};
-  Buffer_t index_buffer_{};
-
-  Image_t image_{};
+  scene::Mesh cube_{};
+  backend::Buffer vertex_buffer_{};
+  backend::Buffer index_buffer_{};
+  backend::Image image_{};
 
   VkDescriptorSetLayout descriptor_set_layout_{};
   VkDescriptorSet descriptor_set_{};

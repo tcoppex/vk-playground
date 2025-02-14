@@ -22,7 +22,10 @@ int Application::run() {
   }};
 
   while (nextFrame()) {
-    frame_time_ = get_elapsed_time();
+    float tick = get_elapsed_time();
+    last_frame_time_ = frame_time_;
+    frame_time_ = tick;
+
     frame();
   }
 

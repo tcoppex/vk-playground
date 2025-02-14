@@ -5,6 +5,7 @@
 
 #include <chrono>
 
+#include "framework/common.h"
 #include "framework/backend/context.h"
 #include "framework/renderer/renderer.h"
 #include "framework/wm/event_callbacks.h"
@@ -24,6 +25,10 @@ class Application : public EventCallbacks {
 
   float get_frame_time() const {
     return frame_time_;
+  }
+
+  float get_delta_time() const {
+    return frame_time_ - last_frame_time_;
   }
 
  protected:
@@ -46,7 +51,9 @@ class Application : public EventCallbacks {
   VkSurfaceKHR surface_{}; //
 
   std::chrono::time_point<std::chrono::high_resolution_clock> chrono_{};
+
   float frame_time_{};
+  float last_frame_time_{};
 };
 
 /* -------------------------------------------------------------------------- */
