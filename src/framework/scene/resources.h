@@ -27,7 +27,16 @@ struct Resources {
   ResourceMap<Skeleton> skeletons{};
 
   std::vector<std::shared_ptr<Mesh>> meshes{}; //
+
+  // std::vector<Sampler> samplers{}; //
+
+  // NOTE : I should rather extract image first, THEN textures (which are
+  //     Image + Samplers). I treat textures as images directly, which is bad.
   std::vector<backend::Image> textures{}; //
+
+  backend::Buffer vertex_buffer;
+  backend::Buffer index_buffer;
+
 
   uint32_t vertex_buffer_size{0u};
   uint32_t index_buffer_size{0u};
@@ -35,15 +44,17 @@ struct Resources {
 
   Resources() = default;
 
-  void release(std::shared_ptr<ResourceAllocator> allocator);
-
   Resources(std::string_view const& filename) {
     load_from_file(filename);
   }
 
+  void release(std::shared_ptr<ResourceAllocator> allocator);
+
   bool load_from_file(std::string_view const& filename);
 
   void initialize_submesh_descriptors(Mesh::AttributeLocationMap const& attribute_to_location);
+
+  void upload_to_device(Context const& context);
 };
 
 /* -------------------------------------------------------------------------- */

@@ -776,6 +776,16 @@ bool Renderer::load_image_2d(std::string_view const& filename, backend::Image &i
   return result;
 }
 
+// ----------------------------------------------------------------------------
+
+std::shared_ptr<scene::Resources> Renderer::load_and_upload(std::string_view gltf_filename, scene::Mesh::AttributeLocationMap const& attribute_to_location) {
+  auto R = std::make_shared<scene::Resources>();
+  R->load_from_file(gltf_filename);
+  R->initialize_submesh_descriptors(attribute_to_location);
+  R->upload_to_device(*ctx_ptr_);
+  return R;
+}
+
 /* -------------------------------------------------------------------------- */
 /* -------------------------------------------------------------------------- */
 

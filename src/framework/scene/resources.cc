@@ -743,7 +743,12 @@ void Resources::release(std::shared_ptr<ResourceAllocator> allocator) {
   for (auto& tex : textures) {
     allocator->destroy_image(&tex);
   }
+
+  allocator->destroy_buffer(index_buffer);
+  allocator->destroy_buffer(vertex_buffer);
 }
+
+// ----------------------------------------------------------------------------
 
 bool Resources::load_from_file(std::string_view const& filename) {
   utils::FileReader file;
@@ -831,6 +836,119 @@ void Resources::initialize_submesh_descriptors(Mesh::AttributeLocationMap const&
   LOGI("> vertex buffer size %f Mb", vertex_buffer_size / static_cast<float>(kMegabyte));
   LOGI("> index buffer size %f Mb ", index_buffer_size / static_cast<float>(kMegabyte));
   LOGI("> total image size %f Mb ", total_image_size / static_cast<float>(kMegabyte));
+}
+
+// ----------------------------------------------------------------------------
+
+void Resources::upload_to_device(Context const& context) {
+  auto allocator = context.get_resource_allocator();
+
+  /* Transfer Textures */
+  {
+    /* Create a staging buffer. */
+    backend::Buffer staging_buffer{
+      allocator->create_staging_buffer( total_image_size ) // XXX
+    };
+
+    textures.reserve(images.size()); //
+
+    std::vector<VkBufferImageCopy> copies;
+    copies.reserve(images.size());
+
+    // ----------------
+
+    uint32_t texture_index = 0u;
+    uint64_t staging_offset = 0u;
+    for (auto& [key, img] : images) {
+      VkExtent3D const extent{
+        .width = static_cast<uint32_t>(img->width),
+        .height = static_cast<uint32_t>(img->height),
+        .depth = 1u,
+      };
+
+      auto tex{context.create_image_2d(
+        extent.width, extent.height, 1u, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_TRANSFER_DST_BIT
+      )};
+      textures.push_back(tex);
+      img->texture_index = textures.size() - 1u;
+
+      /* Upload image to staging buffer */
+      uint32_t const img_bytesize{
+        static_cast<uint32_t>(4u * extent.width * extent.height) //
+      };
+      allocator->write_buffer( staging_buffer, staging_offset,  img->pixels.get(), 0u, img_bytesize);
+
+      copies.push_back({
+        .bufferOffset = staging_offset,
+        .imageSubresource = {
+          .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+          .layerCount = 1u,
+        },
+        .imageExtent = extent,
+      });
+
+      staging_offset += img_bytesize;
+      ++texture_index;
+    }
+
+    // ----------------
+
+    auto cmd{ context.create_transient_command_encoder(Context::TargetQueue::Transfer) };
+    {
+      VkImageLayout const transfer_layout{ VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL };
+
+      cmd.transition_images_layout(textures, VK_IMAGE_LAYOUT_UNDEFINED, transfer_layout);
+      for (uint32_t tex_id = 0u; tex_id < textures.size(); ++tex_id) {
+        vkCmdCopyBufferToImage(cmd.get_handle(), staging_buffer.buffer, textures[tex_id].image, transfer_layout, 1u, &copies[tex_id]);
+      }
+      cmd.transition_images_layout(textures, transfer_layout, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    }
+    context.finish_transient_command_encoder(cmd);
+  }
+
+  /* Transfer Buffers */
+  {
+    vertex_buffer = allocator->create_buffer(
+      vertex_buffer_size,
+      VK_BUFFER_USAGE_2_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_2_TRANSFER_DST_BIT_KHR,
+      VMA_MEMORY_USAGE_GPU_ONLY
+    );
+
+    index_buffer = allocator->create_buffer(
+      index_buffer_size,
+      VK_BUFFER_USAGE_2_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_2_TRANSFER_DST_BIT_KHR,
+      VMA_MEMORY_USAGE_GPU_ONLY
+    );
+
+    /* Copy host mesh data to staging buffer */
+    backend::Buffer mesh_staging_buffer{
+      allocator->create_staging_buffer(vertex_buffer_size + index_buffer_size)
+    };
+    {
+      size_t vertex_offset{0u};
+      size_t index_offset{vertex_buffer_size};
+      for (auto const& mesh : meshes) {
+        auto const& vertices = mesh->get_vertices();
+        allocator->write_buffer(mesh_staging_buffer, vertex_offset, vertices.data(), 0u, vertices.size());
+        vertex_offset += vertices.size();
+
+        auto const& indices = mesh->get_indices();
+        allocator->write_buffer(mesh_staging_buffer, index_offset, indices.data(), 0u, indices.size());
+        index_offset += indices.size();
+
+        /* clear host data once uploaded */
+        mesh->clear_indices_and_vertices();
+      }
+    }
+
+    /* Copy device data from staging buffers to their respective buffers. */
+    auto cmd = context.create_transient_command_encoder(Context::TargetQueue::Transfer);
+    {
+      cmd.copy_buffer(mesh_staging_buffer, 0u, vertex_buffer, 0u, vertex_buffer_size);
+      cmd.copy_buffer(mesh_staging_buffer, vertex_buffer_size, index_buffer, 0u, index_buffer_size);
+    }
+    context.finish_transient_command_encoder(cmd);
+  }
 }
 
 }  // namespace scene

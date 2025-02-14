@@ -8,6 +8,8 @@
 #include "framework/backend/command_encoder.h"
 #include "framework/renderer/pipeline.h"
 
+#include "framework/scene/resources.h" //
+
 /* -------------------------------------------------------------------------- */
 
 // class Context;
@@ -106,6 +108,8 @@ class Renderer : public backend::RTInterface {
   VkSampler get_default_sampler() const {
     return linear_sampler_;
   }
+
+  std::shared_ptr<scene::Resources> load_and_upload(std::string_view gltf_filename, scene::Mesh::AttributeLocationMap const& attribute_to_location);
 
  public:
   /* ----- RTInterface Overrides ----- */
