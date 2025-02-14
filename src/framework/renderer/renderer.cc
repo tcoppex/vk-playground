@@ -283,7 +283,7 @@ Pipeline Renderer::create_graphics_pipeline(VkPipelineLayout pipeline_layout, Gr
   assert( desc.fragment.module != VK_NULL_HANDLE );
   // assert( !desc.vertex.buffers.empty() );
   assert( !desc.fragment.targets.empty() );
-  assert( desc.fragment.targets[0].format != VK_FORMAT_UNDEFINED );
+  // assert( desc.fragment.targets[0].format != VK_FORMAT_UNDEFINED );
 
   // Default color blend attachment.
   std::vector<VkPipelineColorBlendAttachmentState> color_blend_attachments{
@@ -308,8 +308,10 @@ Pipeline Renderer::create_graphics_pipeline(VkPipelineLayout pipeline_layout, Gr
   VkPipelineRenderingCreateInfo dynamic_rendering_create_info{};
   std::vector<VkFormat> color_attachments(desc.fragment.targets.size());
   {
+    /* (~) If no depth format is setup, use the renderer's one. */
     VkFormat const depth_format{
-      desc.depthStencil.format
+      (desc.depthStencil.format != VK_FORMAT_UNDEFINED) ? desc.depthStencil.format
+                                                        : get_depth_stencil_attachment().format
     };
     VkFormat const stencil_format{
       vkutils::IsValidStencilFormat(depth_format) ? depth_format : VK_FORMAT_UNDEFINED
@@ -319,7 +321,12 @@ Pipeline Renderer::create_graphics_pipeline(VkPipelineLayout pipeline_layout, Gr
     for (size_t i = 0; i < color_attachments.size(); ++i) {
       auto &target = desc.fragment.targets[i];
 
-      color_attachments[i] = target.format;
+      /* (~) If no color format is setup, use the renderer's one. */
+      VkFormat const color_format{
+        (target.format != VK_FORMAT_UNDEFINED) ? target.format
+                                               : get_color_attachment(/*i*/).format
+      };
+      color_attachments[i] = color_format;
 
       color_blend_attachments[i] = {
         .blendEnable = target.blend.enable,
