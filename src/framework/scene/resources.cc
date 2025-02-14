@@ -41,7 +41,7 @@ std::string GetTextureRefID(cgltf_texture const& texture, std::string_view alt) 
 
 Geometry::AttributeType GetAttributeType(cgltf_attribute const& attribute) {
   if (attribute.index != 0u) [[unlikely]] {
-    LOGE("[GLTF] Unsupported multiple attribute of same type %s.", attribute.name);
+    LOGD("[GLTF] Unsupported multiple attribute of same type %s.", attribute.name);
     return Geometry::AttributeType::kUnknown;
   }
 
@@ -65,7 +65,7 @@ Geometry::AttributeType GetAttributeType(cgltf_attribute const& attribute) {
       return Geometry::AttributeType::Weights;
 
     default:
-      LOGE("[GLTF] Unsupported attribute type %s.", attribute.name);
+      LOGD("[GLTF] Unsupported attribute type %s.", attribute.name);
       return Geometry::AttributeType::kUnknown;
   }
 }
@@ -84,7 +84,7 @@ Geometry::AttributeFormat GetAttributeFormat(cgltf_accessor const* accessor) {
           return Geometry::AttributeFormat::RGBA_U16;
 
         default:
-          LOGE("[GLTF] Unsupported accessor vec4 format %d", accessor->component_type);
+          LOGD("[GLTF] Unsupported accessor vec4 format %d", accessor->component_type);
           return Geometry::AttributeFormat::kUnknown;
       }
 
@@ -97,7 +97,7 @@ Geometry::AttributeFormat GetAttributeFormat(cgltf_accessor const* accessor) {
       return Geometry::AttributeFormat::RG_F32;
 
     default:
-      LOGE("[GLTF] Unsupported accessor format.");
+      LOGD("[GLTF] Unsupported accessor format.");
       return Geometry::AttributeFormat::kUnknown;
   }
 }
@@ -111,7 +111,7 @@ Geometry::IndexFormat GetIndexFormat(cgltf_accessor const* accessor) {
       return Geometry::IndexFormat::U16;
     }
   }
-  LOGE("[GLTF] Unsupported index format.");
+  LOGD("[GLTF] Unsupported index format.");
   return Geometry::IndexFormat::kUnknown;
 }
 
@@ -127,10 +127,59 @@ Geometry::Topology GetTopology(cgltf_primitive const& primitive) {
       return Geometry::Topology::PointList;
 
     default:
-      LOGE("[GLTF] Unsupported topology.");
+      LOGD("[GLTF] Unsupported topology.");
       return Geometry::Topology::kUnknown;
   }
 }
+
+// void GetTextureFilter(int const filter, VkFilter &filter, VkSamplerMipmapMode &mipmapMode) {
+//   switch (filter) {
+//     case 9728:
+//       filter = VK_FILTER_NEAREST;
+//     break;
+
+//     case 9729:
+//       filter = VK_FILTER_LINEAR;
+//     break;
+
+//     case 9984:
+//     case 9985:
+//       filter = VK_FILTER_LINEAR;
+//       mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+//     break;
+
+//     case 9986:
+//     case 9987:
+//       filter = VK_FILTER_LINEAR;
+//       mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+//     break;
+//   };
+// }
+
+// void GetTextureWrap(int wrap, VkSamplerAddressMode &addressMode) {
+//   switch (wrap) {
+//     case 10497:
+//       addressMode = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+//       break;
+
+//     case 33071:
+//       addressMode = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+//       break;
+
+//     case 33648:
+//       addressMode = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+//       break;
+//   }
+// }
+
+// scene::Sampler GetSampler(cgltf_sampler const& sampler) {
+//   scene::Sampler out;
+//   GetTextureFilter(sampler.mag_filter, out.magFilter, out.mipmapMode);
+//   GetTextureFilter(sampler.min_filter, out.minFilter, out.mipmapMode);
+//   GetTextureWrap(sampler.wrap_s, out.addressModeU);
+//   GetTextureWrap(sampler.wrap_t, out.addressModeV);
+//   return out;
+// }
 
 } // namespace ""
 
@@ -196,10 +245,10 @@ void ExtractTextures(std::string const& basename, std::unordered_map<void const*
 
       // Reference into the scene structure.
       if (image->pixels != nullptr) {
-        LOGI("[GLTF] Texture \"%s\" has been loaded.", ref.c_str());
+        LOGD("[GLTF] Texture \"%s\" has been loaded.", ref.c_str());
         R.images[ref] = std::move(image);
       } else {
-        LOGW("[GLTF] Texture \"%s\" failed to be loaded.", ref.c_str());
+        LOGE("[GLTF] Texture \"%s\" failed to be loaded.", ref.c_str());
       }
     }
   }
@@ -782,39 +831,26 @@ bool Resources::load_from_file(std::string_view const& filename) {
   // (hack) prepass to give proper name to texture when they've got none.
   // ExtractMaterials(basename, texture_map, material_map, data, *this);
 
-  auto extract_materials{[&]() {
-    ExtractTextures(basename, texture_map, data, *this);
-    ExtractMaterials(basename, texture_map, material_map, data, *this);
-  }};
+  ExtractTextures(basename, texture_map, data, *this);
+  ExtractMaterials(basename, texture_map, material_map, data, *this);
+  ExtractMeshes(basename, material_map, data, *this);
+  ExtractAnimations(basename, data, *this);
 
-  // (mesh depends will try to retrieve stuff from t1, so we might need a postprocess pass instead)
-  auto extract_meshes{[&]() {
-    ExtractMeshes(basename, material_map, data, *this);
-    ExtractAnimations(basename, data, *this);
-  }};
-
-#if 0
-  // We'll need a proper pass to be sure there is no issue.
-  std::thread t1(extract_materials);
-  std::thread t2(extract_meshes);
-  t1.join();
-  t2.join();
-#else
-  extract_materials();
-  extract_meshes();
-#endif
-
+#ifndef NDEBUG
   std::cout << "Image count : " << images.size() << std::endl;
   std::cout << "Material count : " << materials.size() << std::endl;
 
   std::cout << "Skeleton count : " << skeletons.size() << std::endl;
   std::cout << "Animation count : " << animations.size() << std::endl;
   std::cout << "Mesh count : " << meshes.size() << std::endl;
+#endif
 
   cgltf_free(data);
 
   return true;
 }
+
+// ----------------------------------------------------------------------------
 
 void Resources::initialize_submesh_descriptors(Mesh::AttributeLocationMap const& attribute_to_location) {
   vertex_buffer_size = 0u;
