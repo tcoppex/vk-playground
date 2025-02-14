@@ -27,6 +27,10 @@ class Application : public EventCallbacks {
     return frame_time_;
   }
 
+  float get_delta_time() const {
+    return frame_time_ - last_frame_time_;
+  }
+
  protected:
   virtual bool setup() { return true; }
   virtual void release() {}
@@ -47,7 +51,9 @@ class Application : public EventCallbacks {
   VkSurfaceKHR surface_{}; //
 
   std::chrono::time_point<std::chrono::high_resolution_clock> chrono_{};
+
   float frame_time_{};
+  float last_frame_time_{};
 };
 
 /* -------------------------------------------------------------------------- */
