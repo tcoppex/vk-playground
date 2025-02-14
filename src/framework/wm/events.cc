@@ -13,8 +13,10 @@
 
 void Events::prepareNextFrame() {
   // Reset per-frame values.
-  mouse_moved_ = false;
-  has_resized_ = false;
+  mouse_moved_        = false;
+  has_resized_        = false;
+  last_input_char_    = 0;
+  mouse_wheel_delta_  = 0.0f;
 
   // Detect if any mouse buttons are still "Pressed" or "Down".
   mouse_button_down_ = std::any_of(buttons_.cbegin(), buttons_.cend(), [](auto const& btn) {
@@ -47,6 +49,12 @@ void Events::onKeyReleased(KeyCode_t key) {
   EVENTS_DISPATCH_SIGNAL(onKeyReleased, key);
 }
 
+void Events::onInputChar(uint16_t c) {
+  last_input_char_ = c;
+
+  EVENTS_DISPATCH_SIGNAL(onInputChar, c);
+}
+
 void Events::onPointerDown(int x, int y, KeyCode_t button) {
   buttons_[button] = KeyState::Pressed;
 
@@ -65,6 +73,13 @@ void Events::onPointerMove(int x, int y) {
   mouse_moved_ = true;
 
   EVENTS_DISPATCH_SIGNAL(onPointerMove, x, y);
+}
+
+void Events::onMouseWheel(float dx, float dy) {
+  mouse_wheel_delta_ = dy;
+  mouse_wheel_ += dy;
+
+  EVENTS_DISPATCH_SIGNAL(onMouseWheel, dx, dy);
 }
 
 void Events::onResize(int w, int h) {

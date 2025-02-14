@@ -53,6 +53,9 @@ class Events final : public Singleton<Events>
   int mouseX() const noexcept { return mouse_x_; }
   int mouseY() const noexcept { return mouse_y_; }
 
+  float wheel() const noexcept { return mouse_wheel_; }
+  float wheelDelta() const noexcept { return mouse_wheel_delta_; }
+
   bool buttonDown(KeyCode_t button) const noexcept;
   bool buttonPressed(KeyCode_t button) const noexcept;
   bool buttonReleased(KeyCode_t button) const noexcept;
@@ -66,6 +69,11 @@ class Events final : public Singleton<Events>
     return key_pressed_.empty() ? -1 : key_pressed_.top(); //
   }
 
+  /* Return the last frame input char, if any. */
+  uint16_t lastInputChar() const noexcept {
+    return last_input_char_;
+  }
+
  public:
   /* EventCallbacks override */
 
@@ -73,11 +81,15 @@ class Events final : public Singleton<Events>
 
   void onKeyReleased(KeyCode_t key) final;
 
+  void onInputChar(uint16_t c) final;
+
   void onPointerDown(int x, int y, KeyCode_t button) final;
 
   void onPointerUp(int x, int y, KeyCode_t button) final;
 
   void onPointerMove(int x, int y) final;
+
+  void onMouseWheel(float dx, float dy) final;
 
   void onResize(int w, int h) final;
 
@@ -104,6 +116,8 @@ class Events final : public Singleton<Events>
   // Mouse.
   int mouse_x_{};
   int mouse_y_{};
+  float mouse_wheel_{};
+  float mouse_wheel_delta_{};
 
   // Buttons.
   KeyMap_t buttons_{};
@@ -111,6 +125,9 @@ class Events final : public Singleton<Events>
   // Keys.
   KeyMap_t keys_{};
   std::stack<KeyCode_t> key_pressed_{};
+
+  // Char input.
+  uint16_t last_input_char_{};
 
   // Registered events callbacks.
   std::set<EventCallbacksPtr> event_callbacks_{};

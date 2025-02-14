@@ -24,12 +24,12 @@ void InitializeEventsCallbacks(GLFWwindow *handle) noexcept {
     }
   });
 
-  // // Input Char.
-  // glfwSetCharCallback(handle, [](GLFWwindow*, unsigned int c) {
-  //   if ((c > 0) && (c < 0x10000)) {
-  //     Events::Get().onInputChar(static_cast<uint16_t>(c));
-  //   }
-  // });
+  // Input Char.
+  glfwSetCharCallback(handle, [](GLFWwindow*, unsigned int c) {
+    if ((c > 0) && (c < 0x10000)) {
+      Events::Get().onInputChar(static_cast<uint16_t>(c));
+    }
+  });
 
   // Mouse buttons.
   glfwSetMouseButtonCallback(handle, [](GLFWwindow* window, int button, int action, int mods) {
@@ -64,13 +64,13 @@ void InitializeEventsCallbacks(GLFWwindow *handle) noexcept {
     events.onPointerMove(px, py);
   });
 
-  // // Mouse wheel.
-  // glfwSetScrollCallback(handle, [](GLFWwindow* window, double dx, double dy) {
-  //   Events::Get().onPointerWheel(
-  //     static_cast<float>(dx),
-  //     static_cast<float>(dy)
-  //   );
-  // });
+  // Mouse wheel.
+  glfwSetScrollCallback(handle, [](GLFWwindow* window, double dx, double dy) {
+    Events::Get().onMouseWheel(
+      static_cast<float>(dx),
+      static_cast<float>(dy)
+    );
+  });
 
   // // Drag-n-drop.
   // glfwSetDropCallback(handle, [](GLFWwindow* window, int count, char const** paths) {

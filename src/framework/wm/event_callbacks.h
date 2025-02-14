@@ -19,11 +19,15 @@ struct EventCallbacks {
 
   virtual void onKeyReleased(KeyCode_t key) {}
 
+  virtual void onInputChar(uint16_t c) {}
+
   virtual void onPointerDown(int x, int y, KeyCode_t button) {}
 
   virtual void onPointerUp(int x, int y, KeyCode_t button) {}
 
   virtual void onPointerMove(int x, int y) {}
+
+  virtual void onMouseWheel(float dx, float dy) {}
 
   virtual void onResize(int w, int h) {}
 };
