@@ -4,12 +4,6 @@
 
 /* -------------------------------------------------------------------------- */
 
-#define WINDOW_SCALE          0.5f
-#define MONITOR_SCALE         1.25f
-#define WINDOW_SIZE_FACTOR    (WINDOW_SCALE / MONITOR_SCALE)
-
-/* -------------------------------------------------------------------------- */
-
 int Application::run() {
   if (!presetup() || !setup()) {
     return EXIT_FAILURE;
