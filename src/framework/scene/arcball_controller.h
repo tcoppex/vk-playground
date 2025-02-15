@@ -5,7 +5,7 @@
 #include "framework/wm/events.h"
 
 #ifndef ABC_USE_CUSTOM_TARGET
-#define ABC_USE_CUSTOM_TARGET   0
+#define ABC_USE_CUSTOM_TARGET   1
 #endif
 
 // ----------------------------------------------------------------------------
@@ -301,7 +301,7 @@ class ArcBallController : public Camera::ViewController {
       double const ty = static_cast<double>(- dv_y * acc);
 
 #if ABC_USE_CUSTOM_TARGET
-      auto t = linalg::mul(Rmatrix_, vec4(tx, ty, 0.0f, 0.0f));
+      auto t = lina::mul(vec4(tx, ty, 0.0f, 0.0f), Rmatrix_);
       target_ += t.xyz();
       target2_ = target_;
 #else
