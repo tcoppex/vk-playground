@@ -1,4 +1,4 @@
-//  lina.h - v0.2.0
+//  lina.h - v0.3.0
 //
 //  Public domain linear algebra header, wrapping sgorsten/linalg.h
 //  <http://unlicense.org/>
@@ -150,6 +150,10 @@ constexpr T saturate(T const& a) {
   static_assert( std::is_floating_point<T>::value );
   return clamp(a, 0, 1);
 }
+
+// ----------------------------------------------------------------------------
+
+template<class T, int M> constexpr linalg::vec<T,M> mul(const linalg::vec<T,4> & a, const linalg::mat<T,M,4> & b) { return a.x*b.row(0) + a.y*b.row(1) + a.z*b.row(2) + a.w*b.row(3); }
 
 // ----------------------------------------------------------------------------
 
