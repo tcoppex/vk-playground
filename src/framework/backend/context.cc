@@ -262,7 +262,7 @@ void Context::select_gpu() {
       break;
     }
   }
-  gpu_ = gpus.at(selected_index);
+  gpu_ = gpus[selected_index];
 
   /* Retrieve differents GPU properties. */
   vkGetPhysicalDeviceProperties2(gpu_, &properties_.gpu2);

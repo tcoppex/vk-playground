@@ -317,7 +317,7 @@ Pipeline Renderer::create_graphics_pipeline(VkPipelineLayout pipeline_layout, Gr
       vkutils::IsValidStencilFormat(depth_format) ? depth_format : VK_FORMAT_UNDEFINED
     };
 
-    color_blend_attachments.resize(color_attachments.size(), color_blend_attachments.at(0u));
+    color_blend_attachments.resize(color_attachments.size(), color_blend_attachments[0u]);
     for (size_t i = 0; i < color_attachments.size(); ++i) {
       auto &target = desc.fragment.targets[i];
 

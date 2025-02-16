@@ -428,7 +428,7 @@ void ExtractMeshes(std::string const& basename, std::unordered_map<void const*, 
        */
 
       {
-        cgltf_primitive const& prim{ node.mesh->primitives[prim_indices.at(0)] };
+        cgltf_primitive const& prim{ node.mesh->primitives[prim_indices[0u]] };
 
         mesh->set_topology(GetTopology(prim));
 
@@ -449,7 +449,7 @@ void ExtractMeshes(std::string const& basename, std::unordered_map<void const*, 
 
       /* Parse the primitives. */
       for (uint32_t j = 0u; j < prim_indices.size(); ++j) {
-        cgltf_primitive const& prim{ node.mesh->primitives[prim_indices.at(j)] };
+        cgltf_primitive const& prim{ node.mesh->primitives[prim_indices[j]] };
         LOG_CHECK(GetTopology(prim) == mesh->get_topology());
 
         Geometry::Primitive primitive{};
@@ -704,8 +704,8 @@ void ExtractAnimations(std::string const& basename, cgltf_data const* data, scen
       float lerpFactor;
 
       for (cgltf_size sid = 0; sid < sampleCount; ++sid) {
-        auto &pose = clip->poses.at(sid);
-        auto &joint = pose.joints.at(jointIndex);
+        auto &pose = clip->poses[sid];
+        auto &joint = pose.joints[jointIndex];
 
         // Calculate resampling parameters when needed.
         if (bNeedResampling) [[unlikely]] {

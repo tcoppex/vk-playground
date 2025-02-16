@@ -13,7 +13,7 @@ void Mesh::initialize_submesh_descriptors(AttributeLocationMap const& attribute_
 
   for (uint32_t i = 0u; i < get_primitive_count(); ++i) {
     auto const& prim{ get_primitive(i) };
-    auto& submesh{ submeshes.at(i) };
+    auto& submesh{ submeshes[i] };
 
     submesh.draw_descriptor = {
       .vertexInput = create_vertex_input_descriptors(prim.bufferOffsets, attribute_to_location),
@@ -29,7 +29,7 @@ void Mesh::initialize_submesh_descriptors(AttributeLocationMap const& attribute_
 
 PipelineVertexBufferDescriptors Mesh::get_vk_pipeline_vertex_buffer_descriptors() const {
   assert( !submeshes.empty() );
-  auto const& vi{ submeshes.at(0u).draw_descriptor.vertexInput };
+  auto const& vi{ submeshes[0u].draw_descriptor.vertexInput };
 
   PipelineVertexBufferDescriptors result(vi.bindings.size());
 
