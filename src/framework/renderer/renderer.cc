@@ -753,7 +753,7 @@ bool Renderer::load_image_2d(CommandEncoder const& cmd, std::string_view const& 
     .depth = 1u,
   };
 
-  VkFormat const format{ is_hdr ? VK_FORMAT_R16G16B16A16_SFLOAT
+  VkFormat const format{ is_hdr ? VK_FORMAT_R32G32B32A32_SFLOAT //
                       : is_srgb ? VK_FORMAT_R8G8B8A8_SRGB
                                 : VK_FORMAT_R8G8B8A8_UNORM
   };
@@ -763,7 +763,7 @@ bool Renderer::load_image_2d(CommandEncoder const& cmd, std::string_view const& 
   );
 
   /* Copy host data to a staging buffer. */
-  size_t const comp_bytesize{ is_hdr ? sizeof(float) : sizeof(uint8_t) };
+  size_t const comp_bytesize{ (is_hdr ? 4 : 1) * sizeof(std::byte) };
   size_t const bytesize{ kForcedChannelCount * extent.width * extent.height * comp_bytesize };
   auto staging_buffer = allocator_->create_staging_buffer(bytesize, data); //
   stbi_image_free(data);
