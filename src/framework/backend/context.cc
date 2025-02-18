@@ -356,6 +356,12 @@ bool Context::init_device() {
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_INPUT_DYNAMIC_STATE_FEATURES_EXT
     );
 
+    add_device_feature(
+      VK_EXT_IMAGE_VIEW_MIN_LOD_EXTENSION_NAME,
+      feature_.image_view_min_lod,
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_VIEW_MIN_LOD_FEATURES_EXT
+    );
+
     vkGetPhysicalDeviceFeatures2(gpu_, &feature_.base);
   }
   LOG_CHECK(feature_.dynamic_rendering.dynamicRendering);
