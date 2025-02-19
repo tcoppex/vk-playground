@@ -80,9 +80,9 @@ layout(push_constant, scalar) uniform PushConstant_ {
 // ----------------------------------------------------------------------------
 
 vec2 cubemap_to_spherical_coords(in vec3 v) {
-  const vec2 kInvAtan = vec2(0.15915494, 0.318309886);
+  const vec2 kInvPi = vec2(0.15915494, 0.318309886);
   const vec2 uv = vec2(atan(-v.z, v.x), asin(-v.y));
-  return fma(uv, kInvAtan, vec2(0.5));
+  return fma(uv, kInvPi, vec2(0.5));
 }
 
 // ----------------------------------------------------------------------------
@@ -108,9 +108,9 @@ void main()
 
   // Spherical (equirectangular) map sample.
   const vec2 spherical_coords = cubemap_to_spherical_coords(view);
-  const vec3 data = texture( uSphericalTex, spherical_coords).rgb;
+  const vec4 data = texture( uSphericalTex, spherical_coords).rgba;
 
-  imageStore(CubeMap, coords, vec4(data, 1.0));
+  imageStore(CubeMap, coords, data);
 }
 
 // ----------------------------------------------------------------------------

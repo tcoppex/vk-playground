@@ -31,7 +31,7 @@ const mat3 kCubeViewMatrices[6] = mat3[6](
   ),
   mat3(
     vec3(-1.0, 0.0, 0.0),
-    vec3( 0.0, 1.0,  0.0),
+    vec3( 0.0, 1.0, 0.0),
     vec3( 0.0, 0.0, 1.0)
   )
 );
@@ -49,5 +49,6 @@ vec3 view_from_coords(in ivec3 coords, int resolution) {
 
   return view;
 }
+
 
 #endif // SHADERS_SKYBOX_INC_SHARED_GLSL
