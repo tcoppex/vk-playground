@@ -13,6 +13,7 @@ function(add_simple_demo dirname)
     ${SAMPLE_PATH}/shaders/spirv
     shaders_bin
     shaders_src
+    ${FRAMEWORK_SHADERS_DIR}
   )
 
   add_executable(${dirname} ${Source} ${shaders_bin} ${shaders_src})
