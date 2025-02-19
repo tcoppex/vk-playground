@@ -135,7 +135,6 @@ void Skybox::init(Context const& context, Renderer const& renderer) {
         .type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
         .images = {
           {
-            .sampler = VK_NULL_HANDLE,
             .imageView = diffuse_envmap_.view,
             .imageLayout = VK_IMAGE_LAYOUT_GENERAL,
           }
@@ -212,6 +211,22 @@ void Skybox::init(Context const& context, Renderer const& renderer) {
   }
 
   compute_brdf_lut();
+
+  /* internal sampler */
+  {
+    VkSamplerCreateInfo const sampler_create_info{
+      .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+      .magFilter = VK_FILTER_LINEAR,
+      .minFilter = VK_FILTER_LINEAR,
+      // .mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
+      .addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, //
+      .addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, //
+      .addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+      .anisotropyEnable = VK_FALSE,
+      // .maxLod = VK_LOD_CLAMP_NONE,
+    };
+    CHECK_VK( vkCreateSampler(context.get_device(), &sampler_create_info, nullptr, &sampler_) );
+  }
 }
 
 // ----------------------------------------------------------------------------
@@ -241,7 +256,7 @@ bool Skybox::setup(Context const& context, Renderer const& renderer, std::string
       .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
       .images = {
         {
-          .sampler = renderer.get_default_sampler(), //
+          .sampler = sampler_,
           .imageView = spherical_envmap.view,
           .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
         }
@@ -335,7 +350,7 @@ bool Skybox::setup(Context const& context, Renderer const& renderer, std::string
       .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
       .images = {
         {
-          .sampler = renderer.get_default_sampler(), //
+          .sampler = sampler_, //
           .imageView = diffuse_envmap_.view,
           .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
         }
@@ -347,17 +362,18 @@ bool Skybox::setup(Context const& context, Renderer const& renderer, std::string
 
   compute_specular(context, renderer); //
 
-  // // [debug]
+  // [debug]
   renderer.update_descriptor_set(descriptor_set_, {
     {
       .binding = shader_interop::skybox::kDescriptorSetBinding_Sampler,
       .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
       .images = {
         {
-          .sampler = renderer.get_default_sampler(), //
+          // [do not have mip map]
+          .sampler = sampler_, //
           .imageView =
-              // irradiance_envmap_.view,
-              specular_envmap_.view,
+              irradiance_envmap_.view,
+              // specular_envmap_.view,
           .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
         }
       }
@@ -492,14 +508,14 @@ void Skybox::compute_specular(Context const& context, Renderer const& renderer) 
   */
 
 
-  VkImageViewMinLodCreateInfoEXT min_lod{
-    .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_MIN_LOD_CREATE_INFO_EXT,
-    .minLod = 0.0f,
-  };
+  // VkImageViewMinLodCreateInfoEXT min_lod{
+  //   .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_MIN_LOD_CREATE_INFO_EXT,
+  //   .minLod = 0.0f,
+  // };
 
   VkImageViewCreateInfo view_info{
     .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-    .pNext = &min_lod,
+    // .pNext = &min_lod,
     .image = specular_envmap_.image,
     .viewType = VK_IMAGE_VIEW_TYPE_CUBE,
     .format = VK_FORMAT_R16G16B16A16_SFLOAT,
@@ -521,7 +537,7 @@ void Skybox::compute_specular(Context const& context, Renderer const& renderer) 
   std::vector<VkDescriptorImageInfo> desc_image_infos(kSpecularEnvmapLevelCount, {.imageLayout = VK_IMAGE_LAYOUT_GENERAL});
   for (uint32_t level = 0u; level < kSpecularEnvmapLevelCount; ++level) {
     view_info.subresourceRange.baseMipLevel = level;
-    min_lod.minLod = static_cast<float>(level);
+    // min_lod.minLod = static_cast<float>(level);
     CHECK_VK(vkCreateImageView(context.get_device(), &view_info, nullptr, &desc_image_infos[level].imageView));
   }
 

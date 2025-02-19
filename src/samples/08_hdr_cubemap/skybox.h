@@ -78,6 +78,10 @@ class Skybox {
   scene::Mesh cube_{};
   backend::Buffer vertex_buffer_{};
   backend::Buffer index_buffer_{};
+
+  // Have internal sampler (eg. ClampToEdge) until renderer sampler map
+  // implementation.
+  VkSampler sampler_{};
 };
 
 // ----------------------------------------------------------------------------
