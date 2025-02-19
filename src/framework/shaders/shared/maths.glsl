@@ -52,12 +52,11 @@ mat3 rotationZ(float radians) {
 // ----------------------------------------------------------------------------
 
 mat3 basis_from_view(in vec3 z_axis) {
-  z_axis = normalize(z_axis); //
-
-  // Be sure Y & Z are not colinears.
-  vec3 y_axis = ((abs(z_axis.y) - 1.0) < Epsilon()) ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0);
+  // Check Y & Z are not colinears.
+  vec3 y_axis = abs(z_axis.y) < (1.0 - Epsilon()) ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0);
   vec3 x_axis = normalize(cross(y_axis, z_axis));
        y_axis = normalize(cross(z_axis, x_axis));
+       z_axis = normalize(z_axis);
   return mat3(x_axis, y_axis, z_axis);
 }
 
