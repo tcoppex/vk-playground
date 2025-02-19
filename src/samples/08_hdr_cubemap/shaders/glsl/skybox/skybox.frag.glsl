@@ -24,7 +24,7 @@ layout(push_constant, scalar) uniform PushConstant_ {
 
 void main() {
   const float factor = pushConstant.hdrIntensity;
-  fragColor = factor * textureLod(uCubemap, inView, 2.0);
+  fragColor = factor * textureLod(uCubemap, inView, 0.0);
 }
 
 // ----------------------------------------------------------------------------
