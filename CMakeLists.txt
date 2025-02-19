@@ -40,6 +40,8 @@ set(PROJECT_ASSETS_DIR              ${PROJECT_ROOT_PATH}/assets)
 set(FRAMEWORK_PATH                  ${PROJECT_SOURCE_DIR}/framework)
 set(SAMPLES_PATH                    ${PROJECT_SOURCE_DIR}/samples)
 
+set(FRAMEWORK_SHADERS_DIR           ${FRAMEWORK_PATH}/shaders)
+
 # -----------------------------------------------------------------------------
 # CMake settings.
 # -----------------------------------------------------------------------------

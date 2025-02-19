@@ -28,7 +28,7 @@ endif()
 
 
 ## Custom function to generate binary shaders from GLSL, with include handling.
-function(glsl2spirv input_glsl output_spirv shader_dir deps)
+function(glsl2spirv input_glsl output_spirv shader_dir deps extra_args)
   # Retrieve the input file name
   get_filename_component(fn ${input_glsl} NAME)
   
@@ -45,7 +45,7 @@ function(glsl2spirv input_glsl output_spirv shader_dir deps)
     set(stage "frag")
   elseif(${fn} MATCHES "((comp|cs)_.+\\.glsl)|(.+\\.(comp|cs)(\\.glsl)?)")
     set(stage "comp")
-  elseif(${fn} MATCHES "((mesh|ms)_.+\\.glsl)|(.+\\.(mesh|cs)(\\.glsl)?)")
+  elseif(${fn} MATCHES "((mesh|ms)_.+\\.glsl)|(.+\\.(mesh|ms)(\\.glsl)?)")
     set(stage "mesh")
   else()
     message(WARNING "Unknown shader type for ${fn}")
@@ -60,7 +60,7 @@ function(glsl2spirv input_glsl output_spirv shader_dir deps)
     OUTPUT
       ${output_spirv}
     COMMAND
-      ${GLSLC} -I${shader_dir} -fshader-stage=${stage} -o ${output_spirv} ${input_glsl}
+      ${GLSLC} -fshader-stage=${stage} -o ${output_spirv} ${input_glsl} -I ${shader_dir} ${extra_args}
     DEPENDS
       ${input_glsl}
       ${GLSLC}
@@ -82,14 +82,22 @@ endfunction(glsl2spirv)
 
 
 # Compile all shader from one directory to another
-function(compile_shaders GLOBAL_GLSL_DIR GLOBAL_SPIRV_DIR binaries sources)
+function(compile_shaders GLOBAL_GLSL_DIR GLOBAL_SPIRV_DIR binaries sources extra_dir)
   # retrieve all SOURCE glsl shaders
   file(GLOB_RECURSE g_ShadersGLSL ${GLOBAL_GLSL_DIR}/*.*)
 
   file(GLOB ShadersDependencies
     ${GLOBAL_GLSL_DIR}/../*.h
-    ${GLOBAL_GLSL_DIR}/../*.inc.glsl
+    ${GLOBAL_GLSL_DIR}/../*.glsl
   )
+
+  file(GLOB_RECURSE ShadersDependencies_bis
+    ${extra_dir}/*.h
+    ${extra_dir}/*.glsl
+  )
+  list(APPEND ShadersDependencies ${ShadersDependencies_bis})
+  # foreach(dep IN LISTS ShadersDependencies_bis)
+  # endforeach()
 
   # transform shader path to relative
   foreach(glslshader IN LISTS g_ShadersGLSL)
@@ -107,7 +115,7 @@ function(compile_shaders GLOBAL_GLSL_DIR GLOBAL_SPIRV_DIR binaries sources)
     set(binary ${GLOBAL_SPIRV_DIR}/${glslshader}.spv)
 
     # compile GLSL to SPIRV
-    glsl2spirv(${source} ${binary} ${GLOBAL_GLSL_DIR} "${ShadersDependencies}")
+    glsl2spirv(${source} ${binary} ${GLOBAL_GLSL_DIR} "${ShadersDependencies}" -I${extra_dir})
 
     # return the list of compiled filed
     list(APPEND glslSHADERS ${source})

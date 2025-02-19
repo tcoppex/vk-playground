@@ -71,8 +71,8 @@ void Renderer::init(Context const& context, std::shared_ptr<ResourceAllocator> a
     .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
     .magFilter = VK_FILTER_LINEAR,
     .minFilter = VK_FILTER_LINEAR,
-    .addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
-    .addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+    .addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT, //CLAMP_TO_EDGE,
+    .addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT, //CLAMP_TO_EDGE,
     .addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
     .anisotropyEnable = VK_TRUE,
     .maxAnisotropy = 16.0f,
@@ -317,7 +317,7 @@ Pipeline Renderer::create_graphics_pipeline(VkPipelineLayout pipeline_layout, Gr
       vkutils::IsValidStencilFormat(depth_format) ? depth_format : VK_FORMAT_UNDEFINED
     };
 
-    color_blend_attachments.resize(color_attachments.size(), color_blend_attachments.at(0u));
+    color_blend_attachments.resize(color_attachments.size(), color_blend_attachments[0u]);
     for (size_t i = 0; i < color_attachments.size(); ++i) {
       auto &target = desc.fragment.targets[i];
 
@@ -728,10 +728,21 @@ void Renderer::update_descriptor_set(VkDescriptorSet const& descriptor_set, std:
 
 bool Renderer::load_image_2d(CommandEncoder const& cmd, std::string_view const& filename, backend::Image &image) const {
   uint32_t constexpr kForcedChannelCount{ 4u }; //
-  bool const isSRGB{ false }; //
+
+  bool const is_hdr{ stbi_is_hdr(filename.data()) != 0 };
+  bool const is_srgb{ false }; //
+
+  stbi_set_flip_vertically_on_load(false);
 
   int x, y, num_channels;
-  stbi_uc* data = stbi_load(filename.data(), &x, &y, &num_channels, kForcedChannelCount); //
+  stbi_uc* data{nullptr};
+
+  if (is_hdr) [[unlikely]] {
+    data = reinterpret_cast<stbi_uc*>(stbi_loadf(filename.data(), &x, &y, &num_channels, kForcedChannelCount)); //
+  } else {
+    data = stbi_load(filename.data(), &x, &y, &num_channels, kForcedChannelCount);
+  }
+
   if (!data) {
     return false;
   }
@@ -741,24 +752,25 @@ bool Renderer::load_image_2d(CommandEncoder const& cmd, std::string_view const& 
     .height = static_cast<uint32_t>(y),
     .depth = 1u,
   };
-  VkFormat const format{ (isSRGB) ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM }; //
+
+  VkFormat const format{ is_hdr ? VK_FORMAT_R32G32B32A32_SFLOAT //
+                      : is_srgb ? VK_FORMAT_R8G8B8A8_SRGB
+                                : VK_FORMAT_R8G8B8A8_UNORM
+  };
 
   image = ctx_ptr_->create_image_2d(
     extent.width, extent.height, 1u, format, VK_IMAGE_USAGE_TRANSFER_DST_BIT
   );
 
   /* Copy host data to a staging buffer. */
-  uint32_t const bytesize{ kForcedChannelCount * extent.width * extent.height };
+  size_t const comp_bytesize{ (is_hdr ? 4 : 1) * sizeof(std::byte) };
+  size_t const bytesize{ kForcedChannelCount * extent.width * extent.height * comp_bytesize };
   auto staging_buffer = allocator_->create_staging_buffer(bytesize, data); //
   stbi_image_free(data);
 
   /* Transfer staging device buffer to image memory. */
   {
     VkImageLayout const transfer_layout{ VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL };
-
-    // [TODO ?]
-    // Use a large enough dedicated staging buffer and store images
-    // to be transfered later on in a batch.
     cmd.transition_images_layout({ image }, VK_IMAGE_LAYOUT_UNDEFINED, transfer_layout);
     cmd.copy_buffer_to_image(staging_buffer, image, extent, transfer_layout);
     cmd.transition_images_layout({ image }, transfer_layout, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);

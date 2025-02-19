@@ -9,7 +9,7 @@
 namespace utils {
 
 bool FileReader::Read(std::string_view filename, std::vector<uint8_t>& out) {
-  constexpr std::size_t kMaxReadFileSize{1 << 27};
+  constexpr std::size_t kMaxReadFileSize{4 << 27};
 
   std::ifstream file(filename.data(), std::ios::binary | std::ios::ate);
   if (!file) {

@@ -38,7 +38,7 @@ class Swapchain {
   }
 
   inline VkFormat get_color_format() const {
-    return swap_images_.at(0).format;
+    return swap_images_[0u].format;
   }
 
   inline std::vector<backend::Image> const& get_swap_images() const {
@@ -46,11 +46,11 @@ class Swapchain {
   }
 
   inline backend::Image const& get_current_swap_image() const {
-    return swap_images_.at(current_swap_index_);
+    return swap_images_[current_swap_index_];
   }
 
   inline SwapSynchronizer_t const& get_current_synchronizer() const {
-    return swap_syncs_.at(current_swap_index_);
+    return swap_syncs_[current_swap_index_];
   }
 
   inline uint32_t const& get_current_swap_index() const {

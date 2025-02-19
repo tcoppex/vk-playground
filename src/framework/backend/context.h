@@ -160,6 +160,7 @@ class Context {
     VkPhysicalDeviceExtendedDynamicState2FeaturesEXT extended_dynamic_state2{};
     VkPhysicalDeviceExtendedDynamicState3FeaturesEXT extended_dynamic_state3{};
     VkPhysicalDeviceVertexInputDynamicStateFeaturesEXT vertex_input_dynamic_state{};
+    VkPhysicalDeviceImageViewMinLodFeaturesEXT image_view_min_lod{};
   } feature_;
 
   VkInstance instance_{};

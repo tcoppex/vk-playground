@@ -172,7 +172,7 @@ class Renderer : public backend::RTInterface {
     VkSemaphore semaphore{};
 
     TimelineFrame_t& current_frame() {
-      return frames.at(frame_index);
+      return frames[frame_index];
     }
   };
 
