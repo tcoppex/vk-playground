@@ -71,11 +71,13 @@ void Renderer::init(Context const& context, std::shared_ptr<ResourceAllocator> a
     .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
     .magFilter = VK_FILTER_LINEAR,
     .minFilter = VK_FILTER_LINEAR,
+    .mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
     .addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT, //CLAMP_TO_EDGE,
     .addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT, //CLAMP_TO_EDGE,
     .addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
     .anisotropyEnable = VK_TRUE,
     .maxAnisotropy = 16.0f,
+    .maxLod = VK_LOD_CLAMP_NONE,
   };
   CHECK_VK( vkCreateSampler(device_, &sampler_create_info, nullptr, &linear_sampler_) );
 }
