@@ -161,9 +161,10 @@ vec3 sample_sphere_out(float radius, vec2 rn) {
 // ----------------------------------------------------------------------------
 
 // Samples points on an hemisphere using the Hammersley point set.
-// ref : http://holger.dammertz.org/stuff/notes_HammersleyOnHemisphere.html
+// ref : https://web.archive.org/web/20240707031450/ +
+//       http://holger.dammertz.org/stuff/notes_HammersleyOnHemisphere.html
 
-float radicalInverse_VdC(uint bits) {
+float radicalInverse_VdC(highp uint bits) {
   bits = (bits << 16u) | (bits >> 16u);
   bits = ((bits & 0x55555555u) << 1u) | ((bits & 0xAAAAAAAAu) >> 1u);
   bits = ((bits & 0x33333333u) << 2u) | ((bits & 0xCCCCCCCCu) >> 2u);
@@ -173,12 +174,12 @@ float radicalInverse_VdC(uint bits) {
 }
 
 vec2 hammersley2d(int i, float inv_N) {
-  return vec2(float(i) * inv_N, radicalInverse_VdC(i));
+  return vec2(float(i) * inv_N, radicalInverse_VdC(uint(i)));
 }
 
-vec2 hammersley2d(int i, int N) {
-  return hammersley2d(i, 1.0f / float(N));
-}
+// vec2 hammersley2d(int i, int N) {
+//   return hammersley2d(i, 1.0f / float(N));
+// }
 
 vec3 sample_hemisphere_uniform(float u, float v) {
  const float phi = v * TwoPi();
@@ -198,8 +199,8 @@ vec3 sample_hemisphere_cos(float u, float v) {
 
 // Sample an hemisphere using Hammersley pointset on a roughness dependant specular lobe
 // and return it as a direction vector in world space.
-vec3 importance_sample_GGX( in mat3 basis_ws, in vec2 pt, float roughness_sqr) {
-  const float a = roughness_sqr*roughness_sqr * pt.y;
+vec3 importance_sample_GGX(in mat3 basis_ws, in vec2 pt, float roughness_sqr) {
+  const float a = roughness_sqr * roughness_sqr * pt.y; //
   const float u = a / (1.0 + a - pt.y);
   const float v = pt.x;
   return normalize(basis_ws * sample_hemisphere_cos( u, v ));
