@@ -103,6 +103,13 @@ class SampleApp final : public Application {
           .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
           .bindingFlags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT,
         },
+        {
+          .binding = shader_interop::kDescriptorSetBinding_IrradianceEnvMap,
+          .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+          .descriptorCount = 1u,
+          .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+          .bindingFlags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT,
+        },
       });
 
       descriptor_set_ = renderer_.create_descriptor_set(descriptor_set_layout_, {
@@ -110,6 +117,17 @@ class SampleApp final : public Application {
           .binding = shader_interop::kDescriptorSetBinding_UniformBuffer,
           .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
           .buffers = { { uniform_buffer_.buffer } },
+        },
+        {
+          .binding = shader_interop::kDescriptorSetBinding_IrradianceEnvMap,
+          .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+          .images = {
+            {
+              .sampler = renderer_.get_default_sampler(),
+              .imageView = skybox_.get_irradiance_envmap().view,
+              .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            }
+          },
         },
       });
     }

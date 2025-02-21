@@ -22,6 +22,11 @@ layout(rgba16f, binding = kDescriptorSetBinding_StorageImage)
 writeonly
 uniform imageCube outIrradianceEnvmap;
 
+layout(scalar, binding = kDescriptorSetBinding_IrradianceSHMatrices_StorageBuffer)
+readonly buffer SHMatrixData_ {
+  SHMatrices uIrradianceMatrices; //
+};
+
 layout(push_constant, scalar) uniform PushConstant_ {
   PushConstant pushConstant;
 };
@@ -45,11 +50,34 @@ void main() {
 
   // --------------
 
+  vec3 irradiance = vec3(0.0);
+
   vec3 view = view_from_coords(coords, resolution);
+
+  vec4 n = vec4(view, 1.0); //
+    irradiance = vec3(
+      dot( n, uIrradianceMatrices.data[0] * n),
+      dot( n, uIrradianceMatrices.data[1] * n),
+      dot( n, uIrradianceMatrices.data[2] * n)
+    );
 
   // World-space basis from the view direction.
   const mat3 basis_ws = basis_from_view(view);
+#if 1
+  // const int kNumSamples = int(pushConstant.numSamples * pushConstant.numSamples / 4.0); //
 
+  // float inv_sample = 1.0f / float(kNumSamples-1);
+
+  // for (int i = 0; i < kNumSamples; ++i) {
+  //   vec2 pt = hammersley2d(i, inv_sample); // <<< check
+  //   vec3 ray_ws = importance_sample_GGX(basis_ws, pt, 0.65);
+  //   vec3 radiance = texture(inDiffuseEnvmap, ray_ws).rgb;
+  //   irradiance += radiance;
+  // }
+  // irradiance *= inv_sample;
+
+  // // irradiance *= Pi();
+#else
   // Number of longitudinal samples (in 2 * Pi).
   const int kNumLongSamples = int(pushConstant.numSamples);
 
@@ -66,7 +94,6 @@ void main() {
   const vec2 start_angle = trig_angle(0.0);
 
   // Convolution kernel.
-  vec3 irradiance = vec3(0.0);
   vec2 phi = start_angle;
   for (int y = 0; y < kNumLongSamples; ++y) {
     vec2 theta = start_angle;
@@ -88,6 +115,7 @@ void main() {
 
   // Weight total irradiance.
   irradiance *= Pi() / float(kNumLongSamples * kNumLatSamples);
+#endif
 
   // --------------
 

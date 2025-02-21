@@ -9,12 +9,17 @@
 #define UINT uint
 #endif
 
+// ---------------------------------------------------------------------------
+
 const UINT kAttribLocation_Position = 0;
 const UINT kAttribLocation_Normal   = 1;
 const UINT kAttribLocation_Texcoord = 2;
 
-const UINT kDescriptorSetBinding_UniformBuffer = 0;
-const UINT kDescriptorSetBinding_Sampler       = 1;
+// ---------------------------------------------------------------------------
+
+const UINT kDescriptorSetBinding_UniformBuffer    = 0;
+const UINT kDescriptorSetBinding_Sampler          = 1;
+const UINT kDescriptorSetBinding_IrradianceEnvMap = 2;
 
 // ---------------------------------------------------------------------------
 

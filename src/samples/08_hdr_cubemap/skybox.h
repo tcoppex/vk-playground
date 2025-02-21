@@ -39,6 +39,13 @@ class Skybox {
     Compute_IntegrateBRDF,
     Compute_Irradiance,
     Compute_Specular,
+
+
+    Compute_IrradianceSHCoeff,
+    Compute_ReduceSHCoeff,
+    Compute_IrradianceTransfer,
+
+
     Compute_kCount,
   };
 
@@ -53,7 +60,17 @@ class Skybox {
 
   void render(RenderPassEncoder & pass, Camera const& camera);
 
+  backend::Image get_irradiance_envmap() const {
+    return irradiance_envmap_;
+  }
+
+  backend::Buffer get_irradiance_matrices_buffer() const {
+    return irradiance_matrices_buffer_;
+  }
+
  private:
+  void compute_irradiance_sh_coeff(Context const& context, Renderer const& renderer);
+
   void compute_irradiance(Context const& context, Renderer const& renderer);
 
   void compute_specular(Context const& context, Renderer const& renderer);
@@ -82,6 +99,10 @@ class Skybox {
   // Have internal sampler (eg. ClampToEdge) until renderer sampler map
   // implementation.
   VkSampler sampler_{};
+
+  // ----
+
+  backend::Buffer irradiance_matrices_buffer_{};
 };
 
 // ----------------------------------------------------------------------------
