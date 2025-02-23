@@ -633,8 +633,7 @@ void Skybox::compute_irradiance(Context const& context, Renderer const& renderer
 
     cmd.bind_descriptor_set(descriptor_set_, pipeline_layout_, VK_SHADER_STAGE_COMPUTE_BIT);
 
-    push_constant_.mapResolution = kIrradianceEnvmapResolution; //
-    push_constant_.numSamples = kIrradianceEnvmapSampleCount; //
+    push_constant_.mapResolution = kIrradianceEnvmapResolution;
     cmd.push_constant(push_constant_, pipeline_layout_, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_COMPUTE_BIT);
 
     cmd.bind_pipeline(compute_pipelines_.at(Compute_Irradiance));

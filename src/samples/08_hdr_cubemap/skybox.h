@@ -22,7 +22,6 @@ class Skybox {
   static constexpr uint32_t kDiffuseEnvmapResolution{ 1024u };
 
   static constexpr uint32_t kIrradianceEnvmapResolution{ 256u };
-  static constexpr uint32_t kIrradianceEnvmapSampleCount{ 128u };
 
   static constexpr uint32_t kSpecularEnvmapResolution{ 256u };
   static constexpr uint32_t kSpecularEnvmapSampleCount{ 64u };
