@@ -62,6 +62,40 @@ mat3 basis_from_view(in vec3 z_axis) {
 
 // ----------------------------------------------------------------------------
 
+/* Return a view direction from uv coordinates and a cubemap face id. */
+vec3 cubemap_view_direction(float u, float v, int faceId)  {
+  u = 2.0 * u - 1.0f;
+  v = 2.0 * v - 1.0f;
+  const vec3 texeldirs[6] = {
+    vec3( +1.0f, -v, -u),  // +X
+    vec3( -1.0f, -v, +u),  // -X
+    vec3( +u, +1.0f, +v),  // +Y
+    vec3( +u, -1.0f, -v),  // -Y
+    vec3( +u, -v, +1.0f),  // +Z
+    vec3( -u, -v, -1.0f),  // -Z
+  };
+  return normalize( texeldirs[faceId] );
+}
+
+/* Return a view direction from a compute kernel coordinates, coords.z is the face id. */
+vec3 cubemap_view_direction(in ivec3 coords, int resolution) {
+  const float texelSize = 1.0f / float(resolution);
+  const float u = (float(coords.x) + 0.5f) * texelSize;
+  const float v = (float(coords.y) + 0.5f) * texelSize;
+  return cubemap_view_direction(u, v, coords.z);
+}
+
+// ----------------------------------------------------------------------------
+
+/* Return spherical coordinates from a cubemap view direction. */
+vec2 cubemap_to_spherical_coords(in vec3 view) {
+  const vec2 kInvPi = vec2(0.15915494, 0.318309886);
+  const vec2 uv = vec2(atan(-view.z, view.x), asin(-view.y));
+  return fma(uv, kInvPi, vec2(0.5));
+}
+
+// ----------------------------------------------------------------------------
+
 vec2 trig_angle(float radians) {
   return vec2( cos(radians), sin(radians));
 }
