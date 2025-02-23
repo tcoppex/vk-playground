@@ -18,7 +18,7 @@
 #include <shared/maths.glsl>        // for importance_sample_GGX
 #include <shared/lighting/pbr.glsl> // for gf_SmithGGX
 
-#include "../skybox_interop.h" //
+#include "../envmap_interop.h" //
 
 // ----------------------------------------------------------------------------
 

@@ -7,10 +7,9 @@
 #include "framework/renderer/pipeline.h"
 #include "framework/scene/mesh.h"
 
-namespace shader_interop::skybox {
-#include "shaders/skybox_interop.h" //
+namespace shader_interop::envmap {
+#include "shaders/envmap_interop.h" //
 }
-
 
 class Context;
 class Renderer;
@@ -40,11 +39,9 @@ class Skybox {
     Compute_Irradiance,
     Compute_Specular,
 
-
     Compute_IrradianceSHCoeff,
     Compute_ReduceSHCoeff,
     Compute_IrradianceTransfer,
-
 
     Compute_kCount,
   };
@@ -80,7 +77,7 @@ class Skybox {
  private:
   VkDescriptorSetLayout descriptor_set_layout_{};
   VkDescriptorSet descriptor_set_{};
-  shader_interop::skybox::PushConstant push_constant_{};
+  shader_interop::envmap::PushConstant push_constant_{};
 
   VkPipelineLayout pipeline_layout_{};
 

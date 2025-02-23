@@ -14,7 +14,7 @@ void Skybox::init(Context const& context, Renderer const& renderer) {
     Geometry::MakeCube(cube_);
 
     cube_.initialize_submesh_descriptors({
-      { Geometry::AttributeType::Position, shader_interop::skybox::kAttribLocation_Position },
+      { Geometry::AttributeType::Position, shader_interop::envmap::kAttribLocation_Position },
     });
 
     auto cmd = context.create_transient_command_encoder();
@@ -35,7 +35,7 @@ void Skybox::init(Context const& context, Renderer const& renderer) {
   std::shared_ptr<ResourceAllocator> allocator{ context.get_resource_allocator() };
 
   irradiance_matrices_buffer_ = allocator->create_buffer(
-    sizeof(shader_interop::skybox::SHMatrices),
+    sizeof(shader_interop::envmap::SHMatrices),
       VK_BUFFER_USAGE_2_STORAGE_BUFFER_BIT
     | VK_BUFFER_USAGE_2_UNIFORM_BUFFER_BIT
     | VK_BUFFER_USAGE_2_TRANSFER_SRC_BIT_KHR
@@ -114,21 +114,21 @@ void Skybox::init(Context const& context, Renderer const& renderer) {
 
     descriptor_set_layout_ = renderer.create_descriptor_set_layout({
       {
-        .binding = shader_interop::skybox::kDescriptorSetBinding_Sampler,
+        .binding = shader_interop::envmap::kDescriptorSetBinding_Sampler,
         .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
         .descriptorCount = 1u,
         .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
         .bindingFlags = kDefaultDescBindingFlags,
       },
       {
-        .binding = shader_interop::skybox::kDescriptorSetBinding_StorageImage,
+        .binding = shader_interop::envmap::kDescriptorSetBinding_StorageImage,
         .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
         .descriptorCount = 1u,
         .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
         .bindingFlags = kDefaultDescBindingFlags,
       },
       {
-        .binding = shader_interop::skybox::kDescriptorSetBinding_StorageImageArray,
+        .binding = shader_interop::envmap::kDescriptorSetBinding_StorageImageArray,
         .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
         .descriptorCount = kSpecularEnvmapLevelCount,
         .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
@@ -138,14 +138,14 @@ void Skybox::init(Context const& context, Renderer const& renderer) {
 
       // [wip]
       {
-        .binding = shader_interop::skybox::kDescriptorSetBinding_IrradianceSHCoeff_StorageBuffer,
+        .binding = shader_interop::envmap::kDescriptorSetBinding_IrradianceSHCoeff_StorageBuffer,
         .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
         .descriptorCount = 1u,
         .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
         .bindingFlags = kDefaultDescBindingFlags,
       },
       {
-        .binding = shader_interop::skybox::kDescriptorSetBinding_IrradianceSHMatrices_StorageBuffer,
+        .binding = shader_interop::envmap::kDescriptorSetBinding_IrradianceSHMatrices_StorageBuffer,
         .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
         .descriptorCount = 1u,
         .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
@@ -155,7 +155,7 @@ void Skybox::init(Context const& context, Renderer const& renderer) {
 
     descriptor_set_ = renderer.create_descriptor_set(descriptor_set_layout_, {
       {
-        .binding = shader_interop::skybox::kDescriptorSetBinding_StorageImage,
+        .binding = shader_interop::envmap::kDescriptorSetBinding_StorageImage,
         .type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
         .images = {
           {
@@ -165,7 +165,7 @@ void Skybox::init(Context const& context, Renderer const& renderer) {
         }
       },
       {
-        .binding = shader_interop::skybox::kDescriptorSetBinding_IrradianceSHMatrices_StorageBuffer,
+        .binding = shader_interop::envmap::kDescriptorSetBinding_IrradianceSHMatrices_StorageBuffer,
         .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
         .buffers = { { irradiance_matrices_buffer_.buffer } }
       },
@@ -188,7 +188,7 @@ void Skybox::init(Context const& context, Renderer const& renderer) {
 
   /* Create the compute pipelines. */
   {
-    auto shaders{context.create_shader_modules(COMPILED_SHADERS_DIR "skybox/", {
+    auto shaders{context.create_shader_modules(COMPILED_SHADERS_DIR "envmap/", {
       "spherical_to_cubemap.comp.glsl",
       "integrate_brdf.comp.glsl",
       "irradiance_convolution.comp.glsl", //
@@ -204,7 +204,7 @@ void Skybox::init(Context const& context, Renderer const& renderer) {
 
   /* Create the render pipeline */
   {
-    auto shaders{context.create_shader_modules(COMPILED_SHADERS_DIR "skybox/", {
+    auto shaders{context.create_shader_modules(COMPILED_SHADERS_DIR "envmap/", {
       "skybox.vert.glsl",
       "skybox.frag.glsl",
     })};
@@ -285,7 +285,7 @@ bool Skybox::setup(Context const& context, Renderer const& renderer, std::string
 
   renderer.update_descriptor_set(descriptor_set_, {
     {
-      .binding = shader_interop::skybox::kDescriptorSetBinding_Sampler,
+      .binding = shader_interop::envmap::kDescriptorSetBinding_Sampler,
       .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
       .images = {
         {
@@ -339,8 +339,8 @@ bool Skybox::setup(Context const& context, Renderer const& renderer, std::string
     cmd.bind_pipeline(compute_pipelines_.at(Compute_TransformSpherical));
 
     cmd.dispatch<
-      shader_interop::skybox::kCompute_SphericalTransform_kernelSize_x,
-      shader_interop::skybox::kCompute_SphericalTransform_kernelSize_y
+      shader_interop::envmap::kCompute_SphericalTransform_kernelSize_x,
+      shader_interop::envmap::kCompute_SphericalTransform_kernelSize_y
     >(push_constant_.mapResolution, push_constant_.mapResolution, 6u);
 
     //----------
@@ -379,7 +379,7 @@ bool Skybox::setup(Context const& context, Renderer const& renderer, std::string
 
   renderer.update_descriptor_set(descriptor_set_, {
     {
-      .binding = shader_interop::skybox::kDescriptorSetBinding_Sampler,
+      .binding = shader_interop::envmap::kDescriptorSetBinding_Sampler,
       .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
       .images = {
         {
@@ -402,7 +402,7 @@ bool Skybox::setup(Context const& context, Renderer const& renderer, std::string
   // // [debug]
   // renderer.update_descriptor_set(descriptor_set_, {
   //   {
-  //     .binding = shader_interop::skybox::kDescriptorSetBinding_Sampler,
+  //     .binding = shader_interop::envmap::kDescriptorSetBinding_Sampler,
   //     .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
   //     .images = {
   //       {
@@ -446,7 +446,7 @@ void Skybox::compute_irradiance_sh_coeff(Context const& context, Renderer const&
   std::shared_ptr<ResourceAllocator> allocator{ context.get_resource_allocator() };
 
   uint32_t const faceResolution = kDiffuseEnvmapResolution * kDiffuseEnvmapResolution;
-  uint32_t const reduceKernelSize = shader_interop::skybox::kCompute_IrradianceReduceSHCoeff_kernelSize_x;
+  uint32_t const reduceKernelSize = shader_interop::envmap::kCompute_IrradianceReduceSHCoeff_kernelSize_x;
 
   /* Allocate a buffer large enough to ping pong input/output of the reduce stages. */
   uint32_t const bufferSize = faceResolution
@@ -454,14 +454,14 @@ void Skybox::compute_irradiance_sh_coeff(Context const& context, Renderer const&
                             ;
 
   backend::Buffer sh_coefficient_buffer{allocator->create_buffer(
-    bufferSize * sizeof(shader_interop::skybox::SHCoeff),
+    bufferSize * sizeof(shader_interop::envmap::SHCoeff),
       VK_BUFFER_USAGE_2_STORAGE_BUFFER_BIT
     | VK_BUFFER_USAGE_2_TRANSFER_SRC_BIT_KHR
   )};
 
   renderer.update_descriptor_set(descriptor_set_, {
     {
-      .binding = shader_interop::skybox::kDescriptorSetBinding_Sampler,
+      .binding = shader_interop::envmap::kDescriptorSetBinding_Sampler,
       .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
       .images = {
         {
@@ -472,7 +472,7 @@ void Skybox::compute_irradiance_sh_coeff(Context const& context, Renderer const&
       }
     },
     {
-      .binding = shader_interop::skybox::kDescriptorSetBinding_IrradianceSHCoeff_StorageBuffer,
+      .binding = shader_interop::envmap::kDescriptorSetBinding_IrradianceSHCoeff_StorageBuffer,
       .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
       .buffers = { { sh_coefficient_buffer.buffer } }
     }
@@ -491,14 +491,13 @@ void Skybox::compute_irradiance_sh_coeff(Context const& context, Renderer const&
                                                       | VK_SHADER_STAGE_FRAGMENT_BIT
                                                       | VK_SHADER_STAGE_COMPUTE_BIT);
     cmd.dispatch<
-      shader_interop::skybox::kCompute_IrradianceSHCoeff_kernelSize_x,
-      shader_interop::skybox::kCompute_IrradianceSHCoeff_kernelSize_y
+      shader_interop::envmap::kCompute_IrradianceSHCoeff_kernelSize_x,
+      shader_interop::envmap::kCompute_IrradianceSHCoeff_kernelSize_y
     >(kDiffuseEnvmapResolution, kDiffuseEnvmapResolution);
   }
 
   // --------------------
 
-#if 1
   /* Reduce the Spherical Harmonics buffer */
   uint32_t nelems = faceResolution;
   uint32_t buffer_binding = 0u;
@@ -506,8 +505,8 @@ void Skybox::compute_irradiance_sh_coeff(Context const& context, Renderer const&
   while (nelems > 1u) {
     uint32_t const ngroups{vkutils::GetKernelGridDim(nelems, reduceKernelSize)};
 
-    uint64_t const read_buffer_bytesize{nelems * sizeof(shader_interop::skybox::SHCoeff)};
-    uint64_t const write_buffer_bytesize{ngroups * sizeof(shader_interop::skybox::SHCoeff)};
+    uint64_t const read_buffer_bytesize{nelems * sizeof(shader_interop::envmap::SHCoeff)};
+    uint64_t const write_buffer_bytesize{ngroups * sizeof(shader_interop::envmap::SHCoeff)};
 
     uint32_t const read_offset{ faceResolution * buffer_binding }; //
     uint32_t const write_offset{ faceResolution * (buffer_binding ^ 1u) }; //
@@ -519,7 +518,7 @@ void Skybox::compute_irradiance_sh_coeff(Context const& context, Renderer const&
         .dstStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
         .dstAccessMask = VK_ACCESS_SHADER_READ_BIT,
         .buffer = sh_coefficient_buffer.buffer,
-        .offset = read_offset * sizeof(shader_interop::skybox::SHCoeff), //
+        .offset = read_offset * sizeof(shader_interop::envmap::SHCoeff), //
         .size = read_buffer_bytesize, //
       },
       {
@@ -528,7 +527,7 @@ void Skybox::compute_irradiance_sh_coeff(Context const& context, Renderer const&
         .dstStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
         .dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT,
         .buffer = sh_coefficient_buffer.buffer,
-        .offset = write_offset * sizeof(shader_interop::skybox::SHCoeff), //
+        .offset = write_offset * sizeof(shader_interop::envmap::SHCoeff), //
         .size = write_buffer_bytesize, //
       },
     });
@@ -546,8 +545,6 @@ void Skybox::compute_irradiance_sh_coeff(Context const& context, Renderer const&
     buffer_binding ^= 1u;
   }
 
-#endif
-
   cmd.pipeline_buffer_barriers({
     {
       .srcStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
@@ -556,7 +553,7 @@ void Skybox::compute_irradiance_sh_coeff(Context const& context, Renderer const&
       .dstAccessMask = VK_ACCESS_SHADER_READ_BIT,
       .buffer = sh_coefficient_buffer.buffer,
       .offset = push_constant_.writeOffset,
-      .size = sizeof(shader_interop::skybox::SHCoeff)
+      .size = sizeof(shader_interop::envmap::SHCoeff)
     }
   });
 
@@ -592,7 +589,7 @@ void Skybox::compute_irradiance_sh_coeff(Context const& context, Renderer const&
 void Skybox::compute_irradiance(Context const& context, Renderer const& renderer) {
   renderer.update_descriptor_set(descriptor_set_, {
     {
-      .binding = shader_interop::skybox::kDescriptorSetBinding_StorageImage,
+      .binding = shader_interop::envmap::kDescriptorSetBinding_StorageImage,
       .type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
       .images = {
         {
@@ -643,8 +640,8 @@ void Skybox::compute_irradiance(Context const& context, Renderer const& renderer
     cmd.bind_pipeline(compute_pipelines_.at(Compute_Irradiance));
 
     cmd.dispatch<
-      shader_interop::skybox::kCompute_Irradiance_kernelSize_x,
-      shader_interop::skybox::kCompute_Irradiance_kernelSize_y
+      shader_interop::envmap::kCompute_Irradiance_kernelSize_x,
+      shader_interop::envmap::kCompute_Irradiance_kernelSize_y
     >(push_constant_.mapResolution, push_constant_.mapResolution, 6u);
 
     //----------
@@ -716,7 +713,7 @@ void Skybox::compute_specular(Context const& context, Renderer const& renderer) 
 
   renderer.update_descriptor_set(descriptor_set_, {
     {
-      .binding = shader_interop::skybox::kDescriptorSetBinding_StorageImageArray,
+      .binding = shader_interop::envmap::kDescriptorSetBinding_StorageImageArray,
       .type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
       .images = desc_image_infos,
     }
@@ -772,8 +769,8 @@ void Skybox::compute_specular(Context const& context, Renderer const& renderer) 
       }
 
       cmd.dispatch<
-        shader_interop::skybox::kCompute_Specular_kernelSize_x,
-        shader_interop::skybox::kCompute_Specular_kernelSize_y
+        shader_interop::envmap::kCompute_Specular_kernelSize_x,
+        shader_interop::envmap::kCompute_Specular_kernelSize_y
       >(push_constant_.mapResolution, push_constant_.mapResolution, 6u);
     }
 
@@ -823,13 +820,13 @@ void Skybox::compute_brdf_lut() {
   // int32_t const kLevels = Texture::GetMaxMipLevel(kResolution);
 
   // brdf_lut_map_ = TEXTURE_ASSETS.create2d(
-  //   "skybox::integrate_brdf",
+  //   "envmap::integrate_brdf",
   //   kLevels, kFormat, kResolution, kResolution
   // );
 
   // // Setup the compute program.
   // auto pgm_handle = PROGRAM_ASSETS.createCompute(
-  //   SHADERS_DIR "/skybox/cs_integrate_brdf.glsl"
+  //   SHADERS_DIR "/envmap/cs_integrate_brdf.glsl"
   // );
   // auto const pgm = pgm_handle->id;
 

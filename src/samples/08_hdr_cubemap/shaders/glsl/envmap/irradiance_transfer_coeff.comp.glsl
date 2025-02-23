@@ -6,7 +6,7 @@
 
 #include <shared/constants.glsl>
 
-#include "../skybox_interop.h"
+#include "../envmap_interop.h"
 #include "../shared.glsl"
 
 // ----------------------------------------------------------------------------

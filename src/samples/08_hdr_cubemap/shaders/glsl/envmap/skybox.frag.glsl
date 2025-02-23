@@ -2,7 +2,7 @@
 #extension GL_GOOGLE_include_directive : require
 #extension GL_EXT_scalar_block_layout : require
 
-#include "../skybox_interop.h" //
+#include "../envmap_interop.h" //
 
 // ----------------------------------------------------------------------------
 

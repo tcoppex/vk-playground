@@ -18,8 +18,7 @@
 
 #include <shared/maths.glsl>
 
-#include "../skybox_interop.h"
-#include "../shared.glsl"
+#include "../envmap_interop.h"
 
 // ----------------------------------------------------------------------------
 
@@ -51,7 +50,7 @@ void main() {
 
   // --------------
 
-  vec3 view = view_from_coords(coords, resolution);
+  vec3 view = cubemap_view_direction(coords, resolution);
 
   const int numSamples = int(pushConstant.numSamples);
   const float roughness_sqr = pushConstant.roughnessSquared;
@@ -60,7 +59,7 @@ void main() {
   const float inv_samples = 1.0f / float(numSamples);
 
   // When calculating the envmap, the Reflection ray is the View direction is the Normal.
-  const vec3 N = normalize(view); //
+  const vec3 N = view; //
   const vec3 R = N;
   const vec3 V = R;
 
