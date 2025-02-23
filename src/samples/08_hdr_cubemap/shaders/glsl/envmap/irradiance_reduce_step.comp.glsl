@@ -5,7 +5,6 @@
 // ----------------------------------------------------------------------------
 
 #include "../envmap_interop.h"
-#include "../shared.glsl"
 
 // ----------------------------------------------------------------------------
 
@@ -21,7 +20,6 @@ layout(push_constant, scalar) uniform PushConstant_ {
 // ----------------------------------------------------------------------------
 
 shared vec4 sharedData[gl_WorkGroupSize.x];
-
 
 layout(
   local_size_x = kCompute_IrradianceReduceSHCoeff_kernelSize_x
@@ -56,19 +54,6 @@ void main() {
       local_sh.data[cid] = sharedData[0];
     }
   }
-
-  //------------------------
-  // local_sh.data[0].xyz = vec3( .79, .44, .54 );
-  // local_sh.data[1].xyz = vec3( .39, .35, .60 );
-  // local_sh.data[2].xyz = vec3( -.34, -.18, -.27 );
-  // local_sh.data[3].xyz = vec3( -.29, -.06, .01 );
-  // local_sh.data[4].xyz = vec3( -.11, -.05, -.12 );
-  // local_sh.data[5].xyz = vec3( -.26, -.22, -.47 );
-  // local_sh.data[6].xyz = vec3( -.16, -.09, -.15 );
-  // local_sh.data[7].xyz = vec3( .56, .21, .14 );
-  // local_sh.data[8].xyz = vec3( .21, -.05, -.3 );
-  // local_sh.data[0].w = 1.0;
-  //------------------------
 
   if (localId == 0) {
     sh_coeff_data[pushConstant.writeOffset + groupId] = local_sh;

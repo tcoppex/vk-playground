@@ -15,16 +15,15 @@
 //
 // ----------------------------------------------------------------------------
 
+#include "../envmap_interop.h" //
+
 #include <shared/maths.glsl>        // for importance_sample_GGX
 #include <shared/lighting/pbr.glsl> // for gf_SmithGGX
-
-#include "../envmap_interop.h" //
 
 // ----------------------------------------------------------------------------
 
 layout(rg16f, set = 0, binding = kDescriptorSetBinding_StorageImage)
-writeonly
-uniform image2D uDstImg;
+writeonly uniform image2D uDstImg;
 
 layout(push_constant, scalar) uniform PushConstant_ {
   PushConstant pushConstant;

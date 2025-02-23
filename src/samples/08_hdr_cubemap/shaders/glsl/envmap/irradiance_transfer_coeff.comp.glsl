@@ -4,10 +4,9 @@
 
 // ----------------------------------------------------------------------------
 
-#include <shared/constants.glsl>
-
 #include "../envmap_interop.h"
-#include "../shared.glsl"
+
+#include <shared/constants.glsl>
 
 // ----------------------------------------------------------------------------
 

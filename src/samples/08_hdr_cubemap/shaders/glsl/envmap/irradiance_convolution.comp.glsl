@@ -8,9 +8,9 @@
 //
 // ----------------------------------------------------------------------------
 
-#include <shared/maths.glsl>
-
 #include "../envmap_interop.h"
+
+#include <shared/maths.glsl>
 
 // ----------------------------------------------------------------------------
 
@@ -23,7 +23,7 @@ uniform imageCube outIrradianceEnvmap;
 
 layout(scalar, binding = kDescriptorSetBinding_IrradianceSHMatrices_StorageBuffer)
 readonly buffer SHMatrixData_ {
-  SHMatrices uIrradianceMatrices; //
+  SHMatrices uIrradianceMatrices;
 };
 
 layout(push_constant, scalar) uniform PushConstant_ {
@@ -42,7 +42,6 @@ void main() {
   const ivec3 coords = ivec3(gl_GlobalInvocationID.xyz);
   const int resolution = int(pushConstant.mapResolution);
 
-  // Check boundaries.
   if (!all(lessThan(coords, ivec3(resolution, resolution, 6)))) {
     return;
   }

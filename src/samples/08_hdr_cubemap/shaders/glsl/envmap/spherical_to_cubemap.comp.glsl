@@ -15,7 +15,7 @@
 
 #include <shared/maths.glsl>
 
-#include "../envmap_interop.h" //
+#include "../envmap_interop.h"
 
 // ----------------------------------------------------------------------------
 

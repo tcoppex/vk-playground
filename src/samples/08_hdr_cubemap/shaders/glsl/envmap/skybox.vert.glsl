@@ -2,14 +2,14 @@
 #extension GL_GOOGLE_include_directive : require
 #extension GL_EXT_scalar_block_layout : require
 
-#include "../../envmap_interop.h" //
+// ----------------------------------------------------------------------------
+
+#include "../envmap_interop.h"
 
 // ----------------------------------------------------------------------------
 
-// Inputs.
 layout(location = 0) in vec3 inPosition;
 
-// Outputs.
 layout(location = 0) out vec3 outView;
 
 layout(push_constant, scalar) uniform PushConstant_ {
