@@ -16,13 +16,13 @@
 //
 // ----------------------------------------------------------------------------
 
-#include <shared/maths.glsl>
-
 #include "../envmap_interop.h"
+
+#include <shared/maths.glsl>
 
 // ----------------------------------------------------------------------------
 
-layout (set = 0, binding = kDescriptorSetBinding_Sampler)
+layout(set = 0, binding = kDescriptorSetBinding_Sampler)
 uniform samplerCube inDiffuseEnvmap;
 
 layout(rgba16f, binding = kDescriptorSetBinding_StorageImageArray)
@@ -50,8 +50,6 @@ void main() {
 
   // --------------
 
-  vec3 view = cubemap_view_direction(coords, resolution);
-
   const int numSamples = int(pushConstant.numSamples);
   const float roughness_sqr = pushConstant.roughnessSquared;
   const uint mip_level = pushConstant.mipLevel;
@@ -59,12 +57,11 @@ void main() {
   const float inv_samples = 1.0f / float(numSamples);
 
   // When calculating the envmap, the Reflection ray is the View direction is the Normal.
-  const vec3 N = view; //
-  const vec3 R = N;
-  const vec3 V = R;
+  const vec3 N = cubemap_view_direction(coords, resolution);
+  const vec3 V = N;
 
   // World-space basis from the view direction / normal.
-  const mat3 basis_ws = basis_from_view(N);
+  const mat3 basis_ws = basis_from_view(V);
 
   vec3 prefilteredColor = vec3(0.0);
   float weights = 0.0f;

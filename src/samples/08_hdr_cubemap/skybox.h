@@ -24,7 +24,9 @@ class Skybox {
   static constexpr uint32_t kIrradianceEnvmapResolution{ 256u };
 
   static constexpr uint32_t kSpecularEnvmapResolution{ 256u };
+
   static constexpr uint32_t kSpecularEnvmapSampleCount{ 64u };
+
   static const uint32_t kSpecularEnvmapLevelCount{
     static_cast<uint32_t>(std::log2(kSpecularEnvmapResolution))
   };
@@ -33,14 +35,13 @@ class Skybox {
 
  public:
   enum {
-    Compute_TransformSpherical,
     Compute_IntegrateBRDF,
-    Compute_Irradiance,
-    Compute_Specular,
-
+    Compute_TransformSpherical,
     Compute_IrradianceSHCoeff,
     Compute_ReduceSHCoeff,
     Compute_IrradianceTransfer,
+    Compute_Irradiance,
+    Compute_Specular,
 
     Compute_kCount,
   };
@@ -65,6 +66,8 @@ class Skybox {
   }
 
  private:
+  bool load_diffuse_envmap(Context const& context, Renderer const& renderer, std::string_view hdr_filename);
+
   void compute_irradiance_sh_coeff(Context const& context, Renderer const& renderer);
 
   void compute_irradiance(Context const& context, Renderer const& renderer);
@@ -74,6 +77,8 @@ class Skybox {
   void compute_brdf_lut();
 
  private:
+  std::shared_ptr<ResourceAllocator> allocator_{};
+
   VkDescriptorSetLayout descriptor_set_layout_{};
   VkDescriptorSet descriptor_set_{};
   shader_interop::envmap::PushConstant push_constant_{};

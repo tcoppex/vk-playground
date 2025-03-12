@@ -36,6 +36,7 @@ class SampleApp final : public Application {
 
     renderer_.set_color_clear_value({{ 0.55f, 0.65f, 0.75f, 1.0f }});
 
+    /* Setup the camera. */
     {
       camera_.setPerspective(
         lina::radians(60.0f),
@@ -60,20 +61,34 @@ class SampleApp final : public Application {
       );
     }
 
+    // ----------------------------
+    skybox_.init(context_, renderer_);
+    skybox_.setup(context_, renderer_, ASSETS_DIR "textures/"
+      // "grace_probe_latlong.hdr"
+
+      // "klippad_sunrise_2_4k.hdr"
+      // "the_sky_is_on_fire_2k.hdr"
+      "HDR_041_Path_Ref.hdr"
+      // "cayley_interior_2k.hdr"
+      // "rogland_clear_night_2k.hdr"
+      // "qwantani_dusk_2_2k.hdr"
+
+      // "ennis.jpg"
+      // "field.jpg"
+    );
+    // ----------------------------
+
     /* Load glTF Scene / Resources. */
     // -----------------------------------------
     {
-      std::string const gltf_filename{ASSETS_DIR
-        // "/models/boulder_01_1k.glb"
-        // "/models/simple_kaidou.glb"
-        "/models/suzanne.glb"
-        // "/models/environment_test.glb"
+      std::string const gltf_filename{ASSETS_DIR "models/"
+        "suzanne.glb"
       };
 
       R = renderer_.load_and_upload(gltf_filename, {
-        { Geometry::AttributeType::Position,  shader_interop::kAttribLocation_Position  },
-        { Geometry::AttributeType::Texcoord,  shader_interop::kAttribLocation_Texcoord  },
-        { Geometry::AttributeType::Normal,    shader_interop::kAttribLocation_Normal    },
+        { Geometry::AttributeType::Position,  shader_interop::kAttribLocation_Position },
+        { Geometry::AttributeType::Texcoord,  shader_interop::kAttribLocation_Texcoord },
+        { Geometry::AttributeType::Normal,    shader_interop::kAttribLocation_Normal   },
       });
 
       LOG_CHECK(R->textures.size() <= kMaxNumTextures); //
@@ -132,9 +147,9 @@ class SampleApp final : public Application {
       });
     }
 
+    // --------------
+    // --------------
     /* Update the Sampler Atlas descriptor with the currently loaded textures. */
-    // --------------
-    // --------------
     DescriptorSetWriteEntry texture_atlas_entry{
       .binding = shader_interop::kDescriptorSetBinding_Sampler,
       .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
@@ -201,11 +216,6 @@ class SampleApp final : public Application {
     }
 
     context_.release_shader_modules(shaders);
-
-    // ----------------------------
-    skybox_.init(context_, renderer_);
-    skybox_.setup(context_, renderer_, ASSETS_DIR "textures/klippad_sunrise_2_4k.hdr");
-    // ----------------------------
 
     return true;
   }
@@ -295,9 +305,11 @@ class SampleApp final : public Application {
   Camera camera_{};
   ArcBallController arcball_controller_{};
 
+  // -----------------------
+
   std::shared_ptr<scene::Resources> R;
 
-  Skybox skybox_;
+  Skybox skybox_{};
 };
 
 // ----------------------------------------------------------------------------
