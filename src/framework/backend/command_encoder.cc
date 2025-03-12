@@ -79,6 +79,22 @@ void CommandEncoder::copy_buffer(backend::Buffer const& src, size_t src_offset, 
 
 // ----------------------------------------------------------------------------
 
+void CommandEncoder::transition_images_layout(std::vector<backend::Image> const& images, VkImageLayout const src_layout, VkImageLayout const dst_layout) const {
+  VkImageMemoryBarrier2 const barrier2{
+    .sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+    .oldLayout           = src_layout,
+    .newLayout           = dst_layout,
+    .subresourceRange    = {VK_IMAGE_ASPECT_COLOR_BIT, 0u, 1u, 0u, 1u},
+  };
+  std::vector<VkImageMemoryBarrier2> barriers(images.size(), barrier2);
+  for (size_t i = 0u; i < images.size(); ++i) {
+    barriers[i].image = images[i].image;
+  }
+  pipeline_image_barriers(barriers);
+}
+
+// ----------------------------------------------------------------------------
+
 backend::Buffer CommandEncoder::create_buffer_and_upload(void const* host_data, size_t const host_data_size, VkBufferUsageFlags2KHR const usage, size_t device_buffer_offset, size_t const device_buffer_size) const {
   assert(host_data != nullptr);
   assert(host_data_size > 0u);
@@ -102,39 +118,6 @@ backend::Buffer CommandEncoder::create_buffer_and_upload(void const* host_data, 
   copy_buffer(staging_buffer, 0u, buffer, device_buffer_offset, host_data_size);
 
   return buffer;
-}
-
-// ----------------------------------------------------------------------------
-
-void CommandEncoder::transition_images_layout(
-  std::vector<backend::Image> const& images,
-  VkImageLayout const src_layout,
-  VkImageLayout const dst_layout
-) const {
-  auto const [src_stage, src_access] = vkutils::MakePipelineStageAccessTuple(src_layout);
-  auto const [dst_stage, dst_access] = vkutils::MakePipelineStageAccessTuple(dst_layout);
-
-  VkImageMemoryBarrier2 barrier2{
-    .sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-    .srcStageMask        = src_stage,
-    .srcAccessMask       = src_access,
-    .dstStageMask        = dst_stage,
-    .dstAccessMask       = dst_access,
-    .oldLayout           = src_layout,
-    .newLayout           = dst_layout,
-    .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-    .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-    .subresourceRange    = {VK_IMAGE_ASPECT_COLOR_BIT, 0u, 1u, 0u, 1u},
-  };
-  VkDependencyInfo const dependency{
-    .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-    .imageMemoryBarrierCount = 1u,
-    .pImageMemoryBarriers = &barrier2,
-  };
-  for (auto& img : images) {
-    barrier2.image = img.image;
-    vkCmdPipelineBarrier2(command_buffer_, &dependency);
-  }
 }
 
 // ----------------------------------------------------------------------------
