@@ -17,8 +17,8 @@ void GenericCommandEncoder::bind_descriptor_set(VkDescriptorSet const descriptor
 
 // ----------------------------------------------------------------------------
 
-void GenericCommandEncoder::pipeline_buffer_barriers(std::vector<VkBufferMemoryBarrier2> buffers) const {
-  for (auto& bb : buffers) {
+void GenericCommandEncoder::pipeline_buffer_barriers(std::vector<VkBufferMemoryBarrier2> barriers) const {
+  for (auto& bb : barriers) {
     bb.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2;
     bb.srcQueueFamilyIndex = (bb.srcQueueFamilyIndex == 0u) ? VK_QUEUE_FAMILY_IGNORED : bb.srcQueueFamilyIndex; //
     bb.dstQueueFamilyIndex = (bb.dstQueueFamilyIndex == 0u) ? VK_QUEUE_FAMILY_IGNORED : bb.dstQueueFamilyIndex; //
@@ -26,10 +26,35 @@ void GenericCommandEncoder::pipeline_buffer_barriers(std::vector<VkBufferMemoryB
   }
   VkDependencyInfo const dependency{
     .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-    .bufferMemoryBarrierCount = static_cast<uint32_t>(buffers.size()),
-    .pBufferMemoryBarriers = buffers.data(),
+    .bufferMemoryBarrierCount = static_cast<uint32_t>(barriers.size()),
+    .pBufferMemoryBarriers = barriers.data(),
   };
   // (requires VK_KHR_synchronization2 or VK_VERSION_1_3)
+  vkCmdPipelineBarrier2(command_buffer_, &dependency);
+}
+
+// ----------------------------------------------------------------------------
+
+void GenericCommandEncoder::pipeline_image_barriers(std::vector<VkImageMemoryBarrier2> barriers) const {
+  // NOTE: we only have to set the old & new layout, as the mask will be automatically derived for generic cases
+  //       when none are provided.
+
+  for (auto& bb : barriers) {
+    auto const [src_stage, src_access] = vkutils::MakePipelineStageAccessTuple(bb.oldLayout);
+    auto const [dst_stage, dst_access] = vkutils::MakePipelineStageAccessTuple(bb.newLayout);
+    bb.sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+    bb.srcStageMask        = (bb.srcStageMask == 0u) ? src_stage : bb.srcStageMask;
+    bb.srcAccessMask       = (bb.srcAccessMask == 0u) ? src_access : bb.srcAccessMask;
+    bb.dstStageMask        = (bb.dstStageMask == 0u) ? dst_stage : bb.dstStageMask;
+    bb.dstAccessMask       = (bb.dstAccessMask == 0u) ? dst_access : bb.dstAccessMask;
+    bb.srcQueueFamilyIndex = (bb.srcQueueFamilyIndex == 0u) ? VK_QUEUE_FAMILY_IGNORED : bb.srcQueueFamilyIndex; //
+    bb.dstQueueFamilyIndex = (bb.dstQueueFamilyIndex == 0u) ? VK_QUEUE_FAMILY_IGNORED : bb.dstQueueFamilyIndex; //
+  }
+  VkDependencyInfo const dependency{
+    .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+    .imageMemoryBarrierCount = static_cast<uint32_t>(barriers.size()),
+    .pImageMemoryBarriers = barriers.data(),
+  };
   vkCmdPipelineBarrier2(command_buffer_, &dependency);
 }
 

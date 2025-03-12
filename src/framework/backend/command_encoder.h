@@ -92,8 +92,9 @@ class GenericCommandEncoder {
 
   // --- Pipeline Barrier ---
 
-  /* The buffers are sent by value to be modified. */
-  void pipeline_buffer_barriers(std::vector<VkBufferMemoryBarrier2> buffers) const;
+  void pipeline_buffer_barriers(std::vector<VkBufferMemoryBarrier2> barriers) const;
+
+  void pipeline_image_barriers(std::vector<VkImageMemoryBarrier2> barriers) const;
 
   // --- Compute ---
 
