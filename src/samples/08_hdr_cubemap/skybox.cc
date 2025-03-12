@@ -368,74 +368,36 @@ bool Skybox::load_diffuse_envmap(Context const& context, Renderer const& rendere
   /* Transform the spherical texture into a cubemap. */
   auto cmd = context.create_transient_command_encoder();
   {
-    {
-      VkImageMemoryBarrier2 const textureMemoryBarrier{
-        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2_KHR,
-
-        .srcStageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-        .srcAccessMask = 0,
-
-        .dstStageMask = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-        .dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT,
-
+    cmd.pipeline_image_barriers({
+      {
         .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED, //
         .newLayout = VK_IMAGE_LAYOUT_GENERAL,
-        .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-        .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
         .image = diffuse_envmap_.image,
         .subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 6 }
-      };
-
-      VkDependencyInfo const dependency{
-        .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-        .imageMemoryBarrierCount = 1u,
-        .pImageMemoryBarriers = &textureMemoryBarrier,
-      };
-
-      vkCmdPipelineBarrier2(cmd.get_handle(), &dependency);
-    }
-
-    //----------
-
-    cmd.bind_descriptor_set(descriptor_set_, pipeline_layout_, VK_SHADER_STAGE_COMPUTE_BIT);
-
-    push_constant_.mapResolution = kDiffuseEnvmapResolution; //
-    cmd.push_constant(push_constant_, pipeline_layout_, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_COMPUTE_BIT);
+      }
+    });
 
     cmd.bind_pipeline(compute_pipelines_.at(Compute_TransformSpherical));
-
-    cmd.dispatch<
-      shader_interop::envmap::kCompute_SphericalTransform_kernelSize_x,
-      shader_interop::envmap::kCompute_SphericalTransform_kernelSize_y
-    >(push_constant_.mapResolution, push_constant_.mapResolution, 6u);
-
-    //----------
-
     {
-      VkImageMemoryBarrier2 const textureMemoryBarrier{
-        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2_KHR,
+      cmd.bind_descriptor_set(descriptor_set_, VK_SHADER_STAGE_COMPUTE_BIT);
 
-        .srcStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-        .srcAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT,
+      push_constant_.mapResolution = kDiffuseEnvmapResolution; //
+      cmd.push_constant(push_constant_, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_COMPUTE_BIT);
 
-        .dstStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
-        .dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT,
+      cmd.dispatch<
+        shader_interop::envmap::kCompute_SphericalTransform_kernelSize_x,
+        shader_interop::envmap::kCompute_SphericalTransform_kernelSize_y
+      >(push_constant_.mapResolution, push_constant_.mapResolution, 6u);
+    }
 
-        .oldLayout = VK_IMAGE_LAYOUT_GENERAL, //
+    cmd.pipeline_image_barriers({
+      {
+        .oldLayout = VK_IMAGE_LAYOUT_GENERAL,
         .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-        .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-        .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
         .image = diffuse_envmap_.image,
         .subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 6 }
-      };
-
-      VkDependencyInfo const dependency{
-        .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-        .imageMemoryBarrierCount = 1u,
-        .pImageMemoryBarriers = &textureMemoryBarrier,
-      };
-      vkCmdPipelineBarrier2(cmd.get_handle(), &dependency);
-    }
+      }
+    });
   }
   context.finish_transient_command_encoder(cmd);
 
@@ -599,32 +561,14 @@ void Skybox::compute_irradiance(Context const& context, Renderer const& renderer
 
   auto cmd = context.create_transient_command_encoder();
   {
-    {
-      VkImageMemoryBarrier2 const textureMemoryBarrier{
-        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2_KHR,
-
-        .srcStageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-        .srcAccessMask = 0,
-
-        .dstStageMask = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-        .dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT,
-
-        .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED, //
+    cmd.pipeline_image_barriers({
+      {
+        .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
         .newLayout = VK_IMAGE_LAYOUT_GENERAL,
-        .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-        .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
         .image = irradiance_envmap_.image,
         .subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 6 }
-      };
-
-      VkDependencyInfo const dependency{
-        .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-        .imageMemoryBarrierCount = 1u,
-        .pImageMemoryBarriers = &textureMemoryBarrier,
-      };
-
-      vkCmdPipelineBarrier2(cmd.get_handle(), &dependency);
-    }
+      }
+    });
 
     cmd.bind_pipeline(compute_pipelines_.at(Compute_Irradiance));
     {
@@ -639,32 +583,14 @@ void Skybox::compute_irradiance(Context const& context, Renderer const& renderer
       >(push_constant_.mapResolution, push_constant_.mapResolution, 6u);
     }
 
-    {
-      VkImageMemoryBarrier2 const textureMemoryBarrier{
-        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2_KHR,
-
-        .srcStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-        .srcAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT,
-
-        .dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
-        .dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT,
-
-        .oldLayout = VK_IMAGE_LAYOUT_GENERAL, //
+    cmd.pipeline_image_barriers({
+      {
+        .oldLayout = VK_IMAGE_LAYOUT_GENERAL,
         .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-        .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-        .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
         .image = irradiance_envmap_.image,
         .subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 6 }
-      };
-
-      VkDependencyInfo const dependency{
-        .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-        .imageMemoryBarrierCount = 1u,
-        .pImageMemoryBarriers = &textureMemoryBarrier,
-      };
-
-      vkCmdPipelineBarrier2(cmd.get_handle(), &dependency);
-    }
+      }
+    });
   }
   context.finish_transient_command_encoder(cmd);
 }
@@ -709,7 +635,7 @@ void Skybox::compute_specular(Context const& context, Renderer const& renderer) 
   auto cmd = context.create_transient_command_encoder();
   {
     float constexpr kInvMaxLevel{
-      (kSpecularEnvmapLevelCount <= 1u) ? 1.0f : 1.0f / static_cast<float>(kSpecularEnvmapLevelCount - 1)
+      (kSpecularEnvmapLevelCount <= 1u) ? 1.0f : 1.0f / static_cast<float>(kSpecularEnvmapLevelCount - 1u)
     };
 
     cmd.bind_pipeline(compute_pipelines_.at(Compute_Specular));
@@ -725,33 +651,14 @@ void Skybox::compute_specular(Context const& context, Renderer const& renderer) 
                                       | VK_SHADER_STAGE_FRAGMENT_BIT
                                       | VK_SHADER_STAGE_COMPUTE_BIT);
 
-      /* Image barrier to the specific level. */
-      {
-        VkImageMemoryBarrier2 const textureMemoryBarrier{
-          .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2_KHR,
-
-          .srcStageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-          .srcAccessMask = 0,
-
-          .dstStageMask = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-          .dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT,
-
+      cmd.pipeline_image_barriers({
+        {
           .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
           .newLayout = VK_IMAGE_LAYOUT_GENERAL,
-          .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-          .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
           .image = specular_envmap_.image,
           .subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, level, 1, 0, 6 }
-        };
-
-        VkDependencyInfo const dependency{
-          .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-          .imageMemoryBarrierCount = 1u,
-          .pImageMemoryBarriers = &textureMemoryBarrier,
-        };
-
-        vkCmdPipelineBarrier2(cmd.get_handle(), &dependency);
-      }
+        }
+      });
 
       cmd.dispatch<
         shader_interop::envmap::kCompute_Specular_kernelSize_x,
@@ -759,33 +666,14 @@ void Skybox::compute_specular(Context const& context, Renderer const& renderer) 
       >(push_constant_.mapResolution, push_constant_.mapResolution, 6u);
     }
 
-    /* Render the specular envmap accessible to fragment shaders. */
-    {
-      VkImageMemoryBarrier2 const textureMemoryBarrier{
-        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2_KHR,
-
-        .srcStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-        .srcAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT,
-
-        .dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
-        .dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT,
-
-        .oldLayout = VK_IMAGE_LAYOUT_GENERAL, //
+    cmd.pipeline_image_barriers({
+      {
+        .oldLayout = VK_IMAGE_LAYOUT_GENERAL,
         .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-        .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-        .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
         .image = specular_envmap_.image,
         .subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, kSpecularEnvmapLevelCount, 0, 6 }
-      };
-
-      VkDependencyInfo const dependency{
-        .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-        .imageMemoryBarrierCount = 1u,
-        .pImageMemoryBarriers = &textureMemoryBarrier,
-      };
-
-      vkCmdPipelineBarrier2(cmd.get_handle(), &dependency);
-    }
+      }
+    });
   }
   context.finish_transient_command_encoder(cmd);
 
