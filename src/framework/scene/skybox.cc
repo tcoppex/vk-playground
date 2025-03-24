@@ -1,6 +1,6 @@
 /* -------------------------------------------------------------------------- */
 
-#include "skybox.h"
+#include "framework/scene/skybox.h"
 
 #include "framework/backend/context.h"
 #include "framework/renderer/renderer.h"
@@ -92,7 +92,7 @@ void Skybox::init(Context const& context, Renderer const& renderer) {
 
   /* Create the render pipeline */
   {
-    auto shaders{context.create_shader_modules(COMPILED_SHADERS_DIR "skybox/", {
+    auto shaders{context.create_shader_modules(FRAMEWORK_COMPILED_SHADERS_DIR "skybox/", {
       "skybox.vert.glsl",
       "skybox.frag.glsl",
     })};

@@ -1,5 +1,5 @@
-#ifndef HELLOVK_FRAMEWORK_RENDERER_ENVMAP_H
-#define HELLOVK_FRAMEWORK_RENDERER_ENVMAP_H
+#ifndef HELLO_VK_FRAMEWORK_SCENE_ENVMAP_H
+#define HELLO_VK_FRAMEWORK_SCENE_ENVMAP_H
 
 #include "framework/common.h"
 
@@ -7,7 +7,7 @@
 #include "framework/renderer/pipeline.h"
 
 namespace shader_interop::envmap {
-#include "shaders/envmap_interop.h" //
+#include "framework/shaders/envmap/interop.h"
 }
 
 class Context;
@@ -93,4 +93,4 @@ class Envmap {
 
 /* -------------------------------------------------------------------------- */
 
-#endif // HELLOVK_FRAMEWORK_RENDERER_ENVMAP_H
+#endif // HELLO_VK_FRAMEWORK_SCENE_ENVMAP_H

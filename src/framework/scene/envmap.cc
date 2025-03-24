@@ -1,6 +1,6 @@
 /* -------------------------------------------------------------------------- */
 
-#include "envmap.h"
+#include "framework/scene/envmap.h"
 
 #include "framework/backend/context.h"
 #include "framework/renderer/renderer.h"
@@ -162,7 +162,7 @@ void Envmap::init(Context const& context, Renderer const& renderer) {
 
   /* Create the compute pipelines. */
   {
-    auto shaders{context.create_shader_modules(COMPILED_SHADERS_DIR "envmap/", {
+    auto shaders{context.create_shader_modules(FRAMEWORK_COMPILED_SHADERS_DIR "envmap", {
       "spherical_to_cubemap.comp.glsl",
       "irradiance_calculate_coeff.comp.glsl",
       "irradiance_reduce_step.comp.glsl",
@@ -228,8 +228,8 @@ bool Envmap::setup(std::string_view hdr_filename) {
   });
 
   compute_irradiance_sh_coeff();
-  compute_irradiance(); //
-  compute_specular(); //
+  compute_irradiance();
+  compute_specular();
 
   // ------------------
 

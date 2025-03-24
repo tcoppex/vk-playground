@@ -4,26 +4,26 @@
 
 // ----------------------------------------------------------------------------
 //
-// Create a cubemap texture from a spherical image.
-//
-// The shader expects a grid of the resolution of the cubemap in XY, and the
-// number of faces (6) on Z.
-//
-// Refs: http://paulbourke.net/panorama/cubemaps/
+// Calculate the irradiance convolution of an environment map.
 //
 // ----------------------------------------------------------------------------
 
-#include "../envmap_interop.h"
-
+#include <envmap/interop.h>
 #include <shared/maths.glsl>
 
 // ----------------------------------------------------------------------------
 
 layout (set = 0, binding = kDescriptorSetBinding_Sampler)
-uniform sampler2D uSphericalTex;
+uniform samplerCube inDiffuseEnvmap;
 
 layout(rgba16f, binding = kDescriptorSetBinding_StorageImage)
-writeonly uniform imageCube CubeMap;
+writeonly
+uniform imageCube outIrradianceEnvmap;
+
+layout(scalar, binding = kDescriptorSetBinding_IrradianceSHMatrices_StorageBuffer)
+readonly buffer SHMatrixData_ {
+  SHMatrices uIrradianceMatrices;
+};
 
 layout(push_constant, scalar) uniform PushConstant_ {
   PushConstant pushConstant;
@@ -32,13 +32,12 @@ layout(push_constant, scalar) uniform PushConstant_ {
 // ----------------------------------------------------------------------------
 
 layout(
-  local_size_x = kCompute_SphericalTransform_kernelSize_x,
-  local_size_y = kCompute_SphericalTransform_kernelSize_y,
+  local_size_x = kCompute_Irradiance_kernelSize_x,
+  local_size_y = kCompute_Irradiance_kernelSize_y,
   local_size_z = 1
 ) in;
 
-void main()
-{
+void main() {
   const ivec3 coords = ivec3(gl_GlobalInvocationID.xyz);
   const int resolution = int(pushConstant.mapResolution);
 
@@ -46,11 +45,19 @@ void main()
     return;
   }
 
-  const vec3 view = cubemap_view_direction(coords, resolution);
-  const vec2 spherical_coords = cubemap_to_spherical_coords(view);
-  const vec4 data = texture( uSphericalTex, spherical_coords);
+  // --------------
 
-  imageStore(CubeMap, coords, data);
+  const vec4 n = vec4(cubemap_view_direction(coords, resolution), 1.0); //
+
+  const vec3 irradiance = vec3(
+    dot( n, uIrradianceMatrices.data[0] * n),
+    dot( n, uIrradianceMatrices.data[1] * n),
+    dot( n, uIrradianceMatrices.data[2] * n)
+  );
+
+  // --------------
+
+  imageStore(outIrradianceEnvmap, coords, vec4(irradiance, 1.0));
 }
 
 // ----------------------------------------------------------------------------
