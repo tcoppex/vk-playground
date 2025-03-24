@@ -16,7 +16,6 @@ namespace shader_interop {
 #include "shaders/interop.h"
 }
 
-
 /* -------------------------------------------------------------------------- */
 
 static constexpr uint32_t kMaxNumTextures = 128u;
@@ -62,15 +61,17 @@ class SampleApp final : public Application {
       );
     }
 
-    /* Initialize the HDR skybox and setup its cubemap texture. */
+    /* Initialize the skybox and setup the HDR diffuse envmap used to calculate
+     * IBL convolutions. */
     skybox_.init(context_, renderer_);
     skybox_.setup(ASSETS_DIR "textures/qwantani_dusk_2_2k.hdr");
 
     /* Load glTF Scene / Resources. */
-    // -----------------------------------------
     {
       std::string const gltf_filename{ASSETS_DIR "models/suzanne.glb"};
 
+      /* Load the model directly on device, as we do not change the model's internal data
+       * layout we need to specify how to map its attributes to the shader used. */
       R = renderer_.load_and_upload(gltf_filename, {
         { Geometry::AttributeType::Position,  shader_interop::kAttribLocation_Position },
         { Geometry::AttributeType::Texcoord,  shader_interop::kAttribLocation_Texcoord },
@@ -79,7 +80,6 @@ class SampleApp final : public Application {
 
       LOG_CHECK(R->textures.size() <= kMaxNumTextures); //
     }
-    // -----------------------------------------
 
     /* Release the temporary staging buffers. */
     allocator_ = context_.get_resource_allocator();
@@ -134,7 +134,6 @@ class SampleApp final : public Application {
     }
 
     // --------------
-    // --------------
     /* Update the Sampler Atlas descriptor with the currently loaded textures. */
     DescriptorSetWriteEntry texture_atlas_entry{
       .binding = shader_interop::kDescriptorSetBinding_Sampler,
@@ -148,7 +147,6 @@ class SampleApp final : public Application {
       });
     }
     renderer_.update_descriptor_set(descriptor_set_, { texture_atlas_entry });
-    // --------------
     // --------------
 
     auto shaders{context_.create_shader_modules(COMPILED_SHADERS_DIR, {
@@ -223,6 +221,23 @@ class SampleApp final : public Application {
     push_constant_.viewMatrix = camera_.view();
   }
 
+  void draw_model(mat4 const& world_matrix) {
+    for (auto const& mesh : R->meshes) {
+      pass.set_primitive_topology(mesh->get_vk_primitive_topology());
+      push_constant_.model.worldMatrix = linalg::mul(
+        world_matrix,
+        mesh->world_matrix
+      );
+      for (auto const& submesh : mesh->submeshes) {
+        if (auto mat = submesh.material; mat && mat->albedoTexture) {
+          push_constant_.model.albedo_texture_index = mat->albedoTexture->texture_index;
+        }
+        pass.push_constant(push_constant_, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT); //
+        pass.draw(submesh.draw_descriptor, R->vertex_buffer, R->index_buffer);
+      }
+    }
+  }
+
   void frame() final {
     update_frame(get_delta_time());
 
@@ -247,25 +262,7 @@ class SampleApp final : public Application {
         pass.bind_pipeline(graphics_pipeline_);
         {
           pass.bind_descriptor_set(descriptor_set_, VK_SHADER_STAGE_VERTEX_BIT);
-
-          // --------------
-          // --------------
-          for (auto const& mesh : R->meshes) {
-            pass.set_primitive_topology(mesh->get_vk_primitive_topology());
-            push_constant_.model.worldMatrix = linalg::mul(
-              worldMatrix,
-              mesh->world_matrix
-            );
-            for (auto const& submesh : mesh->submeshes) {
-              if (auto mat = submesh.material; mat && mat->albedoTexture) {
-                push_constant_.model.albedo_texture_index = mat->albedoTexture->texture_index;
-              }
-              pass.push_constant(push_constant_, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT); //
-              pass.draw(submesh.draw_descriptor, R->vertex_buffer, R->index_buffer);
-            }
-          }
-          // --------------
-          // --------------
+          draw_model(world_matrix);
         }
       }
       cmd.end_rendering();
@@ -292,7 +289,7 @@ class SampleApp final : public Application {
 
   Skybox skybox_{};
 
-  std::shared_ptr<scene::Resources> R;
+  std::shared_ptr<scene::Resources> R; //
 };
 
 // ----------------------------------------------------------------------------
