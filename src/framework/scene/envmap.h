@@ -22,8 +22,8 @@ class Envmap {
   static constexpr uint32_t kSpecularResolution{ 256u };
   static constexpr uint32_t kSpecularSampleCount{ 64u };
 
-  static const uint32_t kSpecularLevelCount{
-    static_cast<uint32_t>(std::log2(kSpecularResolution))
+  static constexpr uint32_t kSpecularLevelCount{
+    utils::Log2_u32(kSpecularResolution)
   };
 
  public:
