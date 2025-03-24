@@ -2,7 +2,7 @@
 //
 //    08 - image based lighting
 //
-//  Where we use a HDR image to illuminate a scene.
+//  Where we use a HDR envmap to illuminate a 3D model.
 //
 /* -------------------------------------------------------------------------- */
 
@@ -36,7 +36,7 @@ class SampleApp final : public Application {
 
     renderer_.set_color_clear_value({{ 0.55f, 0.65f, 0.75f, 1.0f }});
 
-    /* Setup the camera. */
+    /* Setup the ArcBall camera. */
     {
       camera_.setPerspective(
         lina::radians(60.0f),
@@ -54,7 +54,7 @@ class SampleApp final : public Application {
         .projectionMatrix = camera_.proj(),
       };
 
-      /* Directly create / upload the uniform values. */
+      /* Directly create and upload the uniform values. */
       uniform_buffer_ = context_.create_buffer_and_upload(
         &host_data_, sizeof(host_data_),
         VK_BUFFER_USAGE_2_UNIFORM_BUFFER_BIT
