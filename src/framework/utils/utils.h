@@ -42,6 +42,15 @@ size_t AlignTo(size_t const byteLength, size_t const byteAlignment);
 
 size_t AlignTo256(size_t const byteLength);
 
+constexpr uint32_t Log2_u32(uint32_t x) {
+  uint32_t result = 0;
+  while (x > 1) {
+    x >>= 1;
+    ++result;
+  }
+  return result;
+}
+
 } // namespace "utils"
 
 /* -------------------------------------------------------------------------- */
