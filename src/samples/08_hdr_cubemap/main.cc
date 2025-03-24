@@ -63,18 +63,8 @@ class SampleApp final : public Application {
 
     // ----------------------------
     skybox_.init(context_, renderer_);
-    skybox_.setup(context_, renderer_, ASSETS_DIR "textures/"
-      // "grace_probe_latlong.hdr"
-
-      // "klippad_sunrise_2_4k.hdr"
-      // "the_sky_is_on_fire_2k.hdr"
-      "HDR_041_Path_Ref.hdr"
-      // "cayley_interior_2k.hdr"
-      // "rogland_clear_night_2k.hdr"
-      // "qwantani_dusk_2_2k.hdr"
-
-      // "ennis.jpg"
-      // "field.jpg"
+    skybox_.setup(ASSETS_DIR "textures/"
+      "qwantani_dusk_2_2k.hdr"
     );
     // ----------------------------
 
@@ -139,7 +129,7 @@ class SampleApp final : public Application {
           .images = {
             {
               .sampler = renderer_.get_default_sampler(),
-              .imageView = skybox_.get_irradiance_envmap().view,
+              .imageView = skybox_.get_irradiance_cubemap().view,
               .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             }
           },
@@ -190,10 +180,10 @@ class SampleApp final : public Application {
           VK_DYNAMIC_STATE_PRIMITIVE_TOPOLOGY,
         },
         .vertex = {
-          .module = shaders.at(0u).module,
+          .module = shaders[0u].module,
         },
         .fragment = {
-          .module = shaders.at(1u).module,
+          .module = shaders[1u].module,
           .targets = {
             {
               .writeMask = VK_COLOR_COMPONENT_R_BIT
@@ -221,6 +211,8 @@ class SampleApp final : public Application {
   }
 
   void release() final {
+    skybox_.release(context_, renderer_);
+
     renderer_.destroy_descriptor_set_layout(descriptor_set_layout_);
     renderer_.destroy_pipeline_layout(graphics_pipeline_.get_layout());
     renderer_.destroy_pipeline(graphics_pipeline_);
