@@ -221,7 +221,7 @@ class SampleApp final : public Application {
     push_constant_.viewMatrix = camera_.view();
   }
 
-  void draw_model(mat4 const& world_matrix) {
+  void draw_model(RenderPassEncoder const& pass, mat4 const& world_matrix) {
     for (auto const& mesh : R->meshes) {
       pass.set_primitive_topology(mesh->get_vk_primitive_topology());
       push_constant_.model.worldMatrix = linalg::mul(
@@ -262,7 +262,7 @@ class SampleApp final : public Application {
         pass.bind_pipeline(graphics_pipeline_);
         {
           pass.bind_descriptor_set(descriptor_set_, VK_SHADER_STAGE_VERTEX_BIT);
-          draw_model(world_matrix);
+          draw_model(pass, worldMatrix);
         }
       }
       cmd.end_rendering();
