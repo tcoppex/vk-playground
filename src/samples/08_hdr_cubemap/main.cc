@@ -2,6 +2,7 @@
 //
 //    08 - image based lighting
 //
+//  Where we use a HDR image to illuminate a scene.
 //
 /* -------------------------------------------------------------------------- */
 
@@ -9,12 +10,12 @@
 
 #include "framework/scene/camera.h"
 #include "framework/scene/arcball_controller.h"
+#include "framework/scene/skybox.h"
 
 namespace shader_interop {
 #include "shaders/interop.h"
 }
 
-#include "skybox.h"
 
 /* -------------------------------------------------------------------------- */
 
@@ -32,7 +33,7 @@ class SampleApp final : public Application {
 
  private:
   bool setup() final {
-    wm_->setTitle("08 - Let there be light");
+    wm_->setTitle("08 - Es werde Licht");
 
     renderer_.set_color_clear_value({{ 0.55f, 0.65f, 0.75f, 1.0f }});
 
@@ -61,19 +62,14 @@ class SampleApp final : public Application {
       );
     }
 
-    // ----------------------------
+    /* Initialize the HDR skybox and setup its cubemap texture. */
     skybox_.init(context_, renderer_);
-    skybox_.setup(ASSETS_DIR "textures/"
-      "qwantani_dusk_2_2k.hdr"
-    );
-    // ----------------------------
+    skybox_.setup(ASSETS_DIR "textures/qwantani_dusk_2_2k.hdr");
 
     /* Load glTF Scene / Resources. */
     // -----------------------------------------
     {
-      std::string const gltf_filename{ASSETS_DIR "models/"
-        "suzanne.glb"
-      };
+      std::string const gltf_filename{ASSETS_DIR "models/suzanne.glb"};
 
       R = renderer_.load_and_upload(gltf_filename, {
         { Geometry::AttributeType::Position,  shader_interop::kAttribLocation_Position },
@@ -211,15 +207,15 @@ class SampleApp final : public Application {
   }
 
   void release() final {
-    skybox_.release(context_, renderer_);
-
     renderer_.destroy_descriptor_set_layout(descriptor_set_layout_);
     renderer_.destroy_pipeline_layout(graphics_pipeline_.get_layout());
     renderer_.destroy_pipeline(graphics_pipeline_);
 
+    allocator_->destroy_buffer(uniform_buffer_);
+
     R->release(allocator_); //
 
-    allocator_->destroy_buffer(uniform_buffer_);
+    skybox_.release(context_, renderer_);
   }
 
   void update_frame(float const delta_time) {
@@ -230,18 +226,13 @@ class SampleApp final : public Application {
   void frame() final {
     update_frame(get_delta_time());
 
-    // float const frame_time{ get_frame_time() };
-    mat4 worldMatrix{
-      linalg::identity
-      // lina::rotation_matrix_axis(
-      //   vec3(-0.25f, 1.0f, -0.1f),
-      //   frame_time * 0.75f
-      // )
+    mat4 const worldMatrix{
+      // linalg::identity
+      lina::rotation_matrix_axis(
+        vec3(-0.25f, 1.0f, -0.15f),
+        get_frame_time() * 0.4f
+      )
     };
-    // worldMatrix = linalg::mul(
-    //   worldMatrix,
-    //   linalg::scaling_matrix(vec3(8.0f))
-    // );
 
     auto cmd = renderer_.begin_frame();
     {
@@ -249,8 +240,10 @@ class SampleApp final : public Application {
       {
         pass.set_viewport_scissor(viewport_size_);
 
+        /* First render the skybox. */
         skybox_.render(pass, camera_);
 
+        /* Then the scene / model. */
         pass.bind_pipeline(graphics_pipeline_);
         {
           pass.bind_descriptor_set(descriptor_set_, VK_SHADER_STAGE_VERTEX_BIT);
@@ -297,11 +290,9 @@ class SampleApp final : public Application {
   Camera camera_{};
   ArcBallController arcball_controller_{};
 
-  // -----------------------
+  Skybox skybox_{};
 
   std::shared_ptr<scene::Resources> R;
-
-  Skybox skybox_{};
 };
 
 // ----------------------------------------------------------------------------
