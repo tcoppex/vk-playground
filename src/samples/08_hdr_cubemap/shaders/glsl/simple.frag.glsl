@@ -27,7 +27,7 @@ void main() {
   vec4 diffuse = texture(uTexturesMap[pushConstant.model.albedo_texture_index], vTexcoord);
   vec3 irradiance = texture(uIrradianceEnvMap, vNormal).rgb;
 
-  vec3 ambient = 1.0
+  vec3 ambient = 0.5
                * irradiance
                * diffuse.rgb
                ;
