@@ -880,7 +880,7 @@ void Resources::upload_to_device(Context const& context) {
   auto allocator = context.get_resource_allocator();
 
   /* Transfer Textures */
-  {
+  if (total_image_size > 0) {
     /* Create a staging buffer. */
     backend::Buffer staging_buffer{
       allocator->create_staging_buffer( total_image_size ) // XXX

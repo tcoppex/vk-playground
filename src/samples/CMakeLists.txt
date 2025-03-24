@@ -13,6 +13,7 @@ function(add_simple_demo dirname)
     ${SAMPLE_PATH}/shaders/spirv
     shaders_bin
     shaders_src
+    ${FRAMEWORK_SHADERS_DIR}
   )
 
   add_executable(${dirname} ${Source} ${shaders_bin} ${shaders_src})
@@ -62,5 +63,8 @@ add_simple_demo(04_texturing)
 add_simple_demo(05_stencil_op)
 add_simple_demo(06_blend_op)
 add_simple_demo(07_compute)
+add_simple_demo(08_hdr_envmap)
+
+# add_simple_demo(999_test)
 
 # -----------------------------------------------------------------------------

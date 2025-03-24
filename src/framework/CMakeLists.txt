@@ -5,7 +5,18 @@
 
 set(target vkframework)
 
-set(FRAMEWORK_ROOT_PATH          ${CMAKE_CURRENT_SOURCE_DIR})
+set(FRAMEWORK_ROOT_PATH             ${CMAKE_CURRENT_SOURCE_DIR})
+set(FRAMEWORK_COMPILED_SHADERS_DIR  ${PROJECT_BINARY_DIR}/spirv)
+
+# -----------------------------------------------------------------------------
+
+compile_shaders(
+  ${FRAMEWORK_SHADERS_DIR}
+  ${FRAMEWORK_COMPILED_SHADERS_DIR}
+  shaders_bin
+  shaders_src
+  ${FRAMEWORK_SHADERS_DIR}
+)
 
 # -----------------------------------------------------------------------------
 
@@ -17,9 +28,10 @@ file(GLOB_RECURSE
 
 add_library(
   ${target}
-  STATIC
-  # SHARED
+  STATIC # SHARED
   ${Sources}
+  ${shaders_src}
+  ${shaders_bin}
 )
 
 # -----------------------------------------------------------------------------
@@ -34,6 +46,8 @@ target_include_directories(${target} PRIVATE
 )
 
 target_compile_definitions(${target} PRIVATE
+  FRAMEWORK_COMPILED_SHADERS_DIR="${FRAMEWORK_COMPILED_SHADERS_DIR}/"
+
   # Define VK_NO_PROTOTYPES to avoid including Vulkan prototypes
   # This is necessary because we are using volk to load Vulkan functions
   VK_NO_PROTOTYPES
