@@ -4,16 +4,13 @@
 
 // ----------------------------------------------------------------------------
 
-#include "../envmap_interop.h"
+#include "../skybox_interop.h"
 
 // ----------------------------------------------------------------------------
 
-layout(location = 0) in vec3 inView;
+layout(location = 0) in vec3 inPosition;
 
-layout(location = 0) out vec4 fragColor;
-
-layout (set = 0, binding = kDescriptorSetBinding_Sampler)
-uniform samplerCube uCubemap;
+layout(location = 0) out vec3 outView;
 
 layout(push_constant, scalar) uniform PushConstant_ {
   PushConstant pushConstant;
@@ -22,8 +19,13 @@ layout(push_constant, scalar) uniform PushConstant_ {
 // ----------------------------------------------------------------------------
 
 void main() {
-  const float factor = pushConstant.hdrIntensity;
-  fragColor = factor * textureLod(uCubemap, inView, 0.0);
+  const vec4 clip_pos = pushConstant.viewProjectionMatrix * vec4(inPosition, 1.0);
+
+  // Use the box object coordinates in [-1, 1] as texture coordinates.
+  outView = normalize(2.0f * inPosition);
+
+  // Assure depth value is always at 1.0.
+  gl_Position = clip_pos.xyww;
 }
 
 // ----------------------------------------------------------------------------

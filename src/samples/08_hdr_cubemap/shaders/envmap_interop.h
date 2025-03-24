@@ -29,9 +29,6 @@ const UINT kDescriptorSetBinding_IrradianceSHMatrices_StorageBuffer = 4;
 const UINT kCompute_SphericalTransform_kernelSize_x = 16u;
 const UINT kCompute_SphericalTransform_kernelSize_y = 16u;
 
-const UINT kCompute_IntegrateBRDF_kernelSize_x = 16u;
-const UINT kCompute_IntegrateBRDF_kernelSize_y = 16u;
-
 const UINT kCompute_IrradianceSHCoeff_kernelSize_x = 16u;
 const UINT kCompute_IrradianceSHCoeff_kernelSize_y = 16u;
 
@@ -65,7 +62,6 @@ struct PushConstant {
   UINT mapResolution;
   UINT numSamples;
   UINT mipLevel;
-  float hdrIntensity;
   float roughnessSquared;
   //
   UINT numElements;
