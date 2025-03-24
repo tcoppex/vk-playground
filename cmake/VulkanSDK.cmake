@@ -26,6 +26,7 @@ else()
     )
 endif()
 
+# -----------------------------------------------------------------------------
 
 ## Custom function to generate binary shaders from GLSL, with include handling.
 function(glsl2spirv input_glsl output_spirv shader_dir deps extra_args)
@@ -79,16 +80,28 @@ function(glsl2spirv input_glsl output_spirv shader_dir deps extra_args)
 # otherwise, set the output files as dependencies.
 endfunction(glsl2spirv)
 
-
+# -----------------------------------------------------------------------------
 
 # Compile all shader from one directory to another
 function(compile_shaders GLOBAL_GLSL_DIR GLOBAL_SPIRV_DIR binaries sources extra_dir)
   # retrieve all SOURCE glsl shaders
-  file(GLOB_RECURSE g_ShadersGLSL ${GLOBAL_GLSL_DIR}/*.*)
+  file(GLOB_RECURSE g_ShadersGLSL ${GLOBAL_GLSL_DIR}/*.glsl)
+
+  # Only keep shaders of the form "filename.stage.glsl"
+  list(
+    FILTER
+      g_ShadersGLSL
+    INCLUDE
+    REGEX
+    ".+\\..+\\.glsl$"
+  )
 
   file(GLOB ShadersDependencies
-    ${GLOBAL_GLSL_DIR}/../*.h
+    ${GLOBAL_GLSL_DIR}/../*.h ##
     ${GLOBAL_GLSL_DIR}/../*.glsl
+  )
+  file(GLOB_RECURSE ShadersDependencies
+    ${GLOBAL_GLSL_DIR}/*.h ##
   )
 
   file(GLOB_RECURSE ShadersDependencies_bis
