@@ -54,6 +54,9 @@ target_compile_definitions(${target} PRIVATE
   _USE_MATH_DEFINES
 )
 
+target_sources(${target} PRIVATE ${IMGUI_SOURCES})
+target_compile_definitions(${target} PRIVATE IMGUI_IMPL_VULKAN_USE_VOLK)
+
 target_compile_options(${target} PRIVATE
   "${CXX_FLAGS}"
   "$<$<CONFIG:Debug>:${CXX_FLAGS_DEBUG}>"
