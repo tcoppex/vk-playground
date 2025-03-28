@@ -48,6 +48,9 @@ class Renderer : public backend::RTInterface {
 
   void end_frame();
 
+  Swapchain const& get_swapchain() const {
+    return swapchain_;
+  }
 
  public:
   /* ----- Factory ----- */
@@ -108,6 +111,8 @@ class Renderer : public backend::RTInterface {
   VkSampler get_default_sampler() const {
     return linear_sampler_;
   }
+
+  // --- Resources gltf objects ---
 
   std::shared_ptr<scene::Resources> load_and_upload(std::string_view gltf_filename, scene::Mesh::AttributeLocationMap const& attribute_to_location);
 
