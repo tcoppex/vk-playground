@@ -23,6 +23,8 @@ struct WMInterface {
 
   virtual uint32_t get_surface_height() const noexcept = 0;
 
+  virtual void* get_handle() const noexcept = 0;
+
  public:
   virtual std::vector<char const*> getVulkanInstanceExtensions() const noexcept = 0;
 
