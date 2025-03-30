@@ -38,6 +38,13 @@ struct PipelineLayoutDescriptor_t {
 
 // Descriptor structure to create GraphicsPipeline, à la WebGPU.
 struct GraphicsPipelineDescriptor_t {
+  static constexpr VkColorComponentFlags kDefaultColorWriteMask{
+      VK_COLOR_COMPONENT_R_BIT
+    | VK_COLOR_COMPONENT_G_BIT
+    | VK_COLOR_COMPONENT_B_BIT
+    | VK_COLOR_COMPONENT_A_BIT
+  };
+
   std::vector<VkDynamicState> dynamicStates{};
 
   struct Vertex {
@@ -55,7 +62,7 @@ struct GraphicsPipelineDescriptor_t {
   struct Fragment {
     struct Target {
       VkFormat format{};
-      VkColorComponentFlags writeMask{};
+      VkColorComponentFlags writeMask{kDefaultColorWriteMask};
 
       struct Blending {
         struct Parameters {
