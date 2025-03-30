@@ -188,8 +188,8 @@ struct RPInterface {
 
 struct RenderPassDescriptor {
   std::vector<VkRenderingAttachmentInfo> colorAttachments{};
-  VkRenderingAttachmentInfo depthAttachment{};
-  VkRenderingAttachmentInfo stencilAttachment{};
+  VkRenderingAttachmentInfo depthAttachment{.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR};
+  VkRenderingAttachmentInfo stencilAttachment{.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR};
   VkRect2D renderArea{};
 };
 
