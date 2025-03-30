@@ -28,7 +28,7 @@ class Framebuffer final : public backend::RPInterface {
 
   struct Descriptor_t {
     VkExtent2D dimension{};
-    VkFormat color_format{};
+    VkAttachmentDescription color_desc{};
     VkFormat depth_format{};
     std::vector<VkImageView> image_views{};
   };
