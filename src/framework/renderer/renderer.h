@@ -6,14 +6,12 @@
 #include "framework/backend/context.h"
 #include "framework/backend/swapchain.h"
 #include "framework/backend/command_encoder.h"
-
+#include "framework/renderer/pipeline.h"
 #include "framework/scene/resources.h" //
 
-#include "framework/renderer/pipeline.h"
-#include "framework/renderer/framebuffer.h" //
+#include "framework/renderer/_experimental/framebuffer.h" // (for Framebuffer::Descriptor_t)
 class RenderTarget;
 
-/* -------------------------------------------------------------------------- */
 
 /* -------------------------------------------------------------------------- */
 
