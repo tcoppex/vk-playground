@@ -8,6 +8,12 @@
 
 /* -------------------------------------------------------------------------- */
 
+char const* kDefaulShaderEntryPoint{
+  "main"
+};
+
+/* -------------------------------------------------------------------------- */
+
 void Renderer::init(Context const& context, std::shared_ptr<ResourceAllocator> allocator, VkSurfaceKHR const surface) {
   ctx_ptr_ = &context;
   device_ = context.get_device();
@@ -368,7 +374,7 @@ Pipeline Renderer::create_graphics_pipeline(VkPipelineLayout pipeline_layout, Gr
 
   /* Shaders stages */
   auto getShaderEntryPoint{[](std::string const& entryPoint) -> char const* {
-    return entryPoint.empty() ? "main" : entryPoint.c_str();
+    return entryPoint.empty() ? kDefaulShaderEntryPoint : entryPoint.c_str();
   }};
   std::vector<VkPipelineShaderStageCreateInfo> shader_stages{
     {
@@ -557,7 +563,7 @@ void Renderer::create_compute_pipelines(VkPipelineLayout pipeline_layout, std::v
       .sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
       .stage  = VK_SHADER_STAGE_COMPUTE_BIT,
       .module = VK_NULL_HANDLE,
-      .pName  = "main",
+      .pName  = kDefaulShaderEntryPoint,
     },
     .layout = pipeline_layout,
   });
