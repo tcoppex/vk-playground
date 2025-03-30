@@ -318,9 +318,12 @@ Pipeline Renderer::create_graphics_pipeline(VkPipelineLayout pipeline_layout, Gr
     }
   };
 
+  bool const useDynamicRendering{desc.renderPass == VK_NULL_HANDLE};
+
   /* Dynamic Rendering. */
   VkPipelineRenderingCreateInfo dynamic_rendering_create_info{};
   std::vector<VkFormat> color_attachments(desc.fragment.targets.size());
+  if (useDynamicRendering)
   {
     /* (~) If no depth format is setup, use the renderer's one. */
     VkFormat const depth_format{
@@ -502,7 +505,7 @@ Pipeline Renderer::create_graphics_pipeline(VkPipelineLayout pipeline_layout, Gr
 
   VkGraphicsPipelineCreateInfo const graphics_pipeline_create_info{
     .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
-    .pNext = &dynamic_rendering_create_info,
+    .pNext = useDynamicRendering ? &dynamic_rendering_create_info : nullptr,
     .stageCount = static_cast<uint32_t>(shader_stages.size()),
     .pStages = shader_stages.data(),
     .pVertexInputState = &vertex_input,
@@ -515,7 +518,7 @@ Pipeline Renderer::create_graphics_pipeline(VkPipelineLayout pipeline_layout, Gr
     .pColorBlendState = &color_blend,
     .pDynamicState = &dynamic_state_create_info,
     .layout = pipeline_layout,
-    // .renderPass = render_pass.get_render_pass(),
+    .renderPass = useDynamicRendering ? VK_NULL_HANDLE : desc.renderPass,
   };
 
   VkPipeline pipeline;

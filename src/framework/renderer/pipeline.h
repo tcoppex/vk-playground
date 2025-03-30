@@ -100,6 +100,8 @@ struct GraphicsPipelineDescriptor_t {
     VkCullModeFlags cullMode{};
     VkFrontFace frontFace{};
   } primitive{};
+
+  VkRenderPass renderPass{};
 };
 
 using PipelineVertexBufferDescriptor = GraphicsPipelineDescriptor_t::Vertex::Buffer;
