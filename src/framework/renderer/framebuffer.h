@@ -71,10 +71,11 @@ class Framebuffer final : public backend::RPInterface {
   }
 
  private:
-  void init_render_pass(VkFormat const color_format);
-  void init_framebuffer(Descriptor_t const& desc);
+  void setup(Context const& context, Descriptor_t const& desc);
 
  private:
+  // ----- Renderer factory accessibles -----
+
   Framebuffer(
     Context const& context,
     std::shared_ptr<ResourceAllocator> allocator,
