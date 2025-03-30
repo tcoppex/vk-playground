@@ -225,7 +225,6 @@ std::shared_ptr<RenderTarget> Renderer::create_render_target() const {
 // ----------------------------------------------------------------------------
 
 std::shared_ptr<Framebuffer> Renderer::create_framebuffer() const {
-  assert(device_ != VK_NULL_HANDLE);
 
   Framebuffer::Descriptor_t desc{
     .dimension = swapchain_.get_surface_size(),
@@ -234,12 +233,18 @@ std::shared_ptr<Framebuffer> Renderer::create_framebuffer() const {
     .image_views = {},
   };
 
-  // Create one color framebuffer output per swapchain images.
   auto const& swap_images{ swapchain_.get_swap_images() };
+
   desc.image_views.resize(swap_images.size());
   for (size_t i = 0u; i < swap_images.size(); ++i) {
     desc.image_views[i] = swap_images[i].view;
   }
+
+  return create_framebuffer(desc);
+}
+
+std::shared_ptr<Framebuffer> Renderer::create_framebuffer(Framebuffer::Descriptor_t const& desc) const {
+  assert(device_ != VK_NULL_HANDLE);
 
   return std::shared_ptr<Framebuffer>(new Framebuffer(
     *ctx_ptr_,
