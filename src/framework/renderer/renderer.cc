@@ -256,8 +256,8 @@ std::shared_ptr<Framebuffer> Renderer::create_framebuffer(Framebuffer::Descripto
   return std::shared_ptr<Framebuffer>(new Framebuffer(
     *ctx_ptr_,
     allocator_,
-    &swapchain_.get_current_swap_index(),
-    desc
+    desc,
+    &swapchain_.get_current_swap_index()
   ));
 }
 

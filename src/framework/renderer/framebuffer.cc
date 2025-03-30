@@ -20,8 +20,8 @@ void Framebuffer::release() {
 Framebuffer::Framebuffer(
   Context const& context,
   std::shared_ptr<ResourceAllocator> allocator,
-  uint32_t const* swap_index_ptr,
-  Descriptor_t const& desc
+  Descriptor_t const& desc,
+  uint32_t const* swap_index_ptr
 ) : device_(context.get_device())
   , allocator_(allocator)
   , swap_index_ptr_(swap_index_ptr)

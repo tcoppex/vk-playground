@@ -38,7 +38,7 @@ class Framebuffer final : public backend::RPInterface {
 
   void release();
 
-  inline VkFramebuffer get_attachment(uint32_t const buffer_id) const {
+  VkFramebuffer get_attachment(uint32_t const buffer_id) const {
     return framebuffers_.at(buffer_id);
   }
 
@@ -53,21 +53,20 @@ class Framebuffer final : public backend::RPInterface {
  public:
   // ----- RPInterface Overrides -----
 
-  inline VkExtent2D get_surface_size() const final {
+  VkExtent2D get_surface_size() const final {
     return dimension_;
   }
 
-  inline std::vector<VkClearValue> const& get_clear_values() const final {
+  std::vector<VkClearValue> const& get_clear_values() const final {
     return clear_values_;
   }
 
-  inline VkRenderPass get_render_pass() const final {
+  VkRenderPass get_render_pass() const final {
     return render_pass_;
   }
 
-  inline VkFramebuffer get_swap_attachment() const final {
-    assert(swap_index_ptr_ != nullptr);
-    return get_attachment(*swap_index_ptr_);
+  VkFramebuffer get_swap_attachment() const final {
+    return get_attachment(swap_index_ptr_ ? *swap_index_ptr_ : 0u);
   }
 
  private:
@@ -79,8 +78,8 @@ class Framebuffer final : public backend::RPInterface {
   Framebuffer(
     Context const& context,
     std::shared_ptr<ResourceAllocator> allocator,
-    uint32_t const* swap_index_ptr,
-    Descriptor_t const& desc
+    Descriptor_t const& desc,
+    uint32_t const* swap_index_ptr = nullptr
   );
 
   friend class Renderer;
