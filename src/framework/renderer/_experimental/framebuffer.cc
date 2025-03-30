@@ -1,105 +1,122 @@
 #include "framework/renderer/_experimental/framebuffer.h"
+
 #include "framework/backend/context.h"
+#include "framework/backend/swapchain.h"
 
 /* -------------------------------------------------------------------------- */
 
 void Framebuffer::release() {
   release_buffers();
 
-  vkDestroyRenderPass(device_, render_pass_, nullptr);
+  vkDestroyRenderPass(context_ptr_->get_device(), render_pass_, nullptr);
   render_pass_ = VK_NULL_HANDLE;
 }
 
-/* -------------------------------------------------------------------------- */
-
+// ----------------------------------------------------------------------------
 
 void Framebuffer::resize(VkExtent2D const dimension) {
-  dimension_ = dimension;
+  if ( (dimension.width == desc_.dimension.width)
+    && (dimension.height == desc_.dimension.height)
+    && (framebuffers_[0u] != VK_NULL_HANDLE)) {
+    return;
+  }
 
+  desc_.dimension = dimension;
   release_buffers();
 
+  // TODO : allow to output directly to the swapchain images.
+  for (auto& output : outputs_) {
+    output[BufferName::Color] = context_ptr_->create_image_2d(
+      dimension.width,
+      dimension.height,
+      1u,
+      desc_.color_desc.format,
+      VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
+    );
+    if (use_depth_stencil_) {
+      output[BufferName::DepthStencil] = context_ptr_->create_image_2d(
+        dimension.width,
+        dimension.height,
+        1u,
+        desc_.depth_stencil_format,
+        VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT
+      );
+    }
+  }
+
+  uint32_t const attachmentCount{
+    static_cast<uint32_t>(BufferName::kCount) - (use_depth_stencil_ ? 0u : 1u)
+  };
+
+  EnumArray<VkImageView, BufferName> attachments; //
   VkFramebufferCreateInfo const framebuffer_create_info{
     .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
     .renderPass = render_pass_,
-    .attachmentCount = static_cast<uint32_t>(image_views_.size()),
-    .pAttachments = image_views_.data(),
-    .width = dimension_.width,
-    .height = dimension_.height,
+    .attachmentCount = attachmentCount,
+    .pAttachments = attachments.data(),
+    .width = dimension.width,
+    .height = dimension.height,
     .layers = 1u,
   };
-
-  if (use_depth_stencil_) {
-    // depth_stencil_ = context.create_image_2d(dimension_.width, dimension_.height, 1u, desc_.depth_format);
-    // image_views_[Framebuffer::DEPTH_STENCIL] = depth_stencil_.view;
-  }
-
   for (size_t i = 0u; i < framebuffers_.size(); ++i) {
-    image_views_[Framebuffer::COLOR] = desc_.image_views[i];
-    CHECK_VK(vkCreateFramebuffer(device_, &framebuffer_create_info, nullptr, &framebuffers_[i]));
+    // --------
+    auto &output = outputs_[i];
+    attachments[BufferName::Color] = output[BufferName::Color].view;
+    attachments[BufferName::DepthStencil] = output[BufferName::DepthStencil].view;
+    // --------
+    CHECK_VK(vkCreateFramebuffer(
+      context_ptr_->get_device(), &framebuffer_create_info, nullptr, &framebuffers_[i]
+    ));
   }
 }
 
 /* -------------------------------------------------------------------------- */
 
-Framebuffer::Framebuffer(
-  Context const& context,
-  std::shared_ptr<ResourceAllocator> allocator,
-  Descriptor_t const& desc,
-  uint32_t const* swap_index_ptr
-) : device_(context.get_device())
-  , allocator_(allocator)
-  , swap_index_ptr_(swap_index_ptr)
-  , dimension_(desc.dimension)
-{
-  setup(context, desc); //
-  resize(desc.dimension); //
-}
+Framebuffer::Framebuffer(Context const& context, Swapchain const& swapchain)
+  : context_ptr_(&context)
+  , swapchain_ptr_(&swapchain)
+{}
 
 // ----------------------------------------------------------------------------
 
 void Framebuffer::release_buffers() {
-  for (auto& framebuffer : framebuffers_) {
-    vkDestroyFramebuffer(device_, framebuffer, nullptr);
+  VkDevice const device = context_ptr_->get_device();
+  for (auto &framebuffer : framebuffers_) {
+    vkDestroyFramebuffer(device, framebuffer, nullptr);
     framebuffer = VK_NULL_HANDLE;
   }
-  allocator_->destroy_image(&depth_stencil_);
+
+  auto allocator = context_ptr_->get_resource_allocator();
+  for (auto &output : outputs_) {
+    allocator->destroy_image(&output[BufferName::Color]);
+    allocator->destroy_image(&output[BufferName::DepthStencil]);
+  }
 }
 
 // ----------------------------------------------------------------------------
 
-void Framebuffer::setup(Context const& context, Descriptor_t const& desc) {
-  uint32_t const bufferCount{
-    use_depth_stencil_ ? static_cast<uint32_t>(Framebuffer::kBufferNameCount)
-                       : static_cast<uint32_t>(Framebuffer::kBufferNameCount - 1u)
+void Framebuffer::setup(Descriptor_t const& desc) {
+  desc_ = desc;
+  use_depth_stencil_ = (desc_.depth_stencil_format != VK_FORMAT_UNDEFINED);
+
+  clear_values_.resize(static_cast<uint32_t>(BufferName::kCount), {}); //
+
+  /* Resize the buffers depending weither we wanna sync to the current swap index. */
+  uint32_t const image_swap_count{
+    desc_.match_swapchain_output_count ? swapchain_ptr_->get_image_count() : 1u
   };
+  framebuffers_.resize(image_swap_count);
+  outputs_.resize(image_swap_count);
 
-  clear_values_.resize(bufferCount);
-  image_views_.resize(bufferCount);
-
-  desc_ = desc; //
-  framebuffers_.resize(desc_.image_views.size()); //
-
-  // -----------
-
-  /* Setup the RenderPass. */
+  /* Setup the render pass. */
   {
-    /* Color Attachment. */
-    std::vector<VkAttachmentDescription> attachments{
-      desc.color_desc
+    std::vector<VkAttachmentDescription> attachment_descs{
+      desc_.color_desc
     };
-    std::vector<VkAttachmentReference> references{
-      {
-        .attachment = Framebuffer::COLOR,
-        .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-      },
-    };
-
-    /* [Optional] Depth-Stencil Attachment. */
-    use_depth_stencil_ = (desc.depth_format != VK_FORMAT_UNDEFINED);
     if (use_depth_stencil_) {
-      attachments.push_back(
+      attachment_descs.push_back(
         {
-          .format = desc.depth_format,
+          .format = desc_.depth_stencil_format,
           .samples = VK_SAMPLE_COUNT_1_BIT,
           .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
           .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
@@ -109,31 +126,45 @@ void Framebuffer::setup(Context const& context, Descriptor_t const& desc) {
           .finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
         }
       );
-      references.push_back(
-        {
-          .attachment = Framebuffer::DEPTH_STENCIL,
-          .layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-        }
-      );
     }
-
+    std::vector<VkAttachmentReference> const references{
+      {
+        .attachment = static_cast<uint32_t>(BufferName::Color),
+        .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+      },
+      {
+        .attachment = static_cast<uint32_t>(BufferName::DepthStencil),
+        .layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+      }
+    };
     std::vector<VkSubpassDescription> const subpasses{
       {
         .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
         .colorAttachmentCount = 1u,
-        .pColorAttachments = &references[Framebuffer::COLOR],
-        .pDepthStencilAttachment = use_depth_stencil_ ? &references[Framebuffer::DEPTH_STENCIL] : nullptr,
+        .pColorAttachments = &references[0u],
+        .pDepthStencilAttachment = use_depth_stencil_ ? &references[1u] : nullptr,
       }
     };
     VkRenderPassCreateInfo const render_pass_create_info{
       .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
-      .attachmentCount = static_cast<uint32_t>(attachments.size()),
-      .pAttachments = attachments.data(),
+      .attachmentCount = static_cast<uint32_t>(attachment_descs.size()),
+      .pAttachments = attachment_descs.data(),
       .subpassCount = static_cast<uint32_t>(subpasses.size()),
       .pSubpasses = subpasses.data(),
     };
-    CHECK_VK(vkCreateRenderPass(device_, &render_pass_create_info, nullptr, &render_pass_));
+    CHECK_VK(vkCreateRenderPass(context_ptr_->get_device(), &render_pass_create_info, nullptr, &render_pass_));
   }
+
+  /* Create the framebuffer & attachment images for each outputs. */
+  resize(desc_.dimension); //
+}
+
+// ----------------------------------------------------------------------------
+
+uint32_t Framebuffer::get_swap_index() const {
+  return desc_.match_swapchain_output_count ? swapchain_ptr_->get_current_swap_index()
+                                            : 0u
+                                            ;
 }
 
 /* -------------------------------------------------------------------------- */

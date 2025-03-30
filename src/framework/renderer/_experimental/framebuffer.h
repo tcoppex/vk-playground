@@ -3,12 +3,15 @@
 
 /* -------------------------------------------------------------------------- */
 
-#include "framework/backend/types.h"
+#include "framework/common.h"
 
+#include "framework/backend/types.h"
 class Context;
-class ResourceAllocator;
+class Swapchain;
 
 /* -------------------------------------------------------------------------- */
+
+// [ WIP ]
 
 /**
  * Framebuffer are used for legacy rendering setup.
@@ -20,17 +23,20 @@ class ResourceAllocator;
  **/
 class Framebuffer final : public backend::RPInterface {
  public:
-  enum BufferName {
-    COLOR,
-    DEPTH_STENCIL,
-    kBufferNameCount,
+  enum class BufferName {
+    Color,
+    DepthStencil,
+
+    kCount,
   };
+
+  using SwapBuffer = EnumArray<backend::Image, BufferName>;
 
   struct Descriptor_t {
     VkExtent2D dimension{};
     VkAttachmentDescription color_desc{};
-    VkFormat depth_format{};
-    std::vector<VkImageView> image_views{};
+    VkFormat depth_stencil_format{};
+    bool match_swapchain_output_count{};
   };
 
  public:
@@ -38,23 +44,28 @@ class Framebuffer final : public backend::RPInterface {
 
   void release();
 
-  VkFramebuffer get_attachment(uint32_t const buffer_id) const {
-    return framebuffers_.at(buffer_id);
-  }
-
   void set_clear_color(VkClearColorValue const& value) {
-    clear_values_[Framebuffer::COLOR].color = value;
+    clear_values_[static_cast<uint32_t>(BufferName::Color)].color = value;
   }
 
   void set_clear_depth_stencil(VkClearDepthStencilValue const& value) {
-    clear_values_[Framebuffer::DEPTH_STENCIL].depthStencil = value;
+    clear_values_[static_cast<uint32_t>(BufferName::DepthStencil)].depthStencil = value;
   }
 
- public:
+  void resize(VkExtent2D const dimension);
+
+  SwapBuffer const& get_swap_output() const {
+    return outputs_.at(get_swap_index());
+  }
+
+  backend::Image const& get_color_attachment() const {
+    return get_swap_output()[BufferName::Color];
+  }
+
   // ----- RPInterface Overrides -----
 
   VkExtent2D get_surface_size() const final {
-    return dimension_;
+    return desc_.dimension;
   }
 
   std::vector<VkClearValue> const& get_clear_values() const final {
@@ -66,35 +77,32 @@ class Framebuffer final : public backend::RPInterface {
   }
 
   VkFramebuffer get_swap_attachment() const final {
-    return get_attachment(swap_index_ptr_ ? *swap_index_ptr_ : 0u);
+    return framebuffers_.at(get_swap_index());
   }
 
  private:
-  void setup(Context const& context, Descriptor_t const& desc);
-
- private:
-  // ----- Renderer factory accessibles -----
-
-  Framebuffer(
-    Context const& context,
-    std::shared_ptr<ResourceAllocator> allocator,
-    Descriptor_t const& desc,
-    uint32_t const* swap_index_ptr = nullptr
-  );
-
   friend class Renderer;
 
- private:
-  VkDevice device_{};
-  std::shared_ptr<ResourceAllocator> allocator_{}; //
-  uint32_t const* swap_index_ptr_{};
+  Framebuffer(Context const& context, Swapchain const& swapchain);
 
-  VkExtent2D dimension_{};
+  void setup(Descriptor_t const& desc);
+
+  void release_buffers();
+
+  uint32_t get_swap_index() const;
+
+ private:
+  Context const* context_ptr_{};
+  Swapchain const* swapchain_ptr_{};
+
+  Descriptor_t desc_{}; //
+  bool use_depth_stencil_{};
+
   std::vector<VkClearValue> clear_values_{};
 
-  backend::Image depth_stencil_{};
   VkRenderPass render_pass_{};
   std::vector<VkFramebuffer> framebuffers_{};
+  std::vector<SwapBuffer> outputs_{};
 };
 
 /* -------------------------------------------------------------------------- */

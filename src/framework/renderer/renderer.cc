@@ -229,41 +229,38 @@ std::shared_ptr<RenderTarget> Renderer::create_render_target() const {
 
 // ----------------------------------------------------------------------------
 
-// std::shared_ptr<Framebuffer> Renderer::create_framebuffer() const {
-//   Framebuffer::Descriptor_t desc{
-//     .dimension = swapchain_.get_surface_size(),
-//     .color_desc = {
-//       .format = swapchain_.get_color_format(),
-//       .samples = VK_SAMPLE_COUNT_1_BIT,
-//       .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-//       .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-//       .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-//       .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-//       .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-//       .finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, //
-//     },
-//     .depth_format = get_valid_depth_format(),
-//     .image_views = {},
-//   };
+std::shared_ptr<Framebuffer> Renderer::create_framebuffer() const {
+  // Framebuffer::Descriptor_t desc{
+  //   .dimension = swapchain_.get_surface_size(),
+  //   .color_desc = {
+  //     .format = swapchain_.get_color_format(),
+  //     .samples = VK_SAMPLE_COUNT_1_BIT,
+  //     .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+  //     .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+  //     .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+  //     .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+  //     .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+  //     .finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, //
+  //   },
+  //   .depth_format = get_valid_depth_format(),
+  //   .image_views = {},
+  // };
+  // auto const& swap_images{ swapchain_.get_swap_images() };
+  // desc.image_views.resize(swap_images.size());
+  // for (size_t i = 0u; i < swap_images.size(); ++i) {
+  //   desc.image_views[i] = swap_images[i].view;
+  // }
+  // return create_framebuffer(desc);
 
-//   auto const& swap_images{ swapchain_.get_swap_images() };
-//   desc.image_views.resize(swap_images.size());
-//   for (size_t i = 0u; i < swap_images.size(); ++i) {
-//     desc.image_views[i] = swap_images[i].view;
-//   }
-
-//   return create_framebuffer(desc);
-// }
+  return std::shared_ptr<Framebuffer>(new Framebuffer(*ctx_ptr_, swapchain_));
+}
 
 std::shared_ptr<Framebuffer> Renderer::create_framebuffer(Framebuffer::Descriptor_t const& desc) const {
-  assert(device_ != VK_NULL_HANDLE);
-
-  return std::shared_ptr<Framebuffer>(new Framebuffer(
-    *ctx_ptr_,
-    allocator_,
-    desc,
-    &swapchain_.get_current_swap_index()
-  ));
+  if (auto framebuffer = create_framebuffer(); framebuffer) {
+    framebuffer->setup(desc);
+    return framebuffer;
+  }
+  return nullptr;
 }
 
 // ----------------------------------------------------------------------------
