@@ -58,7 +58,7 @@ class Renderer : public backend::RTInterface {
 
   // --- Framebuffer (Legacy Rendering) ---
 
-  std::shared_ptr<Framebuffer> create_framebuffer() const;
+  // std::shared_ptr<Framebuffer> create_framebuffer() const;
   std::shared_ptr<Framebuffer> create_framebuffer(Framebuffer::Descriptor_t const& desc) const;
 
   // --- Pipeline Layout ---
