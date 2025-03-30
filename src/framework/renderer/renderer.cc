@@ -302,7 +302,7 @@ Pipeline Renderer::create_graphics_pipeline(VkPipelineLayout pipeline_layout, Gr
   assert( desc.vertex.module != VK_NULL_HANDLE );
   assert( desc.fragment.module != VK_NULL_HANDLE );
   // assert( !desc.vertex.buffers.empty() );
-  assert( !desc.fragment.targets.empty() );
+  // assert( !desc.fragment.targets.empty() );
   // assert( desc.fragment.targets[0].format != VK_FORMAT_UNDEFINED );
 
   // Default color blend attachment.
@@ -328,9 +328,11 @@ Pipeline Renderer::create_graphics_pipeline(VkPipelineLayout pipeline_layout, Gr
 
   /* Dynamic Rendering. */
   VkPipelineRenderingCreateInfo dynamic_rendering_create_info{};
-  std::vector<VkFormat> color_attachments(desc.fragment.targets.size());
+  std::vector<VkFormat> color_attachments{};
   if (useDynamicRendering)
   {
+    color_attachments.resize(desc.fragment.targets.size());
+
     /* (~) If no depth format is setup, use the renderer's one. */
     VkFormat const depth_format{
       (desc.depthStencil.format != VK_FORMAT_UNDEFINED) ? desc.depthStencil.format
