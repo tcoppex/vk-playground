@@ -24,17 +24,26 @@ void Framebuffer::resize(VkExtent2D const dimension) {
   desc_.dimension = dimension;
   release_buffers();
 
-  // TODO : allow to output directly to the swapchain images.
-  for (auto& output : outputs_) {
-    output[BufferName::Color] = context_ptr_->create_image_2d(
+  // Color(s).
+  for (auto& color : outputs_[BufferName::Color]) {
+    color = context_ptr_->create_image_2d(
       dimension.width,
       dimension.height,
       1u,
       desc_.color_desc.format,
       VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
     );
-    if (use_depth_stencil_) {
-      output[BufferName::DepthStencil] = context_ptr_->create_image_2d(
+  }
+  context_ptr_->transition_images_layout(
+    outputs_[BufferName::Color],
+    desc_.color_desc.initialLayout,
+    desc_.color_desc.finalLayout
+  );
+
+  // DepthStencil(s).
+  if (use_depth_stencil_) {
+    for (auto& depth_stencil : outputs_[BufferName::DepthStencil]) {
+      depth_stencil = context_ptr_->create_image_2d(
         dimension.width,
         dimension.height,
         1u,
@@ -47,8 +56,7 @@ void Framebuffer::resize(VkExtent2D const dimension) {
   uint32_t const attachmentCount{
     static_cast<uint32_t>(BufferName::kCount) - (use_depth_stencil_ ? 0u : 1u)
   };
-
-  EnumArray<VkImageView, BufferName> attachments; //
+  EnumArray<VkImageView, BufferName> attachments{};
   VkFramebufferCreateInfo const framebuffer_create_info{
     .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
     .renderPass = render_pass_,
@@ -59,11 +67,8 @@ void Framebuffer::resize(VkExtent2D const dimension) {
     .layers = 1u,
   };
   for (size_t i = 0u; i < framebuffers_.size(); ++i) {
-    // --------
-    auto &output = outputs_[i];
-    attachments[BufferName::Color] = output[BufferName::Color].view;
-    attachments[BufferName::DepthStencil] = output[BufferName::DepthStencil].view;
-    // --------
+    attachments[BufferName::Color] = outputs_[BufferName::Color][i].view;
+    attachments[BufferName::DepthStencil] = outputs_[BufferName::DepthStencil][i].view;
     CHECK_VK(vkCreateFramebuffer(
       context_ptr_->get_device(), &framebuffer_create_info, nullptr, &framebuffers_[i]
     ));
@@ -87,9 +92,11 @@ void Framebuffer::release_buffers() {
   }
 
   auto allocator = context_ptr_->get_resource_allocator();
-  for (auto &output : outputs_) {
-    allocator->destroy_image(&output[BufferName::Color]);
-    allocator->destroy_image(&output[BufferName::DepthStencil]);
+  for (auto& color : outputs_[BufferName::Color]) {
+    allocator->destroy_image(&color);
+  }
+  for (auto& depth_stencil : outputs_[BufferName::DepthStencil]) {
+    allocator->destroy_image(&depth_stencil);
   }
 }
 
@@ -106,7 +113,9 @@ void Framebuffer::setup(Descriptor_t const& desc) {
     desc_.match_swapchain_output_count ? swapchain_ptr_->get_image_count() : 1u
   };
   framebuffers_.resize(image_swap_count);
-  outputs_.resize(image_swap_count);
+  for (auto& output : outputs_) {
+    output.resize(image_swap_count);
+  }
 
   /* Setup the render pass. */
   {

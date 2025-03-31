@@ -30,7 +30,7 @@ class Framebuffer final : public backend::RPInterface {
     kCount,
   };
 
-  using SwapBuffer = EnumArray<backend::Image, BufferName>;
+  using SwapBuffer = EnumArray<std::vector<backend::Image>, BufferName>;
 
   struct Descriptor_t {
     VkExtent2D dimension{};
@@ -54,12 +54,8 @@ class Framebuffer final : public backend::RPInterface {
 
   void resize(VkExtent2D const dimension);
 
-  SwapBuffer const& get_swap_output() const {
-    return outputs_.at(get_swap_index());
-  }
-
   backend::Image const& get_color_attachment() const {
-    return get_swap_output()[BufferName::Color];
+    return outputs_[BufferName::Color].at(get_swap_index());
   }
 
   // ----- RPInterface Overrides -----
@@ -102,7 +98,7 @@ class Framebuffer final : public backend::RPInterface {
 
   VkRenderPass render_pass_{};
   std::vector<VkFramebuffer> framebuffers_{};
-  std::vector<SwapBuffer> outputs_{};
+  SwapBuffer outputs_{};
 };
 
 /* -------------------------------------------------------------------------- */
