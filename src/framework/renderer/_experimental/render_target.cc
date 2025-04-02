@@ -6,21 +6,20 @@
 /* -------------------------------------------------------------------------- */
 
 void RenderTarget::release() {
-  allocator_->destroy_image(&depth_stencil_);
+  assert(context_ptr_ != nullptr);
+
+  auto allocator = context_ptr_->get_resource_allocator();
+
+  allocator->destroy_image(&depth_stencil_);
   for(auto& color : colors_) {
-    allocator_->destroy_image(&color);
+    allocator->destroy_image(&color);
   }
 }
 
 // ----------------------------------------------------------------------------
 
-RenderTarget::RenderTarget(
-  Context const& context,
-  std::shared_ptr<ResourceAllocator> allocator,
-  Descriptor_t const& desc
-) : device_(context.get_device())
-  , allocator_(allocator)
-  , sample_count_(desc.sample_count)
+RenderTarget::RenderTarget(Context const& context, Descriptor_t const& desc)
+  : context_ptr_(&context)
 {
   // Pre-initialize images with their format.
   uint32_t const color_count{ static_cast<uint32_t>(desc.color_formats.size()) };
@@ -35,68 +34,38 @@ RenderTarget::RenderTarget(
 
   // Reset size.
   extent_ = {};
-  resize(context, desc.size);
+  resize(desc.size);
 }
 
 // ----------------------------------------------------------------------------
 
-void RenderTarget::resize(Context const& context, VkExtent2D const extent) {
-  assert(device_ != VK_NULL_HANDLE);
-
+void RenderTarget::resize(VkExtent2D const extent) {
   if ((extent.width == extent_.width)
    && (extent.height == extent_.height)) {
     return;
   }
-  extent_ = extent;
 
   release();
-
-  VkImageCreateInfo image_info{
-    .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-    .imageType = VK_IMAGE_TYPE_2D,
-    .extent = {
-      .width = extent_.width,
-      .height = extent_.height,
-      .depth = 1u,
-    },
-    .mipLevels = 1u,
-    .arrayLayers = 1u,
-    .samples = sample_count_,
-    .usage =  VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
-            | VK_IMAGE_USAGE_SAMPLED_BIT
-            | VK_IMAGE_USAGE_STORAGE_BIT
-            | VK_IMAGE_USAGE_TRANSFER_SRC_BIT
-            | VK_IMAGE_USAGE_TRANSFER_DST_BIT
-            ,
-  };
-  VkImageViewCreateInfo view_info{
-    .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-    .viewType = VK_IMAGE_VIEW_TYPE_2D,
-    .subresourceRange = {
-      .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-      .levelCount = 1u,
-      .layerCount = 1u,
-    },
-  };
+  extent_ = extent;
 
   /* Create color images. */
   for (auto &color : colors_) {
-    image_info.format = color.format;
-    view_info.format = color.format;
-    allocator_->create_image_with_view(image_info, view_info, &color);
+    color = context_ptr_->create_image_2d(extent_.width, extent_.height, 1u, color.format,
+        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
+      | VK_IMAGE_USAGE_SAMPLED_BIT
+      | VK_IMAGE_USAGE_STORAGE_BIT
+      | VK_IMAGE_USAGE_TRANSFER_SRC_BIT
+      | VK_IMAGE_USAGE_TRANSFER_DST_BIT
+    );
   }
-
-  // -------
-  /* Change color images layout from UNDEFINED to GENERAL. */
-  context.transition_images_layout(colors_, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL); //
+  context_ptr_->transition_images_layout(colors_, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
 
   // [TODO] Clear color images via vkCmdClearColorImage ?
 
   /* Create an optional depth-stencil buffer. */
   if (depth_stencil_.format != VK_FORMAT_UNDEFINED) {
-    depth_stencil_ = context.create_image_2d(extent_.width, extent_.height, 1u, depth_stencil_.format);
+    depth_stencil_ = context_ptr_->create_image_2d(extent_.width, extent_.height, 1u, depth_stencil_.format);
   }
-  // -------
 }
 
 /* -------------------------------------------------------------------------- */

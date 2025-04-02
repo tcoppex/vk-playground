@@ -215,43 +215,17 @@ void Renderer::end_frame() {
 std::shared_ptr<RenderTarget> Renderer::create_render_target() const {
   assert(device_ != VK_NULL_HANDLE);
 
-  return std::shared_ptr<RenderTarget>(new RenderTarget(
-    *ctx_ptr_,
-    allocator_,
-    {
-      .color_formats = { VK_FORMAT_R8G8B8A8_UNORM },
-      .depth_stencil_format = get_valid_depth_format(),
-      .size = swapchain_.get_surface_size(),
-      .sampler = linear_sampler_,
-    }
-  ));
+  return std::shared_ptr<RenderTarget>(new RenderTarget(*ctx_ptr_, {
+    .color_formats = { get_color_attachment().format },
+    .depth_stencil_format = get_valid_depth_format(),
+    .size = swapchain_.get_surface_size(),
+    .sampler = linear_sampler_,
+  }));
 }
 
 // ----------------------------------------------------------------------------
 
 std::shared_ptr<Framebuffer> Renderer::create_framebuffer() const {
-  // Framebuffer::Descriptor_t desc{
-  //   .dimension = swapchain_.get_surface_size(),
-  //   .color_desc = {
-  //     .format = swapchain_.get_color_format(),
-  //     .samples = VK_SAMPLE_COUNT_1_BIT,
-  //     .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-  //     .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-  //     .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-  //     .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-  //     .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-  //     .finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, //
-  //   },
-  //   .depth_format = get_valid_depth_format(),
-  //   .image_views = {},
-  // };
-  // auto const& swap_images{ swapchain_.get_swap_images() };
-  // desc.image_views.resize(swap_images.size());
-  // for (size_t i = 0u; i < swap_images.size(); ++i) {
-  //   desc.image_views[i] = swap_images[i].view;
-  // }
-  // return create_framebuffer(desc);
-
   return std::shared_ptr<Framebuffer>(new Framebuffer(*ctx_ptr_, swapchain_));
 }
 

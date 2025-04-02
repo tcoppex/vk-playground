@@ -32,7 +32,7 @@ class RenderTarget : public backend::RTInterface {
 
   // [TODO: rework and remove context from args]
   // (might be put inside a generic command encoder to resize similar objects)
-  void resize(Context const& context, VkExtent2D const extent); //
+  void resize(VkExtent2D const extent); //
 
  public:
   // ----- RTInterface Overrides -----
@@ -74,16 +74,15 @@ class RenderTarget : public backend::RTInterface {
   }
 
  private:
-  RenderTarget(Context const& context, std::shared_ptr<ResourceAllocator> allocator, Descriptor_t const& desc);
+  RenderTarget(Context const& context, Descriptor_t const& desc);
 
   friend class Renderer;
 
  private:
-  VkDevice device_{};
-  std::shared_ptr<ResourceAllocator> allocator_{};
+  Context const* context_ptr_{};
 
   VkExtent2D extent_{};
-  VkSampleCountFlagBits sample_count_{VK_SAMPLE_COUNT_1_BIT};
+  // VkSampleCountFlagBits sample_count_{VK_SAMPLE_COUNT_1_BIT};
   // VkSampler sampler_{};
 
   std::vector<backend::Image> colors_{};
