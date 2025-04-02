@@ -168,6 +168,7 @@ backend::Buffer CommandEncoder::create_buffer_and_upload(void const* host_data, 
 RenderPassEncoder CommandEncoder::begin_rendering(RenderPassDescriptor const& desc) const {
   VkRenderingInfoKHR const rendering_info{
     .sType                = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR,
+    .flags                = 0,
     .renderArea           = desc.renderArea,
     .layerCount           = 1u,
     .colorAttachmentCount = static_cast<uint32_t>(desc.colorAttachments.size()),
@@ -185,11 +186,11 @@ RenderPassEncoder CommandEncoder::begin_rendering(RenderPassDescriptor const& de
 RenderPassEncoder CommandEncoder::begin_rendering(backend::RTInterface const& render_target) {
   assert( render_target.get_color_attachment_count() == 1u );
 
+  auto const& colors = render_target.get_color_attachments();
+
   /* Dynamic rendering required color images to be in color_attachment layout. */
   transition_images_layout(
-    {
-      {.image = render_target.get_color_attachment().image},
-    },
+    colors,
     VK_IMAGE_LAYOUT_UNDEFINED,
     VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
   );
@@ -198,7 +199,7 @@ RenderPassEncoder CommandEncoder::begin_rendering(backend::RTInterface const& re
     .colorAttachments = {
       {
         .sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
-        .imageView   = render_target.get_color_attachment().view,
+        .imageView   = colors[0u].view,
         .imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR,
         .loadOp      = VK_ATTACHMENT_LOAD_OP_CLEAR,
         .storeOp     = VK_ATTACHMENT_STORE_OP_STORE,
