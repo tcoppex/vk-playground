@@ -164,6 +164,8 @@ class CommandEncoder : public GenericCommandEncoder {
     vkCmdCopyBufferToImage(command_buffer_, src.buffer, dst.image, image_layout, 1u, &copy);
   }
 
+  void blit_image_2d(backend::Image const& src, backend::Image const& dst, VkExtent2D const& extent) const;
+
   // --- Rendering ---
 
   /* Dynamic rendering. */

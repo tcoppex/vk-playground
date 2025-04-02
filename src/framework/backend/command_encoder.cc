@@ -95,6 +95,49 @@ void CommandEncoder::transition_images_layout(std::vector<backend::Image> const&
 
 // ----------------------------------------------------------------------------
 
+void CommandEncoder::blit_image_2d(backend::Image const& src, backend::Image const& dst, VkExtent2D const& extent) const {
+  VkImageSubresourceLayers const subresource{
+    .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+    .mipLevel = 0,
+    .baseArrayLayer = 0,
+    .layerCount = 1,
+  };
+  VkOffset3D const offsets[2u]{
+    {0, 0, 0},
+    {
+      .x = static_cast<int32_t>(extent.width),
+      .y = static_cast<int32_t>(extent.height),
+      .z = 1
+    }
+  };
+  VkImageBlit const blit_region{
+    .srcSubresource = subresource,
+    .srcOffsets = { offsets[0], offsets[1] },
+    .dstSubresource = subresource,
+    .dstOffsets = { offsets[0], offsets[1] },
+  };
+
+  VkImageLayout const original_layout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR; //
+  VkImageLayout const src_layout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+  VkImageLayout const dst_layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+
+  transition_images_layout({ src }, original_layout, src_layout);
+  transition_images_layout({ dst }, original_layout, dst_layout);
+
+  vkCmdBlitImage(
+    command_buffer_,
+    src.image, src_layout,
+    dst.image, dst_layout,
+    1u, &blit_region,
+    VK_FILTER_LINEAR
+  );
+
+  transition_images_layout({ dst }, dst_layout, original_layout);
+  transition_images_layout({ src }, src_layout, original_layout);
+}
+
+// ----------------------------------------------------------------------------
+
 backend::Buffer CommandEncoder::create_buffer_and_upload(void const* host_data, size_t const host_data_size, VkBufferUsageFlags2KHR const usage, size_t device_buffer_offset, size_t const device_buffer_size) const {
   assert(host_data != nullptr);
   assert(host_data_size > 0u);
