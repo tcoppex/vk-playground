@@ -117,6 +117,10 @@ backend::ShaderModule Context::create_shader_module(std::string_view const& dire
   };
 }
 
+backend::ShaderModule Context::create_shader_module(std::string_view const& filepath) const {
+  return create_shader_module("", filepath); //
+}
+
 // ----------------------------------------------------------------------------
 
 std::vector<backend::ShaderModule> Context::create_shader_modules(std::string_view const& directory, std::vector<std::string_view> const& shader_names) const {
