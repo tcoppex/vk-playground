@@ -164,13 +164,14 @@ class CommandEncoder : public GenericCommandEncoder {
     vkCmdCopyBufferToImage(command_buffer_, src.buffer, dst.image, image_layout, 1u, &copy);
   }
 
-  void blit_image_2d(backend::Image const& src, backend::Image const& dst, VkExtent2D const& extent) const;
+  void blit_image_2d(backend::Image const& src, VkImageLayout src_layout, backend::Image const& dst, VkImageLayout dst_layout, VkExtent2D const& extent) const;
 
   // --- Rendering ---
 
   /* Dynamic rendering. */
   RenderPassEncoder begin_rendering(RenderPassDescriptor const& desc) const;
   RenderPassEncoder begin_rendering(backend::RTInterface const& render_target);
+  RenderPassEncoder begin_rendering(std::shared_ptr<backend::RTInterface> render_target);
   RenderPassEncoder begin_rendering();
   void end_rendering();
 
