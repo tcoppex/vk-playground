@@ -53,6 +53,10 @@ class Context {
     return resource_allocator_;
   }
 
+  void wait_device_idle() const {
+    CHECK_VK(vkDeviceWaitIdle(device_));
+  }
+
   // --- Image ---
 
   backend::Image create_image_2d(uint32_t width, uint32_t height, uint32_t layer_count, VkFormat const format, VkImageUsageFlags const extra_usage = {}) const;
