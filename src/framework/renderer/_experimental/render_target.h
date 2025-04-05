@@ -25,6 +25,14 @@ class RenderTarget : public backend::RTInterface {
     VkSampleCountFlagBits sample_count{VK_SAMPLE_COUNT_1_BIT};
   };
 
+  static constexpr VkImageUsageFlags kDefaultImageUsageFlags{
+      VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
+    | VK_IMAGE_USAGE_SAMPLED_BIT
+    | VK_IMAGE_USAGE_STORAGE_BIT
+    | VK_IMAGE_USAGE_TRANSFER_SRC_BIT
+    | VK_IMAGE_USAGE_TRANSFER_DST_BIT
+  };
+
  public:
   ~RenderTarget() {}
 

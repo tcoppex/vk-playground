@@ -2,6 +2,7 @@
 
 #include "framework/backend/context.h"
 #include "framework/backend/swapchain.h"
+#include "framework/renderer/_experimental/render_target.h" // (for kDefaultImageUsageFlags)
 
 /* -------------------------------------------------------------------------- */
 
@@ -31,7 +32,7 @@ void Framebuffer::resize(VkExtent2D const dimension) {
       dimension.height,
       1u,
       desc_.color_desc.format,
-      VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
+      RenderTarget::kDefaultImageUsageFlags //
     );
   }
   context_ptr_->transition_images_layout(

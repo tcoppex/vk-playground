@@ -50,15 +50,9 @@ void RenderTarget::resize(VkExtent2D const extent) {
 
   /* Create color images. */
   for (auto &color : colors_) {
-    color = context_ptr_->create_image_2d(extent_.width, extent_.height, 1u, color.format,
-        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
-      | VK_IMAGE_USAGE_SAMPLED_BIT
-      | VK_IMAGE_USAGE_STORAGE_BIT
-      | VK_IMAGE_USAGE_TRANSFER_SRC_BIT
-      | VK_IMAGE_USAGE_TRANSFER_DST_BIT
-    );
+    color = context_ptr_->create_image_2d(extent_.width, extent_.height, 1u, color.format, kDefaultImageUsageFlags);
   }
-  context_ptr_->transition_images_layout(colors_, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+  // context_ptr_->transition_images_layout(colors_, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
 
   // [TODO] Clear color images via vkCmdClearColorImage ?
 
