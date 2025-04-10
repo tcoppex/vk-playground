@@ -212,7 +212,7 @@ RenderPassEncoder CommandEncoder::begin_rendering(RenderPassDescriptor const& de
 // ----------------------------------------------------------------------------
 
 RenderPassEncoder CommandEncoder::begin_rendering(backend::RTInterface const& render_target) {
-  assert( render_target.get_color_attachment_count() == 1u );
+  // assert( render_target.get_color_attachment_count() == 1u );
 
   auto const& colors = render_target.get_color_attachments();
 
@@ -223,17 +223,8 @@ RenderPassEncoder CommandEncoder::begin_rendering(backend::RTInterface const& re
     VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
   );
 
-  auto pass_encoder = begin_rendering({
-    .colorAttachments = {
-      {
-        .sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
-        .imageView   = colors[0u].view,
-        .imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR,
-        .loadOp      = VK_ATTACHMENT_LOAD_OP_CLEAR,
-        .storeOp     = VK_ATTACHMENT_STORE_OP_STORE,
-        .clearValue  = render_target.get_color_clear_value(),
-      }
-    },
+  RenderPassDescriptor rp_desc{
+    .colorAttachments = {},
     .depthAttachment = {
       .sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
       .imageView   = render_target.get_depth_stencil_attachment().view,
@@ -251,7 +242,22 @@ RenderPassEncoder CommandEncoder::begin_rendering(backend::RTInterface const& re
       .clearValue  = render_target.get_depth_stencil_clear_value(),
     },
     .renderArea = {{0, 0}, render_target.get_surface_size()},
+  };
+
+  rp_desc.colorAttachments.resize(colors.size(), {
+    .sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
+    .imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR,
+    .loadOp      = VK_ATTACHMENT_LOAD_OP_CLEAR,
+    .storeOp     = VK_ATTACHMENT_STORE_OP_STORE,
   });
+
+  for (size_t i = 0u; i < colors.size(); ++i) {
+    auto& attach = rp_desc.colorAttachments[i];
+    attach.imageView  = colors[i].view;
+    attach.clearValue = render_target.get_color_clear_value(i);
+  }
+
+  auto pass_encoder = begin_rendering(rp_desc);
 
   current_render_target_ptr_ = &render_target;
 
@@ -277,7 +283,7 @@ void CommandEncoder::end_rendering() {
   vkCmdEndRendering(command_buffer_);
 
   if (current_render_target_ptr_ != nullptr) [[likely]] {
-    assert( current_render_target_ptr_->get_color_attachment_count() == 1u ); //
+    // assert( current_render_target_ptr_->get_color_attachment_count() == 1u ); //
 
     // Automatically transition the image depending on the render target.
     VkImageLayout const dst_layout{
