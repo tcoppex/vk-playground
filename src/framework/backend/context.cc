@@ -138,6 +138,10 @@ std::vector<backend::ShaderModule> Context::create_shader_modules(std::string_vi
   return shaders;
 }
 
+std::vector<backend::ShaderModule> Context::create_shader_modules(std::vector<std::string_view> const& filepaths) const {
+  return create_shader_modules("", filepaths); //
+}
+
 // ----------------------------------------------------------------------------
 
 void Context::release_shader_modules(std::vector<backend::ShaderModule> const& shaders) const {
