@@ -212,15 +212,29 @@ void Renderer::end_frame() {
 
 // ----------------------------------------------------------------------------
 
-std::shared_ptr<RenderTarget> Renderer::create_render_target() const {
-  assert(device_ != VK_NULL_HANDLE);
 
-  return std::shared_ptr<RenderTarget>(new RenderTarget(*ctx_ptr_, {
-    .color_formats = { get_color_attachment().format },
+std::shared_ptr<RenderTarget> Renderer::create_render_target() const {
+  return std::shared_ptr<RenderTarget>(new RenderTarget(*ctx_ptr_));
+}
+
+std::shared_ptr<RenderTarget> Renderer::create_render_target(RenderTarget::Descriptor_t const& desc) const {
+  if (auto rt = create_render_target(); rt) {
+    rt->setup(desc);
+    return rt;
+  }
+  return nullptr;
+}
+
+std::shared_ptr<RenderTarget> Renderer::create_default_render_target(uint32_t num_color_outputs) const {
+  RenderTarget::Descriptor_t desc{
+    .color_formats = {},
     .depth_stencil_format = get_valid_depth_format(),
     .size = swapchain_.get_surface_size(),
     .sampler = linear_sampler_,
-  }));
+  };
+  desc.color_formats.resize(num_color_outputs, get_color_attachment().format);
+
+  return create_render_target(desc);
 }
 
 // ----------------------------------------------------------------------------

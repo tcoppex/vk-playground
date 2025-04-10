@@ -36,6 +36,8 @@ class RenderTarget : public backend::RTInterface {
  public:
   ~RenderTarget() {}
 
+  void setup(Descriptor_t const& desc);
+
   void release();
 
   // [TODO: rework and remove context from args]
@@ -57,7 +59,7 @@ class RenderTarget : public backend::RTInterface {
     return colors_;
   }
 
-  inline backend::Image const& get_color_attachment(uint32_t i = 0) const final {
+  inline backend::Image const& get_color_attachment(uint32_t i = 0u) const final {
     return colors_.at(i);
   }
 
@@ -82,7 +84,7 @@ class RenderTarget : public backend::RTInterface {
   }
 
  private:
-  RenderTarget(Context const& context, Descriptor_t const& desc);
+  RenderTarget(Context const& context);
 
   friend class Renderer;
 

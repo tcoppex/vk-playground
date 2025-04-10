@@ -5,22 +5,13 @@
 
 /* -------------------------------------------------------------------------- */
 
-void RenderTarget::release() {
-  assert(context_ptr_ != nullptr);
-
-  auto allocator = context_ptr_->get_resource_allocator();
-
-  allocator->destroy_image(&depth_stencil_);
-  for(auto& color : colors_) {
-    allocator->destroy_image(&color);
-  }
-}
+RenderTarget::RenderTarget(Context const& context)
+  : context_ptr_(&context)
+{}
 
 // ----------------------------------------------------------------------------
 
-RenderTarget::RenderTarget(Context const& context, Descriptor_t const& desc)
-  : context_ptr_(&context)
-{
+void RenderTarget::setup(Descriptor_t const& desc) {
   // Pre-initialize images with their format.
   uint32_t const color_count{ static_cast<uint32_t>(desc.color_formats.size()) };
   colors_.resize(color_count);
@@ -35,6 +26,18 @@ RenderTarget::RenderTarget(Context const& context, Descriptor_t const& desc)
   // Reset size.
   extent_ = {};
   resize(desc.size);
+}
+
+// ----------------------------------------------------------------------------
+
+void RenderTarget::release() {
+  assert(context_ptr_ != nullptr);
+
+  auto allocator = context_ptr_->get_resource_allocator();
+  allocator->destroy_image(&depth_stencil_);
+  for(auto& color : colors_) {
+    allocator->destroy_image(&color);
+  }
 }
 
 // ----------------------------------------------------------------------------

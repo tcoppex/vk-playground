@@ -10,7 +10,8 @@
 #include "framework/scene/resources.h" //
 
 #include "framework/renderer/_experimental/framebuffer.h" // (for Framebuffer::Descriptor_t)
-class RenderTarget;
+#include "framework/renderer/_experimental/render_target.h" // (for RenderTarget::Descriptor_t)
+// class RenderTarget;
 
 
 /* -------------------------------------------------------------------------- */
@@ -55,6 +56,10 @@ class Renderer : public backend::RTInterface {
   // --- Render Target (Dynamic Rendering) ---
 
   std::shared_ptr<RenderTarget> create_render_target() const;
+
+  std::shared_ptr<RenderTarget> create_render_target(RenderTarget::Descriptor_t const& desc) const;
+
+  std::shared_ptr<RenderTarget> create_default_render_target(uint32_t num_color_outputs = 1u) const;
 
   // --- Framebuffer (Legacy Rendering) ---
 
