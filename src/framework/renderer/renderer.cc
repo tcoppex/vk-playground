@@ -286,7 +286,10 @@ Pipeline Renderer::create_graphics_pipeline(VkPipelineLayout pipeline_layout, Gr
   assert( desc.vertex.module != VK_NULL_HANDLE );
   assert( desc.fragment.module != VK_NULL_HANDLE );
   // assert( !desc.vertex.buffers.empty() );
-  // assert( !desc.fragment.targets.empty() );
+
+  if (desc.fragment.targets.empty()) {
+    LOGD("Warning : fragment targets were not specified for a graphic pipeline.");
+  }
   // assert( desc.fragment.targets[0].format != VK_FORMAT_UNDEFINED );
 
   // Default color blend attachment.

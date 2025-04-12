@@ -22,7 +22,9 @@ bool Context::init(std::vector<char const*> const& instance_extensions) {
     for (uint32_t i = 0u; i < static_cast<uint32_t>(TargetQueue::kCount); ++i) {
       auto const target = static_cast<TargetQueue>(i);
       command_pool_create_info.queueFamilyIndex = get_queue(target).family_index;
-      CHECK_VK(vkCreateCommandPool(device_, &command_pool_create_info, nullptr, &transient_command_pools_[target]));
+      CHECK_VK(vkCreateCommandPool(
+        device_, &command_pool_create_info, nullptr, &transient_command_pools_[target]
+      ));
     }
   }
 
@@ -60,7 +62,6 @@ backend::Image Context::create_image_2d(uint32_t width, uint32_t height, uint32_
   // [TODO] check format is a valid depth one too.
   if (vkutils::IsValidStencilFormat(format)) {
     usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-
     aspect_mask = VK_IMAGE_ASPECT_DEPTH_BIT
                 | VK_IMAGE_ASPECT_STENCIL_BIT
                 ;
@@ -86,7 +87,9 @@ backend::Image Context::create_image_2d(uint32_t width, uint32_t height, uint32_
 
   VkImageViewCreateInfo view_info{
     .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-    .viewType = (image_info.arrayLayers > 1u) ? VK_IMAGE_VIEW_TYPE_2D_ARRAY : VK_IMAGE_VIEW_TYPE_2D,
+    .viewType = (image_info.arrayLayers > 1u) ? VK_IMAGE_VIEW_TYPE_2D_ARRAY
+                                              : VK_IMAGE_VIEW_TYPE_2D
+                                              ,
     .format = image_info.format,
     .components = {
       VK_COMPONENT_SWIZZLE_R,

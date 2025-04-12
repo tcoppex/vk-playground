@@ -122,7 +122,10 @@ void Swapchain::init(Context const& context, VkSurfaceKHR const surface) {
   }
 
   /* When using timeline semaphore, we need to transition images layout to present. */
-  context.transition_images_layout(swap_images_, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+  context.transition_images_layout(swap_images_,
+    VK_IMAGE_LAYOUT_UNDEFINED,
+    VK_IMAGE_LAYOUT_PRESENT_SRC_KHR // VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR
+  );
 }
 
 // ----------------------------------------------------------------------------
