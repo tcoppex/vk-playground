@@ -6,7 +6,7 @@
 #include "framework/backend/command_encoder.h"
 #include "framework/renderer/pipeline.h"
 #include "framework/scene/mesh.h"
-#include "framework/scene/envmap.h"
+#include "framework/fx/envmap.h"
 
 namespace shader_interop::skybox {
 #include "framework/shaders/skybox/interop.h"

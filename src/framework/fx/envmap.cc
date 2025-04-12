@@ -1,6 +1,6 @@
 /* -------------------------------------------------------------------------- */
 
-#include "framework/scene/envmap.h"
+#include "framework/fx/envmap.h"
 
 #include "framework/backend/context.h"
 #include "framework/renderer/renderer.h"
