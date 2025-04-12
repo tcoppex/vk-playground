@@ -333,7 +333,7 @@ Pipeline Renderer::create_graphics_pipeline(VkPipelineLayout pipeline_layout, Gr
       /* (~) If no color format is setup, use the renderer's one. */
       VkFormat const color_format{
         (target.format != VK_FORMAT_UNDEFINED) ? target.format
-                                               : get_color_attachment(/*i*/).format
+                                               : get_color_attachment(i).format
       };
       color_attachments[i] = color_format;
 
