@@ -90,6 +90,10 @@ class GenericCommandEncoder {
     vkCmdBindPipeline(command_buffer_, pipeline.get_bind_point(), pipeline.get_handle());
   }
 
+  void bind_pipeline(backend::PipelineInterface const& pipeline) const {
+    vkCmdBindPipeline(command_buffer_, pipeline.get_bind_point(), pipeline.get_handle());
+  }
+
   // --- Pipeline Barrier ---
 
   void pipeline_buffer_barriers(std::vector<VkBufferMemoryBarrier2> barriers) const;
@@ -99,7 +103,7 @@ class GenericCommandEncoder {
   // --- Compute ---
 
   template<uint32_t tX = 1u, uint32_t tY = 1u, uint32_t tZ = 1u>
-  void dispatch(uint32_t x = 1u, uint32_t y = 1u, uint32_t z = 1u) {
+  void dispatch(uint32_t x = 1u, uint32_t y = 1u, uint32_t z = 1u) const {
     vkCmdDispatch(command_buffer_,
       vkutils::GetKernelGridDim(x, tX),
       vkutils::GetKernelGridDim(y, tY),
