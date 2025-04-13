@@ -1,5 +1,7 @@
 #include "framework/backend/command_encoder.h"
 
+#include "backends/imgui_impl_vulkan.h" //
+
 /* -------------------------------------------------------------------------- */
 
 void GenericCommandEncoder::bind_descriptor_set(VkDescriptorSet const descriptor_set, VkPipelineLayout const pipeline_layout, VkShaderStageFlags const stage_flags) const {
@@ -324,6 +326,19 @@ RenderPassEncoder CommandEncoder::begin_render_pass(backend::RPInterface const& 
 
 void CommandEncoder::end_render_pass() const {
   vkCmdEndRenderPass(command_buffer_);
+}
+
+// ----------------------------------------------------------------------------
+
+void CommandEncoder::draw_ui(backend::RTInterface &render_target) {
+  auto const load_op = render_target.get_color_load_op();
+  render_target.set_color_load_op(VK_ATTACHMENT_LOAD_OP_LOAD);
+
+  begin_rendering(render_target);
+  ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), command_buffer_);
+  end_rendering();
+
+  render_target.set_color_load_op(load_op);
 }
 
 /* -------------------------------------------------------------------------- */
