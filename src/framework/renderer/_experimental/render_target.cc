@@ -12,10 +12,11 @@ RenderTarget::RenderTarget(Context const& context)
 // ----------------------------------------------------------------------------
 
 void RenderTarget::setup(Descriptor_t const& desc) {
-  // Pre-initialize images with their format.
   uint32_t const color_count{ static_cast<uint32_t>(desc.color_formats.size()) };
   colors_.resize(color_count);
   color_clear_values_.resize(color_count);
+  color_load_ops_.resize(color_count, VK_ATTACHMENT_LOAD_OP_CLEAR);
+
   for (uint32_t i = 0u; i < color_count; ++i) {
     colors_[i].format = desc.color_formats[i];
     color_clear_values_[i] = {{{0.0f, 0.0f, 0.0f, 1.0f}}};

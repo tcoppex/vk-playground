@@ -247,13 +247,13 @@ RenderPassEncoder CommandEncoder::begin_rendering(backend::RTInterface const& re
   rp_desc.colorAttachments.resize(colors.size(), {
     .sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
     .imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR,
-    .loadOp      = VK_ATTACHMENT_LOAD_OP_CLEAR,
     .storeOp     = VK_ATTACHMENT_STORE_OP_STORE,
   });
 
   for (size_t i = 0u; i < colors.size(); ++i) {
     auto& attach = rp_desc.colorAttachments[i];
     attach.imageView  = colors[i].view;
+    attach.loadOp     = render_target.get_color_load_op(i);
     attach.clearValue = render_target.get_color_clear_value(i);
   }
 
