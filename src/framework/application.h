@@ -11,6 +11,9 @@
 #include "framework/wm/event_callbacks.h"
 #include "framework/wm/wm_interface.h"
 
+#include "imgui.h"
+#include "imgui_internal.h"
+
 /* -------------------------------------------------------------------------- */
 
 class Application : public EventCallbacks {
@@ -34,21 +37,25 @@ class Application : public EventCallbacks {
  protected:
   virtual bool setup() { return true; }
   virtual void release() {}
+  virtual void setup_ui() {}
   virtual void frame() {}
 
  private:
   bool presetup();
+  bool presetup_ui();
   void shutdown();
 
  protected:
-  std::unique_ptr<WMInterface> wm_;
-  Context context_;
-  Renderer renderer_;
+  std::unique_ptr<WMInterface> wm_{};
+  Context context_{};
+  Renderer renderer_{};
 
   VkExtent2D viewport_size_{};
 
  private:
   VkSurfaceKHR surface_{}; //
+
+  VkDescriptorPool imgui_descriptor_pool_{};
 
   std::chrono::time_point<std::chrono::high_resolution_clock> chrono_{};
 
