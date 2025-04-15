@@ -323,6 +323,11 @@ void ExtractMaterials(std::string const& basename, std::unordered_map<void const
 
     R.materials[material_name] = std::move(material);
   }
+
+  uint32_t matid = 0u;
+  for (auto& [key, material] : R.materials) {
+    material->index = matid++;
+  }
 }
 
 void ExtractMeshes(std::string const& basename, std::unordered_map<void const*, std::string> const& material_map, cgltf_data const* data, scene::Resources& R) {
