@@ -19,73 +19,68 @@
 */
 // ----------------------------------------------------------------------------
 
-// [should be user defined]
-const float kGamma    = 2.2;
-const float kInvGamma = 1.0 / kGamma;
-
-#define TONEMAPPING_NONE              -1
-#define TONEMAPPING_LINEAR            0
-#define TONEMAPPING_SIMPLE_REINHARD   1
-#define TONEMAPPING_LUMA_REINHARD     2
-#define TONEMAPPING_LUMA_REINHARD_2   3
-#define TONEMAPPING_ROMBINDAHOUSE     4
-#define TONEMAPPING_FILMIC            5
-#define TONEMAPPING_UNCHARTED         6
+#define TONEMAPPING_NONE              0
+#define TONEMAPPING_LINEAR            1
+#define TONEMAPPING_SIMPLE_REINHARD   2
+#define TONEMAPPING_LUMA_REINHARD     3
+#define TONEMAPPING_LUMA_REINHARD_2   4
+#define TONEMAPPING_ROMBINDAHOUSE     5
+#define TONEMAPPING_FILMIC            6
+#define TONEMAPPING_FILMIC_ACES       7
+#define TONEMAPPING_UNCHARTED         8
 
 // ----------------------------------------------------------------------------
 
-float gammaCorrection(in float x) {
-  return pow(x, kInvGamma);
+float gammaCorrection(in float x, float gamma) {
+  return pow(x, 1.0 / gamma);
 }
 
-vec3 gammaCorrection(in vec3 rgb) {
-  return pow(rgb, vec3(kInvGamma));
+vec3 gammaCorrection(in vec3 rgb, float gamma) {
+  return pow(rgb, vec3(1.0 / gamma));
 }
 
-float sRGBToLinear(in float x) {
-  return pow(x, kGamma);
+float sRGBToLinear(in float x, float gamma) {
+  return pow(x, gamma);
 }
 
-vec3 sRGBToLinear(in vec3 rgb) {
-  return pow(rgb, vec3(kGamma));
+vec3 sRGBToLinear(in vec3 rgb, float gamma) {
+  return pow(rgb, vec3(gamma));
 }
 
 // ----------------------------------------------------------------------------
 
-vec3 linearToneMapping(vec3 color) {
-  const float exposure = 1.0;
+vec3 linearToneMapping(vec3 color, float exposure, float gamma) {
   color = clamp(exposure * color, 0.0, 1.0);
-  color = gammaCorrection(color);
+  color = gammaCorrection(color, gamma);
   return color;
 }
 
-vec3 simpleReinhardToneMapping(vec3 color) {
-  const float exposure = 1.0;
+vec3 simpleReinhardToneMapping(vec3 color, float exposure, float gamma) {
   color *= exposure / (1.0 + color / exposure);
-  color = gammaCorrection(color);
+  color = gammaCorrection(color, gamma);
   return color;
 }
 
-vec3 lumaBasedReinhardToneMapping(vec3 color) {
+vec3 lumaBasedReinhardToneMapping(vec3 color, float gamma) {
   float luma = dot(color, vec3(0.2126, 0.7152, 0.0722));
   float toneMappedLuma = luma / (1.0 + luma);
   color *= toneMappedLuma / luma;
-  color = gammaCorrection(color);
+  color = gammaCorrection(color, gamma);
   return color;
 }
 
-vec3 whitePreservingLumaBasedReinhardToneMapping(vec3 color) {
+vec3 whitePreservingLumaBasedReinhardToneMapping(vec3 color, float gamma) {
   const float white = 2.0;
   const float luma = dot(color, vec3(0.2126, 0.7152, 0.0722));
   const float toneMappedLuma = luma * (1.0 + luma / (white*white)) / (1.0 + luma);
   color *= toneMappedLuma / luma;
-  color = gammaCorrection(color);
+  color = gammaCorrection(color, gamma);
   return color;
 }
 
-vec3 RomBinDaHouseToneMapping(vec3 color) {
-  color = exp( -1.0 / ( 2.72*color + 0.15 ) );
-  color = gammaCorrection(color);
+vec3 romBinDaHouseToneMapping(vec3 color, float gamma) {
+  color = exp( -1.0 / ( 2.72 * color + 0.15 ) );
+  color = gammaCorrection(color, gamma);
   return color;
 }
 
@@ -95,7 +90,16 @@ vec3 filmicToneMapping(vec3 color) {
   return color;
 }
 
-vec3 Uncharted2ToneMapping(vec3 color) {
+vec3 filmicACESToneMapping(vec3 color, float gamma) {
+  const float A = 2.51;
+  const float B = 0.03;
+  const float C = 2.43;
+  const float D = 0.59;
+  const float E = 0.14;
+  return gammaCorrection(clamp((color * (A * color + B)) / (color * (C * color + D) + E), 0.0, 1.0), gamma);
+}
+
+vec3 uncharted2ToneMapping(vec3 color, float exposure, float gamma) {
   const float A = 0.15; // Shoulder Strength
   const float B = 0.50; // Linear Strength
   const float C = 0.10; // Linear Angle
@@ -103,76 +107,46 @@ vec3 Uncharted2ToneMapping(vec3 color) {
   const float E = 0.02; // Toe Numerator
   const float F = 0.30; // Toe Denominator
   const float W = 11.2; // Linear White Point value
-  const float exposure = 2.0;
+  // const float exposure = 2.0;
 
   color *= exposure;
   color = ((color * (A * color + C * B) + D * E) / (color * (A * color + B) + D * F)) - E / F;
+
   const float white = ((W * (A * W + C * B) + D * E) / (W * (A * W + B) + D * F)) - E / F;
   color /= white;
-  color = gammaCorrection(color);
-  return color;
-}
 
-// ----------------------------------------------------------------------------
-
-vec3 testingToneMapping(vec3 color, float dx) {
-  const float dn = 1.0 / 8.0;
-
-  if (dx < 1.0f * dn) {
-    return linearToneMapping(color);
-  }
-
-  if (dx < 2.0f * dn) {
-    return simpleReinhardToneMapping(color);
-  }
-
-  if (dx < 3.0f * dn) {
-    return lumaBasedReinhardToneMapping(color);
-  }
-
-  if (dx < 4.0f * dn) {
-    return whitePreservingLumaBasedReinhardToneMapping(color);
-  }
-
-  if (dx < 5.0f * dn) {
-    return RomBinDaHouseToneMapping(color);
-  }
-
-  if (dx < 6.0f * dn) {
-    return filmicToneMapping(color);
-  }
-
-  if (dx < 7.0f * dn) {
-    return Uncharted2ToneMapping(color);
-  }
+  color = gammaCorrection(color, gamma);
 
   return color;
 }
 
 // ----------------------------------------------------------------------------
 
-vec3 toneMapping(int mode, in vec3 color) {
+vec3 toneMapping(int mode, in vec3 color, float exposure, float gamma) {
   switch (mode) {
     case TONEMAPPING_LINEAR:
-      return linearToneMapping(color);
+      return linearToneMapping(color, exposure, gamma);
 
     case TONEMAPPING_SIMPLE_REINHARD:
-      return simpleReinhardToneMapping(color);
+      return simpleReinhardToneMapping(color, exposure, gamma);
 
     case TONEMAPPING_LUMA_REINHARD:
-      return lumaBasedReinhardToneMapping(color);
+      return lumaBasedReinhardToneMapping(color, gamma);
 
     case TONEMAPPING_LUMA_REINHARD_2:
-      return whitePreservingLumaBasedReinhardToneMapping(color);
+      return whitePreservingLumaBasedReinhardToneMapping(color, gamma);
 
     case TONEMAPPING_ROMBINDAHOUSE:
-      return RomBinDaHouseToneMapping(color);
+      return romBinDaHouseToneMapping(color, gamma);
 
     case TONEMAPPING_FILMIC:
       return filmicToneMapping(color);
 
+    case TONEMAPPING_FILMIC_ACES:
+      return filmicACESToneMapping(color, gamma);
+
     case TONEMAPPING_UNCHARTED:
-      return Uncharted2ToneMapping(color);
+      return uncharted2ToneMapping(color, exposure, gamma);
 
     default:
     case TONEMAPPING_NONE:
@@ -184,4 +158,4 @@ vec3 toneMapping(int mode, in vec3 color) {
 
 // ----------------------------------------------------------------------------
 
-#endif // SHADERS_SHARED_INC_TONEMAPPING_GLSL_
+#endif // SHADERS_SHARED_TONEMAPPING_GLSL_
