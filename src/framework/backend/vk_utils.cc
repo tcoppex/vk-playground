@@ -14,21 +14,24 @@ VkShaderModule CreateShaderModule(VkDevice const device, char const* shader_dire
   * see https://registry.khronos.org/vulkan/specs/latest/html/vkspec.html#VkShaderModule
   */
 
-  char spirv_filename[256]{}; //
-  sprintf(spirv_filename, "%s/%s.spv", shader_directory, shader_name);
+  namespace fs = std::filesystem;
+
+  fs::path spirv_path = fs::path(shader_directory).empty()
+                          ? fs::path(shader_name).concat(".spv")
+                          : fs::path(shader_directory) / (std::string(shader_name) + ".spv");
 
   size_t filesize{};
-  char* code = utils::ReadBinaryFile(spirv_filename, &filesize);
+  char* code = utils::ReadBinaryFile(spirv_path.string().c_str(), &filesize);
 
   if (code == nullptr) {
-    fprintf(stderr, "Error: the spirv shader \"%s\" could not be found.\n", spirv_filename);
+    fprintf(stderr, "Error: the spirv shader \"%s\" could not be found.\n", spirv_path.string().c_str());
     exit(EXIT_FAILURE);
   }
 
   VkShaderModuleCreateInfo shader_module_info{
     .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
     .codeSize = filesize,
-    .pCode = (uint32_t*)code,
+    .pCode = reinterpret_cast<uint32_t*>(code),
   };
 
   VkShaderModule module;
