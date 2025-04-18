@@ -274,7 +274,7 @@ class SampleApp final : public Application {
 
  private:
   bool setup() final {
-    wm_->setTitle("09 - అంచున నివసిస్తున్నారు");
+    wm_->setTitle("09 - una riga alla volta");
 
     /* Setup the ArcBall camera. */
     {
@@ -294,7 +294,6 @@ class SampleApp final : public Application {
     /* Load a glTF Scene. */
     std::string const gltf_filename{ASSETS_DIR "models/"
       "DamagedHelmet.glb"
-      // "simple_kaidou.glb"
     };
 
     auto gltf_scene = renderer_.load_and_upload(gltf_filename, {
