@@ -100,6 +100,13 @@ class Context {
     return buffer;
   }
 
+  void transfer_host_to_device(void const* host_data, size_t const host_data_size, backend::Buffer const& device_buffer, size_t const device_buffer_offset = 0u) const {
+    auto cmd{ create_transient_command_encoder(TargetQueue::Transfer) };
+    cmd.transfer_host_to_device(host_data, host_data_size, device_buffer, device_buffer_offset);
+    finish_transient_command_encoder(cmd);
+  }
+
+
  private:
   bool has_extension(std::string_view const& name, std::vector<VkExtensionProperties> const& extensions) const {
     for (auto const& ext : extensions) {
