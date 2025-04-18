@@ -16,6 +16,7 @@
     http://imdoingitwrong.wordpress.com/2010/08/19/why-reinhard-desaturates-my-blacks-3/
     http://mynameismjp.wordpress.com/2010/04/30/a-closer-look-at-tone-mapping/
     http://renderwonk.com/publications/s2010-color-course/
+    https://github.com/KhronosGroup/ToneMapping/
 */
 // ----------------------------------------------------------------------------
 
@@ -28,6 +29,7 @@
 #define TONEMAPPING_FILMIC            6
 #define TONEMAPPING_FILMIC_ACES       7
 #define TONEMAPPING_UNCHARTED         8
+#define TONEMAPPING_PBR_NEUTRAL       9
 
 // ----------------------------------------------------------------------------
 
@@ -120,6 +122,27 @@ vec3 uncharted2ToneMapping(vec3 color, float exposure, float gamma) {
   return color;
 }
 
+// Input color is non-negative and resides in the Linear Rec. 709 color space.
+// Output color is also Linear Rec. 709, but in the [0, 1] range.
+vec3 pbrNeutralToneMapping( vec3 color ) {
+  const float startCompression = 0.8 - 0.04;
+  const float desaturation = 0.15;
+
+  float x = min(color.r, min(color.g, color.b));
+  float offset = x < 0.08 ? x - 6.25 * x * x : 0.04;
+  color -= offset;
+
+  float peak = max(color.r, max(color.g, color.b));
+  if (peak < startCompression) return color;
+
+  const float d = 1. - startCompression;
+  float newPeak = 1. - d * d / (peak + d - startCompression);
+  color *= newPeak / peak;
+
+  float g = 1. - 1. / (desaturation * (peak - newPeak) + 1.);
+  return mix(color, newPeak * vec3(1, 1, 1), g);
+}
+
 // ----------------------------------------------------------------------------
 
 vec3 toneMapping(int mode, in vec3 color, float exposure, float gamma) {
@@ -147,6 +170,9 @@ vec3 toneMapping(int mode, in vec3 color, float exposure, float gamma) {
 
     case TONEMAPPING_UNCHARTED:
       return uncharted2ToneMapping(color, exposure, gamma);
+
+    case TONEMAPPING_PBR_NEUTRAL:
+      return pbrNeutralToneMapping(color);
 
     default:
     case TONEMAPPING_NONE:
