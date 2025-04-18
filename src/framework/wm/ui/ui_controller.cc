@@ -117,8 +117,8 @@ void UIController::setupStyles() {
   style.FrameBorderSize              = 1.0f;
   style.GrabRounding                 = 4.0f;
   style.IndentSpacing                = 12.0f;
-  style.Colors[ImGuiCol_WindowBg]    = srgb(0.2f, 0.2f, 0.2f, 1.0f);
-  style.Colors[ImGuiCol_MenuBarBg]   = srgb(0.2f, 0.2f, 0.2f, 1.0f);
+  style.Colors[ImGuiCol_WindowBg]    = srgb(0.2f, 0.2f, 0.2f, 0.33f);
+  style.Colors[ImGuiCol_MenuBarBg]   = srgb(0.2f, 0.2f, 0.2f, 0.75f);
   style.Colors[ImGuiCol_ScrollbarBg] = srgb(0.2f, 0.2f, 0.2f, 1.0f);
   style.Colors[ImGuiCol_PopupBg]     = srgb(0.14f, 0.14f, 0.14f, 1.0f);
   style.Colors[ImGuiCol_Border]      = srgb(0.4f, 0.4f, 0.4f, 0.5f);
@@ -281,6 +281,7 @@ void UIController::setupStyles() {
   ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(col.x, col.y, col.z, alpha));
 
   ImGui::DockSpace(dockspaceID, ImVec2(0.0f, 0.0f), dockspaceFlags);
+
   ImGui::PopStyleColor();
   ImGui::End();
 
