@@ -41,6 +41,7 @@ set(FRAMEWORK_PATH                  ${PROJECT_SOURCE_DIR}/framework)
 set(SAMPLES_PATH                    ${PROJECT_SOURCE_DIR}/samples)
 
 set(FRAMEWORK_SHADERS_DIR           ${FRAMEWORK_PATH}/shaders)
+set(FRAMEWORK_COMPILED_SHADERS_DIR  ${PROJECT_BINARY_DIR}/spirv)
 
 # -----------------------------------------------------------------------------
 # CMake settings.

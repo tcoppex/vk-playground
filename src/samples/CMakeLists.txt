@@ -42,6 +42,8 @@ function(add_simple_demo dirname)
 
   target_compile_definitions(${dirname} PRIVATE
     COMPILED_SHADERS_DIR="${SAMPLE_PATH}/shaders/spirv/"
+    FRAMEWORK_COMPILED_SHADERS_DIR="${FRAMEWORK_COMPILED_SHADERS_DIR}/" #!
+
     ASSETS_DIR="${PROJECT_ASSETS_DIR}/"
 
     # Define VK_NO_PROTOTYPES to avoid including Vulkan prototypes

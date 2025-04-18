@@ -6,7 +6,6 @@
 set(target vkframework)
 
 set(FRAMEWORK_ROOT_PATH             ${CMAKE_CURRENT_SOURCE_DIR})
-set(FRAMEWORK_COMPILED_SHADERS_DIR  ${PROJECT_BINARY_DIR}/spirv)
 
 # -----------------------------------------------------------------------------
 
