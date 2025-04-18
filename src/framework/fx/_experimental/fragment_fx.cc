@@ -6,7 +6,7 @@
 /* -------------------------------------------------------------------------- */
 
 std::string FragmentFx::GetMapScreenVertexShaderName() {
-  return std::string(FRAMEWORK_COMPILED_SHADERS_DIR "postprocess/passthrough.vert.glsl");
+  return std::string(FRAMEWORK_COMPILED_SHADERS_DIR "postprocess/mapscreen.vert.glsl");
 }
 
 /* -------------------------------------------------------------------------- */
