@@ -6,6 +6,7 @@
 #include "framework/backend/vk_utils.h"
 
 class RenderPassEncoder;
+class FxInterface;
 
 /* -------------------------------------------------------------------------- */
 
@@ -171,6 +172,8 @@ class CommandEncoder : public GenericCommandEncoder {
   }
 
   void blit_image_2d(backend::Image const& src, VkImageLayout src_layout, backend::Image const& dst, VkImageLayout dst_layout, VkExtent2D const& extent) const;
+
+  void blit(FxInterface const& fx_src, backend::RTInterface const& rt_dst) const;
 
   // --- Rendering ---
 
