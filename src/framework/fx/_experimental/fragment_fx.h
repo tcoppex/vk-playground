@@ -59,6 +59,24 @@ class FragmentFx : public GenericFx {
 
   virtual void createRenderTarget(VkExtent2D const dimension);
 
+  virtual GraphicsPipelineDescriptor_t getGraphicsPipelineDescriptor(std::vector<backend::ShaderModule> const& shaders) const {
+     return {
+      .vertex = {
+        .module = shaders[0u].module
+      },
+      .fragment = {
+        .module = shaders[1u].module,
+        .targets = {
+          { .format = render_target_->get_color_attachment().format },
+        }
+      },
+      .primitive = {
+        .topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+        .cullMode = VK_CULL_MODE_NONE,
+      },
+    };
+  }
+
   std::vector<DescriptorSetLayoutParams> getDescriptorSetLayoutParams() const override {
     return {
       {
