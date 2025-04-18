@@ -163,9 +163,9 @@ class SampleApp final : public Application {
     });
 
     auto shaders{context_.create_shader_modules(COMPILED_SHADERS_DIR, {
-      "vs_simple.glsl",
-      "vs_instanced.glsl",
-      "fs_simple.glsl",
+      "simple.vert.glsl",
+      "instanced.vert.glsl",
+      "simple.frag.glsl",
     })};
 
     /* Setup the pipelines. */

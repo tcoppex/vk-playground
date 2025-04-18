@@ -128,8 +128,8 @@ class SampleApp final : public Application {
     }
 
     auto shaders{context_.create_shader_modules(COMPILED_SHADERS_DIR, {
-      "vs_simple.glsl",
-      "fs_simple.glsl",
+      "simple.vert.glsl",
+      "simple.frag.glsl",
     })};
 
     /* Setup the graphics pipeline. */

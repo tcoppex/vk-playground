@@ -64,8 +64,8 @@ class SampleApp final : public Application {
 
     /* Load the precompiled shader modules (the '.spv' prefix is omitted). */
     auto const shaders{context_.create_shader_modules(COMPILED_SHADERS_DIR, {
-      "vs_simple.glsl",
-      "fs_simple.glsl",
+      "simple.vert.glsl",
+      "simple.frag.glsl",
     })};
 
     /* Setup the graphics pipeline.
