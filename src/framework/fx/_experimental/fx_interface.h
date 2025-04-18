@@ -38,11 +38,11 @@ class FxInterface {
     setBufferInputs({ input });
   }
 
-  virtual backend::Image const& getImageOutput(uint32_t index) const = 0;
+  virtual backend::Image const& getImageOutput(uint32_t index = 0u) const = 0;
 
   virtual std::vector<backend::Image> const& getImageOutputs() const = 0;
 
-  virtual backend::Buffer const& getBufferOutput(uint32_t index) const = 0;
+  virtual backend::Buffer const& getBufferOutput(uint32_t index = 0u) const = 0;
 
   virtual std::vector<backend::Buffer> const& getBufferOutputs() const = 0;
 
