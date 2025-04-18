@@ -174,17 +174,17 @@ void UIController::setupStyles() {
 
   // --------------
 
-  // const ImGuiDockNodeFlags dockFlags = ImGuiDockNodeFlags_PassthruCentralNode
-  //                                    | ImGuiDockNodeFlags_NoDockingInCentralNode
-  //                                    ;
-  // ImGuiID dockID = ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(), dockFlags);
+  const ImGuiDockNodeFlags dockFlags = ImGuiDockNodeFlags_PassthruCentralNode
+                                     | ImGuiDockNodeFlags_NoDockingInCentralNode
+                                     ;
+  ImGuiID dockID = ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(), dockFlags);
 
-  // if(!ImGui::DockBuilderGetNode(dockID)->IsSplitNode() && !ImGui::FindWindowByName("Viewport")) {
-  //   ImGui::DockBuilderDockWindow("Viewport", dockID);
-  //   ImGui::DockBuilderGetCentralNode(dockID)->LocalFlags |= ImGuiDockNodeFlags_NoTabBar;
-  //   ImGuiID leftID = ImGui::DockBuilderSplitNode(dockID, ImGuiDir_Left, 0.2f, nullptr, &dockID);
-  //   ImGui::DockBuilderDockWindow("Settings", leftID);
-  // }
+  if(!ImGui::DockBuilderGetNode(dockID)->IsSplitNode() && !ImGui::FindWindowByName("Viewport")) {
+    ImGui::DockBuilderDockWindow("Viewport", dockID);
+    ImGui::DockBuilderGetCentralNode(dockID)->LocalFlags |= ImGuiDockNodeFlags_NoTabBar;
+    ImGuiID leftID = ImGui::DockBuilderSplitNode(dockID, ImGuiDir_Right, 0.2f, nullptr, &dockID);
+    ImGui::DockBuilderDockWindow("Settings", leftID);
+  }
 
   // if(ImGui::BeginMainMenuBar()) {
   //   if(ImGui::BeginMenu("File")) {
