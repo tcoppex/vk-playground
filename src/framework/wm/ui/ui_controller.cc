@@ -135,8 +135,7 @@ void UIController::setupStyles() {
   to_change_nrm.push_back(ImGuiCol_TextSelectedBg);
   to_change_nrm.push_back(ImGuiCol_Separator);
   to_change_nrm.push_back(ImGuiCol_FrameBgActive);
-  for(auto c : to_change_nrm)
-  {
+  for(auto c : to_change_nrm) {
     style.Colors[c] = normal_color;
   }
 
@@ -148,8 +147,7 @@ void UIController::setupStyles() {
   to_change_act.push_back(ImGuiCol_ButtonActive);
   to_change_act.push_back(ImGuiCol_ResizeGripActive);
   to_change_act.push_back(ImGuiCol_SeparatorActive);
-  for(auto c : to_change_act)
-  {
+  for(auto c : to_change_act) {
     style.Colors[c] = active_color;
   }
 
@@ -161,8 +159,7 @@ void UIController::setupStyles() {
   to_change_hover.push_back(ImGuiCol_FrameBgHovered);
   to_change_hover.push_back(ImGuiCol_ResizeGripHovered);
   to_change_hover.push_back(ImGuiCol_SeparatorHovered);
-  for(auto c : to_change_hover)
-  {
+  for(auto c : to_change_hover) {
     style.Colors[c] = hovered_color;
   }
 
@@ -174,6 +171,123 @@ void UIController::setupStyles() {
   style.Colors[ImGuiCol_ModalWindowDimBg] = srgb(0.465f, 0.465f, 0.465f, 0.350f);
 
   ImGui::SetColorEditOptions(ImGuiColorEditFlags_Float | ImGuiColorEditFlags_PickerHueWheel);
+
+  // --------------
+
+  // const ImGuiDockNodeFlags dockFlags = ImGuiDockNodeFlags_PassthruCentralNode
+  //                                    | ImGuiDockNodeFlags_NoDockingInCentralNode
+  //                                    ;
+  // ImGuiID dockID = ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(), dockFlags);
+
+  // if(!ImGui::DockBuilderGetNode(dockID)->IsSplitNode() && !ImGui::FindWindowByName("Viewport")) {
+  //   ImGui::DockBuilderDockWindow("Viewport", dockID);
+  //   ImGui::DockBuilderGetCentralNode(dockID)->LocalFlags |= ImGuiDockNodeFlags_NoTabBar;
+  //   ImGuiID leftID = ImGui::DockBuilderSplitNode(dockID, ImGuiDir_Left, 0.2f, nullptr, &dockID);
+  //   ImGui::DockBuilderDockWindow("Settings", leftID);
+  // }
+
+  // if(ImGui::BeginMainMenuBar()) {
+  //   if(ImGui::BeginMenu("File")) {
+  //     // if(ImGui::MenuItem("vSync", "", &m_vSync))
+  //     //   m_swapchain.needToRebuild();  // Recreate the swapchain with the new vSync setting
+
+  //     ImGui::Separator();
+
+  //     // if(ImGui::MenuItem("Exit"))
+  //     //   glfwSetWindowShouldClose(m_window, true);
+
+  //     ImGui::EndMenu();
+  //   }
+  //   ImGui::EndMainMenuBar();
+  // }
+
+  // // We define "viewport" with no padding an retrieve the rendering area
+  // ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+  // ImGui::Begin("Viewport");
+  // ImGui::End();
+  // ImGui::PopStyleVar();
+
+  // --------------
+
+  // [Docker code originally from NvPro samples]
+
+  // ImGuiID Panel::dockspaceID{0};
+
+  // Keeping the unique ID of the dock space
+  ImGuiID dockspaceID = ImGui::GetID("DockSpace");
+
+  // The dock need a dummy window covering the entire viewport.
+  ImGuiViewport* viewport = ImGui::GetMainViewport();
+  ImGui::SetNextWindowPos(viewport->WorkPos);
+  ImGui::SetNextWindowSize(viewport->WorkSize);
+  ImGui::SetNextWindowViewport(viewport->ID);
+
+  // All flags to dummy window
+  ImGuiWindowFlags host_window_flags{};
+  host_window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize;
+  host_window_flags |= ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDocking;
+  host_window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+  host_window_flags |= ImGuiWindowFlags_NoBackground;
+
+  // Starting dummy window
+  char label[32];
+  ImFormatString(label, IM_ARRAYSIZE(label), "DockSpaceViewport_%08X", viewport->ID);
+  ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+  ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+  ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+  ImGui::Begin(label, nullptr, host_window_flags);
+  ImGui::PopStyleVar(3);
+
+  // The central node is transparent, so that when UI is draw after, the image is visible
+  // Auto Hide Bar, no title of the panel
+  // Center is not dockable, that is for the scene
+  ImGuiDockNodeFlags dockspaceFlags = ImGuiDockNodeFlags_PassthruCentralNode
+                                    | ImGuiDockNodeFlags_AutoHideTabBar
+                                    | ImGuiDockNodeFlags_NoDockingOverCentralNode
+                                    ;
+
+  // Building the splitting of the dock space is done only once
+  if (!ImGui::DockBuilderGetNode(dockspaceID))
+  {
+    ImGui::DockBuilderRemoveNode(dockspaceID);
+    ImGui::DockBuilderAddNode(dockspaceID, dockspaceFlags | ImGuiDockNodeFlags_DockSpace);
+    ImGui::DockBuilderSetNodeSize(dockspaceID, viewport->Size);
+
+    ImGuiID dock_main_id = dockspaceID;
+
+    // Slitting all 4 directions, targetting (320 pixel * DPI) panel width, (180 pixel * DPI) panel height.
+    const float xRatio = 0.5f; // clamp<float>(320.0f * getDPIScale() / viewport->WorkSize[0], 0.01f, 0.499f);
+    const float yRatio = 0.5f; // clamp<float>(180.0f * getDPIScale() / viewport->WorkSize[1], 0.01f, 0.499f);
+
+    // Note, for right, down panels, we use the n / (1 - n) formula to correctly split the space remaining from the left, up panels.
+    ImGuiID id_left, id_right, id_up, id_down;
+    id_left  = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, xRatio, nullptr, &dock_main_id);
+    id_right = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Right, xRatio / (1 - xRatio), nullptr, &dock_main_id);
+    id_up    = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Up, yRatio, nullptr, &dock_main_id);
+    id_down  = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Down, yRatio / (1 - yRatio), nullptr, &dock_main_id);
+
+    ImGui::DockBuilderDockWindow("Dock_left", id_left);
+    ImGui::DockBuilderDockWindow("Dock_right", id_right);
+    ImGui::DockBuilderDockWindow("Dock_up", id_up);
+    ImGui::DockBuilderDockWindow("Dock_down", id_down);
+    ImGui::DockBuilderDockWindow("Scene", dock_main_id);
+
+    ImGui::DockBuilderFinish(dock_main_id);
+  }
+
+  // Setting the panel to blend with alpha
+  float const alpha = 0.33;
+  ImVec4 col = ImGui::GetStyleColorVec4(ImGuiCol_WindowBg);
+  ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(col.x, col.y, col.z, alpha));
+
+  ImGui::DockSpace(dockspaceID, ImVec2(0.0f, 0.0f), dockspaceFlags);
+  ImGui::PopStyleColor();
+  ImGui::End();
+
+  // The panel
+  if (alpha < 1.0) {
+    ImGui::SetNextWindowBgAlpha(alpha);
+  }
 }
 
 /* -------------------------------------------------------------------------- */
