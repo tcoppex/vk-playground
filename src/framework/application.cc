@@ -30,11 +30,12 @@ int Application::run() {
         glfwGetWindowContentScale(reinterpret_cast<GLFWwindow*>(wm_->get_handle()), &xscale, &yscale);
         ImGui::GetIO().FontGlobalScale = xscale;
       }
-
       setup_ui();
-      frame();
+      ImGui::Render();
     }
     ui_->endFrame();
+
+    frame();
   }
 
   shutdown();
