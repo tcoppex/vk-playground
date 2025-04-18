@@ -139,7 +139,7 @@ class CommandEncoder : public GenericCommandEncoder {
     copy_buffer(src, 0, dst, 0, size);
   }
 
-  void upload_host_to_device(void const* host_data, size_t const host_data_size, backend::Buffer const& device_buffer, size_t const device_buffer_offset) const;
+  void transfer_host_to_device(void const* host_data, size_t const host_data_size, backend::Buffer const& device_buffer, size_t const device_buffer_offset = 0u) const;
 
   backend::Buffer create_buffer_and_upload(void const* host_data, size_t const host_data_size, VkBufferUsageFlags2KHR const usage, size_t const device_buffer_offset = 0u, size_t const device_buffer_size = 0u) const;
 

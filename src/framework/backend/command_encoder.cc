@@ -179,7 +179,7 @@ void CommandEncoder::blit(FxInterface const& fx_src, backend::RTInterface const&
 
 // ----------------------------------------------------------------------------
 
-void CommandEncoder::upload_host_to_device(void const* host_data, size_t const host_data_size, backend::Buffer const& device_buffer, size_t const device_buffer_offset) const {
+void CommandEncoder::transfer_host_to_device(void const* host_data, size_t const host_data_size, backend::Buffer const& device_buffer, size_t const device_buffer_offset) const {
   assert(host_data != nullptr);
   assert(host_data_size > 0u);
 
@@ -208,7 +208,7 @@ backend::Buffer CommandEncoder::create_buffer_and_upload(void const* host_data, 
     VMA_MEMORY_USAGE_GPU_ONLY
   )};
 
-  upload_host_to_device(host_data, host_data_size, device_buffer, device_buffer_offset);
+  transfer_host_to_device(host_data, host_data_size, device_buffer, device_buffer_offset);
 
   return device_buffer;
 }
