@@ -46,6 +46,8 @@ struct UniformData {
 struct PushConstant {
   Model model;
   mat4 viewMatrix;
+  vec3 cameraPosition;
+  UINT padding;
 };
 
 // ---------------------------------------------------------------------------

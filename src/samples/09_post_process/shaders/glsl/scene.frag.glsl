@@ -34,11 +34,10 @@ void main() {
     discard;
   }
 
-  float alpha = 1.0f; // diffuse.w;
+  float alpha = diffuse.w;
   fragColor = vec4(diffuse.xyz, alpha);
 
-  vec3 cameraPos = - vec3(pushConstant.viewMatrix[3].xyz); //
-  float depth = length(vWorldPosition - cameraPos);
+  float depth = length(vWorldPosition - pushConstant.cameraPosition);
 
   fragData.xy = encodeNormal(normalize(vNormal));
   fragData.z = depth;
@@ -48,6 +47,7 @@ void main() {
   // vec3 normalColor = 0.5f * (vNormal + 1.0f);
   // fragColor = vec4(normalColor, 1.0f);
   // fragColor = vec4(vTexcoord.xy, 0.0, 1.0);
+  // fragColor.rgb = vec3(depth);
 }
 
 // ----------------------------------------------------------------------------

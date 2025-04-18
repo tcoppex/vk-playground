@@ -25,7 +25,7 @@ namespace shader_interop {
 /**
  * Simple render pass for gltf objects, creating two texture outputs :
  *  - RGBA_32F Color Texture,
- *  - RGBA_32F Data texture (XY Normal + Z Depth + W ObjectId).
+ *  - RGBA_32F Data Texture (XY Normal + Z Depth + W ObjectId).
 **/
 class SceneFx final : public FragmentFx {
  private:
@@ -190,6 +190,10 @@ class SceneFx final : public FragmentFx {
     world_matrix_ = world_matrix;
   }
 
+  void setCameraPosition(vec3 const& camera_position) {
+    push_constant_.cameraPosition = camera_position;
+  }
+
   void setViewMatrix(mat4 const& view_matrix) {
     push_constant_.viewMatrix = view_matrix;
   }
@@ -261,7 +265,6 @@ class ToonFxPipeline final : public TFxPipeline<SceneFx> {
   }
 };
 
-
 /* -------------------------------------------------------------------------- */
 
 class SampleApp final : public Application {
@@ -332,6 +335,7 @@ class SampleApp final : public Application {
       };
 
       auto sceneFx = toon_pipeline_.getEntryFx();
+      sceneFx->setCameraPosition(camera_.position());
       sceneFx->setViewMatrix(camera_.view());
       sceneFx->setWorldMatrix(world_matrix);
     }
