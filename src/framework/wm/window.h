@@ -30,6 +30,10 @@ class Window : public WMInterface {
     return surface_h_;
   }
 
+  void* get_handle() const noexcept final {
+    return window_;
+  }
+
  public:
   std::vector<char const*> getVulkanInstanceExtensions() const noexcept final;
 

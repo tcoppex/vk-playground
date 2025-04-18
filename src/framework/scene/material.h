@@ -10,6 +10,8 @@ namespace scene {
 
 struct Material {
   std::string name{};
+  uint32_t index{};
+
   vec4f baseColor{vec4f(1.0f)};
   std::shared_ptr<Image> albedoTexture{};
   std::shared_ptr<Image> ormTexture{};

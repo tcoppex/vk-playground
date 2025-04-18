@@ -41,6 +41,7 @@ set(FRAMEWORK_PATH                  ${PROJECT_SOURCE_DIR}/framework)
 set(SAMPLES_PATH                    ${PROJECT_SOURCE_DIR}/samples)
 
 set(FRAMEWORK_SHADERS_DIR           ${FRAMEWORK_PATH}/shaders)
+set(FRAMEWORK_COMPILED_SHADERS_DIR  ${PROJECT_BINARY_DIR}/spirv)
 
 # -----------------------------------------------------------------------------
 # CMake settings.
@@ -270,6 +271,26 @@ CPMAddPackage(
 )
 set(VMA_INCLUDE_DIR  ${VulkanMemoryAllocator_SOURCE_DIR}/include)
 
+#include ImGui
+CPMAddPackage(
+  NAME imgui
+  GITHUB_REPOSITORY ocornut/imgui
+  GIT_TAG docking
+)
+set(IMGUI_SOURCES
+  ${imgui_SOURCE_DIR}/imgui.cpp
+  ${imgui_SOURCE_DIR}/imgui.h
+  ${imgui_SOURCE_DIR}/imgui_demo.cpp
+  ${imgui_SOURCE_DIR}/imgui_draw.cpp
+  ${imgui_SOURCE_DIR}/imgui_tables.cpp
+  ${imgui_SOURCE_DIR}/imgui_widgets.cpp
+  ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.cpp
+  ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.h
+  ${imgui_SOURCE_DIR}/backends/imgui_impl_vulkan.cpp
+  ${imgui_SOURCE_DIR}/backends/imgui_impl_vulkan.h
+)
+source_group("Imgui" FILES ${IMGUI_SOURCES})
+
 # Include linalg
 CPMAddPackage(
   NAME linalg
@@ -297,6 +318,7 @@ list(APPEND SharedIncludeDirs
   ${VMA_INCLUDE_DIR}
   ${VOLK_INCLUDE_DIR}
   ${Vulkan_INCLUDE_DIR}
+  ${imgui_SOURCE_DIR}
 )
 
 # -----------------------------------------------------------------------------

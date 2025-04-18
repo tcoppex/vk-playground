@@ -1,4 +1,7 @@
 #include "framework/backend/command_encoder.h"
+#include "framework/fx/_experimental/fx_interface.h"
+
+#include <backends/imgui_impl_vulkan.h> //
 
 /* -------------------------------------------------------------------------- */
 
@@ -49,6 +52,9 @@ void GenericCommandEncoder::pipeline_image_barriers(std::vector<VkImageMemoryBar
     bb.dstAccessMask       = (bb.dstAccessMask == 0u) ? dst_access : bb.dstAccessMask;
     bb.srcQueueFamilyIndex = (bb.srcQueueFamilyIndex == 0u) ? VK_QUEUE_FAMILY_IGNORED : bb.srcQueueFamilyIndex; //
     bb.dstQueueFamilyIndex = (bb.dstQueueFamilyIndex == 0u) ? VK_QUEUE_FAMILY_IGNORED : bb.dstQueueFamilyIndex; //
+    bb.subresourceRange    = (bb.subresourceRange.aspectMask == 0u) ? VkImageSubresourceRange{VK_IMAGE_ASPECT_COLOR_BIT, 0u, 1u, 0u, 1u}
+                                                                    : bb.subresourceRange
+                                                                    ;
   }
   VkDependencyInfo const dependency{
     .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
@@ -81,10 +87,8 @@ void CommandEncoder::copy_buffer(backend::Buffer const& src, size_t src_offset, 
 
 void CommandEncoder::transition_images_layout(std::vector<backend::Image> const& images, VkImageLayout const src_layout, VkImageLayout const dst_layout) const {
   VkImageMemoryBarrier2 const barrier2{
-    .sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-    .oldLayout           = src_layout,
-    .newLayout           = dst_layout,
-    .subresourceRange    = {VK_IMAGE_ASPECT_COLOR_BIT, 0u, 1u, 0u, 1u},
+    .oldLayout = src_layout,
+    .newLayout = dst_layout,
   };
   std::vector<VkImageMemoryBarrier2> barriers(images.size(), barrier2);
   for (size_t i = 0u; i < images.size(); ++i) {
@@ -95,29 +99,118 @@ void CommandEncoder::transition_images_layout(std::vector<backend::Image> const&
 
 // ----------------------------------------------------------------------------
 
-backend::Buffer CommandEncoder::create_buffer_and_upload(void const* host_data, size_t const host_data_size, VkBufferUsageFlags2KHR const usage, size_t device_buffer_offset, size_t const device_buffer_size) const {
+void CommandEncoder::blit_image_2d(backend::Image const& src, VkImageLayout src_layout, backend::Image const& dst, VkImageLayout dst_layout, VkExtent2D const& extent) const {
+  VkImageSubresourceLayers const subresource{
+    .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+    .mipLevel = 0u,
+    .baseArrayLayer = 0u,
+    .layerCount = 1u,
+  };
+  VkOffset3D const offsets[2u]{
+    {
+      .x = 0,
+      .y = 0,
+      .z = 0
+    },
+    {
+      .x = static_cast<int32_t>(extent.width),
+      .y = static_cast<int32_t>(extent.height),
+      .z = 1
+    }
+  };
+  VkImageBlit const blit_region{
+    .srcSubresource = subresource,
+    .srcOffsets = { offsets[0], offsets[1] },
+    .dstSubresource = subresource,
+    .dstOffsets = { offsets[0], offsets[1] },
+  };
+
+  // transition_dst_layout must be either:
+  //    * VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR,
+  //    * VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL or
+  //    * VK_IMAGE_LAYOUT_GENERAL
+  VkImageLayout const transition_src_layout{ VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL };
+  VkImageLayout const transition_dst_layout{ VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL };
+
+  pipeline_image_barriers({
+    {
+      .oldLayout = src_layout,
+      .newLayout = transition_src_layout,
+      .image = src.image,
+    },
+    {
+      .oldLayout = dst_layout,
+      .newLayout = transition_dst_layout,
+      .image = dst.image,
+    },
+  });
+
+  vkCmdBlitImage(
+    command_buffer_,
+    src.image, transition_src_layout,
+    dst.image, transition_dst_layout,
+    1u, &blit_region,
+    VK_FILTER_LINEAR
+  );
+
+  pipeline_image_barriers({
+    {
+      .oldLayout = transition_src_layout,
+      .newLayout = src_layout,
+      .image = src.image,
+    },
+    {
+      .oldLayout = transition_dst_layout,
+      .newLayout = dst_layout,
+      .image = dst.image,
+    },
+  });
+}
+
+// ----------------------------------------------------------------------------
+
+void CommandEncoder::blit(FxInterface const& fx_src, backend::RTInterface const& rt_dst) const {
+  blit_image_2d(
+    fx_src.getImageOutput(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+    rt_dst.get_color_attachment(), VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+    rt_dst.get_surface_size()
+  );
+}
+
+// ----------------------------------------------------------------------------
+
+void CommandEncoder::transfer_host_to_device(void const* host_data, size_t const host_data_size, backend::Buffer const& device_buffer, size_t const device_buffer_offset) const {
+  assert(host_data != nullptr);
+  assert(host_data_size > 0u);
+
+  // ----------------
+  // [TODO] Staging buffers need cleaning / garbage collection !
+  auto staging_buffer{
+    allocator_->create_staging_buffer(host_data_size, host_data)   //
+  };
+  // ----------------
+
+  copy_buffer(staging_buffer, 0u, device_buffer, device_buffer_offset, host_data_size);
+}
+
+// ----------------------------------------------------------------------------
+
+backend::Buffer CommandEncoder::create_buffer_and_upload(void const* host_data, size_t const host_data_size, VkBufferUsageFlags2KHR const usage, size_t const device_buffer_offset, size_t const device_buffer_size) const {
   assert(host_data != nullptr);
   assert(host_data_size > 0u);
 
   size_t const buffer_bytesize = (device_buffer_size > 0) ? device_buffer_size : host_data_size;
   assert(host_data_size <= buffer_bytesize);
 
-  // ----------------
-  // [TODO] Staging buffers need cleaning / garbage collection !
-  auto staging_buffer{
-    allocator_->create_staging_buffer(buffer_bytesize, host_data, host_data_size)   //
-  };
-  // ----------------
-
-  auto buffer{allocator_->create_buffer(
+  auto device_buffer{allocator_->create_buffer(
     static_cast<VkDeviceSize>(buffer_bytesize),
     usage | VK_BUFFER_USAGE_2_TRANSFER_DST_BIT_KHR,
     VMA_MEMORY_USAGE_GPU_ONLY
   )};
 
-  copy_buffer(staging_buffer, 0u, buffer, device_buffer_offset, host_data_size);
+  transfer_host_to_device(host_data, host_data_size, device_buffer, device_buffer_offset);
 
-  return buffer;
+  return device_buffer;
 }
 
 // ----------------------------------------------------------------------------
@@ -125,6 +218,7 @@ backend::Buffer CommandEncoder::create_buffer_and_upload(void const* host_data, 
 RenderPassEncoder CommandEncoder::begin_rendering(RenderPassDescriptor const& desc) const {
   VkRenderingInfoKHR const rendering_info{
     .sType                = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR,
+    .flags                = 0,
     .renderArea           = desc.renderArea,
     .layerCount           = 1u,
     .colorAttachmentCount = static_cast<uint32_t>(desc.colorAttachments.size()),
@@ -140,28 +234,19 @@ RenderPassEncoder CommandEncoder::begin_rendering(RenderPassDescriptor const& de
 // ----------------------------------------------------------------------------
 
 RenderPassEncoder CommandEncoder::begin_rendering(backend::RTInterface const& render_target) {
-  assert( render_target.get_color_attachment_count() == 1u );
+  // assert( render_target.get_color_attachment_count() == 1u );
+
+  auto const& colors = render_target.get_color_attachments();
 
   /* Dynamic rendering required color images to be in color_attachment layout. */
   transition_images_layout(
-    {
-      {.image = render_target.get_color_attachment().image},
-    },
+    colors,
     VK_IMAGE_LAYOUT_UNDEFINED,
     VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
   );
 
-  auto pass_encoder = begin_rendering({
-    .colorAttachments = {
-      {
-        .sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
-        .imageView   = render_target.get_color_attachment().view,
-        .imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR,
-        .loadOp      = VK_ATTACHMENT_LOAD_OP_CLEAR,
-        .storeOp     = VK_ATTACHMENT_STORE_OP_STORE,
-        .clearValue  = render_target.get_color_clear_value(),
-      }
-    },
+  RenderPassDescriptor rp_desc{
+    .colorAttachments = {},
     .depthAttachment = {
       .sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
       .imageView   = render_target.get_depth_stencil_attachment().view,
@@ -179,11 +264,32 @@ RenderPassEncoder CommandEncoder::begin_rendering(backend::RTInterface const& re
       .clearValue  = render_target.get_depth_stencil_clear_value(),
     },
     .renderArea = {{0, 0}, render_target.get_surface_size()},
+  };
+
+  rp_desc.colorAttachments.resize(colors.size(), {
+    .sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
+    .imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR,
+    .storeOp     = VK_ATTACHMENT_STORE_OP_STORE,
   });
+
+  for (size_t i = 0u; i < colors.size(); ++i) {
+    auto& attach = rp_desc.colorAttachments[i];
+    attach.imageView  = colors[i].view;
+    attach.loadOp     = render_target.get_color_load_op(i);
+    attach.clearValue = render_target.get_color_clear_value(i);
+  }
+
+  auto pass_encoder = begin_rendering(rp_desc);
 
   current_render_target_ptr_ = &render_target;
 
   return pass_encoder;
+}
+
+// ----------------------------------------------------------------------------
+
+RenderPassEncoder CommandEncoder::begin_rendering(std::shared_ptr<backend::RTInterface> render_target) {
+  return begin_rendering(*render_target);
 }
 
 // ----------------------------------------------------------------------------
@@ -199,15 +305,17 @@ void CommandEncoder::end_rendering() {
   vkCmdEndRendering(command_buffer_);
 
   if (current_render_target_ptr_ != nullptr) [[likely]] {
-    assert( current_render_target_ptr_->get_color_attachment_count() == 1u );
+    // assert( current_render_target_ptr_->get_color_attachment_count() == 1u ); //
 
+    // Automatically transition the image depending on the render target.
+    VkImageLayout const dst_layout{
+      (default_render_target_ptr_ == current_render_target_ptr_) ? VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+                                                                 : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+    };
     transition_images_layout(
-      {
-        {.image = current_render_target_ptr_->get_color_attachment().image},
-      },
+      current_render_target_ptr_->get_color_attachments(),
       VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-      // VK_IMAGE_LAYOUT_GENERAL
-      VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+      dst_layout
     );
 
     current_render_target_ptr_ = nullptr;
@@ -238,6 +346,19 @@ RenderPassEncoder CommandEncoder::begin_render_pass(backend::RPInterface const& 
 
 void CommandEncoder::end_render_pass() const {
   vkCmdEndRenderPass(command_buffer_);
+}
+
+// ----------------------------------------------------------------------------
+
+void CommandEncoder::draw_ui(backend::RTInterface &render_target) {
+  auto const load_op = render_target.get_color_load_op();
+  render_target.set_color_load_op(VK_ATTACHMENT_LOAD_OP_LOAD);
+
+  begin_rendering(render_target);
+  ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), command_buffer_);
+  end_rendering();
+
+  render_target.set_color_load_op(load_op);
 }
 
 /* -------------------------------------------------------------------------- */

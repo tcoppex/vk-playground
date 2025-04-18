@@ -81,6 +81,10 @@ std::tuple<VkPipelineStageFlags2, VkAccessFlags2> MakePipelineStageAccessTuple(V
                            | VK_PIPELINE_STAGE_2_PRE_RASTERIZATION_SHADERS_BIT,
                              VK_ACCESS_2_SHADER_READ_BIT);
 
+    case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+      return std::make_tuple(VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+                             VK_ACCESS_2_TRANSFER_READ_BIT);
+
     case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
       return std::make_tuple(VK_PIPELINE_STAGE_2_TRANSFER_BIT,
                              VK_ACCESS_2_TRANSFER_WRITE_BIT);

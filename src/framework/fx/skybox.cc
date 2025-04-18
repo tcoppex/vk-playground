@@ -1,6 +1,6 @@
 /* -------------------------------------------------------------------------- */
 
-#include "framework/scene/skybox.h"
+#include "framework/fx/skybox.h"
 
 #include "framework/backend/context.h"
 #include "framework/renderer/renderer.h"

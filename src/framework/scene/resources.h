@@ -14,10 +14,13 @@
 class Context;
 class ResourceAllocator;
 
-namespace scene {
-
 /* -------------------------------------------------------------------------- */
 
+namespace scene {
+
+///
+/// Might be renamed 'GltfScene'
+///
 struct Resources {
   template<typename T> using ResourceMap = std::unordered_map<std::string, std::shared_ptr<T>>;
 
@@ -57,8 +60,10 @@ struct Resources {
   void upload_to_device(Context const& context);
 };
 
+}  // namespace scene
+
 /* -------------------------------------------------------------------------- */
 
-}  // namespace scene
+using GLTFScene = std::shared_ptr<scene::Resources>;
 
 #endif // HELLO_VK_FRAMEWORK_SCENE_RESOURCES_H

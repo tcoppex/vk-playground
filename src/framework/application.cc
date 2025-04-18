@@ -1,4 +1,5 @@
 #include "framework/application.h"
+
 #include "framework/wm/events.h"
 #include "framework/wm/window.h"
 
@@ -8,6 +9,7 @@ int Application::run() {
   if (!presetup() || !setup()) {
     return EXIT_FAILURE;
   }
+  context_.get_resource_allocator()->clear_staging_buffers();
 
   auto &events{ Events::Get() };
   auto const nextFrame{[this, &events]() {
@@ -19,6 +21,19 @@ int Application::run() {
     float tick = get_elapsed_time();
     last_frame_time_ = frame_time_;
     frame_time_ = tick;
+
+    ui_->beginFrame();
+    {
+      // OnViewportSizeChange
+      {
+        float xscale, yscale;
+        glfwGetWindowContentScale(reinterpret_cast<GLFWwindow*>(wm_->get_handle()), &xscale, &yscale);
+        ImGui::GetIO().FontGlobalScale = xscale;
+      }
+      setup_ui();
+      ImGui::Render();
+    }
+    ui_->endFrame();
 
     frame();
   }
@@ -40,7 +55,7 @@ bool Application::presetup() {
   }
 
   /* Create the main window surface. */
-  if (wm_ = std::make_unique<Window>(); !wm_->init()) {
+  if (wm_ = std::make_shared<Window>(); !wm_ || !wm_->init()) {
     return false;
   }
 
@@ -56,6 +71,11 @@ bool Application::presetup() {
 
   /* Init the default renderer. */
   renderer_.init(context_, context_.get_resource_allocator(), surface_);
+
+  /* Initialize User Interface. */
+  if (ui_ = std::make_shared<UIController>(); !ui_ || !ui_->init(context_, renderer_, wm_)) {
+    return false;
+  }
 
   /* Miscs */
   {
@@ -79,8 +99,11 @@ void Application::shutdown() {
   // User defined clean up.
   release();
 
+  ui_->release(context_);
+
   renderer_.deinit();
   vkDestroySurfaceKHR(context_.get_instance(), surface_, nullptr);
+
   glfwTerminate();
   context_.deinit();
 

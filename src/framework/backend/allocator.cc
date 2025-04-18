@@ -161,11 +161,13 @@ void ResourceAllocator::create_image_with_view(VkImageCreateInfo const& image_in
 // ----------------------------------------------------------------------------
 
 void ResourceAllocator::destroy_image(backend::Image *image) const {
-  vmaDestroyImage(allocator_, image->image, image->allocation);
-  image->image = VK_NULL_HANDLE;
-  if (image->view != VK_NULL_HANDLE) {
-    vkDestroyImageView(device_, image->view, nullptr);
+  if (image && image->image != VK_NULL_HANDLE) {
+    vmaDestroyImage(allocator_, image->image, image->allocation);
     image->image = VK_NULL_HANDLE;
+    if (image->view != VK_NULL_HANDLE) {
+      vkDestroyImageView(device_, image->view, nullptr);
+      image->view = VK_NULL_HANDLE;
+    }
   }
 }
 

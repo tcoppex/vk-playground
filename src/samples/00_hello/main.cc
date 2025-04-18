@@ -73,7 +73,7 @@ class SampleApp final : public Application {
           .clearValue  = {{{0.25f, 0.75f, 0.5f, 1.0f}}},
         }
       },
-      .depthStencilAttachment = {
+      .depthAttachment = {
         .sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
         .imageView   = renderer_.get_depth_stencil_attachment().view,
         .imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR,

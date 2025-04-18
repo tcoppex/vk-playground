@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <array>
 #include <concepts>
+#include <filesystem> //
 #include <iostream> //
 #include <iterator> // For std::back_inserter
 #include <memory>
@@ -32,6 +33,9 @@ using namespace lina::aliases;
 /* -------------------------------------------------------------------------- */
 
 /* -- c++ features -- */
+
+template<typename T, typename U>
+concept DerivedFrom = std::is_base_of_v<U, T>;
 
 template<typename T>
 concept SpanConvertible = requires(T t) { std::span(t); };

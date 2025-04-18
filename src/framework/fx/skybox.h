@@ -1,12 +1,12 @@
-#ifndef HELLO_VK_FRAMEWORK_SCENE_SKYBOX_H
-#define HELLO_VK_FRAMEWORK_SCENE_SKYBOX_H
+#ifndef HELLO_VK_FRAMEWORK_FX_SKYBOX_H_
+#define HELLO_VK_FRAMEWORK_FX_SKYBOX_H_
 
 #include "framework/common.h"
 
 #include "framework/backend/command_encoder.h"
 #include "framework/renderer/pipeline.h"
 #include "framework/scene/mesh.h"
-#include "framework/scene/envmap.h"
+#include "framework/fx/envmap.h"
 
 namespace shader_interop::skybox {
 #include "framework/shaders/skybox/interop.h"
@@ -64,4 +64,4 @@ class Skybox {
 
 /* -------------------------------------------------------------------------- */
 
-#endif // HELLO_VK_FRAMEWORK_SCENE_SKYBOX_H
+#endif // HELLO_VK_FRAMEWORK_FX_SKYBOX_H_

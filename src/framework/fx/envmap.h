@@ -1,5 +1,5 @@
-#ifndef HELLO_VK_FRAMEWORK_SCENE_ENVMAP_H
-#define HELLO_VK_FRAMEWORK_SCENE_ENVMAP_H
+#ifndef HELLO_VK_FRAMEWORK_FX_ENVMAP_H_
+#define HELLO_VK_FRAMEWORK_FX_ENVMAP_H_
 
 #include "framework/common.h"
 
@@ -93,4 +93,4 @@ class Envmap {
 
 /* -------------------------------------------------------------------------- */
 
-#endif // HELLO_VK_FRAMEWORK_SCENE_ENVMAP_H
+#endif // HELLO_VK_FRAMEWORK_FX_ENVMAP_H_

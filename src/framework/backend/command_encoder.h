@@ -6,6 +6,7 @@
 #include "framework/backend/vk_utils.h"
 
 class RenderPassEncoder;
+class FxInterface;
 
 /* -------------------------------------------------------------------------- */
 
@@ -90,6 +91,10 @@ class GenericCommandEncoder {
     vkCmdBindPipeline(command_buffer_, pipeline.get_bind_point(), pipeline.get_handle());
   }
 
+  void bind_pipeline(backend::PipelineInterface const& pipeline) const {
+    vkCmdBindPipeline(command_buffer_, pipeline.get_bind_point(), pipeline.get_handle());
+  }
+
   // --- Pipeline Barrier ---
 
   void pipeline_buffer_barriers(std::vector<VkBufferMemoryBarrier2> barriers) const;
@@ -99,7 +104,7 @@ class GenericCommandEncoder {
   // --- Compute ---
 
   template<uint32_t tX = 1u, uint32_t tY = 1u, uint32_t tZ = 1u>
-  void dispatch(uint32_t x = 1u, uint32_t y = 1u, uint32_t z = 1u) {
+  void dispatch(uint32_t x = 1u, uint32_t y = 1u, uint32_t z = 1u) const {
     vkCmdDispatch(command_buffer_,
       vkutils::GetKernelGridDim(x, tX),
       vkutils::GetKernelGridDim(y, tY),
@@ -134,10 +139,12 @@ class CommandEncoder : public GenericCommandEncoder {
     copy_buffer(src, 0, dst, 0, size);
   }
 
-  backend::Buffer create_buffer_and_upload(void const* host_data, size_t const host_data_size, VkBufferUsageFlags2KHR const usage, size_t device_buffer_offset = 0u, size_t const device_buffer_size = 0u) const;
+  void transfer_host_to_device(void const* host_data, size_t const host_data_size, backend::Buffer const& device_buffer, size_t const device_buffer_offset = 0u) const;
+
+  backend::Buffer create_buffer_and_upload(void const* host_data, size_t const host_data_size, VkBufferUsageFlags2KHR const usage, size_t const device_buffer_offset = 0u, size_t const device_buffer_size = 0u) const;
 
   template<typename T> requires (SpanConvertible<T>)
-  backend::Buffer create_buffer_and_upload(T const& host_data, VkBufferUsageFlags2KHR const usage = {}, size_t device_buffer_offset = 0u, size_t const device_buffer_size = 0u) const {
+  backend::Buffer create_buffer_and_upload(T const& host_data, VkBufferUsageFlags2KHR const usage = {}, size_t const device_buffer_offset = 0u, size_t const device_buffer_size = 0u) const {
     auto const host_span{ std::span(host_data) };
     size_t const bytesize{ sizeof(typename decltype(host_span)::element_type) * host_span.size() };
     return create_buffer_and_upload(host_span.data(), bytesize, usage, device_buffer_offset, device_buffer_size);
@@ -164,17 +171,28 @@ class CommandEncoder : public GenericCommandEncoder {
     vkCmdCopyBufferToImage(command_buffer_, src.buffer, dst.image, image_layout, 1u, &copy);
   }
 
+  void blit_image_2d(backend::Image const& src, VkImageLayout src_layout, backend::Image const& dst, VkImageLayout dst_layout, VkExtent2D const& extent) const;
+
+  void blit(FxInterface const& fx_src, backend::RTInterface const& rt_dst) const;
+
   // --- Rendering ---
 
   /* Dynamic rendering. */
   RenderPassEncoder begin_rendering(RenderPassDescriptor const& desc) const;
   RenderPassEncoder begin_rendering(backend::RTInterface const& render_target);
+  RenderPassEncoder begin_rendering(std::shared_ptr<backend::RTInterface> render_target);
   RenderPassEncoder begin_rendering();
   void end_rendering();
 
   /* Legacy rendering. */
   RenderPassEncoder begin_render_pass(backend::RPInterface const& render_pass) const;
   void end_render_pass() const;
+
+
+  // --- UI ----
+
+  void draw_ui(backend::RTInterface &render_target); 
+
 
  protected:
   CommandEncoder() = default;

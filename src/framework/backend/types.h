@@ -152,14 +152,17 @@ struct RTInterface {
 
   virtual VkClearValue get_depth_stencil_clear_value() const = 0;
 
-  // -- Setters --
+  virtual VkAttachmentLoadOp get_color_load_op(uint32_t i = 0u) const = 0;
 
-  // [TODO]
-  // virtual void resize(VkExtent2D const extent) = 0;
+  // -- Setters --
 
   virtual void set_color_clear_value(VkClearColorValue clear_color, uint32_t i = 0u) = 0;
 
   virtual void set_depth_stencil_clear_value(VkClearDepthStencilValue clear_depth_stencil) = 0;
+
+  virtual void set_color_load_op(VkAttachmentLoadOp load_op, uint32_t i = 0u) = 0;
+
+  // virtual void resize(VkExtent2D const extent) = 0;
 };
 
 // ----------------------------------------------------------------------------
@@ -188,8 +191,8 @@ struct RPInterface {
 
 struct RenderPassDescriptor {
   std::vector<VkRenderingAttachmentInfo> colorAttachments{};
-  VkRenderingAttachmentInfo depthAttachment{};
-  VkRenderingAttachmentInfo stencilAttachment{};
+  VkRenderingAttachmentInfo depthAttachment{.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR};
+  VkRenderingAttachmentInfo stencilAttachment{.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR};
   VkRect2D renderArea{};
 };
 

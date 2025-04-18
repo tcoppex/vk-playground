@@ -53,6 +53,10 @@ class Context {
     return resource_allocator_;
   }
 
+  void wait_device_idle() const {
+    CHECK_VK(vkDeviceWaitIdle(device_));
+  }
+
   // --- Image ---
 
   backend::Image create_image_2d(uint32_t width, uint32_t height, uint32_t layer_count, VkFormat const format, VkImageUsageFlags const extra_usage = {}) const;
@@ -60,8 +64,10 @@ class Context {
   // --- Shader Module ---
 
   backend::ShaderModule create_shader_module(std::string_view const& directory, std::string_view const& shader_name) const;
+  backend::ShaderModule create_shader_module(std::string_view const& filepath) const;
 
   std::vector<backend::ShaderModule> create_shader_modules(std::string_view const& directory, std::vector<std::string_view> const& shader_names) const;
+  std::vector<backend::ShaderModule> create_shader_modules(std::vector<std::string_view> const& filepaths) const;
 
   void release_shader_modules(std::vector<backend::ShaderModule> const& shaders) const;
 
@@ -93,6 +99,13 @@ class Context {
     finish_transient_command_encoder(cmd);
     return buffer;
   }
+
+  void transfer_host_to_device(void const* host_data, size_t const host_data_size, backend::Buffer const& device_buffer, size_t const device_buffer_offset = 0u) const {
+    auto cmd{ create_transient_command_encoder(TargetQueue::Transfer) };
+    cmd.transfer_host_to_device(host_data, host_data_size, device_buffer, device_buffer_offset);
+    finish_transient_command_encoder(cmd);
+  }
+
 
  private:
   bool has_extension(std::string_view const& name, std::vector<VkExtensionProperties> const& extensions) const {

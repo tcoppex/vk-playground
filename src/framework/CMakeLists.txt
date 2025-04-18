@@ -6,7 +6,6 @@
 set(target vkframework)
 
 set(FRAMEWORK_ROOT_PATH             ${CMAKE_CURRENT_SOURCE_DIR})
-set(FRAMEWORK_COMPILED_SHADERS_DIR  ${PROJECT_BINARY_DIR}/spirv)
 
 # -----------------------------------------------------------------------------
 
@@ -53,6 +52,9 @@ target_compile_definitions(${target} PRIVATE
   VK_NO_PROTOTYPES
   _USE_MATH_DEFINES
 )
+
+target_sources(${target} PRIVATE ${IMGUI_SOURCES})
+target_compile_definitions(${target} PRIVATE IMGUI_IMPL_VULKAN_USE_VOLK)
 
 target_compile_options(${target} PRIVATE
   "${CXX_FLAGS}"

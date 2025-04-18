@@ -198,7 +198,7 @@ vec3 sample_sphere_out(float radius, vec2 rn) {
 // ref : https://web.archive.org/web/20240707031450/ +
 //       http://holger.dammertz.org/stuff/notes_HammersleyOnHemisphere.html
 
-float radicalInverse_VdC(highp uint bits) {
+float radicalInverse_VdC(uint bits) {
   bits = (bits << 16u) | (bits >> 16u);
   bits = ((bits & 0x55555555u) << 1u) | ((bits & 0xAAAAAAAAu) >> 1u);
   bits = ((bits & 0x33333333u) << 2u) | ((bits & 0xCCCCCCCCu) >> 2u);
@@ -308,6 +308,26 @@ float gaussian(float sigma, float x_mu) {
 
 vec3 gaussian(vec3 sigma, vec3 x_mu) {
   return exp(-(x_mu * x_mu) / (2.0 * sigma * sigma)) / (2.5066282 * abs(sigma));
+}
+
+// ----------------------------------------------------------------------------
+
+// Normal Encoding / Decoding.
+// ref: https://aras-p.info/texts/CompactNormalStorage.html
+
+vec2 encodeNormal(vec3 n) {
+  float p = sqrt(n.z * 8.0 + 8.0);
+  return vec2(n.xy / p + 0.5);
+}
+
+vec3 decodeNormal(vec2 encoded) {
+  vec2 f_encoded = 4.0 * encoded - 2.0;
+  float f = dot(f_encoded, f_encoded);
+  float g = sqrt(1 - f / 4);
+  vec3 n;
+  n.xy = f_encoded * g;
+  n.z  = 1.0 - 0.5 * f;
+  return normalize(n);
 }
 
 // ----------------------------------------------------------------------------

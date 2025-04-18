@@ -4,9 +4,9 @@
 
 # :fire: vk-playground :fire:
 
-A simple c++20 / Vulkan 1.1 rendering framework, flavored like 1.4, inspired by WebGPU and _vk_minimal_latest_.
+A c++20 / Vulkan 1.1 rendering framework flavored like 1.4 and inspired by WebGPU.
 
-Runs on GNU/Linux and Windows 11, compiled with _GCC 11.4_ and _MSVC 19.38_.
+Runs on GNU / Linux and Windows 11, compiled with _GCC 11.4_ and _MSVC 19.38_.
 
 <details>
   <summary><strong>Quick start & run !</strong></summary>
@@ -50,6 +50,7 @@ cmake --build build --config Release
 * **[06_blend_op](src/samples/06_blend_op)**: Fast & simple billboarded GPU particles with additive blend operation (_Blending_).
 * **[07_compute](src/samples/07_compute)**: Waves simulation with sorted alpha-blended particles (_Compute Pipeline, Buffer Barriers_).
 * **[08_hdr_envmap](src/samples/08_hdr_envmap)**: Image based lighting via convoluted HDR envmap (_Texture Barriers_).
+* **[09_post_process](src/samples/09_post_process)**: Screen-space contour effect via a post-processing pipeline.
 
 ### Dependencies
 
@@ -61,6 +62,7 @@ cmake --build build --config Release
  * GLFW 3.4 (_via CPM_)
  * Volk 1.4 (_via CPM_)
  * VulkanMemoryAllocator 3.2.0 (_via CPM_)
+ * ImGUI (_via CPM_)
  * linalg v2.2 (_via CPM_)
  * stb_image.h (_included_)
 

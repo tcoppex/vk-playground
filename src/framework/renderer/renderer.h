@@ -7,14 +7,12 @@
 #include "framework/backend/swapchain.h"
 #include "framework/backend/command_encoder.h"
 #include "framework/renderer/pipeline.h"
-
 #include "framework/scene/resources.h" //
 
-/* -------------------------------------------------------------------------- */
+#include "framework/renderer/_experimental/framebuffer.h" // (for Framebuffer::Descriptor_t)
+#include "framework/renderer/_experimental/render_target.h" // (for RenderTarget::Descriptor_t)
+// class RenderTarget;
 
-// class Context;
-class RenderTarget;
-class Framebuffer;
 
 /* -------------------------------------------------------------------------- */
 
@@ -48,6 +46,9 @@ class Renderer : public backend::RTInterface {
 
   void end_frame();
 
+  Swapchain const& get_swapchain() const {
+    return swapchain_;
+  }
 
  public:
   /* ----- Factory ----- */
@@ -56,9 +57,15 @@ class Renderer : public backend::RTInterface {
 
   std::shared_ptr<RenderTarget> create_render_target() const;
 
+  std::shared_ptr<RenderTarget> create_render_target(RenderTarget::Descriptor_t const& desc) const;
+
+  std::shared_ptr<RenderTarget> create_default_render_target(uint32_t num_color_outputs = 1u) const;
+
   // --- Framebuffer (Legacy Rendering) ---
 
   std::shared_ptr<Framebuffer> create_framebuffer() const;
+
+  std::shared_ptr<Framebuffer> create_framebuffer(Framebuffer::Descriptor_t const& desc) const;
 
   // --- Pipeline Layout ---
 
@@ -109,6 +116,8 @@ class Renderer : public backend::RTInterface {
     return linear_sampler_;
   }
 
+  // --- Resources gltf objects ---
+
   std::shared_ptr<scene::Resources> load_and_upload(std::string_view gltf_filename, scene::Mesh::AttributeLocationMap const& attribute_to_location);
 
  public:
@@ -144,6 +153,10 @@ class Renderer : public backend::RTInterface {
     return depth_stencil_clear_value_;
   }
 
+  VkAttachmentLoadOp get_color_load_op(uint32_t i = 0u) const {
+    return color_load_op_;
+  }
+
   void set_color_clear_value(VkClearColorValue clear_color, uint32_t i = 0u) final {
     color_clear_value_.color = clear_color;
   }
@@ -152,8 +165,12 @@ class Renderer : public backend::RTInterface {
     depth_stencil_clear_value_.depthStencil = clear_depth_stencil;
   }
 
+  void set_color_load_op(VkAttachmentLoadOp load_op, uint32_t i = 0u) {
+    color_load_op_ = load_op;
+  }
+
  private:
-  inline VkFormat get_valid_depth_format() const {
+  VkFormat get_valid_depth_format() const {
     return VK_FORMAT_D24_UNORM_S8_UINT; // VK_FORMAT_D16_UNORM; //
   }
 
@@ -200,6 +217,7 @@ class Renderer : public backend::RTInterface {
   /* Miscs resources */
   VkClearValue color_clear_value_{kDefaultColorClearValue};
   VkClearValue depth_stencil_clear_value_{{{1.0f, 0u}}};
+  VkAttachmentLoadOp color_load_op_{VK_ATTACHMENT_LOAD_OP_CLEAR};
 
   // Reference to the current CommandEncoder returned by 'begin_frame'
   CommandEncoder cmd_{}; //

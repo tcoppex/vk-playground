@@ -323,6 +323,11 @@ void ExtractMaterials(std::string const& basename, std::unordered_map<void const
 
     R.materials[material_name] = std::move(material);
   }
+
+  uint32_t matid = 0u;
+  for (auto& [key, material] : R.materials) {
+    material->index = matid++;
+  }
 }
 
 void ExtractMeshes(std::string const& basename, std::unordered_map<void const*, std::string> const& material_map, cgltf_data const* data, scene::Resources& R) {
@@ -408,7 +413,7 @@ void ExtractMeshes(std::string const& basename, std::unordered_map<void const*, 
       LOGW("[GLTF] A Mesh was bypassed due to unsupported features.");
       continue;
     }
-    LOGD(">> total vertices : %u\n", total_vertex_count);
+    // LOGD(">> total vertices : %u", total_vertex_count);
 
     auto mesh = std::make_shared<scene::Mesh>();
 
@@ -837,15 +842,17 @@ bool Resources::load_from_file(std::string_view const& filename) {
   ExtractAnimations(basename, data, *this);
 
 #ifndef NDEBUG
-  std::cout << "Image count : " << images.size() << std::endl;
-  std::cout << "Material count : " << materials.size() << std::endl;
+  // std::cout << "Image count : " << images.size() << std::endl;
+  // std::cout << "Material count : " << materials.size() << std::endl;
 
-  std::cout << "Skeleton count : " << skeletons.size() << std::endl;
-  std::cout << "Animation count : " << animations.size() << std::endl;
-  std::cout << "Mesh count : " << meshes.size() << std::endl;
+  // std::cout << "Skeleton count : " << skeletons.size() << std::endl;
+  // std::cout << "Animation count : " << animations.size() << std::endl;
+  // std::cout << "Mesh count : " << meshes.size() << std::endl;
 #endif
 
   cgltf_free(data);
+
+  std::cerr << " ----------------- gltf loaded ----------------- " << std::endl;
 
   return true;
 }
@@ -868,10 +875,10 @@ void Resources::initialize_submesh_descriptors(Mesh::AttributeLocationMap const&
     mesh->initialize_submesh_descriptors(attribute_to_location);
   }
 
-  uint32_t const kMegabyte{ 1024u * 1024u };
-  LOGI("> vertex buffer size %f Mb", vertex_buffer_size / static_cast<float>(kMegabyte));
-  LOGI("> index buffer size %f Mb ", index_buffer_size / static_cast<float>(kMegabyte));
-  LOGI("> total image size %f Mb ", total_image_size / static_cast<float>(kMegabyte));
+  // uint32_t const kMegabyte{ 1024u * 1024u };
+  // LOGI("> vertex buffer size %f Mb", vertex_buffer_size / static_cast<float>(kMegabyte));
+  // LOGI("> index buffer size %f Mb ", index_buffer_size / static_cast<float>(kMegabyte));
+  // LOGI("> total image size %f Mb ", total_image_size / static_cast<float>(kMegabyte));
 }
 
 // ----------------------------------------------------------------------------

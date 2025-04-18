@@ -11,6 +11,8 @@
 #include "framework/wm/event_callbacks.h"
 #include "framework/wm/wm_interface.h"
 
+#include "framework/wm/ui/ui_controller.h"
+
 /* -------------------------------------------------------------------------- */
 
 class Application : public EventCallbacks {
@@ -34,6 +36,7 @@ class Application : public EventCallbacks {
  protected:
   virtual bool setup() { return true; }
   virtual void release() {}
+  virtual void setup_ui() {}
   virtual void frame() {}
 
  private:
@@ -41,17 +44,18 @@ class Application : public EventCallbacks {
   void shutdown();
 
  protected:
-  std::unique_ptr<WMInterface> wm_;
-  Context context_;
-  Renderer renderer_;
+  std::shared_ptr<WMInterface> wm_{};
+  Context context_{};
+  Renderer renderer_{};
 
   VkExtent2D viewport_size_{};
 
+  std::shared_ptr<UIController> ui_{};
+
  private:
-  VkSurfaceKHR surface_{}; //
+  VkSurfaceKHR surface_{};
 
   std::chrono::time_point<std::chrono::high_resolution_clock> chrono_{};
-
   float frame_time_{};
   float last_frame_time_{};
 };

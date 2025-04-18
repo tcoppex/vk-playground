@@ -10,7 +10,7 @@
 
 #include "framework/scene/camera.h"
 #include "framework/scene/arcball_controller.h"
-#include "framework/scene/skybox.h"
+#include "framework/fx/skybox.h"
 
 namespace shader_interop {
 #include "shaders/interop.h"

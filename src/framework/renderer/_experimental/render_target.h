@@ -25,65 +25,82 @@ class RenderTarget : public backend::RTInterface {
     VkSampleCountFlagBits sample_count{VK_SAMPLE_COUNT_1_BIT};
   };
 
+  static constexpr VkImageUsageFlags kDefaultImageUsageFlags{
+      VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
+    | VK_IMAGE_USAGE_SAMPLED_BIT
+    | VK_IMAGE_USAGE_STORAGE_BIT
+    | VK_IMAGE_USAGE_TRANSFER_SRC_BIT
+    | VK_IMAGE_USAGE_TRANSFER_DST_BIT
+  };
+
  public:
   ~RenderTarget() {}
+
+  void setup(Descriptor_t const& desc);
 
   void release();
 
   // [TODO: rework and remove context from args]
   // (might be put inside a generic command encoder to resize similar objects)
-  void resize(Context const& context, VkExtent2D const extent); //
+  void resize(VkExtent2D const extent); //
 
  public:
   // ----- RTInterface Overrides -----
 
-  inline VkExtent2D get_surface_size() const final {
+  VkExtent2D get_surface_size() const final {
     return extent_;
   }
 
-  inline uint32_t get_color_attachment_count() const final {
+  uint32_t get_color_attachment_count() const final {
     return static_cast<uint32_t>(colors_.size());
   }
 
-  inline std::vector<backend::Image> const& get_color_attachments() const final {
+  std::vector<backend::Image> const& get_color_attachments() const final {
     return colors_;
   }
 
-  inline backend::Image const& get_color_attachment(uint32_t i = 0) const final {
+  backend::Image const& get_color_attachment(uint32_t i = 0u) const final {
     return colors_.at(i);
   }
 
-  inline backend::Image const& get_depth_stencil_attachment() const final {
+  backend::Image const& get_depth_stencil_attachment() const final {
     return depth_stencil_;
   }
 
   VkClearValue get_color_clear_value(uint32_t i = 0u) const final {
-    return color_clear_values_.at(i);
+    return color_clear_values_[i];
   }
 
   VkClearValue get_depth_stencil_clear_value() const final {
     return depth_stencil_clear_value_;
   }
 
+  VkAttachmentLoadOp get_color_load_op(uint32_t i = 0u) const {
+    return color_load_ops_[i];
+  }
+
   void set_color_clear_value(VkClearColorValue clear_color, uint32_t i = 0u) final {
-    color_clear_values_.at(i).color = clear_color;
+    color_clear_values_[i].color = clear_color;
   }
 
   void set_depth_stencil_clear_value(VkClearDepthStencilValue clear_depth_stencil) final {
     depth_stencil_clear_value_.depthStencil = clear_depth_stencil;
   }
 
+  void set_color_load_op(VkAttachmentLoadOp load_op, uint32_t i = 0u) final {
+    color_load_ops_[i] = load_op;
+  }
+
  private:
-  RenderTarget(Context const& context, std::shared_ptr<ResourceAllocator> allocator, Descriptor_t const& desc);
+  RenderTarget(Context const& context);
 
   friend class Renderer;
 
  private:
-  VkDevice device_{};
-  std::shared_ptr<ResourceAllocator> allocator_{};
+  Context const* context_ptr_{};
 
   VkExtent2D extent_{};
-  VkSampleCountFlagBits sample_count_{VK_SAMPLE_COUNT_1_BIT};
+  // VkSampleCountFlagBits sample_count_{VK_SAMPLE_COUNT_1_BIT};
   // VkSampler sampler_{};
 
   std::vector<backend::Image> colors_{};
@@ -91,6 +108,8 @@ class RenderTarget : public backend::RTInterface {
 
   std::vector<VkClearValue> color_clear_values_{};
   VkClearValue depth_stencil_clear_value_{};
+
+  std::vector<VkAttachmentLoadOp> color_load_ops_{};
 };
 
 /* -------------------------------------------------------------------------- */

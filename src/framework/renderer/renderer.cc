@@ -1,10 +1,15 @@
 #include "framework/renderer/renderer.h"
 #include "framework/backend/context.h"
 
-#include "framework/renderer/render_target.h"
-#include "framework/renderer/framebuffer.h"
+#include "framework/renderer/_experimental/render_target.h" //
 
 #include "stb/stb_image.h" //
+
+/* -------------------------------------------------------------------------- */
+
+char const* kDefaulShaderEntryPoint{
+  "main"
+};
 
 /* -------------------------------------------------------------------------- */
 
@@ -207,46 +212,43 @@ void Renderer::end_frame() {
 
 // ----------------------------------------------------------------------------
 
-std::shared_ptr<RenderTarget> Renderer::create_render_target() const {
-  assert(device_ != VK_NULL_HANDLE);
 
-  return std::shared_ptr<RenderTarget>(new RenderTarget(
-    *ctx_ptr_,
-    allocator_,
-    {
-      .color_formats = { VK_FORMAT_R8G8B8A8_UNORM },
-      .depth_stencil_format = get_valid_depth_format(),
-      .size = swapchain_.get_surface_size(),
-      .sampler = linear_sampler_,
-    }
-  ));
+std::shared_ptr<RenderTarget> Renderer::create_render_target() const {
+  return std::shared_ptr<RenderTarget>(new RenderTarget(*ctx_ptr_));
+}
+
+std::shared_ptr<RenderTarget> Renderer::create_render_target(RenderTarget::Descriptor_t const& desc) const {
+  if (auto rt = create_render_target(); rt) {
+    rt->setup(desc);
+    return rt;
+  }
+  return nullptr;
+}
+
+std::shared_ptr<RenderTarget> Renderer::create_default_render_target(uint32_t num_color_outputs) const {
+  RenderTarget::Descriptor_t desc{
+    .color_formats = {},
+    .depth_stencil_format = get_valid_depth_format(),
+    .size = swapchain_.get_surface_size(),
+    .sampler = linear_sampler_,
+  };
+  desc.color_formats.resize(num_color_outputs, get_color_attachment().format);
+
+  return create_render_target(desc);
 }
 
 // ----------------------------------------------------------------------------
 
 std::shared_ptr<Framebuffer> Renderer::create_framebuffer() const {
-  assert(device_ != VK_NULL_HANDLE);
+  return std::shared_ptr<Framebuffer>(new Framebuffer(*ctx_ptr_, swapchain_));
+}
 
-  Framebuffer::Descriptor_t desc{
-    .dimension = swapchain_.get_surface_size(),
-    .color_format = swapchain_.get_color_format(),
-    .depth_format = get_valid_depth_format(),
-    .image_views = {},
-  };
-
-  // Create one color framebuffer output per swapchain images.
-  auto const& swap_images{ swapchain_.get_swap_images() };
-  desc.image_views.resize(swap_images.size());
-  for (size_t i = 0u; i < swap_images.size(); ++i) {
-    desc.image_views[i] = swap_images[i].view;
+std::shared_ptr<Framebuffer> Renderer::create_framebuffer(Framebuffer::Descriptor_t const& desc) const {
+  if (auto framebuffer = create_framebuffer(); framebuffer) {
+    framebuffer->setup(desc);
+    return framebuffer;
   }
-
-  return std::shared_ptr<Framebuffer>(new Framebuffer(
-    *ctx_ptr_,
-    allocator_,
-    &swapchain_.get_current_swap_index(),
-    desc
-  ));
+  return nullptr;
 }
 
 // ----------------------------------------------------------------------------
@@ -284,7 +286,10 @@ Pipeline Renderer::create_graphics_pipeline(VkPipelineLayout pipeline_layout, Gr
   assert( desc.vertex.module != VK_NULL_HANDLE );
   assert( desc.fragment.module != VK_NULL_HANDLE );
   // assert( !desc.vertex.buffers.empty() );
-  assert( !desc.fragment.targets.empty() );
+
+  if (desc.fragment.targets.empty()) {
+    LOGD("Warning : fragment targets were not specified for a graphic pipeline.");
+  }
   // assert( desc.fragment.targets[0].format != VK_FORMAT_UNDEFINED );
 
   // Default color blend attachment.
@@ -306,10 +311,15 @@ Pipeline Renderer::create_graphics_pipeline(VkPipelineLayout pipeline_layout, Gr
     }
   };
 
+  bool const useDynamicRendering{desc.renderPass == VK_NULL_HANDLE};
+
   /* Dynamic Rendering. */
   VkPipelineRenderingCreateInfo dynamic_rendering_create_info{};
-  std::vector<VkFormat> color_attachments(desc.fragment.targets.size());
+  std::vector<VkFormat> color_attachments{};
+  if (useDynamicRendering)
   {
+    color_attachments.resize(desc.fragment.targets.size());
+
     /* (~) If no depth format is setup, use the renderer's one. */
     VkFormat const depth_format{
       (desc.depthStencil.format != VK_FORMAT_UNDEFINED) ? desc.depthStencil.format
@@ -326,7 +336,7 @@ Pipeline Renderer::create_graphics_pipeline(VkPipelineLayout pipeline_layout, Gr
       /* (~) If no color format is setup, use the renderer's one. */
       VkFormat const color_format{
         (target.format != VK_FORMAT_UNDEFINED) ? target.format
-                                               : get_color_attachment(/*i*/).format
+                                               : get_color_attachment(i).format
       };
       color_attachments[i] = color_format;
 
@@ -353,7 +363,7 @@ Pipeline Renderer::create_graphics_pipeline(VkPipelineLayout pipeline_layout, Gr
 
   /* Shaders stages */
   auto getShaderEntryPoint{[](std::string const& entryPoint) -> char const* {
-    return entryPoint.empty() ? "main" : entryPoint.c_str();
+    return entryPoint.empty() ? kDefaulShaderEntryPoint : entryPoint.c_str();
   }};
   std::vector<VkPipelineShaderStageCreateInfo> shader_stages{
     {
@@ -490,7 +500,7 @@ Pipeline Renderer::create_graphics_pipeline(VkPipelineLayout pipeline_layout, Gr
 
   VkGraphicsPipelineCreateInfo const graphics_pipeline_create_info{
     .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
-    .pNext = &dynamic_rendering_create_info,
+    .pNext = useDynamicRendering ? &dynamic_rendering_create_info : nullptr,
     .stageCount = static_cast<uint32_t>(shader_stages.size()),
     .pStages = shader_stages.data(),
     .pVertexInputState = &vertex_input,
@@ -503,7 +513,7 @@ Pipeline Renderer::create_graphics_pipeline(VkPipelineLayout pipeline_layout, Gr
     .pColorBlendState = &color_blend,
     .pDynamicState = &dynamic_state_create_info,
     .layout = pipeline_layout,
-    // .renderPass = render_pass.get_render_pass(),
+    .renderPass = useDynamicRendering ? VK_NULL_HANDLE : desc.renderPass,
   };
 
   VkPipeline pipeline;
@@ -542,7 +552,7 @@ void Renderer::create_compute_pipelines(VkPipelineLayout pipeline_layout, std::v
       .sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
       .stage  = VK_SHADER_STAGE_COMPUTE_BIT,
       .module = VK_NULL_HANDLE,
-      .pName  = "main",
+      .pName  = kDefaulShaderEntryPoint,
     },
     .layout = pipeline_layout,
   });
