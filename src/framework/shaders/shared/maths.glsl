@@ -321,13 +321,13 @@ vec2 encodeNormal(vec3 n) {
 }
 
 vec3 decodeNormal(vec2 encoded) {
-  vec2 f_encoded = encoded * 4 - 2;
+  vec2 f_encoded = 4.0 * encoded - 2.0;
   float f = dot(f_encoded, f_encoded);
   float g = sqrt(1 - f / 4);
   vec3 n;
   n.xy = f_encoded * g;
-  n.z  = 1 - f / 2;
-  return n;
+  n.z  = 1.0 - 0.5 * f;
+  return normalize(n);
 }
 
 // ----------------------------------------------------------------------------

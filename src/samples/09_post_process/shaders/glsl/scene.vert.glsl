@@ -31,14 +31,15 @@ layout (location = 2) out vec3 vWorldPosition;
 void main() {
   mat4 worldMatrix = pushConstant.model.worldMatrix;
 
+  vec4 worldPos = worldMatrix * vec4(inPosition, 1.0);
+
+  vTexcoord      = inTexcoord.xy;
+  vNormal        = normalize(mat3(worldMatrix) * inNormal);
+  vWorldPosition = worldPos.xyz;
+
   mat4 viewProjMatrix = uData.scene.projectionMatrix
                       * pushConstant.viewMatrix
                       ;
-  vec4 worldPos = worldMatrix * vec4(inPosition, 1.0);
-
-  vNormal        = normalize(mat3(worldMatrix) * inNormal);
-  vTexcoord      = inTexcoord.xy;
-  vWorldPosition = worldPos.xyz;
 
   gl_Position = viewProjMatrix * worldPos;
 }
