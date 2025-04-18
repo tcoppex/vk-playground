@@ -9,6 +9,7 @@ int Application::run() {
   if (!presetup() || !setup()) {
     return EXIT_FAILURE;
   }
+  context_.get_resource_allocator()->clear_staging_buffers();
 
   auto &events{ Events::Get() };
   auto const nextFrame{[this, &events]() {
