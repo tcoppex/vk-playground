@@ -138,10 +138,12 @@ class CommandEncoder : public GenericCommandEncoder {
     copy_buffer(src, 0, dst, 0, size);
   }
 
-  backend::Buffer create_buffer_and_upload(void const* host_data, size_t const host_data_size, VkBufferUsageFlags2KHR const usage, size_t device_buffer_offset = 0u, size_t const device_buffer_size = 0u) const;
+  void upload_host_to_device(void const* host_data, size_t const host_data_size, backend::Buffer const& device_buffer, size_t const device_buffer_offset) const;
+
+  backend::Buffer create_buffer_and_upload(void const* host_data, size_t const host_data_size, VkBufferUsageFlags2KHR const usage, size_t const device_buffer_offset = 0u, size_t const device_buffer_size = 0u) const;
 
   template<typename T> requires (SpanConvertible<T>)
-  backend::Buffer create_buffer_and_upload(T const& host_data, VkBufferUsageFlags2KHR const usage = {}, size_t device_buffer_offset = 0u, size_t const device_buffer_size = 0u) const {
+  backend::Buffer create_buffer_and_upload(T const& host_data, VkBufferUsageFlags2KHR const usage = {}, size_t const device_buffer_offset = 0u, size_t const device_buffer_size = 0u) const {
     auto const host_span{ std::span(host_data) };
     size_t const bytesize{ sizeof(typename decltype(host_span)::element_type) * host_span.size() };
     return create_buffer_and_upload(host_span.data(), bytesize, usage, device_buffer_offset, device_buffer_size);
