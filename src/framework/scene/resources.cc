@@ -1064,22 +1064,19 @@ void Resources::initialize_submesh_descriptors(Mesh::AttributeLocationMap const&
   /* Calculate the offsets to indivual mesh data inside the shared vertices and indices buffers. */
   vertex_buffer_size = 0u;
   index_buffer_size = 0u;
+
   for (auto& mesh : meshes) {
-    uint32_t const vertex_size = mesh->get_vertices().size();
-    uint32_t const index_size = mesh->get_indices().size();
+    uint64_t const vertex_size = mesh->get_vertices().size();
+    uint64_t const index_size = mesh->get_indices().size();
+
     mesh->set_device_buffer_info({
       .vertex_offset = vertex_buffer_size,
-      .vertex_size = vertex_size,
       .index_offset = index_buffer_size,
+      .vertex_size = vertex_size,
       .index_size = index_size,
     });
     vertex_buffer_size += vertex_size;
     index_buffer_size += index_size;
-  }
-
-  /* Bind mesh attributes to pipeline locations. */
-  for (auto& mesh : meshes) {
-    mesh->initialize_submesh_descriptors(attribute_to_location);
   }
 
 #ifndef NDEBUG
@@ -1088,6 +1085,11 @@ void Resources::initialize_submesh_descriptors(Mesh::AttributeLocationMap const&
   // LOGI("> index buffer size %f Mb ", index_buffer_size / static_cast<float>(kMegabyte));
   // LOGI("> total image size %f Mb ", total_image_size / static_cast<float>(kMegabyte));
 #endif
+
+  /* Bind mesh attributes to pipeline locations. */
+  for (auto& mesh : meshes) {
+    mesh->initialize_submesh_descriptors(attribute_to_location);
+  }
 }
 
 // ----------------------------------------------------------------------------

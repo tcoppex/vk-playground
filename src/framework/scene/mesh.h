@@ -33,9 +33,9 @@ struct Mesh : Geometry {
 
   struct DeviceBufferInfo {
     uint64_t vertex_offset{}; // (should probably be an array of binding count size)
-    uint32_t vertex_size{}; //
     uint64_t index_offset{};
-    uint32_t index_size{};
+    uint64_t vertex_size{};
+    uint64_t index_size{};
   };
 
  public:
@@ -75,7 +75,7 @@ struct Mesh : Geometry {
   // ------------------------
 
  protected:
-  /* Offset from general buffers */
+  /* Offset from the mesh device buffers */
   DeviceBufferInfo device_buffer_info_;
 };
 
