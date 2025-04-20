@@ -1042,6 +1042,8 @@ bool Resources::load_from_file(std::string_view const& filename, bool bRestructu
     ExtractMeshes(basename, material_map, data, *this, bRestructureAttribs);
     ExtractAnimations(basename, data, *this);
 
+    reset_meshes_device_buffer_info();
+
 #ifndef NDEBUG
     // std::cout << "Image count : " << images.size() << std::endl;
     // std::cout << "Material count : " << materials.size() << std::endl;
@@ -1060,7 +1062,7 @@ bool Resources::load_from_file(std::string_view const& filename, bool bRestructu
 
 // ----------------------------------------------------------------------------
 
-void Resources::initialize_submesh_descriptors(Mesh::AttributeLocationMap const& attribute_to_location) {
+void Resources::reset_meshes_device_buffer_info() {
   /* Calculate the offsets to indivual mesh data inside the shared vertices and indices buffers. */
   vertex_buffer_size = 0u;
   index_buffer_size = 0u;
@@ -1085,7 +1087,9 @@ void Resources::initialize_submesh_descriptors(Mesh::AttributeLocationMap const&
   // LOGI("> index buffer size %f Mb ", index_buffer_size / static_cast<float>(kMegabyte));
   // LOGI("> total image size %f Mb ", total_image_size / static_cast<float>(kMegabyte));
 #endif
+}
 
+void Resources::initialize_submesh_descriptors(Mesh::AttributeLocationMap const& attribute_to_location) {
   /* Bind mesh attributes to pipeline locations. */
   for (auto& mesh : meshes) {
     mesh->initialize_submesh_descriptors(attribute_to_location);
