@@ -804,9 +804,10 @@ void Resources::release(std::shared_ptr<ResourceAllocator> allocator) {
 
 // ----------------------------------------------------------------------------
 
-bool Resources::load_from_file(std::string_view const& filename) {
-  utils::FileReader file;
+bool Resources::load_from_file(std::string_view const& filename, bool bRestructureAttribs) {
+  std::string const basename{ utils::ExtractBasename(filename) };
 
+  utils::FileReader file;
   if (!file.read(filename)) {
     return false;
   }
@@ -815,70 +816,72 @@ bool Resources::load_from_file(std::string_view const& filename) {
   cgltf_result result{};
   cgltf_data* data{};
 
-  result = cgltf_parse(&options, file.buffer.data(), file.buffer.size(), &data);
-  if (result != cgltf_result_success) {
-    LOGE("GLTF: failed to parse file \"%s\" %d.\n", filename.data(), result);
+  if (result = cgltf_parse(&options, file.buffer.data(), file.buffer.size(), &data); cgltf_result_success != result) {
+    LOGE("GLTF: failed to parse file \"%s\" %d.\n", basename.c_str(), result);
     return false;
   }
 
   result = cgltf_load_buffers(&options, data, filename.data());
-  if (result != cgltf_result_success) {
-    LOGE( "GLTF: failed to load buffers in \"%s\".\n", filename.data());
-    cgltf_free(data);
-    data = nullptr;
-    return false;
-  }
+  bool const bSuccess{ cgltf_result_success == result };
 
-  std::string const basename{ utils::ExtractBasename(filename) };
-  std::unordered_map<void const*, std::string> texture_map{};
-  std::unordered_map<void const*, std::string> material_map{};
+  if (bSuccess) [[likely]] {
+    PointerToStringMap_t texture_map{};
+    PointerToStringMap_t material_map{};
 
-  // (hack) prepass to give proper name to texture when they've got none.
-  // ExtractMaterials(basename, texture_map, material_map, data, *this);
+    // (hack) prepass to give proper name to texture when they've got none.
+    // ExtractMaterials(basename, texture_map, material_map, data, *this);
 
-  ExtractTextures(basename, texture_map, data, *this);
-  ExtractMaterials(basename, texture_map, material_map, data, *this);
-  ExtractMeshes(basename, material_map, data, *this);
-  ExtractAnimations(basename, data, *this);
+    ExtractTextures(basename, texture_map, data, *this);
+    ExtractMaterials(basename, texture_map, material_map, data, *this);
+    ExtractMeshes(basename, material_map, data, *this, bRestructureAttribs);
+    ExtractAnimations(basename, data, *this);
 
 #ifndef NDEBUG
-  // std::cout << "Image count : " << images.size() << std::endl;
-  // std::cout << "Material count : " << materials.size() << std::endl;
-
-  // std::cout << "Skeleton count : " << skeletons.size() << std::endl;
-  // std::cout << "Animation count : " << animations.size() << std::endl;
-  // std::cout << "Mesh count : " << meshes.size() << std::endl;
+    // std::cout << "Image count : " << images.size() << std::endl;
+    // std::cout << "Material count : " << materials.size() << std::endl;
+    // std::cout << "Skeleton count : " << skeletons.size() << std::endl;
+    // std::cout << "Animation count : " << animations.size() << std::endl;
+    // std::cout << "Mesh count : " << meshes.size() << std::endl;
+    // std::cerr << " ----------------- gltf loaded ----------------- " << std::endl;
 #endif
-
+  } else {
+    LOGE("GLTF: failed to load buffers in \"%s\" %d.\n", basename.c_str(), result);
+  }
   cgltf_free(data);
 
-  std::cerr << " ----------------- gltf loaded ----------------- " << std::endl;
-
-  return true;
+  return bSuccess;
 }
 
 // ----------------------------------------------------------------------------
 
 void Resources::initialize_submesh_descriptors(Mesh::AttributeLocationMap const& attribute_to_location) {
+  /* Calculate the offsets to indivual mesh data inside the shared vertices and indices buffers. */
   vertex_buffer_size = 0u;
   index_buffer_size = 0u;
-
   for (auto& mesh : meshes) {
-    mesh->vertex_offset = vertex_buffer_size;
-    mesh->index_offset = index_buffer_size;
-    mesh->vertex_size = mesh->get_vertices().size();
-    mesh->index_size = mesh->get_indices().size();
+    uint32_t const vertex_size = mesh->get_vertices().size();
+    uint32_t const index_size = mesh->get_indices().size();
+    mesh->set_device_buffer_info({
+      .vertex_offset = vertex_buffer_size,
+      .vertex_size = vertex_size,
+      .index_offset = index_buffer_size,
+      .index_size = index_size,
+    });
+    vertex_buffer_size += vertex_size;
+    index_buffer_size += index_size;
+  }
 
-    vertex_buffer_size += mesh->vertex_size;
-    index_buffer_size += mesh->index_size;
-
+  /* Bind mesh attributes to pipeline locations. */
+  for (auto& mesh : meshes) {
     mesh->initialize_submesh_descriptors(attribute_to_location);
   }
 
+#ifndef NDEBUG
   // uint32_t const kMegabyte{ 1024u * 1024u };
   // LOGI("> vertex buffer size %f Mb", vertex_buffer_size / static_cast<float>(kMegabyte));
   // LOGI("> index buffer size %f Mb ", index_buffer_size / static_cast<float>(kMegabyte));
   // LOGI("> total image size %f Mb ", total_image_size / static_cast<float>(kMegabyte));
+#endif
 }
 
 // ----------------------------------------------------------------------------

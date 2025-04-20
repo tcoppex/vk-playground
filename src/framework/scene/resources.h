@@ -18,11 +18,11 @@ class ResourceAllocator;
 
 namespace scene {
 
-///
-/// Might be renamed 'GltfScene'
-///
 struct Resources {
-  template<typename T> using ResourceMap = std::unordered_map<std::string, std::shared_ptr<T>>;
+  static bool constexpr kRestructureAttribs = true;
+
+  template<typename T>
+  using ResourceMap = std::unordered_map<std::string, std::shared_ptr<T>>;
 
   ResourceMap<Image> images{};
   ResourceMap<Material> materials{};
@@ -30,16 +30,15 @@ struct Resources {
   ResourceMap<Skeleton> skeletons{};
 
   std::vector<std::shared_ptr<Mesh>> meshes{}; //
-
   // std::vector<Sampler> samplers{}; //
 
-  // NOTE : I should rather extract image first, THEN textures (which are
-  //     Image + Samplers). I treat textures as images directly, which is bad.
+  // NOTE :
+  // we should rather extract image first, THEN textures (ie. Image + Samplers).
+  // Here we treat 'textures' as images directly, which is bad.
   std::vector<backend::Image> textures{}; //
 
   backend::Buffer vertex_buffer;
   backend::Buffer index_buffer;
-
 
   uint32_t vertex_buffer_size{0u};
   uint32_t index_buffer_size{0u};
@@ -53,7 +52,7 @@ struct Resources {
 
   void release(std::shared_ptr<ResourceAllocator> allocator);
 
-  bool load_from_file(std::string_view const& filename);
+  bool load_from_file(std::string_view const& filename, bool bRestructureAttribs = kRestructureAttribs);
 
   void initialize_submesh_descriptors(Mesh::AttributeLocationMap const& attribute_to_location);
 

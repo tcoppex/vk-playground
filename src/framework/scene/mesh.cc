@@ -17,10 +17,10 @@ void Mesh::initialize_submesh_descriptors(AttributeLocationMap const& attribute_
 
     submesh.draw_descriptor = {
       .vertexInput = create_vertex_input_descriptors(prim.bufferOffsets, attribute_to_location),
-      .indexOffset = index_offset + prim.indexOffset,
+      .indexOffset = device_buffer_info_.index_offset + prim.indexOffset, //
       .indexType = get_vk_index_type(),
       .indexCount = prim.indexCount,
-      .instanceCount = 1u,
+      .instanceCount = 1u, //
     };
   }
 }
@@ -115,19 +115,17 @@ VkFormat Mesh::get_vk_format(AttributeType const attrib_type) const {
 VertexInputDescriptor Mesh::create_vertex_input_descriptors(AttributeOffsetMap const& attribute_to_offset, AttributeLocationMap const& attribute_to_location) const {
   VertexInputDescriptor result{};
 
-  std::map<uint64_t, std::vector<AttributeType>> lut{};
-  for (auto const& kv : attribute_to_offset) {
-    lut[kv.second].push_back(kv.first);
+  std::map<uint64_t, std::vector<AttributeType>> offset_to_attributes{};
+  for (auto const& [attrib_type, attrib_offset] : attribute_to_offset) {
+    offset_to_attributes[attrib_offset].push_back(attrib_type);
   }
 
   uint32_t buffer_binding = 0u;
 
-  for (auto const& kv : lut) {
-    std::vector<AttributeType> const& types{ kv.second };
-
+  for (auto const& [attrib_offset, attrib_types] : offset_to_attributes) {
     /* Be sure any of the attributes asked for exist. */
     bool exists = false;
-    for (auto const& type : types) {
+    for (auto const& type : attrib_types) {
       exists |= attribute_to_location.contains(type);
     }
     if (!exists) {
@@ -135,8 +133,8 @@ VertexInputDescriptor Mesh::create_vertex_input_descriptors(AttributeOffsetMap c
     }
 
     /* The stride is shared between attributes of the same binding. */
-    uint32_t const buffer_stride = attributes_.find(types[0u])->second.stride;
-    uint64_t const buffer_offset = vertex_offset + kv.first; //
+    uint32_t const buffer_stride = get_stride(attrib_types[0u]);
+    uint64_t const buffer_offset = device_buffer_info_.vertex_offset + attrib_offset;
 
     result.vertexBufferOffsets.push_back(buffer_offset);
 
@@ -148,7 +146,7 @@ VertexInputDescriptor Mesh::create_vertex_input_descriptors(AttributeOffsetMap c
       .divisor = 1u,
     });
 
-    for (auto const& type : types) {
+    for (auto const& type : attrib_types) {
       if (auto it = attribute_to_location.find(type); it != attribute_to_location.end()) {
         result.attributes.push_back({
           .sType = VK_STRUCTURE_TYPE_VERTEX_INPUT_ATTRIBUTE_DESCRIPTION_2_EXT,

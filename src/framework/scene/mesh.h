@@ -31,6 +31,13 @@ struct Mesh : Geometry {
     DrawDescriptor draw_descriptor{};
   };
 
+  struct DeviceBufferInfo {
+    uint64_t vertex_offset{}; // (should probably be an array of binding count size)
+    uint32_t vertex_size{}; //
+    uint64_t index_offset{};
+    uint32_t index_size{};
+  };
+
  public:
   Mesh() = default;
 
@@ -48,22 +55,28 @@ struct Mesh : Geometry {
     return submeshes.at(index).draw_descriptor;
   }
 
- private:
+  void set_device_buffer_info(DeviceBufferInfo const& device_buffer_info) {
+    device_buffer_info_ = device_buffer_info;
+  }
 
+ private:
   VkFormat get_vk_format(AttributeType const attrib_type) const;
 
-  VertexInputDescriptor create_vertex_input_descriptors(AttributeOffsetMap const& attribute_to_offset, AttributeLocationMap const& attribute_to_location) const;
+  VertexInputDescriptor create_vertex_input_descriptors(
+    AttributeOffsetMap const& attribute_to_offset,
+    AttributeLocationMap const& attribute_to_location
+  ) const;
 
  public:
+  // ------------------------
   mat4f world_matrix{linalg::identity};
   std::shared_ptr<Skeleton> skeleton{};
   std::vector<SubMesh> submeshes{};
+  // ------------------------
 
+ protected:
   /* Offset from general buffers */
-  uint64_t vertex_offset{}; // (should probably be an array of binding count size)
-  uint32_t vertex_size{}; //
-  uint64_t index_offset{};
-  uint32_t index_size{};
+  DeviceBufferInfo device_buffer_info_;
 };
 
 /* -------------------------------------------------------------------------- */
