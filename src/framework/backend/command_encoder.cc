@@ -405,14 +405,16 @@ void RenderPassEncoder::set_viewport_scissor(VkRect2D const rect, bool flip_y) c
 // ----------------------------------------------------------------------------
 
 void RenderPassEncoder::draw(DrawDescriptor const& desc, backend::Buffer const& vertex_buffer, backend::Buffer const& index_buffer) const {
-  // [TODO] disable when vertex input is not dynamic.
-  set_vertex_input(desc.vertexInput);
+  auto const& vi{desc.vertexInput};
 
-  for (uint32_t i = 0u; i < desc.vertexInput.bindings.size(); ++i) {
-    bind_vertex_buffer(vertex_buffer, desc.vertexInput.bindings[i].binding, desc.vertexInput.vertexBufferOffsets[i]);
+  // [TODO] shoud be disabled when vertex input is not dynamic.
+  set_vertex_input(vi);
+
+  for (size_t i = 0; i < vi.bindings.size(); ++i) {
+    bind_vertex_buffer(vertex_buffer, vi.bindings[i].binding, vi.vertexBufferOffsets[i]);
   }
 
-  if (desc.indexCount > 0) [[likely]] {
+  if (desc.indexCount > 0u) [[likely]] {
     bind_index_buffer(index_buffer, desc.indexType, desc.indexOffset);
     draw_indexed(desc.indexCount, desc.instanceCount);
   } else {
