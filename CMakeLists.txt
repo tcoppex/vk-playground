@@ -255,6 +255,25 @@ CPMAddPackage(
 )
 set(CGLTF_INCLUDE_DIR ${cgltf_SOURCE_DIR})
 
+
+# Include Draco
+# see https://github.com/google/draco/blob/1.5.7/BUILDING.md#cmake-build-configuration
+option(FRAMEWORK_HAS_DRACO OFF)
+
+if(FRAMEWORK_HAS_DRACO)
+  CPMAddPackage(
+    NAME Draco
+    GITHUB_REPOSITORY google/draco
+    GIT_TAG 1.5.7
+    OPTIONS
+      "DRACO_TRANSCODER_SUPPORTED OFF"
+  )
+  set(DRACO_INCLUDE_DIR  ${Draco_SOURCE_DIR})
+
+  list(APPEND SharedIncludeDirs ${DRACO_INCLUDE_DIR})
+  list(APPEND SharedLibs draco)
+endif()
+
 # Include Volk
 CPMAddPackage(
   NAME volk

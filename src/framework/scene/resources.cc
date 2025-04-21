@@ -1,12 +1,19 @@
 #include "framework/scene/resources.h"
 
 extern "C" {
-#define CGLTF_IMPLEMENTATION
-#include "cgltf.h"
 
 #define STB_IMAGE_IMPLEMENTATION
-#include "stb/stb_image.h"
+#include <stb/stb_image.h>
+
+#define CGLTF_IMPLEMENTATION
+#include <cgltf.h>
+
 }
+
+#if FRAMEWORK_HAS_DRACO
+#include <draco/compression/decode.h>
+#include <draco/mesh/mesh.h>
+#endif
 
 #include "framework/utils/utils.h"
 #include "framework/backend/context.h"
@@ -18,6 +25,14 @@ extern "C" {
 namespace {
 
 using PointerToStringMap_t = std::unordered_map<void const*, std::string>;
+
+static constexpr bool kFrameworkHasDraco{
+#if defined(FRAMEWORK_HAS_DRACO) && FRAMEWORK_HAS_DRACO
+  true
+#else
+  false
+#endif
+};
 
 //-----------------------------------------------------------------------------
 
@@ -69,7 +84,9 @@ struct VertexInternal_t {
   }
 };
 
-/* Internal helper structure to post-process gltf data */
+//-----------------------------------------------------------------------------
+
+/* [idea] Internal helper structure to post-process gltf data */
 // struct MeshData {
 //   std::vector<float> positions;
 //   std::vector<float> texcoords;
@@ -231,9 +248,8 @@ Geometry::Topology GetTopology(cgltf_primitive const& primitive) {
 
 } // namespace ""
 
-// ----------------------------------------------------------------------------
-
-/* ---- GLTF extractor ---- */
+/* -------------------------------------------------------------------------- */
+/* -------------------------------------------------------------------------- */
 
 namespace {
 
@@ -301,6 +317,8 @@ void ExtractTextures(std::string const& basename, PointerToStringMap_t & texture
     }
   }
 }
+
+//-----------------------------------------------------------------------------
 
 void ExtractMaterials(
   std::string const& basename,
@@ -384,6 +402,204 @@ void ExtractMaterials(
   }
 }
 
+//-----------------------------------------------------------------------------
+
+/* Decompress a Draco cgltf primitive into a buffer of VertexInternal_t. */
+bool DecompressDracoPrimitive(cgltf_primitive const& prim, std::vector<VertexInternal_t>& vertices, std::vector<uint32_t>& indices) {
+  if (!prim.has_draco_mesh_compression) {
+    LOGE("Error: Primitive does not have draco compression.");
+    return false;
+  }
+
+  cgltf_draco_mesh_compression const& draco = prim.draco_mesh_compression;
+  if (!draco.buffer_view || !draco.buffer_view->buffer || !draco.buffer_view->buffer->data) {
+    LOGE("Error: Draco buffer view is invalid.");
+    return false;
+  }
+
+#if FRAMEWORK_HAS_DRACO
+  // Decode Draco mesh
+  std::unique_ptr<draco::Mesh> draco_mesh{};
+  {
+    cgltf_accessor const* pos_accessor = nullptr;
+
+    for (cgltf_size attrib_index = 0; attrib_index < draco.attributes_count; ++attrib_index) {
+      if (draco.attributes[attrib_index].type == cgltf_attribute_type_position) {
+        pos_accessor = draco.attributes[attrib_index].data;
+        break;
+      }
+    }
+    if (!pos_accessor) {
+      LOGE("Draco primitive has no POSITION attribute");
+      return false;
+    }
+
+    cgltf_buffer_view const* view = draco.buffer_view; //pos_accessor->buffer_view;
+    assert(view);
+
+    cgltf_buffer const* buffer = view->buffer;
+    uint8_t const* draco_data = reinterpret_cast<const uint8_t*>(buffer->data) + view->offset;
+    size_t const draco_size = view->size;
+
+    draco::DecoderBuffer decoder_buffer;
+    decoder_buffer.Init(reinterpret_cast<const char*>(draco_data), draco_size);
+
+    draco::Decoder decoder;
+    if (auto result = decoder.DecodeMeshFromBuffer(&decoder_buffer); result.ok()) {
+      draco_mesh = std::move(result).value();
+    }
+  }
+
+  if (!draco_mesh) {
+    LOGE("Draco decompression failed");
+    return false;
+  }
+
+  uint32_t const vertex_count = draco_mesh->num_points();
+  vertices.resize(vertex_count);
+
+  for (cgltf_size attrib_index = 0; attrib_index < draco.attributes_count; ++attrib_index) {
+    cgltf_attribute const& attrib = draco.attributes[attrib_index];
+
+    draco::PointAttribute const* pt_attr = nullptr;
+
+    switch (attrib.type) {
+      case cgltf_attribute_type_position:
+        pt_attr = draco_mesh->GetNamedAttribute(draco::GeometryAttribute::POSITION);
+        for (uint32_t vertex_index = 0; vertex_index < vertex_count; ++vertex_index) {
+          auto &vertex = vertices[vertex_index];
+          pt_attr->GetValue(draco::AttributeValueIndex(vertex_index), lina::ptr(vertex.position));
+        }
+        break;
+
+      case cgltf_attribute_type_normal:
+        pt_attr = draco_mesh->GetNamedAttribute(draco::GeometryAttribute::NORMAL);
+        for (uint32_t vertex_index = 0; vertex_index < vertex_count; ++vertex_index) {
+          auto &vertex = vertices[vertex_index];
+          pt_attr->GetValue(draco::AttributeValueIndex(vertex_index), lina::ptr(vertex.normal));
+        }
+        break;
+
+      case cgltf_attribute_type_texcoord:
+        if (attrib.index > 0) {
+          LOGW("MultiTexturing not supported (Draco)");
+          continue;
+        }
+        pt_attr = draco_mesh->GetNamedAttribute(draco::GeometryAttribute::TEX_COORD);
+        for (uint32_t vertex_index = 0; vertex_index < vertex_count; ++vertex_index) {
+          auto &vertex = vertices[vertex_index];
+          pt_attr->GetValue(draco::AttributeValueIndex(vertex_index), lina::ptr(vertex.texcoord));
+        }
+        break;
+
+      default:
+        LOGW("Unsupported Draco attribute type: %d", attrib.type);
+        break;
+    }
+  }
+
+  // Indices.
+  if (prim.indices) {
+    const int num_faces = draco_mesh->num_faces();
+    indices.reserve(num_faces * 3);
+
+    for (draco::FaceIndex face_index(0); face_index < num_faces; ++face_index) {
+      const draco::Mesh::Face& face = draco_mesh->face(face_index);
+      for (auto const& face_pt : face) {
+        indices.push_back(face_pt.value());
+      }
+    }
+  }
+#endif
+
+  return true;
+}
+
+//-----------------------------------------------------------------------------
+
+void ExtractPrimitiveVertices(cgltf_primitive const& prim, std::vector<VertexInternal_t>& vertices) {
+  uint32_t const vertex_count = prim.attributes[0].data->count;
+  vertices.resize(vertex_count);
+
+  for (cgltf_size attrib_index = 0; attrib_index < prim.attributes_count; ++attrib_index) {
+    cgltf_attribute const& attrib{ prim.attributes[attrib_index] };
+    cgltf_accessor const* accessor = attrib.data;
+    assert(accessor->count == vertex_count);
+
+    // ---------------------------------------------------
+    // Positions.
+    if (attrib.type == cgltf_attribute_type_position) {
+      LOG_CHECK(accessor->type == cgltf_type_vec3);
+      // LOGD( "> loading positions." );
+      for (cgltf_size vertex_index = 0; vertex_index < vertex_count; ++vertex_index) {
+        auto& vertex = vertices[vertex_index];
+        cgltf_accessor_read_float( accessor, vertex_index, lina::ptr(vertex.position), 3);
+      }
+    }
+    // Normals.
+    else if (attrib.type == cgltf_attribute_type_normal) {
+      LOG_CHECK(accessor->type == cgltf_type_vec3);
+      // LOGD( "> loading normals." );
+      for (cgltf_size vertex_index = 0; vertex_index < vertex_count; ++vertex_index) {
+        auto& vertex = vertices[vertex_index];
+        cgltf_accessor_read_float( accessor, vertex_index, lina::ptr(vertex.normal), 3);
+      }
+    }
+    // Tangents
+    else if (attrib.type == cgltf_attribute_type_tangent) {
+      // LOG_CHECK(accessor->type == cgltf_type_vec4);
+      // LOGD( "> loading tangents." );
+
+      // for (cgltf_size vertex_index = 0; vertex_index < vertex_count; ++vertex_index) {
+      //   auto& vertex = vertices[vertex_index];
+      //   cgltf_accessor_read_float( accessor, vertex_index, lina::ptr(vertex.tangent), 4);
+      //   vec3 t3 = lina::to_vec3(tangent);
+      //        t3 = vec3(linalg::mul(world_matrix, vec4(t3, 0.0f));
+      //   vertex.tangent = vec4(t3, vertex.tangent.w);
+      // }
+    }
+    // Texcoords.
+    else if (attrib.type == cgltf_attribute_type_texcoord) {
+      LOG_CHECK(accessor->type == cgltf_type_vec2);
+      if (attrib.index > 0) {
+        LOGW( "MultiTexturing is not supported yet." );
+        continue;
+      }
+      // LOGD( "> loading texture coordinates." );
+      for (cgltf_size vertex_index = 0; vertex_index < vertex_count; ++vertex_index) {
+        auto& vertex = vertices[vertex_index];
+        LOG_CHECK(0 != cgltf_accessor_read_float( accessor, vertex_index, lina::ptr(vertex.texcoord), 2));
+      }
+    }
+    // Joints.
+    else if (attrib.type == cgltf_attribute_type_joints) {
+      // LOG_CHECK(accessor->type == cgltf_type_vec4);
+      // LOGD( "> loading joint indices." );
+
+      // for (cgltf_size vertex_index = 0; vertex_index < vertex_count; ++vertex_index) {
+      //   LOG_CHECK(0 != cgltf_accessor_read_uint( accessor, vertex_index, lina::ptr(joints), 4));
+      //   raw.joints.push_back( joints );
+      // }
+    }
+    // Weights.
+    else if (attrib.type == cgltf_attribute_type_weights) {
+      // LOGD( "> loading joint weights." );
+      // LOG_CHECK(accessor->type == cgltf_type_vec4);
+      // raw.weights.reserve(vertex_count);
+
+      // vec4 weights;
+      // for (cgltf_size vertex_index = 0; vertex_index < vertex_count; ++vertex_index) {
+      //   LOG_CHECK(0 != cgltf_accessor_read_float( accessor, vertex_index, lina::ptr(weights), 4));
+      //   // weights = vec4(0.0, 0.0, 0.0, 0.0);
+      //   raw.weights.push_back( weights );
+      // }
+    }
+    // ---------------------------------------------------
+  }
+}
+
+//-----------------------------------------------------------------------------
+
 void ExtractMeshes(
   std::string const& basename,
   PointerToStringMap_t const& material_map,
@@ -391,6 +607,12 @@ void ExtractMeshes(
   scene::Resources& R,
   bool const bRestructureAttribs)
 {
+  /**
+   * Each Mesh hold its geometry,
+   * each primitive consist of a material and offset in the mesh geometry.
+   * We assume every primitives of a Mesh have the same topology / attributes
+   ***/
+
   /* Preprocess meshes nodes. */
   std::vector<uint32_t> meshNodeIndices;
   for (cgltf_size i = 0; i < data->nodes_count; ++i) {
@@ -405,49 +627,32 @@ void ExtractMeshes(
   }
   R.meshes.reserve(meshNodeIndices.size());
 
-  // Utility function.
-  auto isAccessorOffsetFlat{[](cgltf_accessor const* acc) -> bool {
-    size_t const kAccessorOffsetLimit = 2048;
-    return (acc->offset == 0) || (acc->offset >= kAccessorOffsetLimit);
-  }};
-
-  /**
-   * Each Mesh hold its geometry,
-   * each primitive consist of a material and offset in the mesh geometry.
-   * We assume every primitives of a Mesh have the same topology / attributes
-   ***/
-
   // Parse each mesh nodes (for primitives & skeleton).
   for (auto i : meshNodeIndices) {
     cgltf_node const& node = data->nodes[i];
 
-    uint32_t total_vertex_count{0u};
     std::vector<uint32_t> valid_prim_indices{};
+    uint32_t total_vertex_count{0u};
 
+    // -----------------
     // A. Preprocess primitives.
     for (cgltf_size j = 0; j < node.mesh->primitives_count; ++j) {
       cgltf_primitive const& prim = node.mesh->primitives[j];
 
-      // [Check] Has Attributes.
       if (prim.attributes_count <= 0u) {
         LOGW("[GLTF] A primitive was missing attributes.");
         continue;
       }
-      // [Check] Compressed.
-      if (prim.has_draco_mesh_compression) {
+      if (prim.has_draco_mesh_compression && (!kFrameworkHasDraco || !bRestructureAttribs)) {
         LOGW("[GLTF] Draco mesh compression is not supported.");
         continue;
       }
-      // [Check] Non triangles primitives.
       if (prim.type != cgltf_primitive_type_triangles) {
-        LOGW("[GLTF] The mesh contains non TRIANGLES primitives.");
-        // continue;
+        LOGW("[GLTF] Non TRIANGLES primitives are not supported.");
       }
-      // [Check] Morph targets.
       if (prim.targets_count > 0) {
         LOGW("[GLTF] Morph targets are not supported.");
       }
-      // [Check] Sparse attributes.
       bool is_sparse = false;
       for (cgltf_size k = 0; k < prim.attributes_count; ++k) {
         cgltf_attribute const& attribute = prim.attributes[k];
@@ -471,6 +676,7 @@ void ExtractMeshes(
       continue;
     }
 
+    // -----------------
     // B. Create a new mesh.
     auto mesh = std::make_shared<scene::Mesh>();
     {
@@ -479,7 +685,6 @@ void ExtractMeshes(
     }
 
     // -----------------
-
     // C. Retrieve its vertex attributes and indices.
     //
     //      The first branch force the attributes into a specific interleaved format
@@ -487,9 +692,7 @@ void ExtractMeshes(
     //
     //      The second take the attributes as is.
     //
-
     if (bRestructureAttribs) [[likely]] {
-
       mesh->set_attributes(VertexInternal_t::GetAttributeInfoMap());
       mesh->set_topology(Geometry::Topology::TriangleList); //
 
@@ -503,116 +706,55 @@ void ExtractMeshes(
       for (size_t prim_index = 0u; prim_index < valid_prim_indices.size(); ++prim_index) {
         uint32_t const valid_prim_index{ valid_prim_indices[prim_index] };
         cgltf_primitive const& prim{ node.mesh->primitives[valid_prim_index] };
-        cgltf_size const vertex_count{ prim.attributes[0].data->count };
 
         Geometry::Primitive primitive{};
 
-        // Attributes.
-        {
-          vertices.resize(vertex_count);
-          for (cgltf_size k = 0; k < prim.attributes_count; ++k) {
-            cgltf_attribute const& attrib = prim.attributes[k];
-            cgltf_accessor const* accessor = attrib.data;
-            assert(accessor->count == vertex_count);
+        if (prim.has_draco_mesh_compression) {
+          std::vector<uint32_t> indices{};
 
-            // ---------------------------------------------------
-            // Positions.
-            if (attrib.type == cgltf_attribute_type_position) {
-              LOG_CHECK(accessor->type == cgltf_type_vec3);
-              // LOGD( "> loading positions." );
-              for (cgltf_size vertex_index = 0; vertex_index < vertex_count; ++vertex_index) {
-                auto& vertex = vertices[vertex_index];
-                cgltf_accessor_read_float( accessor, vertex_index, lina::ptr(vertex.position), 3);
-              }
-            }
-            // Normals.
-            else if (attrib.type == cgltf_attribute_type_normal) {
-              LOG_CHECK(accessor->type == cgltf_type_vec3);
-              // LOGD( "> loading normals." );
-              for (cgltf_size vertex_index = 0; vertex_index < vertex_count; ++vertex_index) {
-                auto& vertex = vertices[vertex_index];
-                cgltf_accessor_read_float( accessor, vertex_index, lina::ptr(vertex.normal), 3);
-              }
-            }
-            // Tangents
-            else if (attrib.type == cgltf_attribute_type_tangent) {
-              // LOG_CHECK(accessor->type == cgltf_type_vec4);
-              // LOGD( "> loading tangents." );
-
-              // for (cgltf_size vertex_index = 0; vertex_index < vertex_count; ++vertex_index) {
-              //   auto& vertex = vertices[vertex_index];
-              //   cgltf_accessor_read_float( accessor, vertex_index, lina::ptr(vertex.tangent), 4);
-              //   vec3 t3 = lina::to_vec3(tangent);
-              //        t3 = vec3(linalg::mul(world_matrix, vec4(t3, 0.0f));
-              //   vertex.tangent = vec4(t3, vertex.tangent.w);
-              // }
-            }
-            // Texcoords.
-            else if (attrib.type == cgltf_attribute_type_texcoord) {
-              LOG_CHECK(accessor->type == cgltf_type_vec2);
-              if (attrib.index > 0) {
-                LOGW( "MultiTexturing is not supported yet." );
-                continue;
-              }
-              // LOGD( "> loading texture coordinates." );
-              for (cgltf_size vertex_index = 0; vertex_index < vertex_count; ++vertex_index) {
-                auto& vertex = vertices[vertex_index];
-                LOG_CHECK(0 != cgltf_accessor_read_float( accessor, vertex_index, lina::ptr(vertex.texcoord), 2));
-              }
-            }
-            // Joints.
-            else if (attrib.type == cgltf_attribute_type_joints) {
-              // LOG_CHECK(accessor->type == cgltf_type_vec4);
-              // LOGD( "> loading joint indices." );
-
-              // for (cgltf_size vertex_index = 0; vertex_index < vertex_count; ++vertex_index) {
-              //   LOG_CHECK(0 != cgltf_accessor_read_uint( accessor, vertex_index, lina::ptr(joints), 4));
-              //   raw.joints.push_back( joints );
-              // }
-            }
-            // Weights.
-            else if (attrib.type == cgltf_attribute_type_weights) {
-              // LOGD( "> loading joint weights." );
-              // LOG_CHECK(accessor->type == cgltf_type_vec4);
-              // raw.weights.reserve(vertex_count);
-
-              // vec4 weights;
-              // for (cgltf_size vertex_index = 0; vertex_index < vertex_count; ++vertex_index) {
-              //   LOG_CHECK(0 != cgltf_accessor_read_float( accessor, vertex_index, lina::ptr(weights), 4));
-              //   // weights = vec4(0.0, 0.0, 0.0, 0.0);
-              //   raw.weights.push_back( weights );
-              // }
-            }
-            // ---------------------------------------------------
+          // Attributes & Indices.
+          if (!DecompressDracoPrimitive(prim, vertices, indices)) {
+            continue;
           }
 
-          /* Add the primitive interleaved attributes to the mesh, and retrieve its internal offset. */
-          attribs_buffer_offset = mesh->add_vertices_data(
-            reinterpret_cast<std::byte const*>(vertices.data()),
-            vertices.size() * sizeof(vertices[0u])
-          );
-          primitive.vertexCount = static_cast<uint32_t>(vertex_count);
-          primitive.bufferOffsets = VertexInternal_t::GetAttributeOffsetMap(attribs_buffer_offset);
-        }
-
-        // Indices.
-        if (prim.indices) {
-          cgltf_accessor const* accessor = prim.indices;
-          cgltf_buffer_view const* buffer_view = accessor->buffer_view;
-          cgltf_buffer const* buffer = buffer_view->buffer;
-
-          if (auto index_format = GetIndexFormat(accessor); index_format != Geometry::IndexFormat::kUnknown)
-          {
-            // [the same index format should be shared by the whole mesh.]
-            mesh->set_index_format(index_format);
-
-            primitive.indexCount = accessor->count;
+          if (prim.indices) {
+            mesh->set_index_format(Geometry::IndexFormat::U32);
+            primitive.indexCount = static_cast<uint32_t>(indices.size());
             primitive.indexOffset = mesh->add_indices_data(
-              reinterpret_cast<std::byte const*>(buffer->data) + buffer_view->offset + accessor->offset,
-              buffer_view->size
+              reinterpret_cast<const std::byte*>(indices.data()),
+              indices.size() * sizeof(uint32_t)
             );
           }
+        } else {
+          // Attributes.
+          ExtractPrimitiveVertices(prim, vertices);
+
+          // Indices.
+          if (prim.indices) {
+            cgltf_accessor const* accessor = prim.indices;
+            cgltf_buffer_view const* buffer_view = accessor->buffer_view;
+            cgltf_buffer const* buffer = buffer_view->buffer;
+
+            if (auto index_format = GetIndexFormat(accessor); index_format != Geometry::IndexFormat::kUnknown) {
+              // [the same index format should be shared by the whole mesh.]
+              mesh->set_index_format(index_format);
+
+              primitive.indexCount = accessor->count;
+              primitive.indexOffset = mesh->add_indices_data(
+                reinterpret_cast<std::byte const*>(buffer->data) + buffer_view->offset + accessor->offset,
+                buffer_view->size
+              );
+            }
+          }
         }
+
+        /* Add the primitive interleaved attributes to the mesh, and retrieve its internal offset. */
+        attribs_buffer_offset = mesh->add_vertices_data(
+          reinterpret_cast<std::byte const*>(vertices.data()),
+          vertices.size() * sizeof(vertices[0u])
+        );
+        primitive.vertexCount = static_cast<uint32_t>(vertices.size());
+        primitive.bufferOffsets = VertexInternal_t::GetAttributeOffsetMap(attribs_buffer_offset);
 
         // Material.
         if (prim.material) {
@@ -628,12 +770,15 @@ void ExtractMeshes(
 
         mesh->add_primitive(primitive);
       }
-
     } else {
+      /* Utility function. */
+      auto isAccessorOffsetFlat{[](cgltf_accessor const* acc) -> bool {
+        size_t const kAccessorOffsetLimit = 2048;
+        return (acc->offset == 0) || (acc->offset >= kAccessorOffsetLimit);
+      }};
 
       /* Setup the shared attributes from the first primitive.
-       *
-       * This suppose all mesh primitives share the same layout.
+       * This assume all mesh primitives share the same layout.
        */
       {
         cgltf_primitive const& prim{ node.mesh->primitives[valid_prim_indices[0u]] };
@@ -704,10 +849,6 @@ void ExtractMeshes(
               reinterpret_cast<std::byte const*>(buffer->data) + buffer_view->offset + accessor->offset, //
               buffer_view->size
             );
-
-            // LOGD("[GLTF] added %lu indices, for a buffer of %lu bytes, to an offset of %lu bytes.\n",
-            //   accessor->count, /*buffer_view->offset, accessor->offset,*/ buffer_view->size, indicesOffset
-            // );
           }
         }
 
@@ -715,7 +856,6 @@ void ExtractMeshes(
         if (prim.material) {
           if (auto it = material_map.find(prim.material); it != material_map.cend()) {
             mesh->submeshes[j].material = R.materials[it->second];
-            // LOGD(" *** submeshes has a material named '%s'", it->second.c_str());
           } else {
             LOGD("material not found !");
           }
@@ -728,7 +868,6 @@ void ExtractMeshes(
     }
 
     // -----------------
-
     // D. (optionnal) Retrieve the mesh skeleton.
     if (cgltf_skin const* skin = node.skin; skin) {
       auto const skinName = skin->name ? skin->name
