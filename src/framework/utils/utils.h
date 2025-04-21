@@ -36,7 +36,9 @@ struct FileReader {
 
 char* ReadBinaryFile(const char* filename, size_t* filesize);
 
-std::string ExtractBasename(std::string_view const& path);
+std::string ExtractBasename(std::string_view filename);
+
+std::string ExtractExtension(std::string_view filename);
 
 size_t AlignTo(size_t const byteLength, size_t const byteAlignment);
 
