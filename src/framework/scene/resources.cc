@@ -1237,7 +1237,7 @@ void Resources::initialize_submesh_descriptors(Mesh::AttributeLocationMap const&
 
 // ----------------------------------------------------------------------------
 
-void Resources::upload_to_device(Context const& context) {
+void Resources::upload_to_device(Context const& context, bool const bReleaseHostDataOnUpload) {
   auto allocator = context.get_resource_allocator();
 
   /* Transfer Textures */
@@ -1304,6 +1304,7 @@ void Resources::upload_to_device(Context const& context) {
   }
 
   /* Transfer Buffers */
+  if (vertex_buffer_size > 0)
   {
     vertex_buffer = allocator->create_buffer(
       vertex_buffer_size,
@@ -1311,11 +1312,13 @@ void Resources::upload_to_device(Context const& context) {
       VMA_MEMORY_USAGE_GPU_ONLY
     );
 
-    index_buffer = allocator->create_buffer(
-      index_buffer_size,
-      VK_BUFFER_USAGE_2_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_2_TRANSFER_DST_BIT_KHR,
-      VMA_MEMORY_USAGE_GPU_ONLY
-    );
+    if (index_buffer_size > 0) {
+      index_buffer = allocator->create_buffer(
+        index_buffer_size,
+        VK_BUFFER_USAGE_2_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_2_TRANSFER_DST_BIT_KHR,
+        VMA_MEMORY_USAGE_GPU_ONLY
+      );
+    }
 
     /* Copy host mesh data to staging buffer */
     backend::Buffer mesh_staging_buffer{
@@ -1324,17 +1327,18 @@ void Resources::upload_to_device(Context const& context) {
     {
       size_t vertex_offset{0u};
       size_t index_offset{vertex_buffer_size};
+
       for (auto const& mesh : meshes) {
         auto const& vertices = mesh->get_vertices();
         allocator->write_buffer(mesh_staging_buffer, vertex_offset, vertices.data(), 0u, vertices.size());
         vertex_offset += vertices.size();
 
-        auto const& indices = mesh->get_indices();
-        allocator->write_buffer(mesh_staging_buffer, index_offset, indices.data(), 0u, indices.size());
-        index_offset += indices.size();
 
-        /* clear host data once uploaded */
-        mesh->clear_indices_and_vertices();
+        if (index_buffer_size > 0) {
+          auto const& indices = mesh->get_indices();
+          allocator->write_buffer(mesh_staging_buffer, index_offset, indices.data(), 0u, indices.size());
+          index_offset += indices.size();
+        }
       }
     }
 
@@ -1342,9 +1346,18 @@ void Resources::upload_to_device(Context const& context) {
     auto cmd = context.create_transient_command_encoder(Context::TargetQueue::Transfer);
     {
       cmd.copy_buffer(mesh_staging_buffer, 0u, vertex_buffer, 0u, vertex_buffer_size);
-      cmd.copy_buffer(mesh_staging_buffer, vertex_buffer_size, index_buffer, 0u, index_buffer_size);
+      if (index_buffer_size > 0) {
+        cmd.copy_buffer(mesh_staging_buffer, vertex_buffer_size, index_buffer, 0u, index_buffer_size);
+      }
     }
     context.finish_transient_command_encoder(cmd);
+  }
+
+  /* clear host data once uploaded */
+  if (bReleaseHostDataOnUpload) {
+    for (auto const& mesh : meshes) {
+      mesh->clear_indices_and_vertices(); //
+    }
   }
 }
 

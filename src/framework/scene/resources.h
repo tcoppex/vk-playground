@@ -20,6 +20,7 @@ namespace scene {
 
 struct Resources {
   static bool constexpr kRestructureAttribs = true;
+  static bool constexpr kReleaseHostDataOnUpload = true;
 
   template<typename T>
   using ResourceMap = std::unordered_map<std::string, std::shared_ptr<T>>;
@@ -59,7 +60,7 @@ struct Resources {
   /* Bind mesh attributes to pipeline locations. */
   void initialize_submesh_descriptors(Mesh::AttributeLocationMap const& attribute_to_location);
 
-  void upload_to_device(Context const& context);
+  void upload_to_device(Context const& context, bool const bReleaseHostDataOnUpload = kReleaseHostDataOnUpload);
 };
 
 }  // namespace scene
