@@ -553,11 +553,12 @@ void ExtractTextures(
 //-----------------------------------------------------------------------------
 
 void ExtractMaterials(
-  scene::Resources& R,
   cgltf_data const* data,
   std::string const& basename,
   PointerToStringMap_t &texture_names,
-  PointerToStringMap_t &material_names
+  PointerToStringMap_t &material_names,
+  scene::Resources::ResourceMap<scene::Texture>& textures_map,
+  scene::Resources::ResourceMap<scene::Material>& materials_map
 ) {
   auto textureRef = [&texture_names](cgltf_texture const& texture, std::string_view suffix) {
     auto ref = GetTextureRefID(texture, suffix);
@@ -575,12 +576,12 @@ void ExtractMaterials(
                                         : std::string(basename + "::Material_" + std::to_string(i));
     material_names[&mat] = material_name;
 
-    // if (R.materials.find(material_name) == R.materials.end()) continue;
-    // LOG_CHECK(R.materials.find(material_name) == R.materials.end());
+    // if (materials_map.find(material_name) == materials_map.end()) continue;
+    // LOG_CHECK(materials_map.find(material_name) == materials_map.end());
 
     std::shared_ptr<scene::Material> material;
 
-    if (auto it = R.materials.find(material_name); it != R.materials.end()) {
+    if (auto it = materials_map.find(material_name); it != materials_map.end()) {
       material = it->second;
     } else {
       material = std::make_shared<scene::Material>(material_name); //
@@ -600,7 +601,7 @@ void ExtractMaterials(
       );
       if (const cgltf_texture* tex = pbr_mr.base_color_texture.texture; tex) {
         auto ref = textureRef(*tex, texture_prefix + "Albedo");
-        if (auto it = R.textures.find(ref); it != R.textures.end()) {
+        if (auto it = textures_map.find(ref); it != textures_map.end()) {
           material->albedoTexture = it->second;
         } else {
           LOGD("Fails to find albedo texture '%s'", ref.c_str());
@@ -608,7 +609,7 @@ void ExtractMaterials(
       }
       if (const cgltf_texture* tex = pbr_mr.metallic_roughness_texture.texture; tex) {
         auto ref = textureRef(*tex, texture_prefix + "MetallicRough");
-        if (auto it = R.textures.find(ref); it != R.textures.end()) {
+        if (auto it = textures_map.find(ref); it != textures_map.end()) {
           material->ormTexture = it->second;
         } else {
           LOGD("Fails to find metallic rough texture '%s'", ref.c_str());
@@ -623,16 +624,16 @@ void ExtractMaterials(
     // Normal texture.
     if (const cgltf_texture* tex = mat.normal_texture.texture; tex) {
       auto ref = textureRef(*tex, texture_prefix + "Normal");
-      if (auto it = R.textures.find(ref); it != R.textures.end()) {
+      if (auto it = textures_map.find(ref); it != textures_map.end()) {
         material->normalTexture = it->second;
       }
     }
 
-    R.materials[material_name] = std::move(material);
+    materials_map[material_name] = std::move(material);
   }
 
   uint32_t matid = 0u;
-  for (auto& [key, material] : R.materials) {
+  for (auto& [key, material] : materials_map) {
     material->index = matid++;
   }
 }
@@ -640,11 +641,14 @@ void ExtractMaterials(
 //-----------------------------------------------------------------------------
 
 void ExtractMeshes(
-  scene::Resources& R,
   cgltf_data const* data,
   std::string const& basename,
+  bool const bRestructureAttribs,
   PointerToStringMap_t const& material_names,
-  bool const bRestructureAttribs
+  scene::Resources::ResourceMap<scene::Texture>& textures_map,
+  scene::Resources::ResourceMap<scene::Material>& materials_map,
+  scene::Resources::ResourceMap<scene::Skeleton>& skeletons_map,
+  std::vector<std::shared_ptr<scene::Mesh>>& meshes
 ) {
   /**
    * Each Mesh hold its geometry,
@@ -664,7 +668,7 @@ void ExtractMeshes(
       }
     }
   }
-  R.meshes.reserve(meshNodeIndices.size());
+  meshes.reserve(meshNodeIndices.size());
 
   // Parse each mesh nodes (for primitives & skeleton).
   for (auto i : meshNodeIndices) {
@@ -799,7 +803,7 @@ void ExtractMeshes(
         if (prim.material) {
           if (auto it = material_names.find(prim.material); it != material_names.cend()) {
             auto const& material_name = it->second;
-            mesh->submeshes[prim_index].material = R.materials[material_name];
+            mesh->submeshes[prim_index].material = materials_map[material_name];
           } else {
             LOGD("A submesh material has not been found.");
           }
@@ -894,7 +898,7 @@ void ExtractMeshes(
         // Assign material when availables.
         if (prim.material) {
           if (auto it = material_names.find(prim.material); it != material_names.cend()) {
-            mesh->submeshes[j].material = R.materials[it->second];
+            mesh->submeshes[j].material = materials_map[it->second];
           } else {
             LOGD("material not found !");
           }
@@ -911,11 +915,11 @@ void ExtractMeshes(
     if (cgltf_skin const* skin = node.skin; skin) {
       auto const skinName = skin->name ? skin->name
                                        : std::string(basename + "::Skeleton_" + std::to_string(i));
-      auto skel_it = R.skeletons.find(skinName);
+      auto skel_it = skeletons_map.find(skinName);
 
       std::shared_ptr<scene::Skeleton> skeleton;
 
-      if (skel_it != R.skeletons.end()) {
+      if (skel_it != skeletons_map.end()) {
         skeleton = skel_it->second;
       } else [[likely]] {
         cgltf_size const jointCount = skin->joints_count;
@@ -956,27 +960,28 @@ void ExtractMeshes(
           skeleton->transformInverseBindMatrices(inverse_world_matrix);
         }
 
-        R.skeletons[skinName] = skeleton;
+        skeletons_map[skinName] = skeleton;
       }
 
       mesh->skeleton = skeleton;
     }
 
-    R.meshes.push_back(mesh);
+    meshes.push_back(mesh);
   }
 }
 
 //-----------------------------------------------------------------------------
 
 void ExtractAnimations(
-  scene::Resources& R,
   cgltf_data const* data,
-  std::string const& basename
+  std::string const& basename,
+  scene::Resources::ResourceMap<scene::Skeleton>& skeletons_map,
+  scene::Resources::ResourceMap<scene::AnimationClip>& animations_map
 ) {
   if (!data || (data->animations_count == 0u)) {
     return;
   }
-  if (R.skeletons.empty()) {
+  if (skeletons_map.empty()) {
     LOGE("[GLTF] animations without skeleton are not supported.");
     return;
   }
@@ -1008,7 +1013,7 @@ void ExtractAnimations(
   // --------
 
   std::vector<float> inputs, outputs;
-  R.animations.reserve(data->animations_count);
+  animations_map.reserve(data->animations_count);
 
   // Retrieve Animations.
   for (cgltf_size i = 0; i < data->animations_count; ++i) {
@@ -1021,12 +1026,12 @@ void ExtractAnimations(
     std::shared_ptr<scene::Skeleton> skeleton{nullptr};
     if (auto skelname_it = animationName_to_SkeletonName.find(clipName); skelname_it != animationName_to_SkeletonName.end()) {
       auto skelname = skelname_it->second;
-      if (auto skel_it = R.skeletons.find(skelname); skel_it != R.skeletons.end()) {
+      if (auto skel_it = skeletons_map.find(skelname); skel_it != skeletons_map.end()) {
         skeleton = skel_it->second;
       }
     }
     if (nullptr == skeleton) {
-      if (auto it = R.skeletons.begin(); it != R.skeletons.end()) {
+      if (auto it = skeletons_map.begin(); it != skeletons_map.end()) {
         LOGW("[GLTF] used the first available skeleton found.");
         skeleton = it->second;
       } else {
@@ -1174,7 +1179,7 @@ void ExtractAnimations(
 
     skeleton->clips.push_back(clip);
 
-    R.animations[clipName] = std::move(clip);
+    animations_map[clipName] = std::move(clip);
   }
 }
 
@@ -1225,9 +1230,9 @@ bool Resources::load_from_file(std::string_view const& filename, SamplerPool& sa
 
     ExtractSamplers(data, sampler_pool, samplers_map);
     ExtractTextures(data, basename, texture_names, textures);
-    ExtractMaterials(*this, data, basename, texture_names, material_names);
-    ExtractMeshes(*this, data, basename, material_names, bRestructureAttribs);
-    ExtractAnimations(*this, data, basename);
+    ExtractMaterials(data, basename, texture_names, material_names, textures, materials);
+    ExtractMeshes(data, basename, bRestructureAttribs, material_names, textures, materials, skeletons, meshes);
+    ExtractAnimations(data, basename, skeletons, animations);
 
     reset_internal_device_resource_info();
 
