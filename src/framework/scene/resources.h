@@ -1,11 +1,10 @@
 #ifndef HELLO_VK_FRAMEWORK_SCENE_RESOURCES_H
 #define HELLO_VK_FRAMEWORK_SCENE_RESOURCES_H
 
-#include <unordered_map>
-
 #include "stb/stb_image.h"
 
 #include "framework/common.h"
+
 #include "framework/scene/animation.h"
 #include "framework/scene/image.h"
 #include "framework/scene/material.h"
@@ -13,6 +12,7 @@
 
 class Context;
 class ResourceAllocator;
+class SamplerPool;
 
 /* -------------------------------------------------------------------------- */
 
@@ -25,17 +25,18 @@ struct Resources {
   template<typename T>
   using ResourceMap = std::unordered_map<std::string, std::shared_ptr<T>>;
 
+  // -----------
+  // we should rather extract image first, THEN textures (ie. Image + Samplers).
+  // Here we treat 'textures' as images directly, which is bad.
+  std::vector<backend::Image> textures{}; //
+  // -----------
+
   ResourceMap<Image> images{};
   ResourceMap<Material> materials{};
   ResourceMap<AnimationClip> animations{};
   ResourceMap<Skeleton> skeletons{};
 
   std::vector<std::shared_ptr<Mesh>> meshes{}; //
-
-  // we should rather extract image first, THEN textures (ie. Image + Samplers).
-  // Here we treat 'textures' as images directly, which is bad.
-  std::vector<backend::Image> textures{}; //
-  // std::vector<Sampler> samplers{}; //
 
   backend::Buffer vertex_buffer;
   backend::Buffer index_buffer;
@@ -46,13 +47,9 @@ struct Resources {
 
   Resources() = default;
 
-  Resources(std::string_view const& filename) {
-    load_from_file(filename);
-  }
-
   void release(std::shared_ptr<ResourceAllocator> allocator);
 
-  bool load_from_file(std::string_view const& filename, bool bRestructureAttribs = kRestructureAttribs);
+  bool load_from_file(std::string_view const& filename, SamplerPool& sampler_pool, bool bRestructureAttribs = kRestructureAttribs);
 
   void reset_meshes_device_buffer_info();
 
