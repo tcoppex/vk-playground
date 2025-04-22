@@ -19,12 +19,30 @@ class SamplerPool;
 namespace scene {
 
 struct Resources {
+ public:
   static bool constexpr kRestructureAttribs = true;
   static bool constexpr kReleaseHostDataOnUpload = true;
 
+ public:
   template<typename T>
   using ResourceMap = std::unordered_map<std::string, std::shared_ptr<T>>;
 
+ public:
+  Resources() = default;
+
+  void release(std::shared_ptr<ResourceAllocator> allocator);
+
+  bool load_from_file(std::string_view const& filename, SamplerPool& sampler_pool, bool bRestructureAttribs = kRestructureAttribs);
+
+  /* Bind mesh attributes to pipeline locations. */
+  void initialize_submesh_descriptors(Mesh::AttributeLocationMap const& attribute_to_location);
+
+  void upload_to_device(Context const& context, bool const bReleaseHostDataOnUpload = kReleaseHostDataOnUpload);
+
+ private:
+  void reset_internal_device_resource_info();
+
+ public:
   ResourceMap<Texture> textures_map{}; //
   ResourceMap<Material> materials_map{};
   ResourceMap<Skeleton> skeletons_map{};
@@ -32,31 +50,13 @@ struct Resources {
 
   std::vector<std::shared_ptr<Mesh>> meshes{}; //
 
-  // -----------
-  // we should rather extract image first, THEN textures (ie. Image + Samplers).
-  // Here we treat 'textures' as images directly, which is bad.
-  std::vector<backend::Image> device_images{}; //
-  // -----------
-
+  std::vector<backend::Image> device_images{};
   backend::Buffer vertex_buffer;
   backend::Buffer index_buffer;
 
   uint32_t vertex_buffer_size{0u};
   uint32_t index_buffer_size{0u};
   uint32_t total_image_size{0u};
-
-  Resources() = default;
-
-  void release(std::shared_ptr<ResourceAllocator> allocator);
-
-  bool load_from_file(std::string_view const& filename, SamplerPool& sampler_pool, bool bRestructureAttribs = kRestructureAttribs);
-
-  void reset_internal_device_resource_info();
-
-  /* Bind mesh attributes to pipeline locations. */
-  void initialize_submesh_descriptors(Mesh::AttributeLocationMap const& attribute_to_location);
-
-  void upload_to_device(Context const& context, bool const bReleaseHostDataOnUpload = kReleaseHostDataOnUpload);
 };
 
 }  // namespace scene

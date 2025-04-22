@@ -24,9 +24,6 @@ extern "C" {
 
 namespace {
 
-using PointerToStringMap_t = std::unordered_map<void const*, std::string>;
-using PointerToSamplerMap_t = std::unordered_map<void const*, VkSampler>;
-
 static constexpr bool kFrameworkHasDraco{
 #if defined(FRAMEWORK_HAS_DRACO) && FRAMEWORK_HAS_DRACO
   true
@@ -34,6 +31,12 @@ static constexpr bool kFrameworkHasDraco{
   false
 #endif
 };
+
+//-----------------------------------------------------------------------------
+
+using PointerToStringMap_t = std::unordered_map<void const*, std::string>;
+
+using PointerToSamplerMap_t = std::unordered_map<void const*, VkSampler>;
 
 //-----------------------------------------------------------------------------
 
@@ -1254,38 +1257,6 @@ bool Resources::load_from_file(std::string_view const& filename, SamplerPool& sa
 
 // ----------------------------------------------------------------------------
 
-void Resources::reset_internal_device_resource_info() {
-  /* Calculate the offsets to indivual mesh data inside the shared vertices and indices buffers. */
-  vertex_buffer_size = 0u;
-  index_buffer_size = 0u;
-
-  for (auto& mesh : meshes) {
-    uint64_t const vertex_size = mesh->get_vertices().size();
-    uint64_t const index_size = mesh->get_indices().size();
-    mesh->set_device_buffer_info({
-      .vertex_offset = vertex_buffer_size,
-      .index_offset = index_buffer_size,
-      .vertex_size = vertex_size,
-      .index_size = index_size,
-    });
-    vertex_buffer_size += vertex_size;
-    index_buffer_size += index_size;
-  }
-
-  for (auto [_, texture] : textures_map) {
-    total_image_size += scene::Texture::kDefaultNumChannels * texture->width * texture->height; //
-  }
-
-#ifndef NDEBUG
-  // uint32_t const kMegabyte{ 1024u * 1024u };
-  // LOGI("> vertex buffer size %f Mb", vertex_buffer_size / static_cast<float>(kMegabyte));
-  // LOGI("> index buffer size %f Mb ", index_buffer_size / static_cast<float>(kMegabyte));
-  // LOGI("> total image size %f Mb ", total_image_size / static_cast<float>(kMegabyte));
-#endif
-}
-
-// ----------------------------------------------------------------------------
-
 void Resources::initialize_submesh_descriptors(Mesh::AttributeLocationMap const& attribute_to_location) {
   /* Bind mesh attributes to pipeline locations. */
   for (auto& mesh : meshes) {
@@ -1415,6 +1386,38 @@ void Resources::upload_to_device(Context const& context, bool const bReleaseHost
       mesh->clear_indices_and_vertices(); //
     }
   }
+}
+
+// ----------------------------------------------------------------------------
+
+void Resources::reset_internal_device_resource_info() {
+  /* Calculate the offsets to indivual mesh data inside the shared vertices and indices buffers. */
+  vertex_buffer_size = 0u;
+  index_buffer_size = 0u;
+
+  for (auto& mesh : meshes) {
+    uint64_t const vertex_size = mesh->get_vertices().size();
+    uint64_t const index_size = mesh->get_indices().size();
+    mesh->set_device_buffer_info({
+      .vertex_offset = vertex_buffer_size,
+      .index_offset = index_buffer_size,
+      .vertex_size = vertex_size,
+      .index_size = index_size,
+    });
+    vertex_buffer_size += vertex_size;
+    index_buffer_size += index_size;
+  }
+
+  for (auto [_, texture] : textures_map) {
+    total_image_size += scene::Texture::kDefaultNumChannels * texture->width * texture->height; //
+  }
+
+#ifndef NDEBUG
+  // uint32_t const kMegabyte{ 1024u * 1024u };
+  // LOGI("> vertex buffer size %f Mb", vertex_buffer_size / static_cast<float>(kMegabyte));
+  // LOGI("> index buffer size %f Mb ", index_buffer_size / static_cast<float>(kMegabyte));
+  // LOGI("> total image size %f Mb ", total_image_size / static_cast<float>(kMegabyte));
+#endif
 }
 
 }  // namespace scene
