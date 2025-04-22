@@ -30,7 +30,7 @@ struct Resources {
  public:
   Resources() = default;
 
-  void release(std::shared_ptr<ResourceAllocator> allocator);
+  void release();
 
   bool load_from_file(std::string_view const& filename, SamplerPool& sampler_pool, bool bRestructureAttribs = kRestructureAttribs);
 

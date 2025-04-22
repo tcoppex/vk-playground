@@ -211,7 +211,7 @@ class SampleApp final : public Application {
 
     allocator_->destroy_buffer(uniform_buffer_);
 
-    R->release(allocator_); //
+    R->release(); //
 
     skybox_.release(context_, renderer_);
   }

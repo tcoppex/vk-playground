@@ -1193,12 +1193,14 @@ void ExtractAnimations(
 
 namespace scene {
 
-void Resources::release(std::shared_ptr<ResourceAllocator> allocator) {
+void Resources::release() {
+  assert(allocator != nullptr);
   for (auto& img : device_images) {
     allocator->destroy_image(&img);
   }
   allocator->destroy_buffer(index_buffer);
   allocator->destroy_buffer(vertex_buffer);
+  *this = {};
 }
 
 // ----------------------------------------------------------------------------
@@ -1206,24 +1208,28 @@ void Resources::release(std::shared_ptr<ResourceAllocator> allocator) {
 bool Resources::load_from_file(std::string_view const& filename, SamplerPool& sampler_pool, bool bRestructureAttribs) {
   std::string const basename{ utils::ExtractBasename(filename) };
 
-  utils::FileReader file;
-  if (!file.read(filename)) {
-    return false;
-  }
-
   cgltf_options options{};
   cgltf_result result{};
   cgltf_data* data{};
+
+  utils::FileReader file{};
+  if (!file.read(filename)) {
+    return false;
+  }
 
   if (result = cgltf_parse(&options, file.buffer.data(), file.buffer.size(), &data); cgltf_result_success != result) {
     LOGE("GLTF: failed to parse file \"%s\" %d.\n", basename.c_str(), result);
     return false;
   }
 
-  result = cgltf_load_buffers(&options, data, filename.data());
-  bool const bSuccess{ cgltf_result_success == result };
+  if (result = cgltf_load_buffers(&options, data, filename.data()); cgltf_result_success != result) {
+    LOGE("GLTF: failed to load buffers in \"%s\" %d.\n", basename.c_str(), result);
+    cgltf_free(data);
+    return false;
+  }
 
-  if (bSuccess) [[likely]] {
+  /* Extract data */
+  {
     PointerToStringMap_t texture_names{};
     PointerToStringMap_t material_names{};
     PointerToSamplerMap_t samplers_lut{};
@@ -1231,13 +1237,17 @@ bool Resources::load_from_file(std::string_view const& filename, SamplerPool& sa
     // (hack) prepass to give proper name to texture when they've got none.
     // ExtractMaterials(basename, texture_names, material_names, data, *this);
 
+    // ExtractImages(data, device_images);
     ExtractSamplers(data, sampler_pool, samplers_lut);
-    ExtractTextures(data, basename, texture_names, textures_map);
+
+    ExtractTextures(data, basename, texture_names, textures_map/*, samplers_lut*/);
     ExtractMaterials(data, basename, texture_names, material_names, textures_map, materials_map);
     ExtractMeshes(data, basename, bRestructureAttribs, material_names, textures_map, materials_map, skeletons_map, meshes);
     ExtractAnimations(data, basename, skeletons_map, animations_map);
 
     reset_internal_device_resource_info();
+  }
+  cgltf_free(data);
 
 #ifndef NDEBUG
     // std::cout << "Texture count : " << textures_map.size() << std::endl;
@@ -1247,12 +1257,8 @@ bool Resources::load_from_file(std::string_view const& filename, SamplerPool& sa
     // std::cout << "Mesh count : " << meshes.size() << std::endl;
     // std::cerr << " ----------------- gltf loaded ----------------- " << std::endl;
 #endif
-  } else {
-    LOGE("GLTF: failed to load buffers in \"%s\" %d.\n", basename.c_str(), result);
-  }
-  cgltf_free(data);
 
-  return bSuccess;
+  return true;
 }
 
 // ----------------------------------------------------------------------------

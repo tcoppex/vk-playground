@@ -44,7 +44,7 @@ class SceneFx final : public FragmentFx {
 
   void release() final {
     allocator_->destroy_buffer(uniform_buffer_);
-    gltf_model_->release(allocator_); //
+    gltf_model_->release(); //
 
     FragmentFx::release();
   }
