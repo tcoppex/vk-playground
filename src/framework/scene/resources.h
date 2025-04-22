@@ -42,6 +42,10 @@ struct Resources {
  private:
   void reset_internal_device_resource_info();
 
+  void upload_images(Context const& context);
+
+  void upload_buffers(Context const& context);
+
  public:
   ResourceMap<Texture> textures_map{}; //
   ResourceMap<Material> materials_map{};
@@ -57,6 +61,9 @@ struct Resources {
   uint32_t vertex_buffer_size{0u};
   uint32_t index_buffer_size{0u};
   uint32_t total_image_size{0u};
+
+ private:
+  std::shared_ptr<ResourceAllocator> allocator;
 };
 
 }  // namespace scene
