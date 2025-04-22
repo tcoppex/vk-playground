@@ -134,12 +134,32 @@ void Resources::upload_to_device(Context const& context, bool const bReleaseHost
 
 // ----------------------------------------------------------------------------
 
+DescriptorSetWriteEntry Resources::get_descriptor_set_texture_atlas_entry(uint32_t const binding) const {
+  DescriptorSetWriteEntry texture_atlas_entry{
+    .binding = binding,
+    .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+  };
+
+  for (auto const& texture : textures) {
+    auto const& img = device_images.at(texture->getChannelIndex());
+    texture_atlas_entry.images.push_back({
+      .sampler = texture->sampler,
+      .imageView = img.view,
+      .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+    });
+  }
+
+  return texture_atlas_entry;
+}
+
+// ----------------------------------------------------------------------------
+
 void Resources::reset_internal_device_resource_info() {
   /* Calculate the offsets to indivual mesh data inside the shared vertices and indices buffers. */
   vertex_buffer_size = 0u;
   index_buffer_size = 0u;
 
-  for (auto& mesh : meshes) {
+  for (auto const& mesh : meshes) {
     uint64_t const vertex_size = mesh->get_vertices().size();
     uint64_t const index_size = mesh->get_indices().size();
     mesh->set_device_buffer_info({

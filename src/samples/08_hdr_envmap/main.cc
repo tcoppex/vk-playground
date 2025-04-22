@@ -78,7 +78,7 @@ class SampleApp final : public Application {
         { Geometry::AttributeType::Normal,    shader_interop::kAttribLocation_Normal   },
       });
 
-      LOG_CHECK(R->textures_map.size() <= kMaxNumTextures); //
+      LOG_CHECK(R->device_images.size() <= kMaxNumTextures); //
     }
 
     /* Release the temporary staging buffers. */
@@ -133,21 +133,10 @@ class SampleApp final : public Application {
       });
     }
 
-    // --------------
     /* Update the Sampler Atlas descriptor with the currently loaded textures. */
-    DescriptorSetWriteEntry texture_atlas_entry{
-      .binding = shader_interop::kDescriptorSetBinding_Sampler,
-      .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-    };
-    for (auto const& img : R->device_images) {
-      texture_atlas_entry.images.push_back({
-        .sampler = renderer_.get_default_sampler(), //
-        .imageView = img.view,
-        .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-      });
-    }
-    renderer_.update_descriptor_set(descriptor_set_, { texture_atlas_entry });
-    // --------------
+    renderer_.update_descriptor_set(descriptor_set_, {
+      R->get_descriptor_set_texture_atlas_entry( shader_interop::kDescriptorSetBinding_Sampler )
+    });
 
     auto shaders{context_.create_shader_modules(COMPILED_SHADERS_DIR, {
       "simple.vert.glsl",

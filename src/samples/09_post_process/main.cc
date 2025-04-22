@@ -159,30 +159,18 @@ class SceneFx final : public FragmentFx {
 
  public:
   void setModel(GLTFScene model) {
-    LOG_CHECK(model->textures_map.size() <= kMaxNumTextures); //
+    LOG_CHECK(model->device_images.size() <= kMaxNumTextures); //
 
     gltf_model_ = model;
 
     /* Update the Sampler Atlas descriptor with the currently loaded textures. */
-    DescriptorSetWriteEntry texture_atlas_entry{
-      .binding = shader_interop::kDescriptorSetBinding_Sampler,
-      .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-    };
-    for (auto const& img : gltf_model_->device_images) {
-      texture_atlas_entry.images.push_back({
-        .sampler = renderer_ptr_->get_default_sampler(), //
-        .imageView = img.view,
-        .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-      });
-    }
-
     renderer_ptr_->update_descriptor_set(descriptor_set_, {
       {
         .binding = shader_interop::kDescriptorSetBinding_UniformBuffer,
         .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
         .buffers = { { uniform_buffer_.buffer } },
       },
-      texture_atlas_entry,
+      gltf_model_->get_descriptor_set_texture_atlas_entry( shader_interop::kDescriptorSetBinding_Sampler )
     });
   }
 
