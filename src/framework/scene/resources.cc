@@ -485,14 +485,11 @@ void ExtractSamplers(
 //-----------------------------------------------------------------------------
 
 void ExtractTextures(
-  scene::Resources& R,
   cgltf_data const* data,
   std::string const& basename,
-  PointerToStringMap_t& texture_names
-  // SamplerPool& sampler_pool,
+  PointerToStringMap_t& texture_names,
+  scene::Resources::ResourceMap<scene::Image>& textures_map
 ) {
-  int constexpr kDefaultNumChannels{ 4 }; //
-
   stbi_set_flip_vertically_on_load(false);
 
   for (cgltf_size i = 0; i < data->textures_count; ++i) {
@@ -508,7 +505,7 @@ void ExtractTextures(
         texture_names[&texture] = ref;
       }
 
-      if (auto it = R.images.find(ref); it != R.images.end()) {
+      if (auto it = textures_map.find(ref); it != textures_map.end()) {
         continue;
       }
 
@@ -528,7 +525,7 @@ void ExtractTextures(
           &image->width,
           &image->height,
           &image->channels,
-          kDefaultNumChannels
+          scene::Image::kDefaultNumChannels
         );
 
         if (pixel_data) {
@@ -537,8 +534,6 @@ void ExtractTextures(
           LOGW("Fail to load texture %s.", ref.c_str());
           continue;
         }
-
-        // LOGD("**** %lu  %u  %u*%u", bufferView->size, 4u * image->width * image->height, image->width, image->height);
       } else {
         LOGW("Texture %s unsupported.", ref.c_str());
         continue;
@@ -547,7 +542,7 @@ void ExtractTextures(
       // Reference into the scene structure.
       if (image->pixels != nullptr) {
         LOGD("[GLTF] Texture \"%s\" has been loaded.", ref.c_str());
-        R.images[ref] = std::move(image);
+        textures_map[ref] = std::move(image);
       } else {
         LOGE("[GLTF] Texture \"%s\" failed to be loaded.", ref.c_str());
       }
@@ -605,7 +600,7 @@ void ExtractMaterials(
       );
       if (const cgltf_texture* tex = pbr_mr.base_color_texture.texture; tex) {
         auto ref = textureRef(*tex, texture_prefix + "Albedo");
-        if (auto it = R.images.find(ref); it != R.images.end()) {
+        if (auto it = R.textures.find(ref); it != R.textures.end()) {
           material->albedoTexture = it->second;
         } else {
           LOGD("Fails to find albedo texture '%s'", ref.c_str());
@@ -613,7 +608,7 @@ void ExtractMaterials(
       }
       if (const cgltf_texture* tex = pbr_mr.metallic_roughness_texture.texture; tex) {
         auto ref = textureRef(*tex, texture_prefix + "MetallicRough");
-        if (auto it = R.images.find(ref); it != R.images.end()) {
+        if (auto it = R.textures.find(ref); it != R.textures.end()) {
           material->ormTexture = it->second;
         } else {
           LOGD("Fails to find metallic rough texture '%s'", ref.c_str());
@@ -628,7 +623,7 @@ void ExtractMaterials(
     // Normal texture.
     if (const cgltf_texture* tex = mat.normal_texture.texture; tex) {
       auto ref = textureRef(*tex, texture_prefix + "Normal");
-      if (auto it = R.images.find(ref); it != R.images.end()) {
+      if (auto it = R.textures.find(ref); it != R.textures.end()) {
         material->normalTexture = it->second;
       }
     }
@@ -1191,10 +1186,9 @@ void ExtractAnimations(
 namespace scene {
 
 void Resources::release(std::shared_ptr<ResourceAllocator> allocator) {
-  for (auto& tex : textures) {
-    allocator->destroy_image(&tex);
+  for (auto& img : device_images) {
+    allocator->destroy_image(&img);
   }
-
   allocator->destroy_buffer(index_buffer);
   allocator->destroy_buffer(vertex_buffer);
 }
@@ -1230,7 +1224,7 @@ bool Resources::load_from_file(std::string_view const& filename, SamplerPool& sa
     // ExtractMaterials(basename, texture_names, material_names, data, *this);
 
     ExtractSamplers(data, sampler_pool, samplers_map);
-    ExtractTextures(*this, data, basename, texture_names);
+    ExtractTextures(data, basename, texture_names, textures);
     ExtractMaterials(*this, data, basename, texture_names, material_names);
     ExtractMeshes(*this, data, basename, material_names, bRestructureAttribs);
     ExtractAnimations(*this, data, basename);
@@ -1238,7 +1232,7 @@ bool Resources::load_from_file(std::string_view const& filename, SamplerPool& sa
     reset_internal_device_resource_info();
 
 #ifndef NDEBUG
-    // std::cout << "Image count : " << images.size() << std::endl;
+    // std::cout << "Texture count : " << textures.size() << std::endl;
     // std::cout << "Material count : " << materials.size() << std::endl;
     // std::cout << "Skeleton count : " << skeletons.size() << std::endl;
     // std::cout << "Animation count : " << animations.size() << std::endl;
@@ -1273,8 +1267,8 @@ void Resources::reset_internal_device_resource_info() {
     index_buffer_size += index_size;
   }
 
-  for (auto [_, image] : images) {
-    total_image_size += image->channels * image->width * image->height;
+  for (auto [_, texture] : textures) {
+    total_image_size += scene::Image::kDefaultNumChannels * texture->width * texture->height; //
   }
 
 #ifndef NDEBUG
@@ -1303,19 +1297,19 @@ void Resources::upload_to_device(Context const& context, bool const bReleaseHost
   if (total_image_size > 0) {
     /* Create a staging buffer. */
     backend::Buffer staging_buffer{
-      allocator->create_staging_buffer( total_image_size ) // XXX
+      allocator->create_staging_buffer( total_image_size ) //
     };
 
-    textures.reserve(images.size()); //
+    device_images.reserve(textures.size()); //
 
     std::vector<VkBufferImageCopy> copies;
-    copies.reserve(images.size());
+    copies.reserve(textures.size());
 
     // ----------------
 
     uint32_t texture_index = 0u;
     uint64_t staging_offset = 0u;
-    for (auto& [key, img] : images) {
+    for (auto& [key, img] : textures) {
       VkExtent3D const extent{
         .width = static_cast<uint32_t>(img->width),
         .height = static_cast<uint32_t>(img->height),
@@ -1325,8 +1319,8 @@ void Resources::upload_to_device(Context const& context, bool const bReleaseHost
       auto tex{context.create_image_2d(
         extent.width, extent.height, 1u, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_TRANSFER_DST_BIT
       )};
-      textures.push_back(tex);
-      img->texture_index = textures.size() - 1u;
+      device_images.push_back(tex);
+      img->texture_index = device_images.size() - 1u;
 
       /* Upload image to staging buffer */
       uint32_t const img_bytesize{
@@ -1353,11 +1347,11 @@ void Resources::upload_to_device(Context const& context, bool const bReleaseHost
     {
       VkImageLayout const transfer_layout{ VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL };
 
-      cmd.transition_images_layout(textures, VK_IMAGE_LAYOUT_UNDEFINED, transfer_layout);
-      for (uint32_t tex_id = 0u; tex_id < textures.size(); ++tex_id) {
-        vkCmdCopyBufferToImage(cmd.get_handle(), staging_buffer.buffer, textures[tex_id].image, transfer_layout, 1u, &copies[tex_id]);
+      cmd.transition_images_layout(device_images, VK_IMAGE_LAYOUT_UNDEFINED, transfer_layout);
+      for (uint32_t tex_id = 0u; tex_id < device_images.size(); ++tex_id) {
+        vkCmdCopyBufferToImage(cmd.get_handle(), staging_buffer.buffer, device_images[tex_id].image, transfer_layout, 1u, &copies[tex_id]);
       }
-      cmd.transition_images_layout(textures, transfer_layout, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+      cmd.transition_images_layout(device_images, transfer_layout, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     }
     context.finish_transient_command_encoder(cmd);
   }

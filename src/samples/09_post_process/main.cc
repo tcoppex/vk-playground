@@ -168,10 +168,10 @@ class SceneFx final : public FragmentFx {
       .binding = shader_interop::kDescriptorSetBinding_Sampler,
       .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
     };
-    for (auto const& tex : gltf_model_->textures) {
+    for (auto const& img : gltf_model_->device_images) {
       texture_atlas_entry.images.push_back({
         .sampler = renderer_ptr_->get_default_sampler(), //
-        .imageView = tex.view,
+        .imageView = img.view,
         .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
       });
     }

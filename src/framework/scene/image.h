@@ -10,9 +10,12 @@ namespace scene {
 
   // (wip)
 struct Image {
+  static constexpr int kDefaultNumChannels{ 4 }; //
+
   int width{};
   int height{};
-  int channels{};
+  int channels{}; //
+
   std::unique_ptr<uint8_t, decltype(&stbi_image_free)> pixels{nullptr, stbi_image_free}; //
 
   uint32_t texture_index{UINT32_MAX};

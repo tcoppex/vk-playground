@@ -139,10 +139,10 @@ class SampleApp final : public Application {
       .binding = shader_interop::kDescriptorSetBinding_Sampler,
       .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
     };
-    for (auto const& tex : R->textures) {
+    for (auto const& img : R->device_images) {
       texture_atlas_entry.images.push_back({
         .sampler = renderer_.get_default_sampler(), //
-        .imageView = tex.view,
+        .imageView = img.view,
         .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
       });
     }

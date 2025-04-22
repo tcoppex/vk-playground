@@ -25,18 +25,18 @@ struct Resources {
   template<typename T>
   using ResourceMap = std::unordered_map<std::string, std::shared_ptr<T>>;
 
-  // -----------
-  // we should rather extract image first, THEN textures (ie. Image + Samplers).
-  // Here we treat 'textures' as images directly, which is bad.
-  std::vector<backend::Image> textures{}; //
-  // -----------
-
-  ResourceMap<Image> images{};
+  ResourceMap<Image> textures{}; //
   ResourceMap<Material> materials{};
   ResourceMap<AnimationClip> animations{};
   ResourceMap<Skeleton> skeletons{};
 
   std::vector<std::shared_ptr<Mesh>> meshes{}; //
+
+  // -----------
+  // we should rather extract image first, THEN textures (ie. Image + Samplers).
+  // Here we treat 'textures' as images directly, which is bad.
+  std::vector<backend::Image> device_images{}; //
+  // -----------
 
   backend::Buffer vertex_buffer;
   backend::Buffer index_buffer;
