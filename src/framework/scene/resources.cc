@@ -347,11 +347,11 @@ void ExtractMaterials(
     // LOG_CHECK(R.materials.find(material_name) == R.materials.end());
 
     std::shared_ptr<scene::Material> material;
+
     if (auto it = R.materials.find(material_name); it != R.materials.end()) {
       material = it->second;
     } else {
-      material = std::make_shared<scene::Material>();
-      material->name = material_name;
+      material = std::make_shared<scene::Material>(material_name); //
     }
 
     std::string const texture_prefix{ basename + "::Texture_" };
@@ -359,6 +359,8 @@ void ExtractMaterials(
     // [wip] PBR MetallicRoughness.
     if (mat.has_pbr_metallic_roughness) {
       auto const& pbr_mr = mat.pbr_metallic_roughness;
+
+      //---------------------------------
       std::copy(
         std::cbegin(pbr_mr.base_color_factor),
         std::cend(pbr_mr.base_color_factor),

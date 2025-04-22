@@ -17,7 +17,9 @@ struct Material {
   std::shared_ptr<Image> ormTexture{};
   std::shared_ptr<Image> normalTexture{};
 
-  Material() = default;
+  Material(std::string_view _name)
+    : name(_name)
+  {}
 };
 
 /* -------------------------------------------------------------------------- */
