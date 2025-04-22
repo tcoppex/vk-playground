@@ -19,8 +19,7 @@ extern "C" {
 #include "framework/backend/context.h"
 
 /* -------------------------------------------------------------------------- */
-
-/* ---- Helpers ---- */
+/* -------------------------------------------------------------------------- */
 
 namespace {
 
@@ -281,7 +280,6 @@ void ExtractTextures(std::string const& basename, PointerToStringMap_t & texture
         stbi_uc const* bufferData = reinterpret_cast<stbi_uc const*>(bufferView->buffer->data) + bufferView->offset;
         int32_t const bufferSize = static_cast<int32_t>(bufferView->size);
 
-
         auto pixel_data = stbi_load_from_memory(
           bufferData,
           bufferSize,
@@ -290,7 +288,6 @@ void ExtractTextures(std::string const& basename, PointerToStringMap_t & texture
           &image->channels,
           kDefaultNumChannels
         );
-
 
         if (pixel_data) {
           image->pixels.reset(pixel_data);
@@ -382,6 +379,7 @@ void ExtractMaterials(
           LOGD("Fails to find metallic rough texture '%s'", ref.c_str());
         }
       }
+      //---------------------------------
     } else {
       LOGW("[GLTF] Material %s has unsupported material type.", material_name.c_str());
       continue;
@@ -406,7 +404,6 @@ void ExtractMaterials(
 
 //-----------------------------------------------------------------------------
 
-/* Decompress a Draco cgltf primitive into a buffer of VertexInternal_t. */
 bool DecompressDracoPrimitive(cgltf_primitive const& prim, std::vector<VertexInternal_t>& vertices, std::vector<uint32_t>& indices) {
   if (!prim.has_draco_mesh_compression) {
     LOGE("Error: Primitive does not have draco compression.");
@@ -564,7 +561,7 @@ void ExtractPrimitiveVertices(cgltf_primitive const& prim, std::vector<VertexInt
     else if (attrib.type == cgltf_attribute_type_texcoord) {
       LOG_CHECK(accessor->type == cgltf_type_vec2);
       if (attrib.index > 0) {
-        LOGW( "MultiTexturing is not supported yet." );
+        LOGW( "MultiTexturing is not supported." );
         continue;
       }
       // LOGD( "> loading texture coordinates." );
@@ -929,10 +926,13 @@ void ExtractMeshes(
   }
 }
 
+//-----------------------------------------------------------------------------
+
 void ExtractAnimations(std::string const& basename, cgltf_data const* data, scene::Resources& R) {
   if (!data || (data->animations_count == 0u)) {
     return;
-  } else if (R.skeletons.empty()) {
+  }
+  if (R.skeletons.empty()) {
     LOGE("[GLTF] animations without skeleton are not supported.");
     return;
   }
@@ -1137,6 +1137,7 @@ void ExtractAnimations(std::string const& basename, cgltf_data const* data, scen
 }  // namespace ""
 
 /* -------------------------------------------------------------------------- */
+/* -------------------------------------------------------------------------- */
 
 namespace scene {
 
@@ -1229,6 +1230,8 @@ void Resources::reset_meshes_device_buffer_info() {
   // LOGI("> total image size %f Mb ", total_image_size / static_cast<float>(kMegabyte));
 #endif
 }
+
+// ----------------------------------------------------------------------------
 
 void Resources::initialize_submesh_descriptors(Mesh::AttributeLocationMap const& attribute_to_location) {
   /* Bind mesh attributes to pipeline locations. */

@@ -31,12 +31,11 @@ struct Resources {
   ResourceMap<Skeleton> skeletons{};
 
   std::vector<std::shared_ptr<Mesh>> meshes{}; //
-  // std::vector<Sampler> samplers{}; //
 
-  // NOTE :
   // we should rather extract image first, THEN textures (ie. Image + Samplers).
   // Here we treat 'textures' as images directly, which is bad.
   std::vector<backend::Image> textures{}; //
+  // std::vector<Sampler> samplers{}; //
 
   backend::Buffer vertex_buffer;
   backend::Buffer index_buffer;
