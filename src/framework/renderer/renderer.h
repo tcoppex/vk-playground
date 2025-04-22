@@ -120,7 +120,9 @@ class Renderer : public backend::RTInterface {
 
   // --- Resources gltf objects ---
 
-  std::shared_ptr<scene::Resources> load_and_upload(std::string_view gltf_filename, scene::Mesh::AttributeLocationMap const& attribute_to_location);
+  GLTFScene load_and_upload(std::string_view gltf_filename, scene::Mesh::AttributeLocationMap const& attribute_to_location);
+
+  GLTFScene load_and_upload(std::string_view gltf_filename);
 
  public:
   /* ----- RTInterface Overrides ----- */

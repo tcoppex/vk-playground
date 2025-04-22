@@ -799,13 +799,27 @@ bool Renderer::load_image_2d(std::string_view const& filename, backend::Image &i
 
 // ----------------------------------------------------------------------------
 
-std::shared_ptr<scene::Resources> Renderer::load_and_upload(std::string_view gltf_filename, scene::Mesh::AttributeLocationMap const& attribute_to_location) {
+GLTFScene Renderer::load_and_upload(std::string_view gltf_filename, scene::Mesh::AttributeLocationMap const& attribute_to_location) {
   if (auto R = std::make_shared<scene::Resources>(); R && R->load_from_file(gltf_filename)) {
     R->initialize_submesh_descriptors(attribute_to_location);
     R->upload_to_device(*ctx_ptr_);
     return R;
   }
   return nullptr;
+}
+
+// ----------------------------------------------------------------------------
+
+GLTFScene Renderer::load_and_upload(std::string_view gltf_filename) {
+  // [temporary, this should be held by the future DefaultFxPipeline or the like]
+  static const scene::Mesh::AttributeLocationMap kDefaultFxPipelineAttributeLocationMap{
+    {
+      { Geometry::AttributeType::Position, 0u },
+      { Geometry::AttributeType::Normal,   1u },
+      { Geometry::AttributeType::Texcoord, 2u },
+    }
+  };
+  return load_and_upload(gltf_filename, kDefaultFxPipelineAttributeLocationMap);
 }
 
 /* -------------------------------------------------------------------------- */
