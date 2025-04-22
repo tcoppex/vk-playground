@@ -51,7 +51,7 @@ struct Resources {
 
   bool load_from_file(std::string_view const& filename, SamplerPool& sampler_pool, bool bRestructureAttribs = kRestructureAttribs);
 
-  void reset_meshes_device_buffer_info();
+  void reset_internal_device_resource_info();
 
   /* Bind mesh attributes to pipeline locations. */
   void initialize_submesh_descriptors(Mesh::AttributeLocationMap const& attribute_to_location);

@@ -467,7 +467,6 @@ void ExtractPrimitiveVertices(cgltf_primitive const& prim, std::vector<VertexInt
 namespace {
 
 void ExtractSamplers(
-  scene::Resources& R,
   cgltf_data const* data,
   SamplerPool& sampler_pool,
   PointerToSamplerMap_t &samplers_map
@@ -538,8 +537,6 @@ void ExtractTextures(
           LOGW("Fail to load texture %s.", ref.c_str());
           continue;
         }
-
-        R.total_image_size += 4u * image->width * image->height; //
 
         // LOGD("**** %lu  %u  %u*%u", bufferView->size, 4u * image->width * image->height, image->width, image->height);
       } else {
@@ -1232,13 +1229,13 @@ bool Resources::load_from_file(std::string_view const& filename, SamplerPool& sa
     // (hack) prepass to give proper name to texture when they've got none.
     // ExtractMaterials(basename, texture_names, material_names, data, *this);
 
-    ExtractSamplers(*this, data, sampler_pool, samplers_map);
+    ExtractSamplers(data, sampler_pool, samplers_map);
     ExtractTextures(*this, data, basename, texture_names);
     ExtractMaterials(*this, data, basename, texture_names, material_names);
     ExtractMeshes(*this, data, basename, material_names, bRestructureAttribs);
     ExtractAnimations(*this, data, basename);
 
-    reset_meshes_device_buffer_info();
+    reset_internal_device_resource_info();
 
 #ifndef NDEBUG
     // std::cout << "Image count : " << images.size() << std::endl;
@@ -1258,7 +1255,7 @@ bool Resources::load_from_file(std::string_view const& filename, SamplerPool& sa
 
 // ----------------------------------------------------------------------------
 
-void Resources::reset_meshes_device_buffer_info() {
+void Resources::reset_internal_device_resource_info() {
   /* Calculate the offsets to indivual mesh data inside the shared vertices and indices buffers. */
   vertex_buffer_size = 0u;
   index_buffer_size = 0u;
@@ -1266,7 +1263,6 @@ void Resources::reset_meshes_device_buffer_info() {
   for (auto& mesh : meshes) {
     uint64_t const vertex_size = mesh->get_vertices().size();
     uint64_t const index_size = mesh->get_indices().size();
-
     mesh->set_device_buffer_info({
       .vertex_offset = vertex_buffer_size,
       .index_offset = index_buffer_size,
@@ -1275,6 +1271,10 @@ void Resources::reset_meshes_device_buffer_info() {
     });
     vertex_buffer_size += vertex_size;
     index_buffer_size += index_size;
+  }
+
+  for (auto [_, image] : images) {
+    total_image_size += image->channels * image->width * image->height;
   }
 
 #ifndef NDEBUG
