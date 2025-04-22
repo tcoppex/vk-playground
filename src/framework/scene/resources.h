@@ -25,10 +25,10 @@ struct Resources {
   template<typename T>
   using ResourceMap = std::unordered_map<std::string, std::shared_ptr<T>>;
 
-  ResourceMap<Texture> textures{}; //
-  ResourceMap<Material> materials{};
-  ResourceMap<AnimationClip> animations{};
-  ResourceMap<Skeleton> skeletons{};
+  ResourceMap<Texture> textures_map{}; //
+  ResourceMap<Material> materials_map{};
+  ResourceMap<Skeleton> skeletons_map{};
+  ResourceMap<AnimationClip> animations_map{};
 
   std::vector<std::shared_ptr<Mesh>> meshes{}; //
 

@@ -78,7 +78,7 @@ class SampleApp final : public Application {
         { Geometry::AttributeType::Normal,    shader_interop::kAttribLocation_Normal   },
       });
 
-      LOG_CHECK(R->textures.size() <= kMaxNumTextures); //
+      LOG_CHECK(R->textures_map.size() <= kMaxNumTextures); //
     }
 
     /* Release the temporary staging buffers. */

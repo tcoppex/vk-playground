@@ -469,12 +469,12 @@ namespace {
 void ExtractSamplers(
   cgltf_data const* data,
   SamplerPool& sampler_pool,
-  PointerToSamplerMap_t &samplers_map
+  PointerToSamplerMap_t &samplers_lut
 ) {
   for (cgltf_size sampler_id = 0; sampler_id < data->samplers_count; ++sampler_id) {
     cgltf_sampler const& sampler = data->samplers[sampler_id];
-    if (!samplers_map.contains(&sampler)) {
-      samplers_map.insert({
+    if (!samplers_lut.contains(&sampler)) {
+      samplers_lut.insert({
         &sampler,
         sampler_pool.getSampler(ConvertSamplerInfo(sampler))
       });
@@ -1223,22 +1223,22 @@ bool Resources::load_from_file(std::string_view const& filename, SamplerPool& sa
   if (bSuccess) [[likely]] {
     PointerToStringMap_t texture_names{};
     PointerToStringMap_t material_names{};
-    PointerToSamplerMap_t samplers_map{};
+    PointerToSamplerMap_t samplers_lut{};
 
     // (hack) prepass to give proper name to texture when they've got none.
     // ExtractMaterials(basename, texture_names, material_names, data, *this);
 
-    ExtractSamplers(data, sampler_pool, samplers_map);
-    ExtractTextures(data, basename, texture_names, textures);
-    ExtractMaterials(data, basename, texture_names, material_names, textures, materials);
-    ExtractMeshes(data, basename, bRestructureAttribs, material_names, textures, materials, skeletons, meshes);
-    ExtractAnimations(data, basename, skeletons, animations);
+    ExtractSamplers(data, sampler_pool, samplers_lut);
+    ExtractTextures(data, basename, texture_names, textures_map);
+    ExtractMaterials(data, basename, texture_names, material_names, textures_map, materials_map);
+    ExtractMeshes(data, basename, bRestructureAttribs, material_names, textures_map, materials_map, skeletons_map, meshes);
+    ExtractAnimations(data, basename, skeletons_map, animations_map);
 
     reset_internal_device_resource_info();
 
 #ifndef NDEBUG
-    // std::cout << "Texture count : " << textures.size() << std::endl;
-    // std::cout << "Material count : " << materials.size() << std::endl;
+    // std::cout << "Texture count : " << textures_map.size() << std::endl;
+    // std::cout << "Material count : " << materials_map.size() << std::endl;
     // std::cout << "Skeleton count : " << skeletons.size() << std::endl;
     // std::cout << "Animation count : " << animations.size() << std::endl;
     // std::cout << "Mesh count : " << meshes.size() << std::endl;
@@ -1272,7 +1272,7 @@ void Resources::reset_internal_device_resource_info() {
     index_buffer_size += index_size;
   }
 
-  for (auto [_, texture] : textures) {
+  for (auto [_, texture] : textures_map) {
     total_image_size += scene::Texture::kDefaultNumChannels * texture->width * texture->height; //
   }
 
@@ -1305,34 +1305,34 @@ void Resources::upload_to_device(Context const& context, bool const bReleaseHost
       allocator->create_staging_buffer( total_image_size ) //
     };
 
-    device_images.reserve(textures.size()); //
+    device_images.reserve(textures_map.size()); //
 
     std::vector<VkBufferImageCopy> copies;
-    copies.reserve(textures.size());
+    copies.reserve(textures_map.size());
 
     // ----------------
 
-    uint32_t texture_index = 0u;
+    uint32_t channel_index = 0u;
     uint64_t staging_offset = 0u;
-    for (auto& [key, img] : textures) {
+    for (auto& [_, texture] : textures_map) {
+      texture->texture_index = channel_index++;
+
       VkExtent3D const extent{
-        .width = static_cast<uint32_t>(img->width),
-        .height = static_cast<uint32_t>(img->height),
+        .width = static_cast<uint32_t>(texture->width),
+        .height = static_cast<uint32_t>(texture->height),
         .depth = 1u,
       };
-
-      auto tex{context.create_image_2d(
+      device_images.push_back(context.create_image_2d(
         extent.width, extent.height, 1u, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_TRANSFER_DST_BIT
-      )};
-      device_images.push_back(tex);
-      img->texture_index = device_images.size() - 1u;
+      ));
 
       /* Upload image to staging buffer */
       uint32_t const img_bytesize{
         static_cast<uint32_t>(4u * extent.width * extent.height) //
       };
-      allocator->write_buffer( staging_buffer, staging_offset,  img->pixels.get(), 0u, img_bytesize);
-
+      allocator->write_buffer(
+        staging_buffer, staging_offset, texture->pixels.get(), 0u, img_bytesize
+      );
       copies.push_back({
         .bufferOffset = staging_offset,
         .imageSubresource = {
@@ -1341,9 +1341,7 @@ void Resources::upload_to_device(Context const& context, bool const bReleaseHost
         },
         .imageExtent = extent,
       });
-
       staging_offset += img_bytesize;
-      ++texture_index;
     }
 
     // ----------------

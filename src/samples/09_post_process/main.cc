@@ -159,7 +159,7 @@ class SceneFx final : public FragmentFx {
 
  public:
   void setModel(GLTFScene model) {
-    LOG_CHECK(model->textures.size() <= kMaxNumTextures); //
+    LOG_CHECK(model->textures_map.size() <= kMaxNumTextures); //
 
     gltf_model_ = model;
 
