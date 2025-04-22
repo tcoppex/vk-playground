@@ -48,30 +48,49 @@ bool Resources::load_from_file(std::string_view const& filename, SamplerPool& sa
   {
     using namespace internal::gltf_loader;
 
-    PointerToStringMap_t texture_names{};
-    PointerToStringMap_t material_names{};
-    PointerToSamplerMap_t samplers_lut{};
+    /// +++ Notes +++
+    ///
+    /// Since switching to ResourceBuffer + PointToIndexMap the loading is a
+    /// a bit slower than previously (curiously ?).
+    ///
+    /// Hashmaps using pointers might be slower than those using **cumbersomely**
+    /// handmade strings..
+    ///
+    /// Or maybe the new texture vs host_image things is not well set,
+    /// as textures are just ref to Image + Sampler, maybe there is useless
+    /// data creation / moves somewhere.
 
-    // (hack) prepass to give proper name to texture when they've got none.
-    // ExtractMaterials(basename, texture_names, material_names, data, *this);
 
-    // ExtractImages(data, device_images);
+    PointerToIndexMap_t image_indices{};
+    ExtractImages(data, image_indices, host_images);
+
+    PointerToSamplerMap_t samplers_lut{}; //
     ExtractSamplers(data, sampler_pool, samplers_lut);
 
-    ExtractTextures(data, basename, texture_names, textures_map/*, samplers_lut*/);
-    ExtractMaterials(data, basename, texture_names, material_names, textures_map, materials_map);
-    ExtractMeshes(data, basename, bRestructureAttribs, material_names, textures_map, materials_map, skeletons_map, meshes);
-    ExtractAnimations(data, basename, skeletons_map, animations_map);
+    PointerToIndexMap_t textures_indices{};
+    ExtractTextures(data, image_indices, samplers_lut, textures_indices, textures); //
+
+    PointerToIndexMap_t materials_indices{};
+    ExtractMaterials(data, textures_indices, textures, materials_indices, materials);
+
+    // TODO
+    PointerToIndexMap_t skeletons_indices{};
+    // ExtractSkeletons(data, skeletons_indices, skeletons);
+
+    ExtractMeshes(data, materials_indices, materials, skeletons_indices, skeletons, meshes, bRestructureAttribs);
+
+    // ExtractAnimations(data, basename, skeletons_indices, skeletons, animations_map);
 
     reset_internal_device_resource_info();
   }
   cgltf_free(data);
 
 #ifndef NDEBUG
-    // std::cout << "Texture count : " << textures_map.size() << std::endl;
-    // std::cout << "Material count : " << materials_map.size() << std::endl;
+    // std::cout << "Images count : " << host_images.size() << std::endl;
+    // std::cout << "Texture count : " << textures.size() << std::endl;
+    // std::cout << "Material count : " << materials.size() << std::endl;
     // std::cout << "Skeleton count : " << skeletons.size() << std::endl;
-    // std::cout << "Animation count : " << animations.size() << std::endl;
+    // std::cout << "Animation count : " << animations_map.size() << std::endl;
     // std::cout << "Mesh count : " << meshes.size() << std::endl;
     // std::cerr << " ----------------- gltf loaded ----------------- " << std::endl;
 #endif
@@ -133,8 +152,8 @@ void Resources::reset_internal_device_resource_info() {
     index_buffer_size += index_size;
   }
 
-  for (auto [_, texture] : textures_map) {
-    total_image_size += scene::Texture::kDefaultNumChannels * texture->width * texture->height; //
+  for (auto const& host_image : host_images) {
+    total_image_size += ImageData::kDefaultNumChannels * host_image->width * host_image->height; //
   }
 
 #ifndef NDEBUG
@@ -156,37 +175,33 @@ void Resources::upload_images(Context const& context) {
     allocator->create_staging_buffer( total_image_size ) //
   };
 
-  // ----------------
-  // xxx devices_images is max the size of texture_map but could be less xxx
-  device_images.reserve(textures_map.size()); //
-  // ----------------
+  device_images.reserve(host_images.size()); //
 
-  std::vector<VkBufferImageCopy> copies;
-  copies.reserve(textures_map.size());
+  std::vector<VkBufferImageCopy> copies{};
+  copies.reserve(host_images.size());
 
-  uint32_t channel_index = 0u;
+  // uint32_t channel_index = 0u;
   uint64_t staging_offset = 0u;
-  for (auto& [_, texture] : textures_map) {
-    // ----------
-    // [should correspond to the correct image in device_images instead]
-    texture->texture_index = channel_index++; //
-    // ----------
-
+  for (auto const& host_image : host_images) {
     VkExtent3D const extent{
-      .width = static_cast<uint32_t>(texture->width),
-      .height = static_cast<uint32_t>(texture->height),
+      .width = static_cast<uint32_t>(host_image->width),
+      .height = static_cast<uint32_t>(host_image->height),
       .depth = 1u,
     };
     device_images.push_back(context.create_image_2d(
-      extent.width, extent.height, 1u, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_TRANSFER_DST_BIT
+      extent.width,
+      extent.height,
+      1u,
+      VK_FORMAT_R8G8B8A8_UNORM,
+      VK_IMAGE_USAGE_TRANSFER_DST_BIT
     ));
 
     /* Upload image to staging buffer */
     uint32_t const img_bytesize{
-      static_cast<uint32_t>(4u * extent.width * extent.height) //
+      static_cast<uint32_t>(ImageData::kDefaultNumChannels * extent.width * extent.height) //
     };
     allocator->write_buffer(
-      staging_buffer, staging_offset, texture->pixels.get(), 0u, img_bytesize
+      staging_buffer, staging_offset, host_image->pixels.get(), 0u, img_bytesize
     );
     copies.push_back({
       .bufferOffset = staging_offset,
@@ -244,7 +259,6 @@ void Resources::upload_buffers(Context const& context) {
       auto const& vertices = mesh->get_vertices();
       allocator->write_buffer(mesh_staging_buffer, vertex_offset, vertices.data(), 0u, vertices.size());
       vertex_offset += vertices.size();
-
 
       if (index_buffer_size > 0) {
         auto const& indices = mesh->get_indices();

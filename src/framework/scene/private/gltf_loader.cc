@@ -65,7 +65,7 @@ struct VertexInternal_t {
   }
 };
 
-//-----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
 
 bool DecompressDracoPrimitive(cgltf_primitive const& prim, std::vector<VertexInternal_t>& vertices, std::vector<uint32_t>& indices) {
   if (!prim.has_draco_mesh_compression) {
@@ -177,7 +177,7 @@ bool DecompressDracoPrimitive(cgltf_primitive const& prim, std::vector<VertexInt
   return true;
 }
 
-//-----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
 
 void ExtractPrimitiveVertices(cgltf_primitive const& prim, std::vector<VertexInternal_t>& vertices) {
   uint32_t const vertex_count = prim.attributes[0].data->count;
@@ -260,7 +260,7 @@ void ExtractPrimitiveVertices(cgltf_primitive const& prim, std::vector<VertexInt
   }
 }
 
-//-----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
 
 std::string GetImageRefID(cgltf_image const* image, std::string_view alt) {
   return std::string{
@@ -274,6 +274,35 @@ std::string GetImageRefID(cgltf_image const* image, std::string_view alt) {
 
 namespace internal::gltf_loader {
 
+void ExtractImages(
+  cgltf_data const* data,
+  PointerToIndexMap_t& image_indices,
+  scene::ResourceBuffer<scene::ImageData>& images
+) {
+  stbi_set_flip_vertically_on_load(false); //
+
+  images.reserve(data->images_count);
+
+  for (cgltf_size image_id = 0; image_id < data->images_count; ++image_id) {
+    cgltf_image const& gl_image = data->images[image_id];
+    cgltf_buffer_view *buffer_view = gl_image.buffer_view;
+
+    if (!buffer_view || !buffer_view->buffer) {
+      continue;
+    }
+
+    stbi_uc const* buffer_data{
+      reinterpret_cast<stbi_uc const*>(buffer_view->buffer->data) + buffer_view->offset
+    };
+    auto image = std::make_shared<scene::ImageData>(buffer_data, buffer_view->size);
+
+    image_indices.try_emplace(&gl_image, image_id);
+    images.push_back( std::move(image) );
+  }
+}
+
+// ----------------------------------------------------------------------------
+
 void ExtractSamplers(
   cgltf_data const* data,
   SamplerPool& sampler_pool,
@@ -282,182 +311,105 @@ void ExtractSamplers(
   for (cgltf_size sampler_id = 0; sampler_id < data->samplers_count; ++sampler_id) {
     cgltf_sampler const& sampler = data->samplers[sampler_id];
     if (!samplers_lut.contains(&sampler)) {
-      samplers_lut.insert({
+      samplers_lut.try_emplace(
         &sampler,
         sampler_pool.getSampler(ConvertSamplerInfo(sampler))
-      });
+      );
     }
   }
 }
 
-//-----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
 
-// [TO REWRITE]
 void ExtractTextures(
   cgltf_data const* data,
-  std::string const& basename,
-  PointerToStringMap_t& texture_names,
-  scene::ResourceMap<scene::Texture>& textures_map
+  PointerToIndexMap_t const& image_indices,
+  PointerToSamplerMap_t const& samplers_lut, //
+  PointerToIndexMap_t& textures_indices,
+  scene::ResourceBuffer<scene::Texture>& textures
 ) {
-  stbi_set_flip_vertically_on_load(false);
+  textures.reserve(data->textures_count);
 
   for (cgltf_size texture_id = 0; texture_id < data->textures_count; ++texture_id) {
     cgltf_texture const& gl_texture = data->textures[texture_id];
 
-    if (auto img = gl_texture.image; img) {
-      std::string ref{};
+    auto texture = std::make_shared<scene::Texture>();
+    texture->texture_index = texture_id; //
+    texture->host_image_index = image_indices.at(gl_texture.image);
+    texture->sampler = samplers_lut.at(gl_texture.sampler);
 
-      if (auto it = texture_names.find(&gl_texture); it != texture_names.cend()) {
-        ref = it->second;
-      } else {
-        ref = GetImageRefID(gl_texture.image, std::string(basename) + "::Texture_" + std::to_string(texture_id));
-        texture_names[&gl_texture] = ref;
-      }
-
-      if (auto it = textures_map.find(ref); it != textures_map.end()) {
-        continue;
-      }
-
-      auto texture = std::make_shared<scene::Texture>();
-
-      if (auto bufferView = img->buffer_view; bufferView) {
-        stbi_uc const* bufferData{
-          reinterpret_cast<stbi_uc const*>(bufferView->buffer->data) + bufferView->offset
-        };
-        int32_t const bufferSize{
-          static_cast<int32_t>(bufferView->size)
-        };
-
-        auto pixel_data = stbi_load_from_memory(
-          bufferData,
-          bufferSize,
-          &texture->width,
-          &texture->height,
-          &texture->channels,
-          scene::Texture::kDefaultNumChannels
-        );
-
-        if (pixel_data) {
-          texture->pixels.reset(pixel_data);
-        } else {
-          LOGW("Fail to load texture %s.", ref.c_str());
-          continue;
-        }
-      } else {
-        LOGW("Texture %s unsupported.", ref.c_str());
-        continue;
-      }
-
-      // Reference into the scene structure.
-      if (texture->pixels != nullptr) {
-        LOGD("[GLTF] Texture \"%s\" has been loaded.", ref.c_str());
-        textures_map[ref] = std::move(texture);
-      } else {
-        LOGE("[GLTF] Texture \"%s\" failed to be loaded.", ref.c_str());
-      }
-    }
+    textures_indices.try_emplace(&gl_texture, texture_id);
+    textures.push_back( std::move(texture) );
   }
 }
 
-//-----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
 
 void ExtractMaterials(
   cgltf_data const* data,
-  std::string const& basename,
-  PointerToStringMap_t &texture_names,
-  PointerToStringMap_t &material_names,
-  scene::ResourceMap<scene::Texture>& textures_map,
-  scene::ResourceMap<scene::Material>& materials_map
+  PointerToIndexMap_t const& textures_indices,
+  scene::ResourceBuffer<scene::Texture> const& textures,
+  PointerToIndexMap_t& materials_indices,
+  scene::ResourceBuffer<scene::Material>& materials
 ) {
-  auto textureRef = [&texture_names](cgltf_texture const& texture, std::string_view suffix) {
-    auto ref = GetImageRefID(texture.image, suffix);
-    if (auto it = texture_names.find(&texture); it != texture_names.end()) {
-      return it->second;
-    }
-    texture_names[&texture] = ref;
-    return ref;
-  };
+  materials.reserve(data->materials_count);
 
-  for (cgltf_size i = 0; i < data->materials_count; ++i) {
-    cgltf_material const& mat = data->materials[i];
+  for (cgltf_size material_id = 0; material_id < data->materials_count; ++material_id) {
+    cgltf_material const& gl_material = data->materials[material_id];
 
-    auto const material_name = mat.name ? mat.name
-                                        : std::string(basename + "::Material_" + std::to_string(i));
-    material_names[&mat] = material_name;
+    auto material = std::make_shared<scene::Material>();
+    material->index = material_id;
 
-    // if (materials_map.find(material_name) == materials_map.end()) continue;
-    // LOG_CHECK(materials_map.find(material_name) == materials_map.end());
-
-    std::shared_ptr<scene::Material> material;
-
-    if (auto it = materials_map.find(material_name); it != materials_map.end()) {
-      material = it->second;
-    } else {
-      material = std::make_shared<scene::Material>(material_name); //
+    // Normal texture.
+    if (cgltf_texture const* tex = gl_material.normal_texture.texture; tex) {
+      material->normalTexture = textures[textures_indices.at(tex)];
     }
 
-    std::string const texture_prefix{ basename + "::Texture_" };
-
-    // [wip] PBR MetallicRoughness.
-    if (mat.has_pbr_metallic_roughness) {
-      auto const& pbr_mr = mat.pbr_metallic_roughness;
-
-      //---------------------------------
+    // PBR MetallicRoughness.
+    if (gl_material.has_pbr_metallic_roughness) {
+      auto const& pbr_mr = gl_material.pbr_metallic_roughness;
       std::copy(
         std::cbegin(pbr_mr.base_color_factor),
         std::cend(pbr_mr.base_color_factor),
         lina::ptr(material->baseColor)
       );
-      if (const cgltf_texture* tex = pbr_mr.base_color_texture.texture; tex) {
-        auto ref = textureRef(*tex, texture_prefix + "Albedo");
-        if (auto it = textures_map.find(ref); it != textures_map.end()) {
-          material->albedoTexture = it->second;
-        } else {
-          LOGD("Fails to find albedo texture '%s'", ref.c_str());
-        }
+      if (cgltf_texture const* tex = pbr_mr.base_color_texture.texture; tex) {
+        material->albedoTexture = textures[textures_indices.at(tex)];
       }
-      if (const cgltf_texture* tex = pbr_mr.metallic_roughness_texture.texture; tex) {
-        auto ref = textureRef(*tex, texture_prefix + "MetallicRough");
-        if (auto it = textures_map.find(ref); it != textures_map.end()) {
-          material->ormTexture = it->second;
-        } else {
-          LOGD("Fails to find metallic rough texture '%s'", ref.c_str());
-        }
+      if (cgltf_texture const* tex = pbr_mr.metallic_roughness_texture.texture; tex) {
+        material->ormTexture = textures[textures_indices.at(tex)];
       }
-      //---------------------------------
     } else {
-      LOGW("[GLTF] Material %s has unsupported material type.", material_name.c_str());
+      LOGW("[GLTF] Material %lu has unsupported material type.", material_id);
       continue;
     }
 
-    // Normal texture.
-    if (const cgltf_texture* tex = mat.normal_texture.texture; tex) {
-      auto ref = textureRef(*tex, texture_prefix + "Normal");
-      if (auto it = textures_map.find(ref); it != textures_map.end()) {
-        material->normalTexture = it->second;
-      }
-    }
-
-    materials_map[material_name] = std::move(material);
-  }
-
-  uint32_t matid = 0u;
-  for (auto& [key, material] : materials_map) {
-    material->index = matid++;
+    materials_indices.try_emplace(&gl_material, material_id);
+    materials.push_back( std::move(material) );
   }
 }
 
-//-----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+
+
+void ExtractSkeletons(
+  cgltf_data const* data,
+  PointerToIndexMap_t& skeleton_indices,
+  scene::ResourceBuffer<scene::Skeleton>& skeletons
+) {
+
+}
+
+// ----------------------------------------------------------------------------
 
 void ExtractMeshes(
   cgltf_data const* data,
-  std::string const& basename,
-  bool const bRestructureAttribs,
-  PointerToStringMap_t const& material_names,
-  scene::ResourceMap<scene::Texture>& textures_map,
-  scene::ResourceMap<scene::Material>& materials_map,
-  scene::ResourceMap<scene::Skeleton>& skeletons_map,
-  std::vector<std::shared_ptr<scene::Mesh>>& meshes
+  PointerToIndexMap_t const& materials_indices,
+  scene::ResourceBuffer<scene::Material> const& materials,
+  PointerToIndexMap_t const& skeleton_indices,
+  scene::ResourceBuffer<scene::Skeleton>const& skeletons,
+  scene::ResourceBuffer<scene::Mesh>& meshes,
+  bool const bRestructureAttribs
 ) {
   /**
    * Each Mesh hold its geometry,
@@ -466,7 +418,7 @@ void ExtractMeshes(
    ***/
 
   /* Preprocess meshes nodes. */
-  std::vector<uint32_t> meshNodeIndices;
+  std::vector<uint32_t> meshNodeIndices{};
   for (cgltf_size i = 0; i < data->nodes_count; ++i) {
     cgltf_node const& node = data->nodes[i];
     if (node.mesh) {
@@ -610,14 +562,8 @@ void ExtractMeshes(
 
         // Material.
         if (prim.material) {
-          if (auto it = material_names.find(prim.material); it != material_names.cend()) {
-            auto const& material_name = it->second;
-            mesh->submeshes[prim_index].material = materials_map[material_name];
-          } else {
-            LOGD("A submesh material has not been found.");
-          }
-        } else {
-          LOGD("> Primitive loaded without material.");
+          uint32_t material_index = materials_indices.at(prim.material);
+          mesh->submeshes[prim_index].material = materials[ material_index ];
         }
 
         mesh->add_primitive(primitive);
@@ -653,8 +599,9 @@ void ExtractMeshes(
       }
 
       /* Parse the primitives. */
-      for (uint32_t j = 0u; j < valid_prim_indices.size(); ++j) {
-        cgltf_primitive const& prim{ node.mesh->primitives[valid_prim_indices[j]] };
+      for (uint32_t prim_index = 0u; prim_index < valid_prim_indices.size(); ++prim_index) {
+        uint32_t const valid_prim_index = valid_prim_indices[prim_index];
+        cgltf_primitive const& prim{ node.mesh->primitives[valid_prim_index] };
         LOG_CHECK(ConvertTopology(prim) == mesh->get_topology());
 
         Geometry::Primitive primitive{};
@@ -663,8 +610,8 @@ void ExtractMeshes(
         std::map<cgltf_accessor const*, uint64_t> accessor_buffer_offsets{};
 
         // Attributes.
-        for (cgltf_size k = 0; k < prim.attributes_count; ++k) {
-          cgltf_attribute const& attribute = prim.attributes[k];
+        for (cgltf_size attrib_index = 0; attrib_index < prim.attributes_count; ++attrib_index) {
+          cgltf_attribute const& attribute = prim.attributes[attrib_index];
 
           if (auto type = ConvertAttributeType(attribute); type != Geometry::AttributeType::kUnknown) {
             auto accessor = attribute.data;
@@ -704,36 +651,27 @@ void ExtractMeshes(
           }
         }
 
-        // Assign material when availables.
+        // Material.
         if (prim.material) {
-          if (auto it = material_names.find(prim.material); it != material_names.cend()) {
-            mesh->submeshes[j].material = materials_map[it->second];
-          } else {
-            LOGD("material not found !");
-          }
-        } else {
-          LOGD("no material for this prim ('parrently) !");
+          uint32_t material_index = materials_indices.at(prim.material);
+          mesh->submeshes[prim_index].material = materials[ material_index ];
         }
 
         mesh->add_primitive(primitive);
       }
     }
 
+#if 0
     // -----------------
     // D. (optionnal) Retrieve the mesh skeleton.
     if (cgltf_skin const* skin = node.skin; skin) {
-      auto const skinName = skin->name ? skin->name
-                                       : std::string(basename + "::Skeleton_" + std::to_string(i));
-      auto skel_it = skeletons_map.find(skinName);
 
-      std::shared_ptr<scene::Skeleton> skeleton;
+      cgltf_size const jointCount = skin->joints_count;
 
-      if (skel_it != skeletons_map.end()) {
-        skeleton = skel_it->second;
-      } else [[likely]] {
-        cgltf_size const jointCount = skin->joints_count;
+      auto skeleton = std::make_shared<scene::Skeleton>(jointCount);
 
-        skeleton = std::make_shared<scene::Skeleton>(jointCount);
+      {
+
 
         // LUT Map to find parent nodes index.
         std::unordered_map<cgltf_node const*, int32_t> joint_indices(jointCount);
@@ -774,12 +712,13 @@ void ExtractMeshes(
 
       mesh->skeleton = skeleton;
     }
+#endif
 
-    meshes.push_back(mesh);
+    meshes.push_back( std::move(mesh) );
   }
 }
 
-//-----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
 
 void ExtractAnimations(
   cgltf_data const* data,
@@ -988,7 +927,7 @@ void ExtractAnimations(
 
     skeleton->clips.push_back(clip);
 
-    animations_map[clipName] = std::move(clip);
+    animations_map.try_emplace(clipName, std::move(clip));
   }
 }
 

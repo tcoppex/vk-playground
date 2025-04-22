@@ -19,6 +19,9 @@ namespace scene {
 template<typename T>
 using ResourceMap = std::unordered_map<std::string, std::shared_ptr<T>>;
 
+template<typename T>
+using ResourceBuffer = std::vector<std::shared_ptr<T>>;
+
 struct Resources {
  public:
   static bool constexpr kRestructureAttribs = true;
@@ -44,12 +47,17 @@ struct Resources {
   void upload_buffers(Context const& context);
 
  public:
-  ResourceMap<Texture> textures_map{}; //
-  ResourceMap<Material> materials_map{};
-  ResourceMap<Skeleton> skeletons_map{};
+  /* --- Host Data --- */
+
+  ResourceBuffer<ImageData> host_images{}; //
+  ResourceBuffer<Texture> textures{};
+  ResourceBuffer<Material> materials{};
+  ResourceBuffer<Skeleton> skeletons{};
+  ResourceBuffer<Mesh> meshes{};
+
   ResourceMap<AnimationClip> animations_map{};
 
-  std::vector<std::shared_ptr<Mesh>> meshes{}; //
+  /* --- Device Data --- */
 
   std::vector<backend::Image> device_images{};
   backend::Buffer vertex_buffer{};
