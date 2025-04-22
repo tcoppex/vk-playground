@@ -1,8 +1,6 @@
 #ifndef HELLO_VK_FRAMEWORK_SCENE_RESOURCES_H
 #define HELLO_VK_FRAMEWORK_SCENE_RESOURCES_H
 
-#include "stb/stb_image.h"
-
 #include "framework/common.h"
 
 #include "framework/scene/animation.h"
@@ -18,14 +16,13 @@ class SamplerPool;
 
 namespace scene {
 
+template<typename T>
+using ResourceMap = std::unordered_map<std::string, std::shared_ptr<T>>;
+
 struct Resources {
  public:
   static bool constexpr kRestructureAttribs = true;
   static bool constexpr kReleaseHostDataOnUpload = true;
-
- public:
-  template<typename T>
-  using ResourceMap = std::unordered_map<std::string, std::shared_ptr<T>>;
 
  public:
   Resources() = default;
@@ -55,15 +52,15 @@ struct Resources {
   std::vector<std::shared_ptr<Mesh>> meshes{}; //
 
   std::vector<backend::Image> device_images{};
-  backend::Buffer vertex_buffer;
-  backend::Buffer index_buffer;
+  backend::Buffer vertex_buffer{};
+  backend::Buffer index_buffer{};
 
   uint32_t vertex_buffer_size{0u};
   uint32_t index_buffer_size{0u};
   uint32_t total_image_size{0u};
 
  private:
-  std::shared_ptr<ResourceAllocator> allocator;
+  std::shared_ptr<ResourceAllocator> allocator{};
 };
 
 }  // namespace scene
