@@ -7,6 +7,8 @@
 
 /* -------------------------------------------------------------------------- */
 
+namespace internal::gltf_loader {
+
 using PointerToStringMap_t = std::unordered_map<void const*, std::string>;
 using PointerToSamplerMap_t = std::unordered_map<void const*, VkSampler>;
 
@@ -51,6 +53,8 @@ void ExtractAnimations(
   scene::ResourceMap<scene::Skeleton>& skeletons_map,
   scene::ResourceMap<scene::AnimationClip>& animations_map
 );
+
+} // namespace internal::gltf_loader
 
 /* -------------------------------------------------------------------------- */
 

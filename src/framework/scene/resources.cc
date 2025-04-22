@@ -46,6 +46,8 @@ bool Resources::load_from_file(std::string_view const& filename, SamplerPool& sa
 
   /* Extract data */
   {
+    using namespace internal::gltf_loader;
+
     PointerToStringMap_t texture_names{};
     PointerToStringMap_t material_names{};
     PointerToSamplerMap_t samplers_lut{};

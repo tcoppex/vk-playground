@@ -264,6 +264,8 @@ void ExtractPrimitiveVertices(cgltf_primitive const& prim, std::vector<VertexInt
 
 /* -------------------------------------------------------------------------- */
 
+namespace internal::gltf_loader {
+
 void ExtractSamplers(
   cgltf_data const* data,
   SamplerPool& sampler_pool,
@@ -980,5 +982,7 @@ void ExtractAnimations(
     animations_map[clipName] = std::move(clip);
   }
 }
+
+} // namespace internal::gltf_loader
 
 /* -------------------------------------------------------------------------- */
