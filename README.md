@@ -29,16 +29,6 @@ cmake --build build --config Release
 
 </details>
 
-<!-- 
-#### Some Features
-
- * Swapchain management
- * Timeline semaphore
- * Legacy & Dynamic rendering
- * Vulkan Memory Allocator (VMA)
- * GLSL to SPIR-V compilation via CMake
- -->
-
 ### Demos
 
 * **[00_hello](src/samples/00_hello)**: Display a surface and clear its color (_Device, Swapchain, dynamic rendering_).
@@ -88,7 +78,7 @@ cmake --build build --config Release
 
 ### Acknowledgement
 
-This project was inspired by the work of **NVIDIA DesignWorks Samples**, in particular the [vk-minimal-latest](https://github.com/nvpro-samples/vk_minimal_latest) project.
+This project was inspired by the work of **NVIDIA DesignWorks Samples**, in particular the _[vk_minimal_latest](https://github.com/nvpro-samples/vk_minimal_latest)_ project.
 
 ### License
 
