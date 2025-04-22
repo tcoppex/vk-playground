@@ -74,9 +74,10 @@ class SamplerPool {
     }
   };
 
-  VkSampler createSampler(VkSamplerCreateInfo const& info) const {
+  VkSampler createSampler(VkSamplerCreateInfo info) const {
     assert( device_ != VK_NULL_HANDLE );
     VkSampler sampler{};
+    info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
     CHECK_VK( vkCreateSampler(device_, &info, nullptr, &sampler) );
     return sampler;
   }
