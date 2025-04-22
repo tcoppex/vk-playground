@@ -4,7 +4,7 @@
 
 # :fire: vk-playground :fire:
 
-A c++20 / Vulkan 1.1 rendering framework flavored like 1.4 and inspired by WebGPU.
+A c++20 / Vulkan 1.1 rendering framework flavored like 1.4 and inspired by WebGPU and _vk_minimal_latest_.
 
 Runs on GNU / Linux and Windows 11, compiled with _GCC 11.4_ and _MSVC 19.38_.
 
@@ -84,6 +84,11 @@ cmake --build build --config Release
 * [VK_KHR_swapchain](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_swapchain.html)
 * [VK_KHR_synchronization2](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_synchronization2.html)
 * [VK_KHR_timeline_semaphore](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_timeline_semaphore.html)
+
+
+### Acknowledgement
+
+This project was inspired by the work of **NVIDIA DesignWorks Samples**, in particular the [vk-minimal-latest](https://github.com/nvpro-samples/vk_minimal_latest) project.
 
 ### License
 
