@@ -260,6 +260,14 @@ void ExtractPrimitiveVertices(cgltf_primitive const& prim, std::vector<VertexInt
   }
 }
 
+//-----------------------------------------------------------------------------
+
+std::string GetImageRefID(cgltf_image const* image, std::string_view alt) {
+  return std::string{
+    image->name ? image->name : (image->uri ? image->uri : std::string(alt))
+  };
+}
+
 } // namespace ""
 
 /* -------------------------------------------------------------------------- */
@@ -284,6 +292,7 @@ void ExtractSamplers(
 
 //-----------------------------------------------------------------------------
 
+// [TO REWRITE]
 void ExtractTextures(
   cgltf_data const* data,
   std::string const& basename,
@@ -292,8 +301,8 @@ void ExtractTextures(
 ) {
   stbi_set_flip_vertically_on_load(false);
 
-  for (cgltf_size i = 0; i < data->textures_count; ++i) {
-    cgltf_texture const& gl_texture = data->textures[i];
+  for (cgltf_size texture_id = 0; texture_id < data->textures_count; ++texture_id) {
+    cgltf_texture const& gl_texture = data->textures[texture_id];
 
     if (auto img = gl_texture.image; img) {
       std::string ref{};
@@ -301,7 +310,7 @@ void ExtractTextures(
       if (auto it = texture_names.find(&gl_texture); it != texture_names.cend()) {
         ref = it->second;
       } else {
-        ref = GetTextureRefID(gl_texture, std::string(basename) + "::Texture_" + std::to_string(i));
+        ref = GetImageRefID(gl_texture.image, std::string(basename) + "::Texture_" + std::to_string(texture_id));
         texture_names[&gl_texture] = ref;
       }
 
@@ -361,7 +370,7 @@ void ExtractMaterials(
   scene::ResourceMap<scene::Material>& materials_map
 ) {
   auto textureRef = [&texture_names](cgltf_texture const& texture, std::string_view suffix) {
-    auto ref = GetTextureRefID(texture, suffix);
+    auto ref = GetImageRefID(texture.image, suffix);
     if (auto it = texture_names.find(&texture); it != texture_names.end()) {
       return it->second;
     }

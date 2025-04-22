@@ -3,9 +3,6 @@
 
 /* -------------------------------------------------------------------------- */
 
-#include <string>
-#include <string_view>
-
 extern "C" {
 #include <cgltf.h>
 #include <vulkan/vulkan.h>
@@ -14,8 +11,6 @@ extern "C" {
 #include "framework/utils/geometry.h"
 
 /* -------------------------------------------------------------------------- */
-
-std::string GetTextureRefID(cgltf_texture const& texture, std::string_view alt);
 
 Geometry::AttributeType ConvertAttributeType(cgltf_attribute const& attribute);
 

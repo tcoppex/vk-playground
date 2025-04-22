@@ -3,12 +3,6 @@
 
 /* -------------------------------------------------------------------------- */
 
-std::string GetTextureRefID(cgltf_texture const& texture, std::string_view alt) {
-  auto const& image = texture.image;
-  std::string ref{image->name ? image->name : (image->uri ? image->uri : std::string(alt))};
-  return ref;
-}
-
 Geometry::AttributeType ConvertAttributeType(cgltf_attribute const& attribute) {
   if (attribute.index != 0u) [[unlikely]] {
     // LOGD("[GLTF] Unsupported multiple attribute of same type %s.", attribute.name);
