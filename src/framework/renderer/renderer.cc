@@ -71,20 +71,19 @@ void Renderer::init(Context const& context, std::shared_ptr<ResourceAllocator> a
   /* Create a generic descriptor pool for the framework / app. */
   init_descriptor_pool();
 
-  /* Create a linear sampler to be use everywhere */
-  VkSamplerCreateInfo const sampler_create_info{
+  sampler_pool_.init(device_);
+  default_sampler_ = sampler_pool_.getSampler({
     .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
     .magFilter = VK_FILTER_LINEAR,
     .minFilter = VK_FILTER_LINEAR,
     .mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
-    .addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT, //CLAMP_TO_EDGE,
-    .addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT, //CLAMP_TO_EDGE,
+    .addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+    .addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
     .addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
     .anisotropyEnable = VK_TRUE,
     .maxAnisotropy = 16.0f,
     .maxLod = VK_LOD_CLAMP_NONE,
-  };
-  CHECK_VK( vkCreateSampler(device_, &sampler_create_info, nullptr, &linear_sampler_) );
+  });
 }
 
 // ----------------------------------------------------------------------------
@@ -92,12 +91,10 @@ void Renderer::init(Context const& context, std::shared_ptr<ResourceAllocator> a
 void Renderer::deinit() {
   assert(device_ != VK_NULL_HANDLE);
 
-  vkDestroySampler(device_, linear_sampler_, nullptr);
+  sampler_pool_.deinit();
 
   vkDestroyDescriptorPool(device_, descriptor_pool_, nullptr);
-
   vkDestroySemaphore(device_, timeline_.semaphore, nullptr);
-
   for (auto & frame : timeline_.frames) {
     vkFreeCommandBuffers(device_, frame.command_pool, 1u, &frame.command_buffer);
     vkDestroyCommandPool(device_, frame.command_pool, nullptr);
@@ -106,7 +103,7 @@ void Renderer::deinit() {
   allocator_->destroy_image(&depth_stencil_);
   swapchain_.deinit();
 
-  device_ = VK_NULL_HANDLE;
+  *this = {};
 }
 
 // ----------------------------------------------------------------------------
@@ -230,7 +227,7 @@ std::shared_ptr<RenderTarget> Renderer::create_default_render_target(uint32_t nu
     .color_formats = {},
     .depth_stencil_format = get_valid_depth_format(),
     .size = swapchain_.get_surface_size(),
-    .sampler = linear_sampler_,
+    .sampler = get_default_sampler(),
   };
   desc.color_formats.resize(num_color_outputs, get_color_attachment().format);
 

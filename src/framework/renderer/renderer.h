@@ -3,16 +3,18 @@
 
 /* -------------------------------------------------------------------------- */
 
+#include "framework/common.h"
+
 #include "framework/backend/context.h"
 #include "framework/backend/swapchain.h"
 #include "framework/backend/command_encoder.h"
-#include "framework/renderer/pipeline.h"
-#include "framework/scene/resources.h" //
 
+#include "framework/renderer/pipeline.h"
+#include "framework/renderer/sampler_pool.h"
 #include "framework/renderer/_experimental/framebuffer.h" // (for Framebuffer::Descriptor_t)
 #include "framework/renderer/_experimental/render_target.h" // (for RenderTarget::Descriptor_t)
-// class RenderTarget;
 
+#include "framework/scene/resources.h" //
 
 /* -------------------------------------------------------------------------- */
 
@@ -113,7 +115,7 @@ class Renderer : public backend::RTInterface {
   // --- Sampler ---
 
   VkSampler get_default_sampler() const {
-    return linear_sampler_;
+    return default_sampler_;
   }
 
   // --- Resources gltf objects ---
@@ -222,7 +224,8 @@ class Renderer : public backend::RTInterface {
   // Reference to the current CommandEncoder returned by 'begin_frame'
   CommandEncoder cmd_{}; //
 
-  VkSampler linear_sampler_{}; //
+  SamplerPool sampler_pool_{};
+  VkSampler default_sampler_{}; //
 };
 
 /* -------------------------------------------------------------------------- */
