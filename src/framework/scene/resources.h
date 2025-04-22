@@ -6,7 +6,7 @@
 #include "framework/common.h"
 
 #include "framework/scene/animation.h"
-#include "framework/scene/image.h"
+#include "framework/scene/texture.h"
 #include "framework/scene/material.h"
 #include "framework/scene/mesh.h"
 
@@ -25,7 +25,7 @@ struct Resources {
   template<typename T>
   using ResourceMap = std::unordered_map<std::string, std::shared_ptr<T>>;
 
-  ResourceMap<Image> textures{}; //
+  ResourceMap<Texture> textures{}; //
   ResourceMap<Material> materials{};
   ResourceMap<AnimationClip> animations{};
   ResourceMap<Skeleton> skeletons{};

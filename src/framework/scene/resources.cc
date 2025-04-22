@@ -488,28 +488,28 @@ void ExtractTextures(
   cgltf_data const* data,
   std::string const& basename,
   PointerToStringMap_t& texture_names,
-  scene::Resources::ResourceMap<scene::Image>& textures_map
+  scene::Resources::ResourceMap<scene::Texture>& textures_map
 ) {
   stbi_set_flip_vertically_on_load(false);
 
   for (cgltf_size i = 0; i < data->textures_count; ++i) {
-    cgltf_texture const& texture = data->textures[i];
+    cgltf_texture const& gl_texture = data->textures[i];
 
-    if (auto img = texture.image; img) {
+    if (auto img = gl_texture.image; img) {
       std::string ref{};
 
-      if (auto it = texture_names.find(&texture); it != texture_names.cend()) {
+      if (auto it = texture_names.find(&gl_texture); it != texture_names.cend()) {
         ref = it->second;
       } else {
-        ref = GetTextureRefID(texture, std::string(basename) + "::Texture_" + std::to_string(i));
-        texture_names[&texture] = ref;
+        ref = GetTextureRefID(gl_texture, std::string(basename) + "::Texture_" + std::to_string(i));
+        texture_names[&gl_texture] = ref;
       }
 
       if (auto it = textures_map.find(ref); it != textures_map.end()) {
         continue;
       }
 
-      auto image = std::make_shared<scene::Image>();
+      auto texture = std::make_shared<scene::Texture>();
 
       if (auto bufferView = img->buffer_view; bufferView) {
         stbi_uc const* bufferData{
@@ -522,14 +522,14 @@ void ExtractTextures(
         auto pixel_data = stbi_load_from_memory(
           bufferData,
           bufferSize,
-          &image->width,
-          &image->height,
-          &image->channels,
-          scene::Image::kDefaultNumChannels
+          &texture->width,
+          &texture->height,
+          &texture->channels,
+          scene::Texture::kDefaultNumChannels
         );
 
         if (pixel_data) {
-          image->pixels.reset(pixel_data);
+          texture->pixels.reset(pixel_data);
         } else {
           LOGW("Fail to load texture %s.", ref.c_str());
           continue;
@@ -540,9 +540,9 @@ void ExtractTextures(
       }
 
       // Reference into the scene structure.
-      if (image->pixels != nullptr) {
+      if (texture->pixels != nullptr) {
         LOGD("[GLTF] Texture \"%s\" has been loaded.", ref.c_str());
-        textures_map[ref] = std::move(image);
+        textures_map[ref] = std::move(texture);
       } else {
         LOGE("[GLTF] Texture \"%s\" failed to be loaded.", ref.c_str());
       }
@@ -1268,7 +1268,7 @@ void Resources::reset_internal_device_resource_info() {
   }
 
   for (auto [_, texture] : textures) {
-    total_image_size += scene::Image::kDefaultNumChannels * texture->width * texture->height; //
+    total_image_size += scene::Texture::kDefaultNumChannels * texture->width * texture->height; //
   }
 
 #ifndef NDEBUG

@@ -1,5 +1,5 @@
-#ifndef HELLO_VK_FRAMEWORK_SCENE_IMAGE_H
-#define HELLO_VK_FRAMEWORK_SCENE_IMAGE_H
+#ifndef HELLO_VK_FRAMEWORK_SCENE_TEXTURE_H_
+#define HELLO_VK_FRAMEWORK_SCENE_TEXTURE_H_
 
 #include "framework/common.h"
 #include "stb/stb_image.h"
@@ -8,8 +8,8 @@ namespace scene {
 
 /* -------------------------------------------------------------------------- */
 
-  // (wip)
-struct Image {
+// (wip)
+struct Texture {
   static constexpr int kDefaultNumChannels{ 4 }; //
 
   int width{};
@@ -20,7 +20,7 @@ struct Image {
 
   uint32_t texture_index{UINT32_MAX};
 
-  Image() = default;
+  Texture() = default;
 
   void clear_pixels() {
     pixels.reset();
@@ -31,4 +31,4 @@ struct Image {
 
 }  // namespace scene
 
-#endif // HELLO_VK_FRAMEWORK_SCENE_IMAGE_H
+#endif // HELLO_VK_FRAMEWORK_SCENE_TEXTURE_H_

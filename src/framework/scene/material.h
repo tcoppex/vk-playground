@@ -2,20 +2,21 @@
 #define HELLO_VK_FRAMEWORK_SCENE_MATERIAL_H
 
 #include "framework/common.h"
-#include "framework/scene/image.h"
+#include "framework/scene/texture.h"
 
 namespace scene {
 
 /* -------------------------------------------------------------------------- */
 
+// (wip)
 struct Material {
   std::string name{};
   uint32_t index{};
 
   vec4f baseColor{vec4f(1.0f)};
-  std::shared_ptr<Image> albedoTexture{};
-  std::shared_ptr<Image> ormTexture{};
-  std::shared_ptr<Image> normalTexture{};
+  std::shared_ptr<Texture> albedoTexture{};
+  std::shared_ptr<Texture> ormTexture{};
+  std::shared_ptr<Texture> normalTexture{};
 
   Material(std::string_view _name)
     : name(_name)
