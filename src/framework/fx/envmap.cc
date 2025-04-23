@@ -213,7 +213,7 @@ bool Envmap::setup(std::string_view hdr_filename) {
     return false;
   }
 
-  renderer_->update_descriptor_set(descriptor_set_, {
+  context_->update_descriptor_set(descriptor_set_, {
     {
       .binding = shader_interop::envmap::kDescriptorSetBinding_Sampler,
       .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
@@ -234,7 +234,7 @@ bool Envmap::setup(std::string_view hdr_filename) {
   // ------------------
 
   // // [debug]
-  // renderer.update_descriptor_set(descriptor_set_, {
+  // context_->update_descriptor_set(descriptor_set_, {
   //   {
   //     .binding = shader_interop::envmap::kDescriptorSetBinding_Sampler,
   //     .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
@@ -262,7 +262,7 @@ bool Envmap::load_diffuse_envmap(std::string_view hdr_filename) {
     return false;
   }
 
-  renderer_->update_descriptor_set(descriptor_set_, {
+  context_->update_descriptor_set(descriptor_set_, {
     {
       .binding = shader_interop::envmap::kDescriptorSetBinding_Sampler,
       .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
@@ -338,7 +338,7 @@ void Envmap::compute_irradiance_sh_coeff() {
     | VK_BUFFER_USAGE_2_TRANSFER_SRC_BIT_KHR
   )};
 
-  renderer_->update_descriptor_set(descriptor_set_, {
+  context_->update_descriptor_set(descriptor_set_, {
     {
       .binding = shader_interop::envmap::kDescriptorSetBinding_Sampler,
       .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
@@ -463,7 +463,7 @@ void Envmap::compute_irradiance_sh_coeff() {
 void Envmap::compute_irradiance() {
   auto const& irradiance = images_[ImageType::Irradiance];
 
-  renderer_->update_descriptor_set(descriptor_set_, {
+  context_->update_descriptor_set(descriptor_set_, {
     {
       .binding = shader_interop::envmap::kDescriptorSetBinding_StorageImage,
       .type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
@@ -543,7 +543,7 @@ void Envmap::compute_specular() {
     CHECK_VK(vkCreateImageView(context_->get_device(), &view_info, nullptr, &desc_image_infos[level].imageView));
   }
 
-  renderer_->update_descriptor_set(descriptor_set_, {
+  context_->update_descriptor_set(descriptor_set_, {
     {
       .binding = shader_interop::envmap::kDescriptorSetBinding_StorageImageArray,
       .type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,

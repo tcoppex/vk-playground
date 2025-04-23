@@ -662,75 +662,8 @@ VkDescriptorSet Renderer::create_descriptor_set(VkDescriptorSetLayout const layo
 
 VkDescriptorSet Renderer::create_descriptor_set(VkDescriptorSetLayout const layout, std::vector<DescriptorSetWriteEntry> const& entries) const {
   auto const descriptor_set{ create_descriptor_set(layout) };
-  update_descriptor_set(descriptor_set, entries);
+  ctx_ptr_->update_descriptor_set(descriptor_set, entries);
   return descriptor_set;
-}
-
-// ----------------------------------------------------------------------------
-
-void Renderer::update_descriptor_set(VkDescriptorSet const& descriptor_set, std::vector<DescriptorSetWriteEntry> const& entries) const {
-  if (entries.empty()) {
-    return;
-  }
-
-  std::vector<VkWriteDescriptorSet> write_descriptor_sets;
-  write_descriptor_sets.reserve(entries.size());
-
-  std::vector<DescriptorSetWriteEntry> updated_entries{entries};
-
-  for (auto& entry : updated_entries) {
-    VkWriteDescriptorSet write_descriptor_set{
-      .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-      .dstSet = descriptor_set,
-      .dstBinding = entry.binding,
-      .dstArrayElement = 0u,
-      .descriptorType = entry.type,
-    };
-
-    switch (entry.type) {
-      case VK_DESCRIPTOR_TYPE_SAMPLER:
-      case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
-      case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
-      case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
-        LOG_CHECK(entry.buffers.empty() && entry.bufferViews.empty());
-
-        write_descriptor_set.pImageInfo = entry.images.data();
-        write_descriptor_set.descriptorCount = static_cast<uint32_t>(entry.images.size());
-      break;
-
-      case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
-      case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
-      case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
-      case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
-        LOG_CHECK(entry.images.empty() && entry.bufferViews.empty());
-        for (auto &buf : entry.buffers) {
-          buf.range = (buf.range == 0) ? VK_WHOLE_SIZE : buf.range;
-        }
-        write_descriptor_set.pBufferInfo = entry.buffers.data();
-        write_descriptor_set.descriptorCount = static_cast<uint32_t>(entry.buffers.size());
-      break;
-
-      case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
-        LOG_CHECK(entry.images.empty() && entry.buffers.empty());
-        write_descriptor_set.pTexelBufferView = entry.bufferViews.data();
-        write_descriptor_set.descriptorCount = static_cast<uint32_t>(entry.bufferViews.size());
-      break;
-
-      default:
-        LOGE("Unknown descriptor type: %d", static_cast<int>(entry.type));
-        continue;
-    }
-
-    write_descriptor_sets.push_back(write_descriptor_set);
-  }
-
-  vkUpdateDescriptorSets(
-    device_,
-    static_cast<uint32_t>(write_descriptor_sets.size()),
-    write_descriptor_sets.data(),
-    0u,
-    nullptr
-  );
 }
 
 // ----------------------------------------------------------------------------
@@ -831,7 +764,7 @@ GLTFScene Renderer::load_and_upload(std::string_view gltf_filename) {
 void Renderer::init_descriptor_pool() {
   uint32_t const kMaxDescriptorPoolSets{ 256u };
 
-  /* Baseline pool suggestion, to adjust based on application needs. */
+  /* Default pool, to adjust based on application needs. */
   descriptor_pool_sizes_ = {
     { VK_DESCRIPTOR_TYPE_SAMPLER, 50 },                 // standalone samplers
     { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 300 }, // textures in materials

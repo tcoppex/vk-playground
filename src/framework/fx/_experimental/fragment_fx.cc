@@ -50,7 +50,7 @@ void FragmentFx::setImageInputs(std::vector<backend::Image> const& inputs) {
       .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
     });
   }
-  renderer_ptr_->update_descriptor_set(descriptor_set_, { write_entry });
+  context_ptr_->update_descriptor_set(descriptor_set_, { write_entry });
 }
 
 // ----------------------------------------------------------------------------
@@ -67,7 +67,7 @@ void FragmentFx::setBufferInputs(std::vector<backend::Buffer> const& inputs) {
       .range = VK_WHOLE_SIZE,
     });
   }
-  renderer_ptr_->update_descriptor_set(descriptor_set_, { write_entry });
+  context_ptr_->update_descriptor_set(descriptor_set_, { write_entry });
 }
 
 // ----------------------------------------------------------------------------

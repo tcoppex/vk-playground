@@ -104,8 +104,6 @@ class Renderer : public backend::RTInterface {
 
   VkDescriptorSet create_descriptor_set(VkDescriptorSetLayout const layout, std::vector<DescriptorSetWriteEntry> const& entries) const;
 
-  void update_descriptor_set(VkDescriptorSet const& descriptor_set, std::vector<DescriptorSetWriteEntry> const& entries) const;
-
   // --- Texture ---
 
   bool load_image_2d(CommandEncoder const& cmd, std::string_view const& filename, backend::Image &image) const;

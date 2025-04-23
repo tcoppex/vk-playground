@@ -32,14 +32,22 @@ class SceneFx final : public FragmentFx {
   static constexpr uint32_t kMaxNumTextures = 128u;
 
  public:
-  void init(Context const& context, Renderer const& renderer) final {
-    FragmentFx::init(context, renderer);
+  void setup(VkExtent2D const dimension) final {
+    FragmentFx::setup(dimension);
 
     uniform_buffer_ = allocator_->create_buffer(
       sizeof(host_data_),
         VK_BUFFER_USAGE_2_UNIFORM_BUFFER_BIT
       | VK_BUFFER_USAGE_TRANSFER_DST_BIT
     );
+
+    context_ptr_->update_descriptor_set(descriptor_set_, {
+      {
+        .binding = shader_interop::kDescriptorSetBinding_UniformBuffer,
+        .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+        .buffers = { { uniform_buffer_.buffer } },
+      }
+    });
   }
 
   void release() final {
@@ -164,12 +172,7 @@ class SceneFx final : public FragmentFx {
     gltf_model_ = model;
 
     /* Update the Sampler Atlas descriptor with the currently loaded textures. */
-    renderer_ptr_->update_descriptor_set(descriptor_set_, {
-      {
-        .binding = shader_interop::kDescriptorSetBinding_UniformBuffer,
-        .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-        .buffers = { { uniform_buffer_.buffer } },
-      },
+    context_ptr_->update_descriptor_set(descriptor_set_, {
       gltf_model_->get_descriptor_set_texture_atlas_entry( shader_interop::kDescriptorSetBinding_Sampler )
     });
   }
