@@ -5,6 +5,7 @@
 
 #include "framework/scene/animation.h"
 #include "framework/scene/texture.h"
+#include "framework/scene/image_data.h"
 #include "framework/scene/material.h"
 #include "framework/scene/mesh.h"
 
