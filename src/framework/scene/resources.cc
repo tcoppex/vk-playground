@@ -1,9 +1,13 @@
 #include "framework/scene/resources.h"
-#include "framework/scene/private/gltf_loader.h"
+
+#include <future>
+#include <functional>
 
 #include "framework/backend/context.h"
 #include "framework/renderer/sampler_pool.h"
 #include "framework/utils/utils.h"
+
+#include "framework/scene/private/gltf_loader.h"
 
 /* -------------------------------------------------------------------------- */
 
@@ -48,38 +52,47 @@ bool Resources::load_from_file(std::string_view const& filename, SamplerPool& sa
   {
     using namespace internal::gltf_loader;
 
-    /// +++ Notes +++
-    ///
-    /// Since switching to ResourceBuffer + PointToIndexMap the loading is a
-    /// a bit slower than previously (curiously ?).
-    ///
-    /// Hashmaps using pointers might be slower than those using **cumbersomely**
-    /// handmade strings..
-    ///
-    /// Or maybe the new texture vs host_image things is not well set,
-    /// as textures are just ref to Image + Sampler, maybe there is useless
-    /// data creation / moves somewhere.
-
-
     PointerToIndexMap_t image_indices{};
-    ExtractImages(data, image_indices, host_images);
+    auto taskImageData = std::async(std::launch::async, [&] {
+      ExtractImages(data, image_indices, host_images);
+    });
 
     PointerToSamplerMap_t samplers_lut{}; //
-    ExtractSamplers(data, sampler_pool, samplers_lut);
+    auto taskSamplers = std::async(std::launch::async, [&] {
+      ExtractSamplers(data, sampler_pool, samplers_lut);
+    });
 
     PointerToIndexMap_t textures_indices{};
-    ExtractTextures(data, image_indices, samplers_lut, textures_indices, textures); //
+    auto taskTextures = std::async(std::launch::async, [&] {
+      taskImageData.wait();
+      taskSamplers.wait();
+      ExtractTextures(data, image_indices, samplers_lut, textures_indices, textures); //
+    });
 
     PointerToIndexMap_t materials_indices{};
-    ExtractMaterials(data, textures_indices, textures, materials_indices, materials);
+    auto taskMaterials = std::async(std::launch::async, [&] {
+      taskTextures.wait();
+      ExtractMaterials(data, textures_indices, textures, materials_indices, materials);
+    });
 
-    // TODO
     PointerToIndexMap_t skeletons_indices{};
-    // ExtractSkeletons(data, skeletons_indices, skeletons);
+    auto taskSkeletons = std::async(std::launch::async, [&] {
+      // ExtractSkeletons(data, skeletons_indices, skeletons);
+    });
 
-    ExtractMeshes(data, materials_indices, materials, skeletons_indices, skeletons, meshes, bRestructureAttribs);
+    auto taskAnimations = std::async(std::launch::async, [&] {
+      taskSkeletons.wait();
+      // ExtractAnimations(data, basename, skeletons_indices, skeletons, animations_map);
+    });
 
-    // ExtractAnimations(data, basename, skeletons_indices, skeletons, animations_map);
+    auto taskMeshes = std::async(std::launch::async, [&] {
+      taskMaterials.wait();
+      taskSkeletons.wait();
+      ExtractMeshes(data, materials_indices, materials, skeletons_indices, skeletons, meshes, bRestructureAttribs);
+    });
+
+    taskAnimations.wait();
+    taskMeshes.wait();
 
     reset_internal_device_resource_info();
   }
