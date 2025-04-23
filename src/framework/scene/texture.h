@@ -16,7 +16,7 @@ namespace scene {
 
 struct ImageData {
  public:
-  static constexpr int32_t kDefaultNumChannels{ 4 }; //
+  static constexpr int32_t kDefaultNumChannels{ STBI_rgb_alpha }; //
 
  public:
   ImageData() = default;
