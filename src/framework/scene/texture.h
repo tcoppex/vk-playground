@@ -66,6 +66,13 @@ struct ImageData {
     return pixels.get();
   }
 
+  uint8_t const* getPixels() {
+    if (pixels || getLoadAsyncResult()) {
+      return pixels.get();
+    }
+    return nullptr;
+  }
+
  public:
   int32_t width{};
   int32_t height{};
@@ -74,6 +81,10 @@ struct ImageData {
   std::unique_ptr<uint8_t, decltype(&stbi_image_free)> pixels{nullptr, stbi_image_free}; //
 
  private:
+  bool getInfo(stbi_uc const *buffer_data, int buffer_size) {
+    return 0 < stbi_info_from_memory(buffer_data, buffer_size, &width, &height, &channels);
+  }
+
   std::future<bool> async_result_;
 };
 
