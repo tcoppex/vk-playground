@@ -26,6 +26,8 @@ VkShaderModule CreateShaderModule(VkDevice const device, char const* shader_dire
 
 std::tuple<VkPipelineStageFlags2, VkAccessFlags2> MakePipelineStageAccessTuple(VkImageLayout const state);
 
+// ----------------------------------------------------------------------------
+
 constexpr uint32_t GetKernelGridDim(uint32_t numCells, uint32_t blockDim) {
   return (numCells + blockDim - 1u) / blockDim;
 }

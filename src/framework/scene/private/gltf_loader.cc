@@ -188,7 +188,6 @@ void ExtractPrimitiveVertices(cgltf_primitive const& prim, std::vector<VertexInt
     cgltf_accessor const* accessor = attrib.data;
     assert(accessor->count == vertex_count);
 
-    // ---------------------------------------------------
     // Positions.
     if (attrib.type == cgltf_attribute_type_position) {
       LOG_CHECK(accessor->type == cgltf_type_vec3);
@@ -211,7 +210,6 @@ void ExtractPrimitiveVertices(cgltf_primitive const& prim, std::vector<VertexInt
     else if (attrib.type == cgltf_attribute_type_tangent) {
       // LOG_CHECK(accessor->type == cgltf_type_vec4);
       // LOGD( "> loading tangents." );
-
       // for (cgltf_size vertex_index = 0; vertex_index < vertex_count; ++vertex_index) {
       //   auto& vertex = vertices[vertex_index];
       //   cgltf_accessor_read_float( accessor, vertex_index, lina::ptr(vertex.tangent), 4);
@@ -223,21 +221,18 @@ void ExtractPrimitiveVertices(cgltf_primitive const& prim, std::vector<VertexInt
     // Texcoords.
     else if (attrib.type == cgltf_attribute_type_texcoord) {
       LOG_CHECK(accessor->type == cgltf_type_vec2);
-      if (attrib.index > 0) {
-        LOGW( "MultiTexturing is not supported." );
-        continue;
-      }
-      // LOGD( "> loading texture coordinates." );
-      for (cgltf_size vertex_index = 0; vertex_index < vertex_count; ++vertex_index) {
-        auto& vertex = vertices[vertex_index];
-        LOG_CHECK(0 != cgltf_accessor_read_float( accessor, vertex_index, lina::ptr(vertex.texcoord), 2));
+      if (attrib.index <= 0) {
+        // LOGD( "> loading texture coordinates." );
+        for (cgltf_size vertex_index = 0; vertex_index < vertex_count; ++vertex_index) {
+          auto& vertex = vertices[vertex_index];
+          cgltf_accessor_read_float( accessor, vertex_index, lina::ptr(vertex.texcoord), 2);
+        }
       }
     }
     // Joints.
     else if (attrib.type == cgltf_attribute_type_joints) {
       // LOG_CHECK(accessor->type == cgltf_type_vec4);
       // LOGD( "> loading joint indices." );
-
       // for (cgltf_size vertex_index = 0; vertex_index < vertex_count; ++vertex_index) {
       //   LOG_CHECK(0 != cgltf_accessor_read_uint( accessor, vertex_index, lina::ptr(joints), 4));
       //   raw.joints.push_back( joints );
@@ -248,7 +243,6 @@ void ExtractPrimitiveVertices(cgltf_primitive const& prim, std::vector<VertexInt
       // LOGD( "> loading joint weights." );
       // LOG_CHECK(accessor->type == cgltf_type_vec4);
       // raw.weights.reserve(vertex_count);
-
       // vec4 weights;
       // for (cgltf_size vertex_index = 0; vertex_index < vertex_count; ++vertex_index) {
       //   LOG_CHECK(0 != cgltf_accessor_read_float( accessor, vertex_index, lina::ptr(weights), 4));
@@ -256,17 +250,16 @@ void ExtractPrimitiveVertices(cgltf_primitive const& prim, std::vector<VertexInt
       //   raw.weights.push_back( weights );
       // }
     }
-    // ---------------------------------------------------
   }
 }
 
 // ----------------------------------------------------------------------------
 
-std::string GetImageRefID(cgltf_image const* image, std::string_view alt) {
-  return std::string{
-    image->name ? image->name : (image->uri ? image->uri : std::string(alt))
-  };
-}
+// std::string GetImageRefID(cgltf_image const* image, std::string_view alt) {
+//   return std::string{
+//     image->name ? image->name : (image->uri ? image->uri : std::string(alt))
+//   };
+// }
 
 } // namespace ""
 

@@ -101,7 +101,6 @@ bool Resources::load_from_file(std::string_view const& filename, SamplerPool& sa
 // ----------------------------------------------------------------------------
 
 void Resources::initialize_submesh_descriptors(Mesh::AttributeLocationMap const& attribute_to_location) {
-  /* Bind mesh attributes to pipeline locations. */
   for (auto& mesh : meshes) {
     mesh->initialize_submesh_descriptors(attribute_to_location);
   }

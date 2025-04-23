@@ -61,11 +61,11 @@ class GenericFx : public FxInterface {
 
   virtual void createPipelineLayout() {
     descriptor_set_layout_ = renderer_ptr_->create_descriptor_set_layout(getDescriptorSetLayoutParams());
-    descriptor_set_ = renderer_ptr_->create_descriptor_set(descriptor_set_layout_);
     pipeline_layout_ = renderer_ptr_->create_pipeline_layout({
       .setLayouts = { descriptor_set_layout_ },
       .pushConstantRanges = getPushConstantRanges()
     });
+    descriptor_set_ = renderer_ptr_->create_descriptor_set(descriptor_set_layout_); //
   }
 
   virtual void createPipeline() = 0;
@@ -74,10 +74,10 @@ class GenericFx : public FxInterface {
   std::shared_ptr<ResourceAllocator> allocator_{};
 
   VkDescriptorSetLayout descriptor_set_layout_{};
-  VkDescriptorSet descriptor_set_{};
   VkPipelineLayout pipeline_layout_{};
+  Pipeline pipeline_{};
 
-  Pipeline pipeline_{}; //
+  VkDescriptorSet descriptor_set_{}; //
 
   bool enabled_{true};
 };

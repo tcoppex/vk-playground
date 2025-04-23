@@ -4,10 +4,10 @@
 #include "framework/common.h"
 
 #include "framework/utils/geometry.h"
-#include "framework/scene/animation.h"
-#include "framework/scene/material.h"
 #include "framework/backend/types.h"      // for VertexInputDescriptor
 #include "framework/renderer/pipeline.h"  // for PipelineVertexBufferDescriptors
+#include "framework/scene/animation.h"
+#include "framework/scene/material.h"
 
 namespace scene {
 
@@ -41,18 +41,17 @@ struct Mesh : Geometry {
  public:
   Mesh() = default;
 
+  /* Bind mesh attributes to pipeline attributes location. */
   void initialize_submesh_descriptors(AttributeLocationMap const& attribute_to_location);
 
   PipelineVertexBufferDescriptors get_vk_pipeline_vertex_buffer_descriptors() const;
-
-  // PipelineVertexBufferDescriptors get_vk_pipeline_vertex_buffer_descriptors(AttributeLocationMap const& attribute_to_location);
 
   VkIndexType get_vk_index_type() const;
 
   VkPrimitiveTopology get_vk_primitive_topology() const;
 
   DrawDescriptor const& get_draw_descriptor(uint32_t const index = 0u) const {
-    return submeshes.at(index).draw_descriptor;
+    return submeshes[index].draw_descriptor;
   }
 
   void set_device_buffer_info(DeviceBufferInfo const& device_buffer_info) {
@@ -76,7 +75,7 @@ struct Mesh : Geometry {
 
  protected:
   /* Offset from the mesh device buffers */
-  DeviceBufferInfo device_buffer_info_;
+  DeviceBufferInfo device_buffer_info_{};
 };
 
 /* -------------------------------------------------------------------------- */
