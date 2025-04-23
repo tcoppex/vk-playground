@@ -10,42 +10,40 @@
 namespace internal::gltf_loader {
 
 using PointerToIndexMap_t = std::unordered_map<void const*, uint32_t>;
-using PointerToStringMap_t = std::unordered_map<void const*, std::string>;
 using PointerToSamplerMap_t = std::unordered_map<void const*, VkSampler>;
+
+// [probably better to use rather than PointerToIndexMap_t]
+template<typename T>
+using PointerToResourceMap_t = std::unordered_map<void const*, std::shared_ptr<T>>;
 
 /* -------------------------------------------------------------------------- */
 
-void ExtractImages(
+PointerToIndexMap_t ExtractImages(
   cgltf_data const* data,
-  PointerToIndexMap_t& image_indices,
   scene::ResourceBuffer<scene::ImageData>& images
 );
 
-void ExtractSamplers(
+PointerToSamplerMap_t ExtractSamplers(
   cgltf_data const* data,
-  SamplerPool& sampler_pool,
-  PointerToSamplerMap_t& samplers_lut
+  SamplerPool& sampler_pool
 );
 
-void ExtractTextures(
+PointerToIndexMap_t ExtractTextures(
   cgltf_data const* data,
   PointerToIndexMap_t const& image_indices,
   PointerToSamplerMap_t const& samplers_lut, //
-  PointerToIndexMap_t& textures_indices,
   scene::ResourceBuffer<scene::Texture>& textures
 );
 
-void ExtractMaterials(
+PointerToIndexMap_t ExtractMaterials(
   cgltf_data const* data,
   PointerToIndexMap_t const& textures_indices,
   scene::ResourceBuffer<scene::Texture> const& textures,
-  PointerToIndexMap_t& materials_indices,
   scene::ResourceBuffer<scene::Material>& materials
 );
 
-void ExtractSkeletons(
+PointerToIndexMap_t ExtractSkeletons(
   cgltf_data const* data,
-  PointerToIndexMap_t& skeleton_indices,
   scene::ResourceBuffer<scene::Skeleton>& skeletons
 );
 

@@ -1,8 +1,5 @@
 #include "framework/scene/resources.h"
 
-#include <future>
-#include <functional>
-
 #include "framework/backend/context.h"
 #include "framework/renderer/sampler_pool.h"
 #include "framework/utils/utils.h"
@@ -52,48 +49,41 @@ bool Resources::load_from_file(std::string_view const& filename, SamplerPool& sa
   {
     using namespace internal::gltf_loader;
 
-    auto run_task = [&](auto&& fn) -> std::future<void> {
-      return std::async(std::launch::async, std::forward<decltype(fn)>(fn));
-    };
+    auto run_task = utils::RunTaskGeneric<void>;
+    auto run_task_ret = utils::RunTaskGeneric<PointerToIndexMap_t>;
+    auto run_task_sampler = utils::RunTaskGeneric<PointerToSamplerMap_t>;
 
-    PointerToIndexMap_t skeletons_indices{};
-    auto taskSkeletons = run_task([data, skeletons_indices, &skeletons = this->skeletons] {
-      // ExtractSkeletons(data, skeletons_indices, skeletons);
+    auto taskSamplers = run_task_sampler([data, &sampler_pool] {
+      return ExtractSamplers(data, sampler_pool);
     });
 
-    PointerToIndexMap_t image_indices{};
-    auto taskImageData =
-    run_task([data, &image_indices, &host_images = this->host_images] {
-      ExtractImages(data, image_indices, host_images);
+    auto taskSkeletons = run_task_ret([data, &skeletons = this->skeletons] {
+      return ExtractSkeletons(data, skeletons);
     });
 
-    PointerToSamplerMap_t samplers_lut{}; //
-    auto taskSamplers = run_task([data, &sampler_pool, &samplers_lut] {
-      ExtractSamplers(data, sampler_pool, samplers_lut);
+    auto taskImageData = run_task_ret([data, &host_images = this->host_images] {
+      return ExtractImages(data, host_images);
     });
 
-    PointerToIndexMap_t textures_indices{};
-    auto taskTextures = run_task([&taskImageData, &taskSamplers, data, &image_indices, &samplers_lut, &textures_indices, &textures = this->textures] {
-      taskImageData.get();
-      taskSamplers.get();
-      ExtractTextures(data, image_indices, samplers_lut, textures_indices, textures); //
+    auto taskTextures = run_task_ret([&taskImageData, &taskSamplers, data, &textures = this->textures] {
+      auto images_indices = taskImageData.get();
+      auto samplers_lut = taskSamplers.get();
+      return ExtractTextures(data, images_indices, samplers_lut, textures);
     });
 
-    PointerToIndexMap_t materials_indices{};
-    auto taskMaterials = run_task([&taskTextures, data, &textures_indices, &textures = this->textures, &materials_indices, &materials = this->materials] {
-      taskTextures.get();
-      ExtractMaterials(data, textures_indices, textures, materials_indices, materials);
+    auto taskMaterials = run_task_ret([&taskTextures, data, &textures = this->textures, &materials = this->materials] {
+      auto textures_indices = taskTextures.get();
+      return ExtractMaterials(data, textures_indices, textures, materials);
     });
 
-    taskSkeletons.get();
+    auto skeletons_indices = taskSkeletons.get();
 
-    auto taskAnimations = run_task([data] {
+    auto taskAnimations = run_task([data, &skeletons_indices] {
       // ExtractAnimations(data, basename, skeletons_indices, skeletons, animations_map);
     });
 
-    taskMaterials.get();
-
-    auto taskMeshes = run_task([data, &materials_indices, materials=this->materials, &skeletons_indices, &skeletons=this->skeletons, &meshes=this->meshes, bRestructureAttribs] {
+    auto taskMeshes = run_task([&taskMaterials, data, &skeletons_indices, bRestructureAttribs, &materials=this->materials, &skeletons=this->skeletons, &meshes=this->meshes] {
+      auto materials_indices = taskMaterials.get();
       ExtractMeshes(data, materials_indices, materials, skeletons_indices, skeletons, meshes, bRestructureAttribs);
     });
 

@@ -267,15 +267,15 @@ void ExtractPrimitiveVertices(cgltf_primitive const& prim, std::vector<VertexInt
 
 namespace internal::gltf_loader {
 
-void ExtractImages(
+PointerToIndexMap_t ExtractImages(
   cgltf_data const* data,
-  PointerToIndexMap_t& image_indices,
   scene::ResourceBuffer<scene::ImageData>& images
 ) {
-  stbi_set_flip_vertically_on_load(false); //
+  PointerToIndexMap_t image_indices{};
 
   images.reserve(data->images_count);
 
+  stbi_set_flip_vertically_on_load(false); //
   for (cgltf_size image_id = 0; image_id < data->images_count; ++image_id) {
     cgltf_image const& gl_image = data->images[image_id];
     cgltf_buffer_view *buffer_view = gl_image.buffer_view;
@@ -292,15 +292,18 @@ void ExtractImages(
     image_indices.try_emplace(&gl_image, image_id);
     images.push_back( std::move(image) );
   }
+
+  return image_indices;
 }
 
 // ----------------------------------------------------------------------------
 
-void ExtractSamplers(
+PointerToSamplerMap_t ExtractSamplers(
   cgltf_data const* data,
-  SamplerPool& sampler_pool,
-  PointerToSamplerMap_t &samplers_lut
+  SamplerPool& sampler_pool
 ) {
+  PointerToSamplerMap_t samplers_lut{};
+
   for (cgltf_size sampler_id = 0; sampler_id < data->samplers_count; ++sampler_id) {
     cgltf_sampler const& sampler = data->samplers[sampler_id];
     if (!samplers_lut.contains(&sampler)) {
@@ -310,17 +313,20 @@ void ExtractSamplers(
       );
     }
   }
+
+  return samplers_lut;
 }
 
 // ----------------------------------------------------------------------------
 
-void ExtractTextures(
+PointerToIndexMap_t ExtractTextures(
   cgltf_data const* data,
   PointerToIndexMap_t const& image_indices,
   PointerToSamplerMap_t const& samplers_lut, //
-  PointerToIndexMap_t& textures_indices,
   scene::ResourceBuffer<scene::Texture>& textures
 ) {
+  PointerToIndexMap_t textures_indices{};
+
   textures.reserve(data->textures_count);
 
   for (cgltf_size texture_id = 0; texture_id < data->textures_count; ++texture_id) {
@@ -334,17 +340,20 @@ void ExtractTextures(
     textures_indices.try_emplace(&gl_texture, texture_id);
     textures.push_back( std::move(texture) );
   }
+
+  return textures_indices;
 }
 
 // ----------------------------------------------------------------------------
 
-void ExtractMaterials(
+PointerToIndexMap_t ExtractMaterials(
   cgltf_data const* data,
   PointerToIndexMap_t const& textures_indices,
   scene::ResourceBuffer<scene::Texture> const& textures,
-  PointerToIndexMap_t& materials_indices,
   scene::ResourceBuffer<scene::Material>& materials
 ) {
+  PointerToIndexMap_t materials_indices{};
+
   materials.reserve(data->materials_count);
 
   for (cgltf_size material_id = 0; material_id < data->materials_count; ++material_id) {
@@ -380,17 +389,19 @@ void ExtractMaterials(
     materials_indices.try_emplace(&gl_material, material_id);
     materials.push_back( std::move(material) );
   }
+
+  return materials_indices;
 }
 
 // ----------------------------------------------------------------------------
 
-
-void ExtractSkeletons(
+PointerToIndexMap_t ExtractSkeletons(
   cgltf_data const* data,
-  PointerToIndexMap_t& skeleton_indices,
   scene::ResourceBuffer<scene::Skeleton>& skeletons
 ) {
+  PointerToIndexMap_t skeleton_indices{};
 
+  return skeleton_indices;
 }
 
 // ----------------------------------------------------------------------------
