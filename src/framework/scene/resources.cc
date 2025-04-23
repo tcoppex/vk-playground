@@ -52,47 +52,53 @@ bool Resources::load_from_file(std::string_view const& filename, SamplerPool& sa
   {
     using namespace internal::gltf_loader;
 
+    auto run_task = [&](auto&& fn) -> std::future<void> {
+      return std::async(std::launch::async, std::forward<decltype(fn)>(fn));
+    };
+
+    PointerToIndexMap_t skeletons_indices{};
+    auto taskSkeletons = run_task([data, skeletons_indices, &skeletons = this->skeletons] {
+      // ExtractSkeletons(data, skeletons_indices, skeletons);
+    });
+
     PointerToIndexMap_t image_indices{};
-    auto taskImageData = std::async(std::launch::async, [&] {
+    auto taskImageData =
+    run_task([data, &image_indices, &host_images = this->host_images] {
       ExtractImages(data, image_indices, host_images);
     });
 
     PointerToSamplerMap_t samplers_lut{}; //
-    auto taskSamplers = std::async(std::launch::async, [&] {
+    auto taskSamplers = run_task([data, &sampler_pool, &samplers_lut] {
       ExtractSamplers(data, sampler_pool, samplers_lut);
     });
 
     PointerToIndexMap_t textures_indices{};
-    auto taskTextures = std::async(std::launch::async, [&] {
-      taskImageData.wait();
-      taskSamplers.wait();
+    auto taskTextures = run_task([&taskImageData, &taskSamplers, data, &image_indices, &samplers_lut, &textures_indices, &textures = this->textures] {
+      taskImageData.get();
+      taskSamplers.get();
       ExtractTextures(data, image_indices, samplers_lut, textures_indices, textures); //
     });
 
     PointerToIndexMap_t materials_indices{};
-    auto taskMaterials = std::async(std::launch::async, [&] {
-      taskTextures.wait();
+    auto taskMaterials = run_task([&taskTextures, data, &textures_indices, &textures = this->textures, &materials_indices, &materials = this->materials] {
+      taskTextures.get();
       ExtractMaterials(data, textures_indices, textures, materials_indices, materials);
     });
 
-    PointerToIndexMap_t skeletons_indices{};
-    auto taskSkeletons = std::async(std::launch::async, [&] {
-      // ExtractSkeletons(data, skeletons_indices, skeletons);
-    });
+    taskSkeletons.get();
 
-    auto taskAnimations = std::async(std::launch::async, [&] {
-      taskSkeletons.wait();
+    auto taskAnimations = run_task([data] {
       // ExtractAnimations(data, basename, skeletons_indices, skeletons, animations_map);
     });
 
-    auto taskMeshes = std::async(std::launch::async, [&] {
-      taskMaterials.wait();
-      taskSkeletons.wait();
+    taskMaterials.get();
+
+    auto taskMeshes = run_task([data, &materials_indices, materials=this->materials, &skeletons_indices, &skeletons=this->skeletons, &meshes=this->meshes, bRestructureAttribs] {
       ExtractMeshes(data, materials_indices, materials, skeletons_indices, skeletons, meshes, bRestructureAttribs);
     });
 
-    taskAnimations.wait();
-    taskMeshes.wait();
+    taskAnimations.get();
+    taskMeshes.get();
 
     reset_internal_device_resource_info();
   }
