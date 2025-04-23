@@ -49,6 +49,9 @@ bool Resources::load_from_file(std::string_view const& filename, SamplerPool& sa
   {
     using namespace internal::gltf_loader;
 
+#if 1
+    /* --- Async tasks version --- */
+
     auto run_task = utils::RunTaskGeneric<void>;
     auto run_task_ret = utils::RunTaskGeneric<PointerToIndexMap_t>;
     auto run_task_sampler = utils::RunTaskGeneric<PointerToSamplerMap_t>;
@@ -61,6 +64,7 @@ bool Resources::load_from_file(std::string_view const& filename, SamplerPool& sa
       return ExtractSkeletons(data, skeletons);
     });
 
+    // [real bottleneck, internally images are loaded asynchronously and must be waited for at the end]
     auto taskImageData = run_task_ret([data, &host_images = this->host_images] {
       return ExtractImages(data, host_images);
     });
@@ -78,17 +82,35 @@ bool Resources::load_from_file(std::string_view const& filename, SamplerPool& sa
 
     auto skeletons_indices = taskSkeletons.get();
 
-    auto taskAnimations = run_task([data, &skeletons_indices] {
+    auto taskAnimations = run_task([data, &skeletons_indices, &skeletons = this->skeletons] {
       // ExtractAnimations(data, basename, skeletons_indices, skeletons, animations_map);
     });
 
-    auto taskMeshes = run_task([&taskMaterials, data, &skeletons_indices, bRestructureAttribs, &materials=this->materials, &skeletons=this->skeletons, &meshes=this->meshes] {
+    auto taskMeshes = run_task(
+      [ &taskMaterials, data, bRestructureAttribs, &skeletons_indices,
+        &materials = this->materials, &skeletons = this->skeletons, &meshes = this->meshes] {
       auto materials_indices = taskMaterials.get();
       ExtractMeshes(data, materials_indices, materials, skeletons_indices, skeletons, meshes, bRestructureAttribs);
     });
 
     taskAnimations.get();
     taskMeshes.get();
+#else
+    /* --- Serialized version --- */
+
+    auto samplers_lut       = ExtractSamplers(data, sampler_pool);
+    auto skeletons_indices  = ExtractSkeletons(data, skeletons);
+    auto images_indices     = ExtractImages(data, host_images);
+    auto textures_indices   = ExtractTextures(data, images_indices, samplers_lut, textures);
+    auto materials_indices  = ExtractMaterials(data, textures_indices, textures, materials);
+
+    ExtractMeshes(data, materials_indices, materials, skeletons_indices, skeletons, meshes, bRestructureAttribs);
+#endif
+
+    /* Wait for the host images to finish loading before using them. */
+    for (auto & host_image : host_images) {
+      LOG_CHECK(true == host_image->getLoadAsyncResult());
+    }
 
     reset_internal_device_resource_info();
   }
@@ -211,6 +233,7 @@ void Resources::upload_images(Context const& context) {
   // uint32_t channel_index = 0u;
   uint64_t staging_offset = 0u;
   for (auto const& host_image : host_images) {
+
     VkExtent3D const extent{
       .width = static_cast<uint32_t>(host_image->width),
       .height = static_cast<uint32_t>(host_image->height),
@@ -229,7 +252,7 @@ void Resources::upload_images(Context const& context) {
       static_cast<uint32_t>(ImageData::kDefaultNumChannels * extent.width * extent.height) //
     };
     allocator->write_buffer(
-      staging_buffer, staging_offset, host_image->pixels.get(), 0u, img_bytesize
+      staging_buffer, staging_offset, host_image->getPixels(), 0u, img_bytesize
     );
     copies.push_back({
       .bufferOffset = staging_offset,

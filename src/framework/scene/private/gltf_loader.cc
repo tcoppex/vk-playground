@@ -287,7 +287,11 @@ PointerToIndexMap_t ExtractImages(
     stbi_uc const* buffer_data{
       reinterpret_cast<stbi_uc const*>(buffer_view->buffer->data) + buffer_view->offset
     };
-    auto image = std::make_shared<scene::ImageData>(buffer_data, buffer_view->size);
+
+    auto image = std::make_shared<scene::ImageData>();
+
+    /* Image tasks *should be* retrieved outside this function via 'image->getLoadAsyncResult()' */
+    image->loadAsync(buffer_data, buffer_view->size);
 
     image_indices.try_emplace(&gl_image, image_id);
     images.push_back( std::move(image) );

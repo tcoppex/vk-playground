@@ -8,6 +8,7 @@ extern "C" {
 #include <vulkan/vulkan.h> // for VkSampler..
 
 #include "framework/common.h"
+#include "framework/utils/utils.h"
 
 namespace scene {
 
@@ -41,8 +42,28 @@ struct ImageData {
     return nullptr != pixels_data;
   }
 
+  void loadAsync(stbi_uc const* buffer_data, uint32_t const buffer_size) {
+    async_result_ = utils::RunTaskGeneric<bool>([this, buffer_data, buffer_size] {
+      return load(buffer_data, buffer_size);
+    });
+  }
+
+  std::future<bool> loadAsyncFuture(stbi_uc const* buffer_data, uint32_t const buffer_size) {
+    return utils::RunTaskGeneric<bool>([this, buffer_data, buffer_size] {
+      return load(buffer_data, buffer_size);
+    });
+  }
+
+  bool getLoadAsyncResult() {
+    return async_result_.valid() ? async_result_.get() : false;
+  }
+
   void release() {
     pixels.reset();
+  }
+
+  uint8_t const* getPixels() const {
+    return pixels.get();
   }
 
  public:
@@ -51,6 +72,9 @@ struct ImageData {
   int32_t channels{}; //
 
   std::unique_ptr<uint8_t, decltype(&stbi_image_free)> pixels{nullptr, stbi_image_free}; //
+
+ private:
+  std::future<bool> async_result_;
 };
 
 // ----------------------------------------------------------------------------
