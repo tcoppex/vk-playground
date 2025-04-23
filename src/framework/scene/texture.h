@@ -43,15 +43,20 @@ struct ImageData {
   }
 
   void loadAsync(stbi_uc const* buffer_data, uint32_t const buffer_size) {
-    async_result_ = utils::RunTaskGeneric<bool>([this, buffer_data, buffer_size] {
-      return load(buffer_data, buffer_size);
-    });
+    if (getInfo(buffer_data, buffer_size)) {
+      async_result_ = utils::RunTaskGeneric<bool>([this, buffer_data, buffer_size] {
+        return load(buffer_data, buffer_size);
+      });
+    }
   }
 
   std::future<bool> loadAsyncFuture(stbi_uc const* buffer_data, uint32_t const buffer_size) {
-    return utils::RunTaskGeneric<bool>([this, buffer_data, buffer_size] {
-      return load(buffer_data, buffer_size);
-    });
+    if (getInfo(buffer_data, buffer_size)) {
+      return utils::RunTaskGeneric<bool>([this, buffer_data, buffer_size] {
+        return load(buffer_data, buffer_size);
+      });
+    }
+    return {};
   }
 
   bool getLoadAsyncResult() {
