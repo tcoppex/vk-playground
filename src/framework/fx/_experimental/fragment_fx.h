@@ -19,6 +19,13 @@
 
 class FragmentFx : public GenericFx {
  public:
+  static constexpr uint32_t kDefaultCombinedImageSamplerBinding{ 0u };
+  static constexpr uint32_t kDefaultStorageBufferBinding{ 1u };
+
+  static constexpr uint32_t kDefaultCombinedImageSamplerDescriptorCount{ 8u };
+  static constexpr uint32_t kDefaultStorageBufferDescriptorCount{ 4u };
+
+ public:
   static std::string GetMapScreenVertexShaderName();
 
  public:
@@ -80,19 +87,17 @@ class FragmentFx : public GenericFx {
   std::vector<DescriptorSetLayoutParams> getDescriptorSetLayoutParams() const override {
     return {
       {
-        .binding = 0u,
+        .binding = kDefaultCombinedImageSamplerBinding,
         .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-        .descriptorCount = 8u, //
-        .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT
-                    ,
+        .descriptorCount = kDefaultCombinedImageSamplerDescriptorCount,
+        .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
         .bindingFlags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT,
       },
       {
-        .binding = 1u,
+        .binding = kDefaultStorageBufferBinding,
         .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-        .descriptorCount = 4u, //
-        .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT
-                    ,
+        .descriptorCount = kDefaultStorageBufferDescriptorCount,
+        .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
         .bindingFlags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT,
       },
     };
