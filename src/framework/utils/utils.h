@@ -14,6 +14,8 @@
 
 #include <string_view>
 #include <vector>
+#include <future>
+#include <functional>
 
 /* -------------------------------------------------------------------------- */
 
@@ -53,6 +55,10 @@ size_t HashCombine(size_t seed, auto const& value) {
   return seed ^ (std::hash<std::decay_t<decltype(value)>>{}(value) + 0x9e3779b9 + (seed << 6) + (seed >> 2));
 }
 
+template <typename T>
+inline auto RunTaskGeneric = [](auto&& fn) -> std::future<T> {
+  return std::async(std::launch::async, std::forward<decltype(fn)>(fn));
+};
 
 // --- functions ---
 
