@@ -40,16 +40,12 @@ struct ImageData {
     return nullptr != pixels_data;
   }
 
-  void loadAsync(stbi_uc const* buffer_data, uint32_t const buffer_size) {
-    if (getInfo(buffer_data, buffer_size)) {
-      async_result_ = utils::RunTaskGeneric<bool>([this, buffer_data, buffer_size] {
-        return load(buffer_data, buffer_size);
-      });
-    }
+  void release() {
+    pixels.reset();
   }
 
   std::future<bool> loadAsyncFuture(stbi_uc const* buffer_data, uint32_t const buffer_size) {
-    if (getInfo(buffer_data, buffer_size)) {
+    if (retrieveImageInfo(buffer_data, buffer_size)) {
       return utils::RunTaskGeneric<bool>([this, buffer_data, buffer_size] {
         return load(buffer_data, buffer_size);
       });
@@ -57,12 +53,16 @@ struct ImageData {
     return {};
   }
 
-  bool getLoadAsyncResult() {
-    return async_result_.valid() ? async_result_.get() : false;
+  void loadAsync(stbi_uc const* buffer_data, uint32_t const buffer_size) {
+    if (retrieveImageInfo(buffer_data, buffer_size)) {
+      async_result_ = utils::RunTaskGeneric<bool>([this, buffer_data, buffer_size] {
+        return load(buffer_data, buffer_size);
+      });
+    }
   }
 
-  void release() {
-    pixels.reset();
+  bool getLoadAsyncResult() {
+    return async_result_.valid() ? async_result_.get() : false;
   }
 
   uint8_t const* getPixels() const {
@@ -70,10 +70,11 @@ struct ImageData {
   }
 
   uint8_t const* getPixels() {
-    if (pixels || getLoadAsyncResult()) {
-      return pixels.get();
-    }
-    return nullptr;
+    return (pixels || (getLoadAsyncResult() && pixels)) ? pixels.get() : nullptr;
+  }
+
+  uint32_t getBytesize() const {
+    return static_cast<uint32_t>(kDefaultNumChannels * width * height);
   }
 
  public:
@@ -84,7 +85,7 @@ struct ImageData {
   std::unique_ptr<uint8_t, decltype(&stbi_image_free)> pixels{nullptr, stbi_image_free}; //
 
  private:
-  bool getInfo(stbi_uc const *buffer_data, int buffer_size) {
+  bool retrieveImageInfo(stbi_uc const *buffer_data, int buffer_size) {
     return 0 < stbi_info_from_memory(buffer_data, buffer_size, &width, &height, &channels);
   }
 
