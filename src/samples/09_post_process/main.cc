@@ -270,7 +270,7 @@ class SampleApp final : public Application {
     /* Setup the ArcBall camera. */
     {
       camera_.setPerspective(
-        lina::radians(60.0f),
+        lina::radians(45.0f),
         viewport_size_.width,
         viewport_size_.height,
         0.01f,
