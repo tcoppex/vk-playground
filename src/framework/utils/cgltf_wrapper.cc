@@ -162,6 +162,8 @@ VkSamplerCreateInfo ConvertSamplerInfo(cgltf_sampler const& sampler) {
     .magFilter = ConvertMagFilter(sampler.mag_filter),
     .addressModeU = ConvertWrapMode(sampler.wrap_s),
     .addressModeV = ConvertWrapMode(sampler.wrap_t),
+    .anisotropyEnable = VK_TRUE,
+    .maxAnisotropy = 16.0f,
   };
   info.minFilter = ConvertMinFilter(sampler.min_filter, info.mipmapMode);
   return info;
