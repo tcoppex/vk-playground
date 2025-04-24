@@ -385,7 +385,7 @@ PointerToIndexMap_t ExtractMaterials(
         material->ormTexture = textures[textures_indices.at(tex)];
       }
     } else {
-      LOGW("[GLTF] Material %lu has unsupported material type.", material_id);
+      LOGW("[GLTF] Material %u has unsupported material type.", (uint32_t)material_id);
       continue;
     }
 
