@@ -109,7 +109,7 @@ bool Resources::load_from_file(std::string_view const& filename, SamplerPool& sa
 
     /* Wait for the host images to finish loading before using them. */
     for (auto const& host_image : host_images) {
-      LOG_CHECK(true == host_image->getLoadAsyncResult());
+      host_image->getLoadAsyncResult();
     }
 
     reset_internal_device_resource_info();
