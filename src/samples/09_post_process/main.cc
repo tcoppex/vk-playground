@@ -11,7 +11,7 @@
 #include "framework/scene/camera.h"
 #include "framework/scene/arcball_controller.h"
 
-#include "framework/fx/_experimental/fx_pipeline.h"
+#include "framework/fx/_experimental/post_fx_pipeline.h"
 #include "framework/fx/_experimental/compute/depth_minmax.h"
 #include "framework/fx/_experimental/fragment/normaldepth_edge.h"
 #include "framework/fx/_experimental/fragment/object_edge.h"
@@ -27,13 +27,13 @@ namespace shader_interop {
  *  - RGBA_32F Color Texture,
  *  - RGBA_32F Data Texture (XY Normal + Z Depth + W ObjectId).
 **/
-class SceneFx final : public FragmentFx {
+class SceneFx final : public RenderTargetFx {
  private:
   static constexpr uint32_t kMaxNumTextures = 128u;
 
  public:
   void setup(VkExtent2D const dimension) final {
-    FragmentFx::setup(dimension);
+    RenderTargetFx::setup(dimension);
 
     uniform_buffer_ = allocator_->create_buffer(
       sizeof(host_data_),
@@ -54,7 +54,7 @@ class SceneFx final : public FragmentFx {
     allocator_->destroy_buffer(uniform_buffer_);
     gltf_model_->release(); //
 
-    FragmentFx::release();
+    RenderTargetFx::release();
   }
 
  protected:
@@ -212,12 +212,12 @@ class SceneFx final : public FragmentFx {
 // ----------------------------------------------------------------------------
 
 /**
- * Customized FxPipeline which use a SceneFx as entry point, and a custom
+ * Customized PostFxPipeline which use a SceneFx as entry point, and a custom
  * FragmentFx as final compositions tage.
 **/
-class ToonFxPipeline final : public TFxPipeline<SceneFx> {
+class ToonFxPipeline final : public TPostFxPipeline<SceneFx> {
  public:
-  class ToonComposition final : public FragmentFx {
+  class ToonComposition final : public RenderTargetFx {
     std::string getShaderName() const final {
       return COMPILED_SHADERS_DIR "toon.frag.glsl";
     }
@@ -252,7 +252,7 @@ class ToonFxPipeline final : public TFxPipeline<SceneFx> {
       },
     });
 
-    FxPipeline::init(context, renderer);
+    PostFxPipeline::init(context, renderer);
   }
 };
 

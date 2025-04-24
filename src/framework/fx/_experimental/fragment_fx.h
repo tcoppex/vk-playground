@@ -7,17 +7,7 @@
 
 /* -------------------------------------------------------------------------- */
 
-/*
-  [WIP]
-
-  Currently the default FragmentFx render into a screenmap triangle for
-  post processing effects, but we should use it as interface and create
-  two sub classes:
-    * ScreenFx, to map image to the screen
-    * SceneFx, to render scene data.
-*/
-
-class FragmentFx : public GenericFx {
+class FragmentFx : public virtual GenericFx {
  public:
   static constexpr uint32_t kDefaultCombinedImageSamplerBinding{ 0u };
   static constexpr uint32_t kDefaultStorageBufferBinding{ 1u };
@@ -25,16 +15,42 @@ class FragmentFx : public GenericFx {
   static constexpr uint32_t kDefaultCombinedImageSamplerDescriptorCount{ 8u };
   static constexpr uint32_t kDefaultStorageBufferDescriptorCount{ 4u };
 
+ protected:
+  virtual std::string getVertexShaderName() const = 0;
+
+  virtual GraphicsPipelineDescriptor_t getGraphicsPipelineDescriptor(std::vector<backend::ShaderModule> const& shaders) const = 0;
+
+  virtual void draw(RenderPassEncoder const& pass) = 0;
+
+  std::vector<DescriptorSetLayoutParams> getDescriptorSetLayoutParams() const override {
+    return {
+      {
+        .binding = kDefaultCombinedImageSamplerBinding,
+        .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+        .descriptorCount = kDefaultCombinedImageSamplerDescriptorCount,
+        .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+        .bindingFlags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT,
+      },
+      {
+        .binding = kDefaultStorageBufferBinding,
+        .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+        .descriptorCount = kDefaultStorageBufferDescriptorCount,
+        .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+        .bindingFlags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT,
+      },
+    };
+  }
+
+};
+
+// ----------------------------------------------------------------------------
+
+class RenderTargetFx : public PostGenericFx
+                     , public FragmentFx {
  public:
   static std::string GetMapScreenVertexShaderName();
 
  public:
-  FragmentFx() = default;
-
-  virtual ~FragmentFx() {}
-
-  void setup(VkExtent2D const dimension) override;
-
   void resize(VkExtent2D const dimension) override;
 
   void release() override;
@@ -58,18 +74,14 @@ class FragmentFx : public GenericFx {
   }
 
  protected:
-  virtual std::string getVertexShaderName() const {
+  std::string getVertexShaderName() const override {
     return GetMapScreenVertexShaderName();
   }
 
-  virtual std::string getShaderName() const = 0;
-
-  virtual void createRenderTarget(VkExtent2D const dimension);
-
-  virtual GraphicsPipelineDescriptor_t getGraphicsPipelineDescriptor(std::vector<backend::ShaderModule> const& shaders) const {
+  GraphicsPipelineDescriptor_t getGraphicsPipelineDescriptor(std::vector<backend::ShaderModule> const& shaders) const override {
      return {
       .vertex = {
-        .module = shaders[0u].module
+        .module = shaders[0u].module,
       },
       .fragment = {
         .module = shaders[1u].module,
@@ -79,41 +91,22 @@ class FragmentFx : public GenericFx {
       },
       .primitive = {
         .topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
-        .cullMode = VK_CULL_MODE_NONE,
+        .cullMode = VK_CULL_MODE_BACK_BIT,
       },
     };
   }
 
-  std::vector<DescriptorSetLayoutParams> getDescriptorSetLayoutParams() const override {
-    return {
-      {
-        .binding = kDefaultCombinedImageSamplerBinding,
-        .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-        .descriptorCount = kDefaultCombinedImageSamplerDescriptorCount,
-        .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
-        .bindingFlags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT,
-      },
-      {
-        .binding = kDefaultStorageBufferBinding,
-        .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-        .descriptorCount = kDefaultStorageBufferDescriptorCount,
-        .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
-        .bindingFlags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT,
-      },
-    };
+  void draw(RenderPassEncoder const& pass) override {
+    pass.draw(3u);
   }
 
   void createPipeline() override;
 
-  virtual void draw(RenderPassEncoder const& pass) {
-    pass.draw(3u);
-  }
+  virtual void createRenderTarget(VkExtent2D const dimension);
 
  protected:
   std::shared_ptr<RenderTarget> render_target_{};
   std::vector<backend::Buffer> unused_buffers_{};
-
-  bool is_setup_{};
 };
 
 /* -------------------------------------------------------------------------- */

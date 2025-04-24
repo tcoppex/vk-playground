@@ -8,7 +8,7 @@
 
 void ComputeFx::release() {
   releaseImagesAndBuffers();
-  GenericFx::release();
+  PostGenericFx::release();
 }
 
 // ----------------------------------------------------------------------------

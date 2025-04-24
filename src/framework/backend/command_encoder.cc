@@ -169,7 +169,7 @@ void CommandEncoder::blit_image_2d(backend::Image const& src, VkImageLayout src_
 
 // ----------------------------------------------------------------------------
 
-void CommandEncoder::blit(FxInterface const& fx_src, backend::RTInterface const& rt_dst) const {
+void CommandEncoder::blit(PostFxInterface const& fx_src, backend::RTInterface const& rt_dst) const {
   blit_image_2d(
     fx_src.getImageOutput(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
     rt_dst.get_color_attachment(), VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,

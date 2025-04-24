@@ -5,18 +5,10 @@
 
 /* -------------------------------------------------------------------------- */
 
-class ComputeFx : public GenericFx {
+class ComputeFx : public PostGenericFx {
  public:
   static constexpr uint32_t kDefaultStorageImageBinding{ 0u };
   static constexpr uint32_t kDefaultStorageBufferBinding{ 1u };
-
- public:
-  ComputeFx() = default;
-
-  virtual ~ComputeFx() {}
-
-  virtual void resize(VkExtent2D const dimension) = 0;
-
 
  public:
   void release() override;
@@ -44,8 +36,6 @@ class ComputeFx : public GenericFx {
   }
 
  protected:
-  virtual std::string getShaderName() const = 0;
-
   virtual void releaseImagesAndBuffers();
 
   std::vector<DescriptorSetLayoutParams> getDescriptorSetLayoutParams() const override {

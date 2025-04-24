@@ -1,5 +1,5 @@
-#ifndef HELLO_VK_FRAMEWORK_FX_POSTPROCESS_PIPELINE_H_
-#define HELLO_VK_FRAMEWORK_FX_POSTPROCESS_PIPELINE_H_
+#ifndef HELLO_VK_FRAMEWORK_FX_POST_FX_PIPELINE_H_
+#define HELLO_VK_FRAMEWORK_FX_POST_FX_PIPELINE_H_
 
 #include "framework/common.h"
 #include "framework/fx/_experimental/generic_fx.h"
@@ -7,33 +7,29 @@
 
 /* -------------------------------------------------------------------------- */
 
-struct FxDependencies {
+class PostFxPipeline : public PostFxInterface {
+ public:
   template<typename T>
-  requires DerivedFrom<T, FxInterface>
+  requires DerivedFrom<T, PostFxInterface>
   struct FxDep {
     std::shared_ptr<T> fx{};
     uint32_t index{};
   };
-  std::vector<FxDep<FxInterface>> images{};
-  std::vector<FxDep<FxInterface>> buffers{};
-};
 
-// ----------------------------------------------------------------------------
+  struct PostFxDependencies {
+    std::vector<FxDep<PostFxInterface>> images{};
+    std::vector<FxDep<PostFxInterface>> buffers{};
+  };
 
-class FxPipeline : public FxInterface {
  public:
-  FxPipeline() = default;
-
-  virtual ~FxPipeline() {}
-
   virtual void reset() {
     effects_.clear();
     dependencies_.clear();
   }
 
   template<typename T>
-  requires DerivedFrom<T, FxInterface>
-  std::shared_ptr<T> add(FxDependencies const& dependencies = {}) {
+  // requires DerivedFrom<T, PostFxInterface>
+  std::shared_ptr<T> add(PostFxDependencies const& dependencies = {}) {
     auto fx = std::make_shared<T>();
     effects_.push_back(fx);
     dependencies_.push_back(dependencies);
@@ -41,7 +37,7 @@ class FxPipeline : public FxInterface {
   }
 
   template<typename T>
-  requires DerivedFrom<T, FxInterface>
+  // requires DerivedFrom<T, PostFxInterface>
   std::shared_ptr<T> get(uint32_t index) {
     return std::static_pointer_cast<T>(effects_.at(index));
   }
@@ -51,7 +47,7 @@ class FxPipeline : public FxInterface {
  public:
   void init(Context const& context, Renderer const& renderer) override {
     assert(!effects_.empty());
-    FxInterface::init(context, renderer);
+    PostFxInterface::init(context, renderer);
     for (auto fx : effects_) {
       fx->init(context, renderer);
     }
@@ -118,13 +114,13 @@ class FxPipeline : public FxInterface {
   }
 
   std::string name() const override {
-    return "FxPipeline::NoName";
+    return "PostFxPipeline::NoName";
   }
 
  protected:
   static
-  FxDependencies GetOutputDependencies(std::shared_ptr<FxPipeline> fx) {
-    FxDependencies dep = fx->getDefaultOutputDependencies();
+  PostFxDependencies GetOutputDependencies(std::shared_ptr<PostFxPipeline> fx) {
+    PostFxDependencies dep = fx->getDefaultOutputDependencies();
     for (auto& img : dep.images) {
       img.fx = fx;
     }
@@ -135,13 +131,13 @@ class FxPipeline : public FxInterface {
   }
 
   // Format of the pipeline output, usually just an image.
-  virtual FxDependencies getDefaultOutputDependencies() const {
+  virtual PostFxDependencies getDefaultOutputDependencies() const {
     return { .images = { {.index = 0u} } };
   }
 
  protected:
-  std::vector<std::shared_ptr<FxInterface>> effects_{};
-  std::vector<FxDependencies> dependencies_{};
+  std::vector<std::shared_ptr<PostFxInterface>> effects_{};
+  std::vector<PostFxDependencies> dependencies_{};
 };
 
 // ----------------------------------------------------------------------------
@@ -151,16 +147,16 @@ class FxPipeline : public FxInterface {
  * effect, automatically added to the pipeline.
  */
 template<typename E>
-class TFxPipeline : public FxPipeline {
+class TPostFxPipeline : public PostFxPipeline {
  public:
-  TFxPipeline()
-    : FxPipeline()
+  TPostFxPipeline()
+    : PostFxPipeline()
   {
     reset();
   }
 
   void reset() override {
-    FxPipeline::reset();
+    PostFxPipeline::reset();
     add<E>();
     setEntryDependencies(entry_dependencies_);
   }
@@ -169,35 +165,35 @@ class TFxPipeline : public FxPipeline {
     return get<E>(0u);
   }
 
-  void setEntryDependencies(FxDependencies const& dependencies) {
+  void setEntryDependencies(PostFxDependencies const& dependencies) {
     dependencies_[0u] = dependencies;
     entry_dependencies_ = dependencies;
   }
 
   template<typename T>
-  requires DerivedFrom<T, FxInterface>
-  std::shared_ptr<T> add(FxDependencies const& dependencies = {}) {
-    auto fx = FxPipeline::add<T>(dependencies);
-    if constexpr (DerivedFrom<T, FxPipeline>) {
+  requires DerivedFrom<T, PostFxInterface>
+  std::shared_ptr<T> add(PostFxDependencies const& dependencies = {}) {
+    auto fx = PostFxPipeline::add<T>(dependencies);
+    if constexpr (DerivedFrom<T, PostFxPipeline>) {
       fx->setEntryDependencies(dependencies);
     }
     return fx;
   }
 
   template<typename T>
-  requires DerivedFrom<T, FxInterface>
-  std::shared_ptr<T> add(std::shared_ptr<FxPipeline> pipeline) {
+  requires DerivedFrom<T, PostFxInterface>
+  std::shared_ptr<T> add(std::shared_ptr<PostFxPipeline> pipeline) {
     return add<T>(GetOutputDependencies(pipeline));
   }
 
  public:
-  FxDependencies entry_dependencies_{};
+  PostFxDependencies entry_dependencies_{};
 };
 
 // ----------------------------------------------------------------------------
 
 // Blank Fx used to pass data to a specialized pipeline
-class PassDataNoFx final : public FxInterface {
+class PassDataNoFx final : public PostFxInterface {
  public:
   void setup(VkExtent2D const dimension) final {}
   void resize(VkExtent2D const dimension) final {}
@@ -244,4 +240,4 @@ class PassDataNoFx final : public FxInterface {
 
 /* -------------------------------------------------------------------------- */
 
-#endif // HELLO_VK_FRAMEWORK_FX_POSTPROCESS_PIPELINE_H_
+#endif // HELLO_VK_FRAMEWORK_FX_POST_FX_PIPELINE_H_

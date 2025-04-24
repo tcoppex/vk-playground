@@ -1,24 +1,16 @@
-
 #include "framework/fx/_experimental/fragment_fx.h"
 
 #include "framework/backend/command_encoder.h"
 
 /* -------------------------------------------------------------------------- */
 
-std::string FragmentFx::GetMapScreenVertexShaderName() {
+std::string RenderTargetFx::GetMapScreenVertexShaderName() {
   return std::string(FRAMEWORK_COMPILED_SHADERS_DIR "postprocess/mapscreen.vert.glsl");
-}
-
-/* -------------------------------------------------------------------------- */
-
-void FragmentFx::setup(VkExtent2D const dimension) {
-  GenericFx::setup(dimension);
-  is_setup_ = true;
 }
 
 // ----------------------------------------------------------------------------
 
-void FragmentFx::resize(VkExtent2D const dimension) {
+void RenderTargetFx::resize(VkExtent2D const dimension) {
   if (!render_target_) {
     createRenderTarget(dimension);
   } else {
@@ -28,17 +20,14 @@ void FragmentFx::resize(VkExtent2D const dimension) {
 
 // ----------------------------------------------------------------------------
 
-void FragmentFx::release() {
-  if (!is_setup_) {
-    return;
-  }
+void RenderTargetFx::release() {
   render_target_->release();
-  GenericFx::release();
+  PostGenericFx::release();
 }
 
 // ----------------------------------------------------------------------------
 
-void FragmentFx::setImageInputs(std::vector<backend::Image> const& inputs) {
+void RenderTargetFx::setImageInputs(std::vector<backend::Image> const& inputs) {
   DescriptorSetWriteEntry write_entry{
     .binding = 0u,
     .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
@@ -55,7 +44,7 @@ void FragmentFx::setImageInputs(std::vector<backend::Image> const& inputs) {
 
 // ----------------------------------------------------------------------------
 
-void FragmentFx::setBufferInputs(std::vector<backend::Buffer> const& inputs) {
+void RenderTargetFx::setBufferInputs(std::vector<backend::Buffer> const& inputs) {
   DescriptorSetWriteEntry write_entry{
     .binding = 1u,
     .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
@@ -72,7 +61,7 @@ void FragmentFx::setBufferInputs(std::vector<backend::Buffer> const& inputs) {
 
 // ----------------------------------------------------------------------------
 
-void FragmentFx::execute(CommandEncoder& cmd) {
+void RenderTargetFx::execute(CommandEncoder& cmd) {
   if (!isEnabled()) {
     return;
   }
@@ -91,19 +80,19 @@ void FragmentFx::execute(CommandEncoder& cmd) {
 
 // ----------------------------------------------------------------------------
 
-backend::Image const& FragmentFx::getImageOutput(uint32_t index) const {
+backend::Image const& RenderTargetFx::getImageOutput(uint32_t index) const {
   return render_target_->get_color_attachment(index); //
 }
 
 // ----------------------------------------------------------------------------
 
-std::vector<backend::Image> const& FragmentFx::getImageOutputs() const {
+std::vector<backend::Image> const& RenderTargetFx::getImageOutputs() const {
   return render_target_->get_color_attachments();
 }
 
 /* -------------------------------------------------------------------------- */
 
-void FragmentFx::createRenderTarget(VkExtent2D const dimension) {
+void RenderTargetFx::createRenderTarget(VkExtent2D const dimension) {
   VkClearColorValue const debug_clear_value{ { 0.99f, 0.12f, 0.89f, 0.0f } }; //
 
 #if 1
@@ -124,7 +113,7 @@ void FragmentFx::createRenderTarget(VkExtent2D const dimension) {
 
 // ----------------------------------------------------------------------------
 
-void FragmentFx::createPipeline() {
+void RenderTargetFx::createPipeline() {
   auto shaders{context_ptr_->create_shader_modules({
     getVertexShaderName(),
     getShaderName()

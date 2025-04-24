@@ -1,46 +1,41 @@
 #ifndef HELLOVK_FRAMEWORK_RENDERER_GENERIC_FX_H_
 #define HELLOVK_FRAMEWORK_RENDERER_GENERIC_FX_H_
 
-#include "framework/common.h"
-#include "framework/renderer/renderer.h"
-class CommandEncoder;
-
 #include "framework/fx/_experimental/fx_interface.h"
 
 /* -------------------------------------------------------------------------- */
 
-class GenericFx : public FxInterface {
+class GenericFx : public virtual FxInterface {
  public:
   bool isEnabled() const {
     return enabled_;
   }
 
  public:
+  virtual ~GenericFx() {}
+
   void init(Context const& context, Renderer const& renderer) override {
     FxInterface::init(context, renderer);
     allocator_ = context.get_resource_allocator();
   }
 
   void setup(VkExtent2D const dimension) override {
-    assert(nullptr != context_ptr_);
-
-    resize(dimension);
+    LOG_CHECK(nullptr != context_ptr_);
     createPipelineLayout();
     createPipeline();
+    descriptor_set_ = renderer_ptr_->create_descriptor_set(descriptor_set_layout_); //
   }
 
   void release() override {
-    if (pipeline_layout_ == VK_NULL_HANDLE) {
-      return;
+    if (pipeline_layout_ != VK_NULL_HANDLE) {
+      renderer_ptr_->destroy_pipeline(pipeline_);
+      renderer_ptr_->destroy_pipeline_layout(pipeline_layout_);
+      renderer_ptr_->destroy_descriptor_set_layout(descriptor_set_layout_);
+      pipeline_layout_ = VK_NULL_HANDLE;
     }
-    renderer_ptr_->destroy_pipeline(pipeline_);
-    renderer_ptr_->destroy_pipeline_layout(pipeline_layout_);
-    renderer_ptr_->destroy_descriptor_set_layout(descriptor_set_layout_);
-    pipeline_layout_ = VK_NULL_HANDLE;
   }
 
-  void setupUI() override {
-  }
+  void setupUI() override {}
 
   std::string name() const override {
     std::filesystem::path fn(getShaderName());
@@ -56,8 +51,7 @@ class GenericFx : public FxInterface {
     return {};
   }
 
-  virtual void updatePushConstant(GenericCommandEncoder const& cmd) {
-  }
+  virtual void updatePushConstant(GenericCommandEncoder const& cmd) {}
 
   virtual void createPipelineLayout() {
     descriptor_set_layout_ = renderer_ptr_->create_descriptor_set_layout(getDescriptorSetLayoutParams());
@@ -65,7 +59,6 @@ class GenericFx : public FxInterface {
       .setLayouts = { descriptor_set_layout_ },
       .pushConstantRanges = getPushConstantRanges()
     });
-    descriptor_set_ = renderer_ptr_->create_descriptor_set(descriptor_set_layout_); //
   }
 
   virtual void createPipeline() = 0;
@@ -78,8 +71,18 @@ class GenericFx : public FxInterface {
   Pipeline pipeline_{};
 
   VkDescriptorSet descriptor_set_{}; //
-
   bool enabled_{true};
+};
+
+/* -------------------------------------------------------------------------- */
+
+class PostGenericFx : public PostFxInterface
+                    , public virtual GenericFx {
+ public:
+  void setup(VkExtent2D const dimension) override {
+    resize(dimension);
+    GenericFx::setup(dimension);
+  }
 };
 
 /* -------------------------------------------------------------------------- */

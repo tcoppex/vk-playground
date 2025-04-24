@@ -7,7 +7,7 @@
 
 namespace fx::frag {
 
-class NormalDepthEdge final : public FragmentFx {
+class NormalDepthEdge final : public RenderTargetFx {
  public:
   // [tmp]
   void setInputs(backend::Image const& data_image, backend::Buffer const& depth_minmax_buffer) {

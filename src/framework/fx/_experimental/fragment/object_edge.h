@@ -10,7 +10,7 @@ namespace fx::frag {
 /**
  * Detect difference between two integer from the w component of a rgba textures.
  **/
-class ObjectEdge final : public FragmentFx {
+class ObjectEdge final : public RenderTargetFx {
  public:
   void setupUI() final {
     if (!ImGui::CollapsingHeader("Object edge")) {
