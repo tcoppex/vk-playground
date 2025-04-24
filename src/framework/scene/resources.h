@@ -52,7 +52,7 @@ struct Resources {
  public:
   /* --- Host Data --- */
 
-  ResourceBuffer<ImageData> host_images{}; //
+  ResourceBuffer<ImageData> host_images{};
   ResourceBuffer<Texture> textures{};
   ResourceBuffer<Material> materials{};
   ResourceBuffer<Skeleton> skeletons{};

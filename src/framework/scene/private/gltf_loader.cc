@@ -80,7 +80,6 @@ bool DecompressDracoPrimitive(cgltf_primitive const& prim, std::vector<VertexInt
   }
 
 #if FRAMEWORK_HAS_DRACO
-  // Decode Draco mesh
   std::unique_ptr<draco::Mesh> draco_mesh{};
   {
     cgltf_accessor const* pos_accessor = nullptr;
@@ -290,7 +289,7 @@ PointerToIndexMap_t ExtractImages(
 
     auto image = std::make_shared<scene::ImageData>();
 
-    /* Image tasks *should be* retrieved outside this function via 'image->getLoadAsyncResult()' */
+    /* Image tasks should be retrieved outside this function via 'image->getLoadAsyncResult()' */
     image->loadAsync(buffer_data, buffer_view->size);
 
     image_indices.try_emplace(&gl_image, image_id);

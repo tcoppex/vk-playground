@@ -108,12 +108,14 @@ bool Resources::load_from_file(std::string_view const& filename, SamplerPool& sa
 #endif
 
     /* Wait for the host images to finish loading before using them. */
-    for (auto & host_image : host_images) {
+    for (auto const& host_image : host_images) {
       LOG_CHECK(true == host_image->getLoadAsyncResult());
     }
 
     reset_internal_device_resource_info();
   }
+
+  /* Be sure to have finished loading all images before freeing gltf data */
   cgltf_free(data);
 
 #ifndef NDEBUG
@@ -156,6 +158,8 @@ void Resources::upload_to_device(Context const& context, bool const bReleaseHost
 
   /* clear host data once uploaded */
   if (bReleaseHostDataOnUpload) {
+    host_images.clear();
+    host_images.shrink_to_fit();
     for (auto const& mesh : meshes) {
       mesh->clear_indices_and_vertices(); //
     }
@@ -203,7 +207,7 @@ void Resources::reset_internal_device_resource_info() {
   }
 
   for (auto const& host_image : host_images) {
-    total_image_size += ImageData::kDefaultNumChannels * host_image->width * host_image->height; //
+    total_image_size += host_image->getBytesize();
   }
 
 #ifndef NDEBUG
@@ -233,7 +237,6 @@ void Resources::upload_images(Context const& context) {
   // uint32_t channel_index = 0u;
   uint64_t staging_offset = 0u;
   for (auto const& host_image : host_images) {
-
     VkExtent3D const extent{
       .width = static_cast<uint32_t>(host_image->width),
       .height = static_cast<uint32_t>(host_image->height),
@@ -243,14 +246,12 @@ void Resources::upload_images(Context const& context) {
       extent.width,
       extent.height,
       1u,
-      VK_FORMAT_R8G8B8A8_UNORM,
+      VK_FORMAT_R8G8B8A8_UNORM, //
       VK_IMAGE_USAGE_TRANSFER_DST_BIT
     ));
 
     /* Upload image to staging buffer */
-    uint32_t const img_bytesize{
-      static_cast<uint32_t>(ImageData::kDefaultNumChannels * extent.width * extent.height) //
-    };
+    uint32_t const img_bytesize{ host_image->getBytesize() };
     allocator->write_buffer(
       staging_buffer, staging_offset, host_image->getPixels(), 0u, img_bytesize
     );
@@ -270,8 +271,8 @@ void Resources::upload_images(Context const& context) {
     VkImageLayout const transfer_layout{ VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL };
 
     cmd.transition_images_layout(device_images, VK_IMAGE_LAYOUT_UNDEFINED, transfer_layout);
-    for (uint32_t tex_id = 0u; tex_id < device_images.size(); ++tex_id) {
-      vkCmdCopyBufferToImage(cmd.get_handle(), staging_buffer.buffer, device_images[tex_id].image, transfer_layout, 1u, &copies[tex_id]);
+    for (uint32_t i = 0u; i < device_images.size(); ++i) {
+      vkCmdCopyBufferToImage(cmd.get_handle(), staging_buffer.buffer, device_images[i].image, transfer_layout, 1u, &copies[i]);
     }
     cmd.transition_images_layout(device_images, transfer_layout, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
   }
