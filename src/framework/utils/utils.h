@@ -64,7 +64,7 @@ inline auto RunTaskGeneric = [](auto&& fn) -> std::future<T> {
 
 char* ReadBinaryFile(const char* filename, size_t* filesize);
 
-std::string ExtractBasename(std::string_view filename);
+std::string ExtractBasename(std::string_view filename, bool keepExtension = false);
 
 std::string ExtractExtension(std::string_view filename);
 

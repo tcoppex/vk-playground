@@ -64,10 +64,10 @@ char* ReadBinaryFile(const char *filename, size_t *filesize) {
 
 // ----------------------------------------------------------------------------
 
-std::string ExtractBasename(std::string_view filename) {
+std::string ExtractBasename(std::string_view filename, bool keepExtension) {
   size_t start = filename.find_last_of("/\\");
   start = (start == std::string_view::npos) ? 0 : start + 1;
-  size_t end = filename.find_last_of('.', filename.length());
+  size_t end = keepExtension ? filename.length() : filename.find_last_of('.', filename.length());
   end = (end == std::string_view::npos || end < start) ? filename.length() : end;
   return std::string(filename.substr(start, end - start));
 }
