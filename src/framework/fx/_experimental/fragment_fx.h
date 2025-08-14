@@ -3,8 +3,6 @@
 
 #include "framework/fx/_experimental/generic_fx.h"
 
-#include "framework/renderer/_experimental/render_target.h"
-
 /* -------------------------------------------------------------------------- */
 
 class FragmentFx : public virtual GenericFx {
@@ -15,10 +13,19 @@ class FragmentFx : public virtual GenericFx {
   static constexpr uint32_t kDefaultCombinedImageSamplerDescriptorCount{ 8u };
   static constexpr uint32_t kDefaultStorageBufferDescriptorCount{ 4u };
 
+ public:
+  void setImageInputs(std::vector<backend::Image> const& inputs) override;
+
+  void setBufferInputs(std::vector<backend::Buffer> const& inputs) override;
+
+  void execute(CommandEncoder& cmd) override; //
+
  protected:
   virtual std::string getVertexShaderName() const = 0;
 
   virtual GraphicsPipelineDescriptor_t getGraphicsPipelineDescriptor(std::vector<backend::ShaderModule> const& shaders) const = 0;
+
+  void createPipeline() override;
 
   virtual void draw(RenderPassEncoder const& pass) = 0;
 
@@ -41,72 +48,16 @@ class FragmentFx : public virtual GenericFx {
     };
   }
 
-};
-
-// ----------------------------------------------------------------------------
-
-class RenderTargetFx : public PostGenericFx
-                     , public FragmentFx {
- public:
-  static std::string GetMapScreenVertexShaderName();
-
- public:
-  void resize(VkExtent2D const dimension) override;
-
-  void release() override;
-
-  void setImageInputs(std::vector<backend::Image> const& inputs) override;
-
-  void setBufferInputs(std::vector<backend::Buffer> const& inputs) override;
-
-  void execute(CommandEncoder& cmd) override;
-
-  backend::Image const& getImageOutput(uint32_t index = 0u) const override;
-
-  virtual std::vector<backend::Image> const& getImageOutputs() const override;
-
-  backend::Buffer const& getBufferOutput(uint32_t index = 0u) const override {
-    return unused_buffers_[index];
+  virtual VkExtent2D getRenderSurfaceSize() const {
+    return renderer_ptr_->get_surface_size(); //
   }
 
-  std::vector<backend::Buffer> const& getBufferOutputs() const override {
-    return unused_buffers_;
+  virtual void setupRenderPass(RenderPassEncoder const& pass) {
+    pass.set_viewport_scissor(getRenderSurfaceSize()); //
+    pass.bind_pipeline(pipeline_);
+    pass.bind_descriptor_set(descriptor_set_, pipeline_layout_, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+    updatePushConstant(pass); //
   }
-
- protected:
-  std::string getVertexShaderName() const override {
-    return GetMapScreenVertexShaderName();
-  }
-
-  GraphicsPipelineDescriptor_t getGraphicsPipelineDescriptor(std::vector<backend::ShaderModule> const& shaders) const override {
-     return {
-      .vertex = {
-        .module = shaders[0u].module,
-      },
-      .fragment = {
-        .module = shaders[1u].module,
-        .targets = {
-          { .format = render_target_->get_color_attachment().format },
-        }
-      },
-      .primitive = {
-        .topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
-        .cullMode = VK_CULL_MODE_BACK_BIT,
-      },
-    };
-  }
-
-  void draw(RenderPassEncoder const& pass) override {
-    pass.draw(3u);
-  }
-
-  void createPipeline() override;
-
-  virtual void createRenderTarget(VkExtent2D const dimension);
-
- protected:
-  std::shared_ptr<RenderTarget> render_target_{};
-  std::vector<backend::Buffer> unused_buffers_{};
 };
 
 /* -------------------------------------------------------------------------- */

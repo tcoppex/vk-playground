@@ -1,7 +1,7 @@
 #ifndef POST_NORMAL_DEPTH_EDGE_H_
 #define POST_NORMAL_DEPTH_EDGE_H_
 
-#include "framework/fx/_experimental/fragment_fx.h"
+#include "framework/fx/_experimental/render_target_fx.h"
 
 /* -------------------------------------------------------------------------- */
 
