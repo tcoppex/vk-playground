@@ -218,8 +218,8 @@ class SampleApp final : public Application {
         mesh->world_matrix
       );
       for (auto const& submesh : mesh->submeshes) {
-        if (auto mat = submesh.material; mat && mat->albedoTexture) {
-          push_constant_.model.albedo_texture_index = mat->albedoTexture->texture_index;
+        if (auto mat = submesh.material; mat && mat->hasDiffuseTexture()) {
+          push_constant_.model.albedo_texture_index = mat->diffuse_texture_id;
         }
         pass.push_constant(push_constant_, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT); //
         pass.draw(submesh.draw_descriptor, R->vertex_buffer, R->index_buffer);
@@ -228,13 +228,13 @@ class SampleApp final : public Application {
   }
 
   void frame() final {
-    update_frame(get_delta_time());
+    update_frame(delta_time());
 
     mat4 const worldMatrix{
       // linalg::identity
       lina::rotation_matrix_axis(
         vec3(-0.25f, 1.0f, -0.15f),
-        get_frame_time() * 0.4f
+        frame_time() * 0.4f
       )
     };
 

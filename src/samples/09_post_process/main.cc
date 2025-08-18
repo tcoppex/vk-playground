@@ -154,8 +154,8 @@ class SceneFx final : public RenderTargetFx {
       );
 
       for (auto const& submesh : mesh->submeshes) {
-        if (auto mat = submesh.material; mat && mat->albedoTexture) {
-          push_constant_.model.albedo_texture_index = mat->albedoTexture->texture_index;
+        if (auto mat = submesh.material; mat && mat->hasDiffuseTexture()) {
+          push_constant_.model.albedo_texture_index = mat->diffuse_texture_id;
           push_constant_.model.material_index = mat->index;
           push_constant_.model.instance_index = instance_index++;
         }
@@ -310,27 +310,23 @@ class SampleApp final : public Application {
     toon_pipeline_.release();
   }
 
-  void frame() final {
-    /* Update. */
-    {
-      const float dt = get_delta_time();
+  void update(float const dt) final {
+    camera_.update(dt);
 
-      camera_.update( dt );
+    mat4 const world_matrix{
+      lina::rotation_matrix_axis(
+        vec3(-0.25f, 1.0f, -0.15f),
+        frame_time() * 0.0f //
+      )
+    };
 
-      mat4 const world_matrix{
-        lina::rotation_matrix_axis(
-          vec3(-0.25f, 1.0f, -0.15f),
-          get_frame_time() * 0.0f //
-        )
-      };
+    auto sceneFx = toon_pipeline_.getEntryFx();
+    sceneFx->setCameraPosition(camera_.position());
+    sceneFx->setViewMatrix(camera_.view());
+    sceneFx->setWorldMatrix(world_matrix);
+  }
 
-      auto sceneFx = toon_pipeline_.getEntryFx();
-      sceneFx->setCameraPosition(camera_.position());
-      sceneFx->setViewMatrix(camera_.view());
-      sceneFx->setWorldMatrix(world_matrix);
-    }
-
-    /* Render. */
+  void draw() final {
     auto cmd = renderer_.begin_frame();
     {
       /* Main rendering + Toon post-processing. */
@@ -340,12 +336,12 @@ class SampleApp final : public Application {
       cmd.blit(toon_pipeline_, renderer_);
 
       /* Draw UI on top. */
-      cmd.draw_ui(renderer_);
+      cmd.render_ui(renderer_);
     }
     renderer_.end_frame();
   }
 
-  void setup_ui() final {
+  void build_ui() final {
     ImGui::Begin("Settings");
     {
       ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
