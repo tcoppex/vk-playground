@@ -350,7 +350,7 @@ void CommandEncoder::end_render_pass() const {
 
 // ----------------------------------------------------------------------------
 
-void CommandEncoder::draw_ui(backend::RTInterface &render_target) {
+void CommandEncoder::render_ui(backend::RTInterface &render_target) {
   auto const load_op = render_target.get_color_load_op();
   render_target.set_color_load_op(VK_ATTACHMENT_LOAD_OP_LOAD);
 

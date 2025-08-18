@@ -188,10 +188,9 @@ class CommandEncoder : public GenericCommandEncoder {
   RenderPassEncoder begin_render_pass(backend::RPInterface const& render_pass) const;
   void end_render_pass() const;
 
-
   // --- UI ----
 
-  void draw_ui(backend::RTInterface &render_target); 
+  void render_ui(backend::RTInterface &render_target);
 
 
  protected:
