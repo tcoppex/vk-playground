@@ -40,6 +40,7 @@ class GenericCommandEncoder {
   void bind_descriptor_set(VkDescriptorSet const descriptor_set, VkPipelineLayout const pipeline_layout, VkShaderStageFlags const stage_flags) const;
 
   void bind_descriptor_set(VkDescriptorSet const descriptor_set, VkShaderStageFlags const stage_flags) const {
+    LOG_CHECK(VK_NULL_HANDLE != currently_bound_pipeline_layout_);
     bind_descriptor_set(descriptor_set, currently_bound_pipeline_layout_, stage_flags);
   }
 
@@ -74,13 +75,13 @@ class GenericCommandEncoder {
 
   template<typename T> requires (!SpanConvertible<T>)
   void push_constant(T const& value, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS, uint32_t const offset = 0u) const {
-    assert(currently_bound_pipeline_layout_ != VK_NULL_HANDLE);
+    LOG_CHECK(VK_NULL_HANDLE != currently_bound_pipeline_layout_);
     push_constant(value, currently_bound_pipeline_layout_, stage_flags, offset);
   }
 
   template<typename T> requires (SpanConvertible<T>)
   void push_constants(T const& values, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS, uint32_t const offset = 0u) const {
-    assert(currently_bound_pipeline_layout_ != VK_NULL_HANDLE);
+    LOG_CHECK(VK_NULL_HANDLE != currently_bound_pipeline_layout_);
     push_constants(values, currently_bound_pipeline_layout_, stage_flags, offset);
   }
 
