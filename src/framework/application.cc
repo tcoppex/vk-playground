@@ -18,23 +18,26 @@ int Application::run() {
   }};
 
   while (nextFrame()) {
+    /* Clock */
     float tick = elapsed_time();
     last_frame_time_ = frame_time_;
     frame_time_ = tick;
 
+    /* User Interface */
     ui_->beginFrame();
     {
-      // OnViewportSizeChange
+      // [todo] OnViewportSizeChange
       {
         float xscale, yscale;
         glfwGetWindowContentScale(reinterpret_cast<GLFWwindow*>(wm_->get_handle()), &xscale, &yscale);
         ImGui::GetIO().FontGlobalScale = xscale;
       }
-      setup_ui();
+      build_ui();
       ImGui::Render();
     }
     ui_->endFrame();
 
+    /* User frame */
     frame();
   }
 
@@ -69,7 +72,7 @@ bool Application::presetup() {
     return false;
   }
 
-  /* Init the default renderer. */
+  /* Initialize the default renderer. */
   renderer_.init(context_, context_.get_resource_allocator(), surface_);
 
   /* Initialize User Interface. */

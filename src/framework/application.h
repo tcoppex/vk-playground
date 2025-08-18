@@ -36,8 +36,15 @@ class Application : public EventCallbacks {
  protected:
   virtual bool setup() { return true; }
   virtual void release() {}
-  virtual void setup_ui() {}
-  virtual void frame() {}
+  virtual void build_ui() {}
+
+  virtual void update(float const dt) {}
+  virtual void draw() {}
+
+  virtual void frame() {
+    update(delta_time());
+    draw();
+  }
 
  private:
   bool presetup();
