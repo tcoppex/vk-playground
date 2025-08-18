@@ -1,10 +1,14 @@
 #include "framework/scene/resources.h"
 
 #include "framework/backend/context.h"
+#include "framework/backend/command_encoder.h"
 #include "framework/renderer/sampler_pool.h"
 #include "framework/utils/utils.h"
 
 #include "framework/scene/private/gltf_loader.h"
+
+#include "framework/renderer/renderer.h" //
+#include "framework/fx/_experimental/scene/pbr_metallic_roughness.h" //
 
 /* -------------------------------------------------------------------------- */
 
@@ -17,6 +21,10 @@ void Resources::release() {
   }
   allocator->destroy_buffer(index_buffer);
   allocator->destroy_buffer(vertex_buffer);
+  for (auto [_, fx] : material_to_fx_map) {
+    fx->release();
+    delete fx;
+  }
   *this = {};
 }
 
@@ -184,6 +192,94 @@ DescriptorSetWriteEntry Resources::descriptor_set_texture_atlas_entry(uint32_t c
   }
 
   return texture_atlas_entry;
+}
+
+// ----------------------------------------------------------------------------
+
+void Resources::prepare_material_fx(Context const& context, Renderer const& renderer) {
+  assert(allocator || !materials.empty());
+
+  //
+  // It might be more interesting to put the share MaterialFx instances
+  // inside Renderer, which will need to move draw to
+  //  Renderer::draw(RenderPassEncoder, camera, GLTFScene)
+  //
+
+  // ----------------
+  material_to_fx_map = {
+    {
+      std::type_index(typeid(fx::scene::PBRMetallicRoughnessFx::Material)),
+      new fx::scene::PBRMetallicRoughnessFx()
+    }
+  };
+  // ----------------
+
+  for (auto [_, fx] : material_to_fx_map) {
+    fx->init(context, renderer);
+    fx->setup();
+    fx->setDescriptorSetTextureAtlasEntry(
+      descriptor_set_texture_atlas_entry(
+        fx->getDescriptorSetTextureAtlasBinding()
+      )
+    );
+  }
+}
+
+// ----------------------------------------------------------------------------
+
+void Resources::draw(RenderPassEncoder const& pass, Camera const& camera) {
+  using FxToSubmeshesMap = std::map< MaterialFx*, std::vector<Mesh::SubMesh const*> >;
+
+  // 1) Retrieve submeshes associated to each Fx.
+  //    { Submeshes share Materials share Fx }
+  FxToSubmeshesMap fx_to_submeshes{};
+  for (auto const& mesh : meshes) {
+    for (auto const& submesh : mesh->submeshes) {
+      if (auto mat = submesh.material; mat) {
+        if (auto it = material_to_fx_map.find(typeid(*mat)); it != material_to_fx_map.end()) {
+          fx_to_submeshes[it->second].push_back(&submesh);
+        }
+      }
+    }
+  }
+
+  // 2) (optionnal) Preprocess each buffer of submeshes
+  //  -> sort per material instance
+  //  -> sort wrt camera
+  // ..
+
+  // 3) (optionnal) Create shared material buffer for each Fx.
+  // ..
+
+  // 4) Render each Fx.
+  uint32_t instance_index = 0u;
+  for (auto& [fx, submeshes] : fx_to_submeshes) {
+    // Bind pipeline & descriptor set.
+    fx->prepareDrawState(pass); //
+
+    // Update host-side camera (pushConstant, uniforms).
+    fx->updateCameraData(camera);
+
+    // Transfer app uniforms to device (internal to fx for now).
+    fx->pushUniforms();
+
+    // Draw submeshes.
+    for (auto* submesh : submeshes) {
+      auto mesh = submesh->parent;
+
+      // Submesh push constants.
+      // ---------------------
+      fx->setMaterial(*submesh->material);
+      fx->setWorldMatrix(mesh->world_matrix);
+      fx->setInstanceIndex(instance_index++);
+      // ---------------------
+      fx->pushConstant(pass);
+
+      pass.set_primitive_topology(mesh->get_vk_primitive_topology());
+
+      pass.draw(submesh->draw_descriptor, vertex_buffer, index_buffer); //
+    }
+  }
 }
 
 // ----------------------------------------------------------------------------

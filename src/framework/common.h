@@ -22,6 +22,7 @@
 #include <string_view>
 #include <thread>
 #include <type_traits>
+#include <typeindex> //
 #include <vector>
 
 #include "lina/lina.h"

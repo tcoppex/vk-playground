@@ -743,6 +743,7 @@ GLTFScene Renderer::load_and_upload(std::string_view gltf_filename, scene::Mesh:
   if (scene && scene->load_from_file(gltf_filename, sampler_pool_)) {
     scene->initialize_submesh_descriptors(attribute_to_location);
     scene->upload_to_device(*ctx_ptr_);
+    scene->prepare_material_fx(*ctx_ptr_, *this);
     return scene;
   }
 

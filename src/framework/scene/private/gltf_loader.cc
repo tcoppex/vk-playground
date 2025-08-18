@@ -13,6 +13,8 @@ static constexpr bool kFrameworkHasDraco{false};
 
 #include "framework/renderer/sampler_pool.h"
 
+#include "framework/fx/_experimental/scene/pbr_metallic_roughness.h" //
+
 /* -------------------------------------------------------------------------- */
 
 namespace {
@@ -369,12 +371,25 @@ PointerToIndexMap_t ExtractMaterials(
       auto const& pbr_mr = gl_material.pbr_metallic_roughness;
 
       // ------------------------
-      material = std::make_shared<scene::Material>();
+      auto pbr_material = fx::scene::PBRMetallicRoughnessFx::CreateMaterial();
       // ------------------------
 
+      std::copy(
+        std::cbegin(pbr_mr.base_color_factor),
+        std::cend(pbr_mr.base_color_factor),
+        lina::ptr(pbr_material->diffuse_color)
+      );
       if (cgltf_texture const* tex = pbr_mr.base_color_texture.texture; tex) {
-        material->diffuse_texture_id = textures_indices.at(tex);
+        pbr_material->diffuse_texture_id = textures_indices.at(tex);
       }
+      if (cgltf_texture const* tex = pbr_mr.metallic_roughness_texture.texture; tex) {
+        pbr_material->orm_texture_id = textures_indices.at(tex);
+      }
+      if (cgltf_texture const* tex = gl_material.normal_texture.texture; tex) {
+        pbr_material->normal_texture_id = textures_indices.at(tex);
+      }
+
+      material = pbr_material;
     }
 
     if (material != nullptr) {
