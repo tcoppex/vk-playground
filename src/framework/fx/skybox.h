@@ -31,7 +31,7 @@ class Skybox {
 
   bool setup(std::string_view hdr_filename); //
 
-  void render(RenderPassEncoder& pass, Camera const& camera);
+  void render(RenderPassEncoder& pass, Camera const& camera) const;
 
   Envmap const& envmap() const {
     return envmap_;
@@ -49,6 +49,8 @@ class Skybox {
   void compute_brdf_lut();
 
  private:
+  using PushConstant_t = shader_interop::skybox::PushConstant;
+
   Envmap envmap_{};
 
   backend::Image brdf_lut_{}; //
@@ -60,7 +62,6 @@ class Skybox {
 
   VkDescriptorSetLayout descriptor_set_layout_{};
   VkDescriptorSet descriptor_set_{};
-  shader_interop::skybox::PushConstant push_constant_{}; // (rename namespace)
 
   VkPipelineLayout pipeline_layout_{};
   Pipeline graphics_pipeline_{};

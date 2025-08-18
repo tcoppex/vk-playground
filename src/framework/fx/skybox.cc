@@ -85,7 +85,7 @@ void Skybox::init(Context const& context, Renderer const& renderer) {
         .stageFlags = VK_SHADER_STAGE_VERTEX_BIT
                     | VK_SHADER_STAGE_FRAGMENT_BIT
                     ,
-        .size = sizeof(push_constant_),
+        .size = sizeof(PushConstant_t),
       }
     },
   });
@@ -156,16 +156,18 @@ bool Skybox::setup(std::string_view hdr_filename) {
 
 // ----------------------------------------------------------------------------
 
-void Skybox::render(RenderPassEncoder & pass, Camera const& camera) {
+void Skybox::render(RenderPassEncoder & pass, Camera const& camera) const {
   mat4 view{ camera.view() };
   view[3] = vec4(vec3(0.0f), view[3].w);
-  push_constant_.viewProjectionMatrix = linalg::mul(camera.proj(), view);
-  push_constant_.hdrIntensity = 1.0;
+
+  PushConstant_t push_constant{};
+  push_constant.viewProjectionMatrix = linalg::mul(camera.proj(), view);
+  push_constant.hdrIntensity = 1.0;
 
   pass.bind_pipeline(graphics_pipeline_);
   {
     pass.bind_descriptor_set(descriptor_set_, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
-    pass.push_constant(push_constant_, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+    pass.push_constant(push_constant, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
 
     pass.bind_vertex_buffer(vertex_buffer_);
     pass.bind_index_buffer(index_buffer_, cube_.get_vk_index_type());
