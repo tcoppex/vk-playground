@@ -4,6 +4,7 @@
 /* -------------------------------------------------------------------------- */
 
 #include <chrono>
+using namespace std::chrono_literals;
 
 #include "framework/common.h"
 #include "framework/backend/context.h"

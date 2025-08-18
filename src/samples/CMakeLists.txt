@@ -67,7 +67,6 @@ add_simple_demo(06_blend_op)
 add_simple_demo(07_compute)
 add_simple_demo(08_hdr_envmap)
 add_simple_demo(09_post_process)
-
-# add_simple_demo(999_test)
+add_simple_demo(10_material)
 
 # -----------------------------------------------------------------------------
