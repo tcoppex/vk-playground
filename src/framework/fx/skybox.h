@@ -33,11 +33,11 @@ class Skybox {
 
   void render(RenderPassEncoder& pass, Camera const& camera);
 
-  Envmap const& get_envmap() const {
+  Envmap const& envmap() const {
     return envmap_;
   }
 
-  backend::Image const& get_irradiance_cubemap() const {
+  backend::Image const& irradiance_cubemap() const {
     return envmap_.get_image(Envmap::ImageType::Irradiance);
   }
 
