@@ -14,7 +14,8 @@
 #include "framework/renderer/_experimental/framebuffer.h" // (for Framebuffer::Descriptor_t)
 #include "framework/renderer/_experimental/render_target.h" // (for RenderTarget::Descriptor_t)
 
-#include "framework/scene/resources.h" //
+#include "framework/scene/resources.h" // (for GLTFScene)
+#include "framework/fx/skybox.h"
 
 /* -------------------------------------------------------------------------- */
 
@@ -50,6 +51,10 @@ class Renderer : public backend::RTInterface {
 
   Swapchain const& get_swapchain() const {
     return swapchain_;
+  }
+
+  Skybox& skybox() {
+    return skybox_;
   }
 
  public:
@@ -224,8 +229,12 @@ class Renderer : public backend::RTInterface {
   // Reference to the current CommandEncoder returned by 'begin_frame'
   CommandEncoder cmd_{}; //
 
+  /**/
   SamplerPool sampler_pool_{};
   VkSampler default_sampler_{}; //
+
+  /* Utils */
+  Skybox skybox_{};
 };
 
 /* -------------------------------------------------------------------------- */

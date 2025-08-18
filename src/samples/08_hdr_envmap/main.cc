@@ -10,7 +10,6 @@
 
 #include "framework/scene/camera.h"
 #include "framework/scene/arcball_controller.h"
-#include "framework/fx/skybox.h"
 
 namespace shader_interop {
 #include "shaders/interop.h"
@@ -63,8 +62,8 @@ class SampleApp final : public Application {
 
     /* Initialize the skybox and setup the HDR diffuse envmap used to calculate
      * IBL convolutions. */
-    skybox_.init(context_, renderer_);
-    skybox_.setup(ASSETS_DIR "textures/qwantani_dusk_2_2k.hdr");
+    auto &skybox = renderer_.skybox();
+    skybox.setup(ASSETS_DIR "textures/qwantani_dusk_2_2k.hdr");
 
     /* Load glTF Scene / Resources. */
     {
@@ -125,7 +124,7 @@ class SampleApp final : public Application {
           .images = {
             {
               .sampler = renderer_.get_default_sampler(),
-              .imageView = skybox_.get_irradiance_cubemap().view,
+              .imageView = skybox.get_irradiance_cubemap().view,
               .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             }
           },
@@ -201,8 +200,6 @@ class SampleApp final : public Application {
     allocator_->destroy_buffer(uniform_buffer_);
 
     R->release(); //
-
-    skybox_.release(context_, renderer_);
   }
 
   void update_frame(float const delta_time) {
@@ -245,7 +242,7 @@ class SampleApp final : public Application {
         pass.set_viewport_scissor(viewport_size_);
 
         /* First render the skybox. */
-        skybox_.render(pass, camera_);
+        renderer_.skybox().render(pass, camera_);
 
         /* Then the scene / model. */
         pass.bind_pipeline(graphics_pipeline_);
@@ -275,8 +272,6 @@ class SampleApp final : public Application {
 
   Camera camera_{};
   ArcBallController arcball_controller_{};
-
-  Skybox skybox_{};
 
   std::shared_ptr<scene::Resources> R; //
 };

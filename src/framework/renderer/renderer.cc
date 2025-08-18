@@ -84,12 +84,17 @@ void Renderer::init(Context const& context, std::shared_ptr<ResourceAllocator> a
     .maxAnisotropy = 16.0f,
     .maxLod = VK_LOD_CLAMP_NONE,
   });
+
+  /* Renderer internal helpers. */
+  skybox_.init(context, *this);
 }
 
 // ----------------------------------------------------------------------------
 
 void Renderer::deinit() {
   assert(device_ != VK_NULL_HANDLE);
+
+  skybox_.release(*ctx_ptr_, *this);
 
   sampler_pool_.deinit();
 
