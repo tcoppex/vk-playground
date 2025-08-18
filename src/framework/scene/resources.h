@@ -64,7 +64,7 @@ struct Resources {
   /* Create material fx used for rendering [might be move to Renderer]. */
   void prepare_material_fx(Context const& context, Renderer const& renderer); //
 
-  void draw(RenderPassEncoder const& pass, Camera const& camera);
+  void render(RenderPassEncoder const& pass, Camera const& camera);
 
  private:
   void reset_internal_device_resource_info();

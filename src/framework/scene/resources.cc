@@ -227,7 +227,7 @@ void Resources::prepare_material_fx(Context const& context, Renderer const& rend
 
 // ----------------------------------------------------------------------------
 
-void Resources::draw(RenderPassEncoder const& pass, Camera const& camera) {
+void Resources::render(RenderPassEncoder const& pass, Camera const& camera) {
   using FxToSubmeshesMap = std::map< MaterialFx*, std::vector<Mesh::SubMesh const*> >;
 
   // 1) Retrieve submeshes associated to each Fx.
