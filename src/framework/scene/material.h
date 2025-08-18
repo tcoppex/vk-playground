@@ -8,17 +8,17 @@ namespace scene {
 
 /* -------------------------------------------------------------------------- */
 
-// (wip)
 struct Material {
-  Material() = default;
-
-  // std::string name{};
   uint32_t index{};
 
-  vec4f baseColor{vec4f(1.0f)};
-  std::shared_ptr<Texture> albedoTexture{};
-  std::shared_ptr<Texture> ormTexture{};
-  std::shared_ptr<Texture> normalTexture{};
+  virtual ~Material() = default;
+
+  vec4f diffuse_color{vec4f(1.0f)};
+  uint32_t diffuse_texture_id{std::numeric_limits<uint32_t>::max()};
+
+  bool hasDiffuseTexture() const {
+    return diffuse_texture_id != std::numeric_limits<uint32_t>::max();
+  }
 };
 
 /* -------------------------------------------------------------------------- */

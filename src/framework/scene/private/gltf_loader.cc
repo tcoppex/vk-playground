@@ -362,30 +362,25 @@ PointerToIndexMap_t ExtractMaterials(
   for (cgltf_size material_id = 0; material_id < data->materials_count; ++material_id) {
     cgltf_material const& gl_material = data->materials[material_id];
 
-    auto material = std::make_shared<scene::Material>();
-    material->index = material_id;
-
-    // Normal texture.
-    if (cgltf_texture const* tex = gl_material.normal_texture.texture; tex) {
-      material->normalTexture = textures[textures_indices.at(tex)];
-    }
+    std::shared_ptr<scene::Material> material{};
 
     // PBR MetallicRoughness.
     if (gl_material.has_pbr_metallic_roughness) {
       auto const& pbr_mr = gl_material.pbr_metallic_roughness;
-      std::copy(
-        std::cbegin(pbr_mr.base_color_factor),
-        std::cend(pbr_mr.base_color_factor),
-        lina::ptr(material->baseColor)
-      );
+
+      // ------------------------
+      material = std::make_shared<scene::Material>();
+      // ------------------------
+
       if (cgltf_texture const* tex = pbr_mr.base_color_texture.texture; tex) {
-        material->albedoTexture = textures[textures_indices.at(tex)];
+        material->diffuse_texture_id = textures_indices.at(tex);
       }
-      if (cgltf_texture const* tex = pbr_mr.metallic_roughness_texture.texture; tex) {
-        material->ormTexture = textures[textures_indices.at(tex)];
-      }
+    }
+
+    if (material != nullptr) {
+      material->index = material_id;
     } else {
-      LOGW("[GLTF] Material %u has unsupported material type.", (uint32_t)material_id);
+      LOGW("[GLTF] Material %03u has unsupported material type.", (uint32_t)material_id);
       continue;
     }
 
