@@ -28,7 +28,7 @@ class PostFxPipeline : public PostFxInterface {
   }
 
   template<typename T>
-  // requires DerivedFrom<T, PostFxInterface>
+  requires DerivedFrom<T, PostFxInterface>
   std::shared_ptr<T> add(PostFxDependencies const& dependencies = {}) {
     auto fx = std::make_shared<T>();
     effects_.push_back(fx);
@@ -37,7 +37,7 @@ class PostFxPipeline : public PostFxInterface {
   }
 
   template<typename T>
-  // requires DerivedFrom<T, PostFxInterface>
+  requires DerivedFrom<T, PostFxInterface>
   std::shared_ptr<T> get(uint32_t index) {
     return std::static_pointer_cast<T>(effects_.at(index));
   }
