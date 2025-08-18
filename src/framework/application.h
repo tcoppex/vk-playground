@@ -23,13 +23,13 @@ class Application : public EventCallbacks {
   int run();
 
  protected:
-  float get_elapsed_time() const;
+  float elapsed_time() const;
 
-  float get_frame_time() const {
+  float frame_time() const {
     return frame_time_;
   }
 
-  float get_delta_time() const {
+  float delta_time() const {
     return frame_time_ - last_frame_time_;
   }
 

@@ -309,13 +309,13 @@ class SampleApp final : public Application {
   }
 
   void frame() final {
-    float const frame_time{ get_frame_time() };
+    float const tick{ frame_time() };
 
     mat4 const portal_world_matrix = linalg::mul(
       lina::rotation_matrix_x(lina::kHalfPi),
       lina::rotation_matrix_axis(
-        vec3(2.45f*cosf(0.5f*frame_time), 1.35f, -1.4*sinf(0.35f*frame_time)),
-        0.35f*frame_time
+        vec3(2.45f * cosf(0.5f * tick), 1.35f, -1.4 * sinf(0.35f * tick)),
+        0.35f * tick
       )
     );
 
@@ -353,7 +353,7 @@ class SampleApp final : public Application {
           // Outer-ring.
           push_constant_.model.worldMatrix = linalg::mul(
             linalg::scaling_matrix(vec3(3.0)),
-            lina::rotation_matrix_z(-0.32f*frame_time)
+            lina::rotation_matrix_z(-0.32f * tick)
           );
           pass.push_constant(push_constant_, VK_SHADER_STAGE_VERTEX_BIT);
           torus_.draw(pass);

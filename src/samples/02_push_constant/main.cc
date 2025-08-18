@@ -153,7 +153,7 @@ class SampleApp final : public Application {
 
   void frame() final {
     /* Retrieve the current frame time. */
-    float const tick{ get_frame_time() };
+    float const tick{ frame_time() };
 
     /* Prepare values for left/right viewport-scissor, showing the two ways to do it. */
     VkExtent2D const half_screen{

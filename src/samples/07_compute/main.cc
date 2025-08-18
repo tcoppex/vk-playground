@@ -283,7 +283,7 @@ class SampleApp final : public Application {
   void frame() final {
     mat4 const world_matrix(
       linalg::mul(
-        lina::rotation_matrix_y(0.05f * get_frame_time()),
+        lina::rotation_matrix_y(0.05f * frame_time()),
         linalg::scaling_matrix(vec3(2.0f))
       )
     );
@@ -302,7 +302,7 @@ class SampleApp final : public Application {
         auto const nelems = point_grid_.geo.get_vertex_count();
 
         push_constant_.compute.model.worldMatrix = world_matrix;
-        push_constant_.compute.time = get_frame_time();
+        push_constant_.compute.time = frame_time();
         push_constant_.compute.numElems = nelems;
 
         cmd.push_constant(

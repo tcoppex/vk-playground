@@ -18,7 +18,7 @@ int Application::run() {
   }};
 
   while (nextFrame()) {
-    float tick = get_elapsed_time();
+    float tick = elapsed_time();
     last_frame_time_ = frame_time_;
     frame_time_ = tick;
 
@@ -43,7 +43,7 @@ int Application::run() {
   return EXIT_SUCCESS;
 }
 
-float Application::get_elapsed_time() const {
+float Application::elapsed_time() const {
   auto now{ std::chrono::high_resolution_clock::now() };
   return std::chrono::duration<float>(now - chrono_).count();
 }
