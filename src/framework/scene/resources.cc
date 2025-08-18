@@ -168,7 +168,7 @@ void Resources::upload_to_device(Context const& context, bool const bReleaseHost
 
 // ----------------------------------------------------------------------------
 
-DescriptorSetWriteEntry Resources::get_descriptor_set_texture_atlas_entry(uint32_t const binding) const {
+DescriptorSetWriteEntry Resources::descriptor_set_texture_atlas_entry(uint32_t const binding) const {
   DescriptorSetWriteEntry texture_atlas_entry{
     .binding = binding,
     .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,

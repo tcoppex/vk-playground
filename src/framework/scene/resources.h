@@ -40,7 +40,7 @@ struct Resources {
 
   void upload_to_device(Context const& context, bool const bReleaseHostDataOnUpload = kReleaseHostDataOnUpload);
 
-  DescriptorSetWriteEntry get_descriptor_set_texture_atlas_entry(uint32_t const binding) const;
+  DescriptorSetWriteEntry descriptor_set_texture_atlas_entry(uint32_t const binding) const;
 
  private:
   void reset_internal_device_resource_info();

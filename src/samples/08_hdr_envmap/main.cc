@@ -135,7 +135,7 @@ class SampleApp final : public Application {
 
     /* Update the Sampler Atlas descriptor with the currently loaded textures. */
     context_.update_descriptor_set(descriptor_set_, {
-      R->get_descriptor_set_texture_atlas_entry( shader_interop::kDescriptorSetBinding_Sampler )
+      R->descriptor_set_texture_atlas_entry( shader_interop::kDescriptorSetBinding_Sampler )
     });
 
     auto shaders{context_.create_shader_modules(COMPILED_SHADERS_DIR, {
