@@ -57,6 +57,10 @@ class Renderer : public backend::RTInterface {
     return skybox_;
   }
 
+  Skybox const& skybox() const {
+    return skybox_;
+  }
+
  public:
   /* ----- Factory ----- */
 
@@ -126,6 +130,13 @@ class Renderer : public backend::RTInterface {
   GLTFScene load_and_upload(std::string_view gltf_filename, scene::Mesh::AttributeLocationMap const& attribute_to_location);
 
   GLTFScene load_and_upload(std::string_view gltf_filename);
+
+  std::future<GLTFScene> async_load_to_device(std::string_view filename) {
+    // [might be incorrect if async spawn a thread, as there is GPU transfer here]
+    return utils::RunTaskGeneric<GLTFScene>([this, filename] {
+      return load_and_upload(filename);
+    });
+  }
 
  public:
   /* ----- RTInterface Overrides ----- */
