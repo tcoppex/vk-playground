@@ -1,5 +1,5 @@
-#ifndef HELLOVK_FRAMEWORK_RENDERER_POST_FX_FRAGMENT_H
-#define HELLOVK_FRAMEWORK_RENDERER_POST_FX_FRAGMENT_H
+#ifndef HELLOVK_FRAMEWORK_FX_FRAGMENT_FX_H_
+#define HELLOVK_FRAMEWORK_FX_FRAGMENT_FX_H_
 
 #include "framework/fx/_experimental/generic_fx.h"
 
@@ -21,13 +21,7 @@ class FragmentFx : public virtual GenericFx {
   void execute(CommandEncoder& cmd) override; //
 
  protected:
-  virtual std::string getVertexShaderName() const = 0;
-
-  virtual GraphicsPipelineDescriptor_t getGraphicsPipelineDescriptor(std::vector<backend::ShaderModule> const& shaders) const = 0;
-
   void createPipeline() override;
-
-  virtual void draw(RenderPassEncoder const& pass) = 0;
 
   std::vector<DescriptorSetLayoutParams> getDescriptorSetLayoutParams() const override {
     return {
@@ -52,14 +46,22 @@ class FragmentFx : public virtual GenericFx {
     return renderer_ptr_->get_surface_size(); //
   }
 
+  // [rename?]
   virtual void setupRenderPass(RenderPassEncoder const& pass) {
     pass.set_viewport_scissor(getRenderSurfaceSize()); //
     pass.bind_pipeline(pipeline_);
     pass.bind_descriptor_set(descriptor_set_, pipeline_layout_, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
-    updatePushConstant(pass); //
+    // updatePushConstant(pass); //
   }
+
+ protected:
+  virtual std::string getVertexShaderName() const = 0;
+
+  virtual GraphicsPipelineDescriptor_t getGraphicsPipelineDescriptor(std::vector<backend::ShaderModule> const& shaders) const = 0;
+
+  virtual void draw(RenderPassEncoder const& pass) = 0; //
 };
 
 /* -------------------------------------------------------------------------- */
 
-#endif // HELLOVK_FRAMEWORK_RENDERER_POST_FX_FRAGMENT_H
+#endif // HELLOVK_FRAMEWORK_FX_FRAGMENT_FX_H_

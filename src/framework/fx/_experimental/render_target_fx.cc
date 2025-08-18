@@ -36,6 +36,7 @@ void RenderTargetFx::execute(CommandEncoder& cmd) {
   auto pass = cmd.begin_rendering(render_target_);
   {
     setupRenderPass(pass);
+    updatePushConstant(pass); //
     draw(pass);
   }
   cmd.end_rendering();

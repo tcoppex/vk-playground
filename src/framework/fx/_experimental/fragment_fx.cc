@@ -43,6 +43,7 @@ void FragmentFx::execute(CommandEncoder& cmd) {
   auto pass = cmd.begin_rendering(); //
   {
     setupRenderPass(pass);
+    updatePushConstant(pass); //
     draw(pass);
   }
   cmd.end_rendering();
