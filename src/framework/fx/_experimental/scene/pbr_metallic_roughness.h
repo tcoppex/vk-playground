@@ -20,7 +20,7 @@ struct PBRMetallicRoughnessMaterial : ::scene::Material {
   uint32_t orm_texture_id{std::numeric_limits<uint32_t>::max()};
   uint32_t normal_texture_id{std::numeric_limits<uint32_t>::max()};
 
-  // bool use_irradiance;
+  bool use_irradiance{true};
   // uint32_t irradiance_cubemap_id{std::numeric_limits<uint32_t>::max()};
 };
 
@@ -54,7 +54,7 @@ class PBRMetallicRoughnessFx : public TMaterialFx<PBRMetallicRoughnessMaterial> 
         .images = {
           {
             .sampler = renderer_ptr_->get_default_sampler(), //
-            .imageView = renderer_ptr_->skybox().irradiance_cubemap().view,
+            .imageView = renderer_ptr_->skybox().irradiance_cubemap().view, //
             .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
           }
         },
@@ -103,6 +103,11 @@ class PBRMetallicRoughnessFx : public TMaterialFx<PBRMetallicRoughnessMaterial> 
   void setMaterial(::scene::Material const& material) override {
     push_constant_.model.material_index = material.index;
     push_constant_.model.albedo_texture_index = material.diffuse_texture_id;
+
+    auto const& pbr = dynamic_cast<Material const&>(material);
+    push_constant_.model.use_irradiance =  pbr.use_irradiance
+                                        && renderer_ptr_->skybox().is_valid()
+                                        ;
   }
   // ------------------------------------
 

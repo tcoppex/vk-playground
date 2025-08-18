@@ -43,7 +43,7 @@ struct Model {
   UINT instance_index;
   UINT material_index;
   UINT albedo_texture_index; //
-  UINT padding_[1];
+  bool use_irradiance;
 };
 
 // [Currently 160 bytes, should aim for < 128 bytes]

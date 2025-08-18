@@ -41,6 +41,10 @@ class Skybox {
     return envmap_.get_image(Envmap::ImageType::Irradiance);
   }
 
+  bool is_valid() const {
+    return setuped_;
+  }
+
  private:
   void compute_brdf_lut();
 
@@ -60,6 +64,8 @@ class Skybox {
 
   VkPipelineLayout pipeline_layout_{};
   Pipeline graphics_pipeline_{};
+
+  bool setuped_{};
 };
 
 /* -------------------------------------------------------------------------- */

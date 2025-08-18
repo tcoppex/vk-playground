@@ -150,7 +150,8 @@ void Skybox::release(Context const& context, Renderer const& renderer) {
 // ----------------------------------------------------------------------------
 
 bool Skybox::setup(std::string_view hdr_filename) {
-  return envmap_.setup(hdr_filename);
+  setuped_ = envmap_.setup(hdr_filename);
+  return setuped_;
 }
 
 // ----------------------------------------------------------------------------

@@ -35,8 +35,13 @@ void main() {
     discard;
   }
 
+  vec3 irradiance = vec3(1.0);
+  if (pushConstant.model.use_irradiance) {
+    irradiance = texture(uIrradianceEnvMap, vNormal).rgb;
+  }
+
   vec3 ambient = diffuse.rgb
-               * texture(uIrradianceEnvMap, vNormal).rgb
+               * irradiance
                ;
   float alpha = diffuse.w;
 
