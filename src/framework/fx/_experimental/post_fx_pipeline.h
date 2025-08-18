@@ -2,11 +2,16 @@
 #define HELLO_VK_FRAMEWORK_FX_POST_FX_PIPELINE_H_
 
 #include "framework/common.h"
-#include "framework/fx/_experimental/generic_fx.h"
-#include "framework/fx/_experimental/compute_fx.h"
+#include "framework/fx/_experimental/fx_interface.h"
 
 /* -------------------------------------------------------------------------- */
 
+///
+/// Handle post processing pipeline.
+///
+/// notes:
+///   - Might want to switch shared_ptr to unique_ptr with raw ptr sharing.
+///
 class PostFxPipeline : public PostFxInterface {
  public:
   template<typename T>

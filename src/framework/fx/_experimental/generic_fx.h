@@ -7,11 +7,6 @@
 
 class GenericFx : public virtual FxInterface {
  public:
-  bool isEnabled() const {
-    return enabled_;
-  }
-
- public:
   virtual ~GenericFx() {}
 
   void init(Context const& context, Renderer const& renderer) override {
@@ -29,7 +24,7 @@ class GenericFx : public virtual FxInterface {
   void release() override {
     if (pipeline_layout_ != VK_NULL_HANDLE) {
       renderer_ptr_->destroy_pipeline(pipeline_);
-      renderer_ptr_->destroy_pipeline_layout(pipeline_layout_);
+      renderer_ptr_->destroy_pipeline_layout(pipeline_layout_); //
       renderer_ptr_->destroy_descriptor_set_layout(descriptor_set_layout_);
       pipeline_layout_ = VK_NULL_HANDLE;
     }
@@ -67,22 +62,28 @@ class GenericFx : public virtual FxInterface {
   std::shared_ptr<ResourceAllocator> allocator_{};
 
   VkDescriptorSetLayout descriptor_set_layout_{};
-  VkPipelineLayout pipeline_layout_{};
-  Pipeline pipeline_{};
+  VkPipelineLayout pipeline_layout_{}; // (redundant, as also kept in pipeline_ when created)
 
+  Pipeline pipeline_{};
   VkDescriptorSet descriptor_set_{}; //
-  bool enabled_{true};
 };
 
 /* -------------------------------------------------------------------------- */
 
-class PostGenericFx : public PostFxInterface
-                    , public virtual GenericFx {
+class PostGenericFx : public virtual GenericFx
+                    , public PostFxInterface {
  public:
   void setup(VkExtent2D const dimension) override {
     resize(dimension);
     GenericFx::setup(dimension);
   }
+
+ public:
+  bool isEnabled() const {
+    return enabled_;
+  }
+
+  bool enabled_{true};
 };
 
 /* -------------------------------------------------------------------------- */

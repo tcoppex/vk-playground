@@ -7,7 +7,7 @@
 #include "framework/backend/types.h"      // for VertexInputDescriptor
 #include "framework/renderer/pipeline.h"  // for PipelineVertexBufferDescriptors
 #include "framework/scene/animation.h"
-#include "framework/scene/material.h"
+#include "framework/scene/material.h" //
 
 namespace scene {
 
@@ -20,14 +20,16 @@ namespace scene {
 //  Renderer / Resources instance.
 //
 //  For now a 'Mesh' handle shared transform info (world matrix, skeleton),
-//  but technically the rendering are done per materials, so per submeshes
+//  but technically the rendering are done per materials, so per submeshes.
+//
+//  The submesh material ref should probably be switch to a index or raw ptr.
 //
 
 struct Mesh : Geometry {
  public:
   struct SubMesh {
     Mesh const* parent{};
-    std::shared_ptr<Material> material{};
+    std::shared_ptr<Material> material{}; //
     DrawDescriptor draw_descriptor{};
   };
 
