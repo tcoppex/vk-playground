@@ -296,7 +296,9 @@ RenderPassEncoder CommandEncoder::begin_rendering(std::shared_ptr<backend::RTInt
 
 RenderPassEncoder CommandEncoder::begin_rendering() {
   assert( default_render_target_ptr_ != nullptr );
-  return begin_rendering( *default_render_target_ptr_ );
+  auto pass = begin_rendering( *default_render_target_ptr_ );
+  pass.set_viewport_scissor(default_render_target_ptr_->get_surface_size()); //
+  return pass;
 }
 
 // ----------------------------------------------------------------------------
