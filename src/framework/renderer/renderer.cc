@@ -740,11 +740,14 @@ bool Renderer::load_image_2d(std::string_view const& filename, backend::Image &i
 GLTFScene Renderer::load_and_upload(std::string_view gltf_filename, scene::Mesh::AttributeLocationMap const& attribute_to_location) {
   GLTFScene scene = std::make_shared<scene::Resources>();
 
-  if (scene && scene->load_from_file(gltf_filename, sampler_pool_)) {
-    scene->initialize_submesh_descriptors(attribute_to_location);
-    scene->upload_to_device(*ctx_ptr_);
-    scene->prepare_material_fx(*ctx_ptr_, *this);
-    return scene;
+  if (scene) {
+    scene->prepare_material_fx(*ctx_ptr_, *this); //
+
+    if (scene->load_from_file(gltf_filename, sampler_pool_)) {
+      scene->initialize_submesh_descriptors(attribute_to_location);
+      scene->upload_to_device(*ctx_ptr_);
+      return scene;
+    }
   }
 
   return nullptr;
