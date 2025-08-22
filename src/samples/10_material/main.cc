@@ -79,8 +79,13 @@ class SampleApp final : public Application {
     {
       //---------------------
       auto pass = cmd.begin_rendering();
+
+      if (auto const& skybox = renderer_.skybox(); skybox.is_valid()) {
+        skybox.render(pass, camera_);
+      }
+
       if (scene_) {
-        scene_->draw(pass, camera_);
+        scene_->render(pass, camera_);
       }
       cmd.end_rendering();
       //---------------------
