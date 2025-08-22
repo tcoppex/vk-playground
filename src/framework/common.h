@@ -60,6 +60,11 @@ class EnumArray : public std::array<T, static_cast<size_t>(Indexer::kCount)> {
   using super::operator[];
 };
 
+struct NullType {};
+
+static constexpr uint32_t kInvalidIndexU32{ std::numeric_limits<uint32_t>::max() };
+static const std::type_index kInvalidTypeIndex{ typeid(NullType) };
+
 /* -------------------------------------------------------------------------- */
 
 #endif // HELLOVK_FRAMEWORK_COMMON_H
