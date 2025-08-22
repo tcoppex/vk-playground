@@ -19,6 +19,10 @@ class RenderPassEncoder;
 
 class MaterialFx;
 
+namespace scene {
+class MaterialFxRegistry;
+}
+
 namespace fx::scene {
 class PBRMetallicRoughnessFx;
 }
@@ -78,7 +82,7 @@ struct Resources {
 
   ResourceBuffer<ImageData> host_images{};
   ResourceBuffer<Texture> textures{};
-  ResourceBuffer<Material> materials{};
+  ResourceBuffer<MaterialRef> material_refs{};
   ResourceBuffer<Skeleton> skeletons{};
   ResourceBuffer<Mesh> meshes{};
 
@@ -97,8 +101,8 @@ struct Resources {
  private:
   std::shared_ptr<ResourceAllocator> allocator{};
 
-  // Shared MaterialFx instances.
-  std::unordered_map<std::type_index, MaterialFx*> material_to_fx_map{}; //
+  // (shared MaterialFx instances)
+  MaterialFxRegistry *material_fx_registry_{};
 };
 
 }  // namespace scene

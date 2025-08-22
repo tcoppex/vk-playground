@@ -355,52 +355,60 @@ PointerToIndexMap_t ExtractMaterials(
   cgltf_data const* data,
   PointerToIndexMap_t const& textures_indices,
   scene::ResourceBuffer<scene::Texture> const& textures,
-  scene::ResourceBuffer<scene::Material>& materials
+  scene::ResourceBuffer<scene::MaterialRef>& material_refs,
+  scene::MaterialFxRegistry& material_fx_registry
 ) {
   PointerToIndexMap_t materials_indices{};
 
-  materials.reserve(data->materials_count);
+  material_refs.reserve(data->materials_count);
 
   for (cgltf_size material_id = 0; material_id < data->materials_count; ++material_id) {
     cgltf_material const& gl_material = data->materials[material_id];
 
-    std::shared_ptr<scene::Material> material{};
+    // (no need for shared_ptr)
+    std::shared_ptr<scene::MaterialRef> material_ref{}; //
 
+#if 1
     // PBR MetallicRoughness.
     if (gl_material.has_pbr_metallic_roughness) {
       auto const& pbr_mr = gl_material.pbr_metallic_roughness;
 
       // ------------------------
-      auto pbr_material = fx::scene::PBRMetallicRoughnessFx::CreateMaterial();
+      using PBRMatFx = fx::scene::PBRMetallicRoughnessFx;
+      auto [ref, mat] = material_fx_registry.create_material<PBRMatFx>();
+
+      if (material_ref = std::make_shared<scene::MaterialRef>()) {
+        *material_ref = ref;
+      }
+      auto pbr_material = static_cast<PBRMatFx::Material*>(mat);
       // ------------------------
 
-      std::copy(
-        std::cbegin(pbr_mr.base_color_factor),
-        std::cend(pbr_mr.base_color_factor),
-        lina::ptr(pbr_material->diffuse_color)
-      );
+      // std::copy(
+      //   std::cbegin(pbr_mr.base_color_factor),
+      //   std::cend(pbr_mr.base_color_factor),
+      //   lina::ptr(pbr_material->diffuse_color)
+      // );
       if (cgltf_texture const* tex = pbr_mr.base_color_texture.texture; tex) {
         pbr_material->diffuse_texture_id = textures_indices.at(tex);
       }
-      if (cgltf_texture const* tex = pbr_mr.metallic_roughness_texture.texture; tex) {
-        pbr_material->orm_texture_id = textures_indices.at(tex);
-      }
-      if (cgltf_texture const* tex = gl_material.normal_texture.texture; tex) {
-        pbr_material->normal_texture_id = textures_indices.at(tex);
-      }
-
-      material = pbr_material;
+      // if (cgltf_texture const* tex = pbr_mr.metallic_roughness_texture.texture; tex) {
+      //   pbr_material->orm_texture_id = textures_indices.at(tex);
+      // }
+      // if (cgltf_texture const* tex = gl_material.normal_texture.texture; tex) {
+      //   pbr_material->normal_texture_id = textures_indices.at(tex);
+      // }
     }
+#endif
 
-    if (material != nullptr) {
-      material->index = material_id;
+    if (material_ref != nullptr) {
+      material_ref->index = material_id;
     } else {
       LOGW("[GLTF] Material %03u has unsupported material type.", (uint32_t)material_id);
       continue;
     }
 
     materials_indices.try_emplace(&gl_material, material_id);
-    materials.push_back( std::move(material) );
+    material_refs.push_back( std::move(material_ref) );
   }
 
   return materials_indices;
@@ -422,7 +430,8 @@ PointerToIndexMap_t ExtractSkeletons(
 void ExtractMeshes(
   cgltf_data const* data,
   PointerToIndexMap_t const& materials_indices,
-  scene::ResourceBuffer<scene::Material> const& materials,
+  // scene::ResourceBuffer<scene::Material> const& materials,
+  scene::ResourceBuffer<scene::MaterialRef> const& material_refs,
   PointerToIndexMap_t const& skeleton_indices,
   scene::ResourceBuffer<scene::Skeleton>const& skeletons,
   scene::ResourceBuffer<scene::Mesh>& meshes,
@@ -580,7 +589,7 @@ void ExtractMeshes(
         // Material.
         if (prim.material) {
           uint32_t material_index = materials_indices.at(prim.material);
-          mesh->submeshes[prim_index].material = materials[ material_index ];
+          mesh->submeshes[prim_index].material_ref = material_refs[ material_index ];
         }
 
         mesh->add_primitive(primitive);
@@ -671,7 +680,7 @@ void ExtractMeshes(
         // Material.
         if (prim.material) {
           uint32_t material_index = materials_indices.at(prim.material);
-          mesh->submeshes[prim_index].material = materials[ material_index ];
+          mesh->submeshes[prim_index].material_ref = material_refs[ material_index ];
         }
 
         mesh->add_primitive(primitive);

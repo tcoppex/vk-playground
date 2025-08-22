@@ -2,13 +2,14 @@
 
 #include "framework/backend/context.h"
 #include "framework/backend/command_encoder.h"
+#include "framework/renderer/renderer.h" //
 #include "framework/renderer/sampler_pool.h"
 #include "framework/utils/utils.h"
 
-#include "framework/scene/private/gltf_loader.h"
+#include "framework/scene/material_fx_registry.h"
+#include "framework/fx/_experimental/material_fx.h"
 
-#include "framework/renderer/renderer.h" //
-#include "framework/fx/_experimental/scene/pbr_metallic_roughness.h" //
+#include "framework/scene/private/gltf_loader.h"
 
 /* -------------------------------------------------------------------------- */
 
@@ -21,16 +22,18 @@ void Resources::release() {
   }
   allocator->destroy_buffer(index_buffer);
   allocator->destroy_buffer(vertex_buffer);
-  for (auto [_, fx] : material_to_fx_map) {
-    fx->release();
-    delete fx;
-  }
+
+  material_fx_registry_->release();
+  delete material_fx_registry_;
+
   *this = {};
 }
 
 // ----------------------------------------------------------------------------
 
 bool Resources::load_from_file(std::string_view const& filename, SamplerPool& sampler_pool, bool bRestructureAttribs) {
+  assert( material_fx_registry_ != nullptr );
+
   std::string const basename{ utils::ExtractBasename(filename) };
 
   cgltf_options options{};
@@ -57,7 +60,19 @@ bool Resources::load_from_file(std::string_view const& filename, SamplerPool& sa
   {
     using namespace internal::gltf_loader;
 
-#if 1
+#if 0
+
+    /* --- (alternative) Serialized version --- */
+
+    auto samplers_lut       = ExtractSamplers(data, sampler_pool);
+    auto skeletons_indices  = ExtractSkeletons(data, skeletons);
+    auto images_indices     = ExtractImages(data, host_images);
+    auto textures_indices   = ExtractTextures(data, images_indices, samplers_lut, textures);
+    auto materials_indices  = ExtractMaterials(data, textures_indices, textures, material_refs);
+    ExtractMeshes(data, materials_indices, material_refs, skeletons_indices, skeletons, meshes, bRestructureAttribs);
+
+#else
+
     /* --- Async tasks version --- */
 
     auto run_task = utils::RunTaskGeneric<void>;
@@ -83,9 +98,15 @@ bool Resources::load_from_file(std::string_view const& filename, SamplerPool& sa
       return ExtractTextures(data, images_indices, samplers_lut, textures);
     });
 
-    auto taskMaterials = run_task_ret([&taskTextures, data, &textures = this->textures, &materials = this->materials] {
+    auto taskMaterials = run_task_ret([
+      &taskTextures,
+      data,
+      &textures = this->textures,
+      &material_refs = this->material_refs,
+      &material_fx_registry = *this->material_fx_registry_
+    ] {
       auto textures_indices = taskTextures.get();
-      return ExtractMaterials(data, textures_indices, textures, materials);
+      return ExtractMaterials(data, textures_indices, textures, material_refs, material_fx_registry);
     });
 
     auto skeletons_indices = taskSkeletons.get();
@@ -94,25 +115,22 @@ bool Resources::load_from_file(std::string_view const& filename, SamplerPool& sa
       // ExtractAnimations(data, basename, skeletons_indices, skeletons, animations_map);
     });
 
-    auto taskMeshes = run_task(
-      [ &taskMaterials, data, bRestructureAttribs, &skeletons_indices,
-        &materials = this->materials, &skeletons = this->skeletons, &meshes = this->meshes] {
+    auto taskMeshes = run_task([
+      &taskMaterials,
+      data,
+      bRestructureAttribs,
+      &skeletons_indices,
+      &material_refs = this->material_refs,
+      &skeletons = this->skeletons,
+      &meshes = this->meshes
+    ] {
       auto materials_indices = taskMaterials.get();
-      ExtractMeshes(data, materials_indices, materials, skeletons_indices, skeletons, meshes, bRestructureAttribs);
+      ExtractMeshes(data, materials_indices, material_refs, skeletons_indices, skeletons, meshes, bRestructureAttribs);
     });
 
     taskAnimations.get();
     taskMeshes.get();
-#else
-    /* --- Serialized version --- */
 
-    auto samplers_lut       = ExtractSamplers(data, sampler_pool);
-    auto skeletons_indices  = ExtractSkeletons(data, skeletons);
-    auto images_indices     = ExtractImages(data, host_images);
-    auto textures_indices   = ExtractTextures(data, images_indices, samplers_lut, textures);
-    auto materials_indices  = ExtractMaterials(data, textures_indices, textures, materials);
-
-    ExtractMeshes(data, materials_indices, materials, skeletons_indices, skeletons, meshes, bRestructureAttribs);
 #endif
 
     /* Wait for the host images to finish loading before using them. */
@@ -127,13 +145,13 @@ bool Resources::load_from_file(std::string_view const& filename, SamplerPool& sa
   cgltf_free(data);
 
 #ifndef NDEBUG
-    // std::cout << "Images count : " << host_images.size() << std::endl;
-    // std::cout << "Texture count : " << textures.size() << std::endl;
-    // std::cout << "Material count : " << materials.size() << std::endl;
-    // std::cout << "Skeleton count : " << skeletons.size() << std::endl;
-    // std::cout << "Animation count : " << animations_map.size() << std::endl;
-    // std::cout << "Mesh count : " << meshes.size() << std::endl;
-    // std::cerr << " ----------------- gltf loaded ----------------- " << std::endl;
+    std::cout << "Images count : " << host_images.size() << std::endl;
+    std::cout << "Texture count : " << textures.size() << std::endl;
+    std::cout << "Material count : " << material_refs.size() << std::endl;
+    std::cout << "Skeleton count : " << skeletons.size() << std::endl;
+    std::cout << "Animation count : " << animations_map.size() << std::endl;
+    std::cout << "Mesh count : " << meshes.size() << std::endl;
+    std::cerr << " ----------------- gltf loaded ----------------- " << std::endl;
 #endif
 
   return true;
@@ -157,6 +175,10 @@ void Resources::upload_to_device(Context const& context, bool const bReleaseHost
   /* Transfer Textures */
   if (total_image_size > 0) {
     upload_images(context);
+
+    material_fx_registry_->update_texture_atlas([this](uint32_t binding) {
+      return this->descriptor_set_texture_atlas_entry(binding);
+    });
   }
 
   /* Transfer Buffers */
@@ -164,7 +186,7 @@ void Resources::upload_to_device(Context const& context, bool const bReleaseHost
     upload_buffers(context);
   }
 
-  /* clear host data once uploaded */
+  /* Clear host data once uploaded */
   if (bReleaseHostDataOnUpload) {
     host_images.clear();
     host_images.shrink_to_fit();
@@ -182,6 +204,11 @@ DescriptorSetWriteEntry Resources::descriptor_set_texture_atlas_entry(uint32_t c
     .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
   };
 
+  if (textures.empty()) {
+    return texture_atlas_entry;
+  }
+  LOG_CHECK( !device_images.empty() );
+
   for (auto const& texture : textures) {
     auto const& img = device_images.at(texture->getChannelIndex());
     texture_atlas_entry.images.push_back({
@@ -197,37 +224,15 @@ DescriptorSetWriteEntry Resources::descriptor_set_texture_atlas_entry(uint32_t c
 // ----------------------------------------------------------------------------
 
 void Resources::prepare_material_fx(Context const& context, Renderer const& renderer) {
-  assert(allocator || !materials.empty());
-
-  //
-  // It might be more interesting to put the share MaterialFx instances
-  // inside Renderer, which will need to move draw to
-  //  Renderer::draw(RenderPassEncoder, camera, GLTFScene)
-  //
-
-  // ----------------
-  material_to_fx_map = {
-    {
-      std::type_index(typeid(fx::scene::PBRMetallicRoughnessFx::Material)),
-      new fx::scene::PBRMetallicRoughnessFx()
-    }
-  };
-  // ----------------
-
-  for (auto [_, fx] : material_to_fx_map) {
-    fx->init(context, renderer);
-    fx->setup();
-    fx->setDescriptorSetTextureAtlasEntry(
-      descriptor_set_texture_atlas_entry(
-        fx->getDescriptorSetTextureAtlasBinding()
-      )
-    );
-  }
+  material_fx_registry_ = new MaterialFxRegistry();
+  material_fx_registry_->setup(context, renderer);
 }
 
 // ----------------------------------------------------------------------------
 
 void Resources::render(RenderPassEncoder const& pass, Camera const& camera) {
+  LOG_CHECK( material_fx_registry_ != nullptr );
+
   using FxToSubmeshesMap = std::map< MaterialFx*, std::vector<Mesh::SubMesh const*> >;
 
   // 1) Retrieve submeshes associated to each Fx.
@@ -235,13 +240,14 @@ void Resources::render(RenderPassEncoder const& pass, Camera const& camera) {
   FxToSubmeshesMap fx_to_submeshes{};
   for (auto const& mesh : meshes) {
     for (auto const& submesh : mesh->submeshes) {
-      if (auto mat = submesh.material; mat) {
-        if (auto it = material_to_fx_map.find(typeid(*mat)); it != material_to_fx_map.end()) {
-          fx_to_submeshes[it->second].push_back(&submesh);
+      if (auto matref = submesh.material_ref; matref) {
+        if (auto fx = material_fx_registry_->material_fx(*matref); fx) {
+          fx_to_submeshes[fx].push_back(&submesh);
         }
       }
     }
   }
+  LOG_CHECK( !fx_to_submeshes.empty() );
 
   // 2) (optionnal) Preprocess each buffer of submeshes
   //  -> sort per material instance
@@ -267,16 +273,18 @@ void Resources::render(RenderPassEncoder const& pass, Camera const& camera) {
     for (auto* submesh : submeshes) {
       auto mesh = submesh->parent;
 
+      // (tmp)
+      // ---------------------
+      fx->setWorldMatrix(mesh->world_matrix); //
+      fx->setMaterial(*submesh->material_ref); //
+      // ---------------------
+
       // Submesh push constants.
-      // ---------------------
-      fx->setMaterial(*submesh->material);
-      fx->setWorldMatrix(mesh->world_matrix);
+      fx->setMaterialIndex(submesh->material_ref->material_index);
       fx->setInstanceIndex(instance_index++);
-      // ---------------------
       fx->pushConstant(pass);
 
       pass.set_primitive_topology(mesh->get_vk_primitive_topology());
-
       pass.draw(submesh->draw_descriptor, vertex_buffer, index_buffer); //
     }
   }

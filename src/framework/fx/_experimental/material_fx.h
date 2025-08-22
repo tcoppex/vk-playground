@@ -2,7 +2,8 @@
 #define HELLOVK_FRAMEWORK_FX_MATERIAL_FX_H_
 
 #include "framework/fx/_experimental/fragment_fx.h"
-#include "framework/scene/material.h"
+
+#include "framework/scene/material.h" //
 
 /* -------------------------------------------------------------------------- */
 
@@ -17,6 +18,9 @@
 // ----------------------------------------------------------------------------
 
 class MaterialFx : public FragmentFx {
+ public:
+  using CreateMaterialTuple = std::tuple<::scene::MaterialRef, void*>;
+
  public:
   void setup(VkExtent2D const dimension = {}) override {
     FragmentFx::setup(dimension);
@@ -33,6 +37,8 @@ class MaterialFx : public FragmentFx {
   }
   // ------------------------------------
 
+  virtual CreateMaterialTuple createMaterial() = 0;
+
  public:
   virtual void setProjectionMatrix(mat4 const& projection_matrix) = 0;
   virtual void setViewMatrix(mat4 const& view_matrix) = 0;
@@ -47,7 +53,8 @@ class MaterialFx : public FragmentFx {
   // ------------------------------------
   // (application-wide)
   virtual uint32_t getDescriptorSetTextureAtlasBinding() const = 0;
-  void setDescriptorSetTextureAtlasEntry(DescriptorSetWriteEntry const& entry) const {
+
+  void updateDescriptorSetTextureAtlasEntry(DescriptorSetWriteEntry const& entry) const {
     context_ptr_->update_descriptor_set(descriptor_set_, { entry });
   }
 
@@ -55,10 +62,12 @@ class MaterialFx : public FragmentFx {
   virtual void pushUniforms() = 0;
 
   // (per model instance push constants)
-  virtual void setWorldMatrix(mat4 const& world_matrix) = 0;
+  virtual void setWorldMatrix(mat4 const& world_matrix) = 0; //
+  virtual void setMaterialIndex(uint32_t material_index) = 0;
   virtual void setInstanceIndex(uint32_t instance_index) = 0;
-  virtual void setMaterial(scene::Material const& material) = 0;
   // ------------------------------------
+
+  virtual void setMaterial(::scene::MaterialRef const& material_ref) = 0; //
 
  protected:
   // (we might probably discard them altogether)
@@ -66,21 +75,39 @@ class MaterialFx : public FragmentFx {
   void draw(RenderPassEncoder const& pass) override {} //
   void execute(CommandEncoder& cmd) override {} //
   // ------------------------------------
+
+ // protected:
+ //  uint32_t material_fx_index_{ kInvalidIndexU32 }; //
 };
 
 // ----------------------------------------------------------------------------
 
 template<typename TMaterial>
-requires DerivedFrom<TMaterial, scene::Material>
 class TMaterialFx : public MaterialFx {
  public:
   using Material = TMaterial;
-  // std::type_index ID = std::type_index(typeid(TMaterial));
 
   static
-  std::shared_ptr<TMaterial> CreateMaterial() {
-    return std::make_shared<TMaterial>();
+  std::type_index MaterialTypeIndex() {
+    return std::type_index(typeid(TMaterial));
   }
+
+ protected:
+  CreateMaterialTuple createMaterial() override {
+    auto& mat = materials_.emplace_back();
+    scene::MaterialRef ref = {
+      .material_type_index = MaterialTypeIndex(),
+      .material_index = static_cast<uint32_t>(materials_.size() - 1u),
+    };
+    return { ref, &mat };
+  }
+
+  TMaterial const& material(uint32_t index) const {
+    return materials_[index];
+  }
+
+ protected:
+  std::vector<TMaterial> materials_{};
 };
 
 /* -------------------------------------------------------------------------- */

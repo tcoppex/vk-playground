@@ -22,14 +22,14 @@ namespace scene {
 //  For now a 'Mesh' handle shared transform info (world matrix, skeleton),
 //  but technically the rendering are done per materials, so per submeshes.
 //
-//  The submesh material ref should probably be switch to a index or raw ptr.
+//  The submesh material ref should probably be switch to raw value.
 //
 
 struct Mesh : Geometry {
  public:
   struct SubMesh {
     Mesh const* parent{};
-    std::shared_ptr<Material> material{}; //
+    std::shared_ptr<MaterialRef> material_ref{}; //
     DrawDescriptor draw_descriptor{};
   };
 
@@ -70,7 +70,7 @@ struct Mesh : Geometry {
 
  public:
   // ------------------------
-  mat4f world_matrix{linalg::identity};
+  mat4f world_matrix{linalg::identity}; //
   std::shared_ptr<Skeleton> skeleton{};
   std::vector<SubMesh> submeshes{};
   // ------------------------

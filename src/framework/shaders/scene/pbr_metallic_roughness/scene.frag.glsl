@@ -20,16 +20,21 @@ layout(push_constant, scalar) uniform PushConstant_ {
   PushConstant pushConstant;
 };
 
+layout(scalar, set = 0, binding = kDescriptorSetBinding_MaterialStorageBuffer)
+buffer MaterialBuffer_ {
+  Material materials[];
+};
+
+// ----------------------------------------------------------------------------
+
 layout (location = 0) in vec2 vTexcoord;
 layout (location = 1) in vec3 vNormal;
 layout (location = 2) in vec3 vWorldPosition;
 
 layout (location = 0) out vec4 fragColor;
 
-// ----------------------------------------------------------------------------
-
 void main() {
-  vec4 diffuse = texture(uTextureChannels[pushConstant.model.albedo_texture_index], vTexcoord);
+  vec4 diffuse = texture(uTextureChannels[pushConstant.model.diffuse_texture_index], vTexcoord);
 
   if (diffuse.w < 0.5f) {
     discard;

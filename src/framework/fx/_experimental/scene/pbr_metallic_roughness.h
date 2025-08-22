@@ -14,22 +14,12 @@ namespace pbr_metallic_roughness::shader_interop {
 #include "framework/shaders/scene/pbr_metallic_roughness/interop.h" //
 }
 
-// ----------------------------------------------------------------------------
-
-struct PBRMetallicRoughnessMaterial : ::scene::Material {
-  uint32_t orm_texture_id{std::numeric_limits<uint32_t>::max()};
-  uint32_t normal_texture_id{std::numeric_limits<uint32_t>::max()};
-
-  bool use_irradiance{true};
-  // uint32_t irradiance_cubemap_id{std::numeric_limits<uint32_t>::max()};
-};
+using PBRMetallicRoughnessMaterial = pbr_metallic_roughness::shader_interop::Material;
 
 // ----------------------------------------------------------------------------
 
 class PBRMetallicRoughnessFx : public TMaterialFx<PBRMetallicRoughnessMaterial> {
  public:
-   using TMaterialFx<PBRMetallicRoughnessMaterial>::CreateMaterial;
-
    static constexpr uint32_t kMaxNumTextures = 128u; //
 
  public:
@@ -42,12 +32,25 @@ class PBRMetallicRoughnessFx : public TMaterialFx<PBRMetallicRoughnessMaterial> 
       | VK_BUFFER_USAGE_TRANSFER_DST_BIT
     );
 
+    // ---------------------------
+    material_storage_buffer_ = allocator_->create_buffer(
+      1024u * sizeof(pbr_metallic_roughness::shader_interop::Material), // xxx
+        VK_BUFFER_USAGE_2_STORAGE_BUFFER_BIT
+      | VK_BUFFER_USAGE_TRANSFER_DST_BIT
+    );
+    // ---------------------------
+
     context_ptr_->update_descriptor_set(descriptor_set_, {
       {
         .binding = pbr_metallic_roughness::shader_interop::kDescriptorSetBinding_UniformBuffer,
         .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
         .buffers = { { uniform_buffer_.buffer } },
       },
+      // {
+      //   .binding = pbr_metallic_roughness::shader_interop::kDescriptorSetBinding_MaterialStorageBuffer,
+      //   .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+      //   .buffers = { { material_storage_buffer_.buffer } },
+      // },
       {
         .binding = pbr_metallic_roughness::shader_interop::kDescriptorSetBinding_IrradianceEnvMap,
         .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
@@ -64,6 +67,7 @@ class PBRMetallicRoughnessFx : public TMaterialFx<PBRMetallicRoughnessMaterial> 
 
   void release() override {
     allocator_->destroy_buffer(uniform_buffer_);
+    allocator_->destroy_buffer(material_storage_buffer_);
     FragmentFx::release();
   }
 
@@ -96,16 +100,23 @@ class PBRMetallicRoughnessFx : public TMaterialFx<PBRMetallicRoughnessMaterial> 
     push_constant_.model.worldMatrix = world_matrix;
   }
 
+  void setMaterialIndex(uint32_t material_index) final {
+    push_constant_.model.material_index = material_index;
+  }
+
   void setInstanceIndex(uint32_t instance_index) final {
     push_constant_.model.instance_index = instance_index;
   }
+  // ------------------------------------
 
-  void setMaterial(::scene::Material const& material) override {
-    push_constant_.model.material_index = material.index;
-    push_constant_.model.albedo_texture_index = material.diffuse_texture_id;
+  // ------------------------------------
+  void setMaterial(::scene::MaterialRef const& material_ref) override {
+    auto pbr = material(material_ref.material_index);
 
-    auto const& pbr = dynamic_cast<Material const&>(material);
-    push_constant_.model.use_irradiance =  pbr.use_irradiance
+    push_constant_.model.material_index = material_ref.material_index;
+    push_constant_.model.diffuse_texture_index = pbr.diffuse_texture_id;
+
+    push_constant_.model.use_irradiance =  true //pbr.use_irradiance
                                         && renderer_ptr_->skybox().is_valid()
                                         ;
   }
@@ -144,6 +155,15 @@ class PBRMetallicRoughnessFx : public TMaterialFx<PBRMetallicRoughnessMaterial> 
         .descriptorCount = 1u,
         .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
         .bindingFlags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT,
+      },
+      {
+        .binding = pbr_metallic_roughness::shader_interop::kDescriptorSetBinding_MaterialStorageBuffer,
+        .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+        .descriptorCount = 1u,
+        .stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+        .bindingFlags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT
+                      | VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT
+                      | VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT
       },
     };
   }
@@ -194,6 +214,9 @@ class PBRMetallicRoughnessFx : public TMaterialFx<PBRMetallicRoughnessMaterial> 
   pbr_metallic_roughness::shader_interop::UniformData host_data_{};
   backend::Buffer uniform_buffer_{};
   // -----
+
+  // Fx shared material data (move to MaterialFx ?).
+  backend::Buffer material_storage_buffer_{};
 
   // Material instance data (along with the descriptor set).
   pbr_metallic_roughness::shader_interop::PushConstant push_constant_{}; //

@@ -5,6 +5,8 @@
 #include "framework/scene/resources.h"
 #include "framework/utils/cgltf_wrapper.h"
 
+#include "framework/scene/material_fx_registry.h" //
+
 /* -------------------------------------------------------------------------- */
 
 namespace internal::gltf_loader {
@@ -39,7 +41,8 @@ PointerToIndexMap_t ExtractMaterials(
   cgltf_data const* data,
   PointerToIndexMap_t const& textures_indices,
   scene::ResourceBuffer<scene::Texture> const& textures,
-  scene::ResourceBuffer<scene::Material>& materials
+  scene::ResourceBuffer<scene::MaterialRef>& material_refs,
+  scene::MaterialFxRegistry& material_fx_registry
 );
 
 PointerToIndexMap_t ExtractSkeletons(
@@ -50,7 +53,7 @@ PointerToIndexMap_t ExtractSkeletons(
 void ExtractMeshes(
   cgltf_data const* data,
   PointerToIndexMap_t const& materials_indices,
-  scene::ResourceBuffer<scene::Material> const& materials,
+  scene::ResourceBuffer<scene::MaterialRef> const& material_refs,
   PointerToIndexMap_t const& skeleton_indices,
   scene::ResourceBuffer<scene::Skeleton>const& skeletons,
   scene::ResourceBuffer<scene::Mesh>& meshes,
