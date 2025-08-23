@@ -9,23 +9,12 @@
 #include "framework/scene/material.h"
 #include "framework/scene/mesh.h"
 #include "framework/scene/camera.h"
+#include "framework/scene/material_fx_registry.h"
 
 class Context;
 class ResourceAllocator;
 class SamplerPool;
 class RenderPassEncoder;
-
-// ----
-
-class MaterialFx;
-
-namespace scene {
-class MaterialFxRegistry;
-}
-
-namespace fx::scene {
-class PBRMetallicRoughnessFx;
-}
 
 /* -------------------------------------------------------------------------- */
 
@@ -69,6 +58,13 @@ struct Resources {
   void prepare_material_fx(Context const& context, Renderer const& renderer); //
 
   void render(RenderPassEncoder const& pass, Camera const& camera);
+
+  template<typename TMaterialFx>
+  requires DerivedFrom<TMaterialFx, MaterialFx>
+  TMaterialFx* material_fx(MaterialRef const& ref) {
+    MaterialFx *fx = material_fx_registry_->material_fx(ref);
+    return static_cast<TMaterialFx*>(fx);
+  }
 
  private:
   void reset_internal_device_resource_info();

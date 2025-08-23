@@ -92,6 +92,10 @@ class TMaterialFx : public MaterialFx {
     return std::type_index(typeid(TMaterial));
   }
 
+  TMaterial const& material(uint32_t index) const {
+    return materials_[index];
+  }
+
  protected:
   CreateMaterialTuple createMaterial() override {
     auto& mat = materials_.emplace_back();
@@ -100,10 +104,6 @@ class TMaterialFx : public MaterialFx {
       .material_index = static_cast<uint32_t>(materials_.size() - 1u),
     };
     return { ref, &mat };
-  }
-
-  TMaterial const& material(uint32_t index) const {
-    return materials_[index];
   }
 
  protected:

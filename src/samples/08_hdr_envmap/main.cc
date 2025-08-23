@@ -10,6 +10,7 @@
 
 #include "framework/scene/camera.h"
 #include "framework/scene/arcball_controller.h"
+#include "framework/fx/_experimental/scene/pbr_metallic_roughness.h"
 
 namespace shader_interop {
 #include "shaders/interop.h"
@@ -67,7 +68,9 @@ class SampleApp final : public Application {
 
     /* Load glTF Scene / Resources. */
     {
-      std::string const gltf_filename{ASSETS_DIR "models/suzanne.glb"};
+      std::string const gltf_filename{ASSETS_DIR "models/"
+        "suzanne.glb"
+      };
 
       /* Load the model directly on device, as we do not change the model's internal data
        * layout we need to specify how to map its attributes to the shader used. */
@@ -215,8 +218,10 @@ class SampleApp final : public Application {
         mesh->world_matrix
       );
       for (auto const& submesh : mesh->submeshes) {
-        if (auto mat = submesh.material; mat && mat->hasDiffuseTexture()) {
-          push_constant_.model.albedo_texture_index = mat->diffuse_texture_id;
+        auto const& material_ref = *(submesh.material_ref);
+        if (auto *fx = R->material_fx<fx::scene::PBRMetallicRoughnessFx>(material_ref); fx) {
+          auto pbr_material = fx->material(material_ref.material_index);
+          push_constant_.model.albedo_texture_index = pbr_material.diffuse_texture_id;
         }
         pass.push_constant(push_constant_, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT); //
         pass.draw(submesh.draw_descriptor, R->vertex_buffer, R->index_buffer);

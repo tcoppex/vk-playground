@@ -6,7 +6,6 @@
 #include "framework/renderer/sampler_pool.h"
 #include "framework/utils/utils.h"
 
-#include "framework/scene/material_fx_registry.h"
 #include "framework/fx/_experimental/material_fx.h"
 
 #include "framework/scene/private/gltf_loader.h"
