@@ -18,7 +18,7 @@ const UINT kAttribLocation_Texcoord = 2;
 // ---------------------------------------------------------------------------
 
 const UINT kDescriptorSetBinding_UniformBuffer         = 0;
-const UINT kDescriptorSetBinding_Sampler               = 1;
+const UINT kDescriptorSetBinding_TextureAtlas          = 1;
 const UINT kDescriptorSetBinding_IrradianceEnvMap      = 2;
 const UINT kDescriptorSetBinding_MaterialStorageBuffer = 3;
 

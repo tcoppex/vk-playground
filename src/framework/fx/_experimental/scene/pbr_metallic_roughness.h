@@ -64,7 +64,7 @@ class PBRMetallicRoughnessFx final : public TMaterialFx<PBRMetallicRoughnessMate
  public:
   // ------------------------------------
   uint32_t getDescriptorSetTextureAtlasBinding() const final {
-    return pbr_metallic_roughness_shader_interop::kDescriptorSetBinding_Sampler;
+    return pbr_metallic_roughness_shader_interop::kDescriptorSetBinding_TextureAtlas;
   }
 
   void pushUniforms() final {
@@ -119,7 +119,7 @@ class PBRMetallicRoughnessFx final : public TMaterialFx<PBRMetallicRoughnessMate
                       | VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT
       },
       {
-        .binding = pbr_metallic_roughness_shader_interop::kDescriptorSetBinding_Sampler,
+        .binding = pbr_metallic_roughness_shader_interop::kDescriptorSetBinding_TextureAtlas,
         .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
         .descriptorCount = kMaxNumTextures,
         .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
