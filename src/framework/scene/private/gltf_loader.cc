@@ -368,47 +368,51 @@ PointerToIndexMap_t ExtractMaterials(
     // (no need for shared_ptr)
     std::shared_ptr<scene::MaterialRef> material_ref{}; //
 
-#if 1
     // PBR MetallicRoughness.
-    if (gl_material.has_pbr_metallic_roughness) {
+    if (gl_material.unlit) {
+      LOGW("[GLTF] Unlit material not supported.");
+      continue;
+    } else if (gl_material.has_pbr_metallic_roughness) {
       auto const& pbr_mr = gl_material.pbr_metallic_roughness;
 
       // ------------------------
-      using PBRMatFx = fx::scene::PBRMetallicRoughnessFx;
-      auto [ref, mat] = material_fx_registry.create_material<PBRMatFx>();
+      auto [ref, material] = material_fx_registry.create_material<fx::scene::PBRMetallicRoughnessFx>();
 
       if (material_ref = std::make_shared<scene::MaterialRef>()) {
         *material_ref = ref;
+        material_ref->index = material_id;
       }
-      auto pbr_material = static_cast<PBRMatFx::Material*>(mat);
       // ------------------------
 
-      // std::copy(
-      //   std::cbegin(pbr_mr.base_color_factor),
-      //   std::cend(pbr_mr.base_color_factor),
-      //   lina::ptr(pbr_material->diffuse_color)
-      // );
       if (cgltf_texture const* tex = pbr_mr.base_color_texture.texture; tex) {
-        pbr_material->diffuse_texture_id = textures_indices.at(tex);
+        material->diffuse_texture_id = textures_indices.at(tex);
+        std::copy(
+          std::cbegin(pbr_mr.base_color_factor),
+          std::cend(pbr_mr.base_color_factor),
+          lina::ptr(material->diffuse_factor)
+        );
       }
-      // if (cgltf_texture const* tex = pbr_mr.metallic_roughness_texture.texture; tex) {
-      //   pbr_material->orm_texture_id = textures_indices.at(tex);
-      // }
-      // if (cgltf_texture const* tex = gl_material.normal_texture.texture; tex) {
-      //   pbr_material->normal_texture_id = textures_indices.at(tex);
-      // }
-    }
-#endif
-
-    if (material_ref != nullptr) {
-      material_ref->index = material_id;
+      if (cgltf_texture const* tex = pbr_mr.metallic_roughness_texture.texture; tex) {
+        material->orm_texture_id = textures_indices.at(tex);
+      }
+      if (cgltf_texture const* tex = gl_material.normal_texture.texture; tex) {
+        material->normal_texture_id = textures_indices.at(tex);
+      }
+      if (cgltf_texture const* tex = gl_material.emissive_texture.texture; tex) {
+        material->emissive_texture_id = textures_indices.at(tex);
+        std::copy(
+          std::cbegin(gl_material.emissive_factor),
+          std::cend(gl_material.emissive_factor),
+          lina::ptr(material->emissive_factor)
+        );
+      }
     } else {
       LOGW("[GLTF] Material %03u has unsupported material type.", (uint32_t)material_id);
       continue;
     }
 
     materials_indices.try_emplace(&gl_material, material_id);
-    material_refs.push_back( std::move(material_ref) );
+    material_refs.push_back( std::move(material_ref) ); //
   }
 
   return materials_indices;

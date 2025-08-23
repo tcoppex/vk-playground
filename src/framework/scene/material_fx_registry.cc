@@ -10,18 +10,10 @@
 namespace scene {
 
 void MaterialFxRegistry::setup(Context const& context, Renderer const& renderer) {
-  // ----------------
-  //
-  // It might be more interesting to put the share MaterialFx instances
-  // inside Renderer, which will need to move draw to
-  //  Renderer::draw(RenderPassEncoder, camera, GLTFScene)
-  //
-  // ----------------
-
   map_ = {
     {
       type_index<fx::scene::PBRMetallicRoughnessFx>(),
-      new fx::scene::PBRMetallicRoughnessFx()
+      new fx::scene::PBRMetallicRoughnessFx() // use std::unique_ptr ?
     }
   };
 
@@ -42,9 +34,17 @@ void MaterialFxRegistry::release() {
 
 // ----------------------------------------------------------------------------
 
+void MaterialFxRegistry::push_material_storage_buffers() const {
+  LOG_CHECK( !map_.empty() );
+  for (auto [_, fx] : map_) {
+    fx->pushMaterialStorageBuffer();
+  }
+}
+
+// ----------------------------------------------------------------------------
+
 void MaterialFxRegistry::update_texture_atlas(std::function<DescriptorSetWriteEntry(uint32_t)> update_fn) {
   LOG_CHECK( !map_.empty() );
-
   for (auto [_, fx] : map_) {
     fx->updateDescriptorSetTextureAtlasEntry(
       update_fn( fx->getDescriptorSetTextureAtlasBinding() )
@@ -60,6 +60,14 @@ MaterialFx* MaterialFxRegistry::material_fx(MaterialRef const& ref) const {
   }
   return nullptr;
 }
+
+// ----------------------------------------------------------------------------
+
+// template<typename MaterialFxT>
+// requires DerivedFrom<MaterialFxT, MaterialFx>
+// MaterialFxT::MaterialType const& MaterialFxRegistry::material(MaterialRef const& ref) const {
+//   return material_fx<MaterialFxT>(ref)->material(ref.material_index);
+// }
 
 } // namespace scene
 

@@ -19,7 +19,10 @@
 
 class MaterialFx : public FragmentFx {
  public:
-  using CreateMaterialTuple = std::tuple<::scene::MaterialRef, void*>;
+  struct CreatedMaterial {
+    ::scene::MaterialRef ref;
+    void* raw_ptr{};
+  };
 
  public:
   void setup(VkExtent2D const dimension = {}) override {
@@ -37,7 +40,9 @@ class MaterialFx : public FragmentFx {
   }
   // ------------------------------------
 
-  virtual CreateMaterialTuple createMaterial() = 0;
+  virtual CreatedMaterial createMaterial() = 0;
+
+  virtual void pushMaterialStorageBuffer() const = 0;
 
  public:
   virtual void setProjectionMatrix(mat4 const& projection_matrix) = 0;
@@ -61,43 +66,80 @@ class MaterialFx : public FragmentFx {
   // (uniform buffer, probably to be move to application)
   virtual void pushUniforms() = 0;
 
-  // (per model instance push constants)
+  // (probably best in storage buffer)
   virtual void setWorldMatrix(mat4 const& world_matrix) = 0; //
+
+  // (per model instance push constants)
   virtual void setMaterialIndex(uint32_t material_index) = 0;
   virtual void setInstanceIndex(uint32_t instance_index) = 0;
   // ------------------------------------
 
-  virtual void setMaterial(::scene::MaterialRef const& material_ref) = 0; //
+  // virtual void setMaterial(::scene::MaterialRef const& material_ref) = 0; //
 
- protected:
+ private:
   // (we might probably discard them altogether)
   // ------------------------------------
   void draw(RenderPassEncoder const& pass) override {} //
   void execute(CommandEncoder& cmd) override {} //
   // ------------------------------------
 
- // protected:
- //  uint32_t material_fx_index_{ kInvalidIndexU32 }; //
+  GraphicsPipelineDescriptor_t getGraphicsPipelineDescriptor(std::vector<backend::ShaderModule> const& shaders) const override {
+    return {
+      .dynamicStates = {
+        VK_DYNAMIC_STATE_VERTEX_INPUT_EXT,
+        VK_DYNAMIC_STATE_PRIMITIVE_TOPOLOGY,
+      },
+      .vertex = {
+        .module = shaders[0u].module,
+      },
+      .fragment = {
+        .module = shaders[1u].module,
+        .targets = {
+          { .format = renderer_ptr_->get_color_attachment(0).format },
+        },
+      },
+      .depthStencil = {
+        .depthTestEnable = VK_TRUE,
+        .depthWriteEnable = VK_TRUE,
+        .depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL,
+      },
+      .primitive = {
+        .cullMode = VK_CULL_MODE_BACK_BIT,
+      }
+    };
+  }
+
+ protected:
+  backend::Buffer material_storage_buffer_{};
 };
 
 // ----------------------------------------------------------------------------
 
-template<typename TMaterial>
+template<typename MaterialT>
 class TMaterialFx : public MaterialFx {
  public:
-  using Material = TMaterial;
+  using MaterialType = MaterialT;
+
+  static constexpr uint32_t kDefaultMaterialCount{ 1024u }; //
+  static constexpr bool kEditMode{ false };
 
   static
   std::type_index MaterialTypeIndex() {
-    return std::type_index(typeid(TMaterial));
+    return std::type_index(typeid(MaterialType));
   }
 
-  TMaterial const& material(uint32_t index) const {
-    return materials_[index];
+ public:
+  void setup(VkExtent2D const dimension) override {
+    MaterialFx::setup(dimension);
+    setupMaterialStorageBuffer();
   }
 
- protected:
-  CreateMaterialTuple createMaterial() override {
+  void release() override {
+    allocator_->destroy_buffer(material_storage_buffer_);
+    MaterialFx::release();
+  }
+
+  CreatedMaterial createMaterial() override {
     auto& mat = materials_.emplace_back();
     scene::MaterialRef ref = {
       .material_type_index = MaterialTypeIndex(),
@@ -106,8 +148,56 @@ class TMaterialFx : public MaterialFx {
     return { ref, &mat };
   }
 
+  void pushMaterialStorageBuffer() const override {
+    LOG_CHECK(!materials_.empty());
+    LOG_CHECK(materials_.size() < kDefaultMaterialCount);
+
+    if constexpr (kEditMode) {
+      allocator_->upload_host_to_device(
+        materials_.data(),
+        materials_.size() * sizeof(MaterialType),
+        material_storage_buffer_
+      );
+    } else {
+      context_ptr_->transfer_host_to_device(
+        materials_.data(),
+        materials_.size() * sizeof(MaterialType),
+        material_storage_buffer_
+      );
+    }
+
+  }
+
+  MaterialType const& material(uint32_t index) const {
+    return materials_[index];
+  }
+
+ private:
+  void setupMaterialStorageBuffer() {
+    size_t buffersize = kDefaultMaterialCount * sizeof(MaterialType);
+
+    if constexpr (kEditMode) {
+      // Setup the SSBO for frequent host-device mapping (slower).
+      material_storage_buffer_ = allocator_->create_buffer(
+        buffersize,
+        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+        VMA_MEMORY_USAGE_CPU_TO_GPU,
+        VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
+      | VMA_ALLOCATION_CREATE_MAPPED_BIT
+      );
+    } else {
+      // Setup the SSBO for rarer device-to-device transfer.
+      material_storage_buffer_ = allocator_->create_buffer(
+        buffersize,
+        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+        VMA_MEMORY_USAGE_GPU_ONLY
+      );
+    }
+  }
+
  protected:
-  std::vector<TMaterial> materials_{};
+  std::vector<MaterialType> materials_{};
 };
 
 /* -------------------------------------------------------------------------- */

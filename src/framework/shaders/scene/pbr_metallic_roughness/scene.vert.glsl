@@ -29,7 +29,7 @@ layout (location = 2) out vec3 vWorldPosition;
 // ----------------------------------------------------------------------------
 
 void main() {
-  mat4 worldMatrix = pushConstant.model.worldMatrix;
+  mat4 worldMatrix = pushConstant.worldMatrix;
 
   vec4 worldPos = worldMatrix * vec4(inPosition, 1.0);
 

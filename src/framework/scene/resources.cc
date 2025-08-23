@@ -171,6 +171,9 @@ void Resources::upload_to_device(Context const& context, bool const bReleaseHost
     allocator = context.get_resource_allocator();
   }
 
+  /* Transfer Materials */
+  material_fx_registry_->push_material_storage_buffers();
+
   /* Transfer Textures */
   if (total_image_size > 0) {
     upload_images(context);
@@ -272,13 +275,12 @@ void Resources::render(RenderPassEncoder const& pass, Camera const& camera) {
     for (auto* submesh : submeshes) {
       auto mesh = submesh->parent;
 
-      // (tmp)
+      // (tmp) should go to separate fx wide SSBO
       // ---------------------
       fx->setWorldMatrix(mesh->world_matrix); //
-      fx->setMaterial(*submesh->material_ref); //
       // ---------------------
 
-      // Submesh push constants.
+      // Submesh's pushConstants.
       fx->setMaterialIndex(submesh->material_ref->material_index);
       fx->setInstanceIndex(instance_index++);
       fx->pushConstant(pass);
@@ -289,6 +291,7 @@ void Resources::render(RenderPassEncoder const& pass, Camera const& camera) {
   }
 }
 
+// ----------------------------------------------------------------------------
 // ----------------------------------------------------------------------------
 
 void Resources::reset_internal_device_resource_info() {

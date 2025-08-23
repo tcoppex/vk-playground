@@ -34,18 +34,28 @@ layout (location = 2) in vec3 vWorldPosition;
 layout (location = 0) out vec4 fragColor;
 
 void main() {
-  vec4 diffuse = texture(uTextureChannels[pushConstant.model.diffuse_texture_index], vTexcoord);
+  Material mat = materials[pushConstant.material_index];
 
+  vec4 diffuse = texture(uTextureChannels[mat.diffuse_texture_id], vTexcoord);
   if (diffuse.w < 0.5f) {
     discard;
   }
+  diffuse *= mat.diffuse_factor;
 
   vec3 irradiance = vec3(1.0);
-  if (pushConstant.model.use_irradiance) {
+  if (pushConstant.enable_irradiance) {
     irradiance = texture(uIrradianceEnvMap, vNormal).rgb;
+    irradiance *= 0.5;
   }
 
-  vec3 ambient = diffuse.rgb
+  vec3 emissive = texture(uTextureChannels[mat.emissive_texture_id], vTexcoord).rgb;
+  emissive *= mat.emissive_factor;
+
+  // vec4 normal = texture(uTextureChannels[mat.normal_texture_id], vTexcoord); //
+  // vec4 orm = texture(uTextureChannels[mat.orm_texture_id], vTexcoord); //
+
+  vec3 ambient = emissive +
+                 diffuse.rgb
                * irradiance
                ;
   float alpha = diffuse.w;

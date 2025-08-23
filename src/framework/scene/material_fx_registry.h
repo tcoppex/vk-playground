@@ -26,14 +26,21 @@ class MaterialFxRegistry {
 
   void release();
 
-  template<typename TMaterialFx>
-  requires DerivedFrom<TMaterialFx, MaterialFx>
-  TMaterialFx::CreateMaterialTuple create_material() {
-    if (auto it = map_.find(type_index<TMaterialFx>()); it != map_.end()) {
-      return it->second->createMaterial();
+  template<typename MaterialFxT>
+  requires DerivedFrom<MaterialFxT, MaterialFx>
+  std::tuple<MaterialRef, typename MaterialFxT::MaterialType*>
+  create_material() {
+    if (auto it = map_.find(type_index<MaterialFxT>()); it != map_.end()) {
+      auto [ref, raw_ptr] = it->second->createMaterial();
+      return {
+        ref,
+        static_cast<MaterialFxT::MaterialType*>(raw_ptr)
+      };
     }
     return {};
   }
+
+  void push_material_storage_buffers() const;
 
   void update_texture_atlas(std::function<DescriptorSetWriteEntry(uint32_t)> update_fn);
 
@@ -42,9 +49,9 @@ class MaterialFxRegistry {
  private:
   using MaterialFxMap = std::unordered_map<std::type_index, MaterialFx*>;
 
-  template<typename TMaterialFx>
+  template<typename MaterialFxT>
   std::type_index type_index() const {
-    return TMaterialFx::MaterialTypeIndex();
+    return MaterialFxT::MaterialTypeIndex();
   }
 
   MaterialFxMap map_{};

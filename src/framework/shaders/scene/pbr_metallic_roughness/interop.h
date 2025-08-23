@@ -36,42 +36,41 @@ struct UniformData {
 // ---------------------------------------------------------------------------
 // Fx Materials uniform.
 
-/* Material_PBRMetallicRoughness */
 struct Material {
-  UINT diffuse_texture_id; //
+  vec3 emissive_factor;
+  UINT emissive_texture_id;
+
+  vec4 diffuse_factor;
+  UINT diffuse_texture_id;
+  UINT orm_texture_id;
+  UINT normal_texture_id;
+  UINT padding0_[1];
+
   // float metallic;
   // float roughness;
   // float ao;
-  // vec3 emissive;
   // vec2 brdf;
 };
 
 // ---------------------------------------------------------------------------
 // Instance PushConstants.
 
-struct Model {
-  // (should go to storage buffer)
-  mat4 worldMatrix; //
-
-  // (material SSBO)
-  UINT diffuse_texture_index; //
-  bool use_irradiance; //
-
-  // --------
-
-  UINT instance_index;
-  UINT material_index;
-};
-
 // [Currently 160 bytes, should aim for < 128 bytes]
 struct PushConstant {
-  Model model;
+  UINT instance_index;
+  UINT material_index;
+  bool enable_irradiance; //
+  UINT padding0_[1];
+
+  // -----------------
+
+  // (should go to a SSBO)
+  mat4 worldMatrix; //
 
   // (should go to the Pass UBO)
   mat4 viewMatrix; //
   vec3 cameraPosition;
-
-  UINT padding_[1];
+  UINT padding1_[1];
 };
 
 // ---------------------------------------------------------------------------
