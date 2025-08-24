@@ -37,6 +37,10 @@ class Skybox {
     return envmap_;
   }
 
+  backend::Image const& specular_cubemap() const {
+    return envmap_.get_image(Envmap::ImageType::Specular);
+  }
+
   backend::Image const& irradiance_cubemap() const {
     return envmap_.get_image(Envmap::ImageType::Irradiance);
   }

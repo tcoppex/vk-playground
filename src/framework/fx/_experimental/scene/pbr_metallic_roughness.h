@@ -29,11 +29,35 @@ class PBRMetallicRoughnessFx final : public TMaterialFx<PBRMetallicRoughnessMate
       | VK_BUFFER_USAGE_TRANSFER_DST_BIT
     );
 
+    auto const& skybox = renderer_ptr_->skybox();
+
     context_ptr_->update_descriptor_set(descriptor_set_, {
       {
         .binding = pbr_metallic_roughness_shader_interop::kDescriptorSetBinding_UniformBuffer,
         .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
         .buffers = { { uniform_buffer_.buffer } },
+      },
+      {
+        .binding = pbr_metallic_roughness_shader_interop::kDescriptorSetBinding_EnvMap_Specular,
+        .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+        .images = {
+          {
+            .sampler = renderer_ptr_->get_default_sampler(), //
+            .imageView = skybox.specular_cubemap().view, //
+            .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+          }
+        },
+      },
+      {
+        .binding = pbr_metallic_roughness_shader_interop::kDescriptorSetBinding_EnvMap_Irradiance,
+        .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+        .images = {
+          {
+            .sampler = renderer_ptr_->get_default_sampler(), //
+            .imageView = skybox.irradiance_cubemap().view, //
+            .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+          }
+        },
       },
       // ---------------------------
       {
@@ -42,17 +66,6 @@ class PBRMetallicRoughnessFx final : public TMaterialFx<PBRMetallicRoughnessMate
         .buffers = { { material_storage_buffer_.buffer } },
       },
       // ---------------------------
-      {
-        .binding = pbr_metallic_roughness_shader_interop::kDescriptorSetBinding_IrradianceEnvMap,
-        .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-        .images = {
-          {
-            .sampler = renderer_ptr_->get_default_sampler(), //
-            .imageView = renderer_ptr_->skybox().irradiance_cubemap().view, //
-            .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-          }
-        },
-      },
     });
   }
 
@@ -126,7 +139,14 @@ class PBRMetallicRoughnessFx final : public TMaterialFx<PBRMetallicRoughnessMate
         .bindingFlags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT,
       },
       {
-        .binding = pbr_metallic_roughness_shader_interop::kDescriptorSetBinding_IrradianceEnvMap,
+        .binding = pbr_metallic_roughness_shader_interop::kDescriptorSetBinding_EnvMap_Specular,
+        .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+        .descriptorCount = 1u,
+        .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+        .bindingFlags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT,
+      },
+      {
+        .binding = pbr_metallic_roughness_shader_interop::kDescriptorSetBinding_EnvMap_Irradiance,
         .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
         .descriptorCount = 1u,
         .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
