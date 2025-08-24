@@ -122,8 +122,9 @@ class Geometry {
 
  public:
   Geometry() = default;
-  
   ~Geometry() = default;
+
+  /* --- Getters --- */
 
   Topology get_topology() const {
     return topology_;
@@ -132,8 +133,6 @@ class Geometry {
   IndexFormat get_index_format() const {
     return index_format_;
   }
-
-  /* RENAME 'get_total_X_count' */
 
   uint32_t get_index_count() const {
     return index_count_;
@@ -171,6 +170,8 @@ class Geometry {
     return static_cast<uint32_t>(primitives_.size());
   }
 
+  /* --- Setters --- */
+
   void set_attributes(AttributeInfoMap const attributes) {
     attributes_ = attributes;
   }
@@ -183,7 +184,15 @@ class Geometry {
     index_format_ = format;
   }
 
-  void clear_indices_and_vertices();
+  /* --- Utils --- */
+
+  bool has_attribute(AttributeType const type) const {
+    return attributes_.contains(type);
+  }
+
+  void add_attribute(AttributeType const type, AttributeInfo const& info);
+
+  void add_primitive(Primitive primitive);
 
   /* Return the current bytesize of the vertex attributes buffer. */
   uint64_t add_vertices_data(std::byte const* data, uint32_t bytesize);
@@ -191,9 +200,9 @@ class Geometry {
   /* Return the current bytesize of the indices buffer. */
   uint64_t add_indices_data(std::byte const* data, uint32_t bytesize);
 
-  void add_attribute(AttributeType const type, AttributeInfo const& info);
+  void clear_indices_and_vertices();
 
-  void add_primitive(Primitive primitive);
+  bool recalculate_tangents();
 
  protected:
   AttributeInfoMap attributes_{};

@@ -5,6 +5,10 @@
 
 #include "stb/stb_image.h" //
 
+namespace shader_interop {
+#include "framework/shaders/scene/attributes_location.h"
+}
+
 /* -------------------------------------------------------------------------- */
 
 char const* kDefaulShaderEntryPoint{
@@ -756,14 +760,19 @@ GLTFScene Renderer::load_and_upload(std::string_view gltf_filename, scene::Mesh:
 // ----------------------------------------------------------------------------
 
 GLTFScene Renderer::load_and_upload(std::string_view gltf_filename) {
-  // [temporary, this should be held by the future DefaultFxPipeline or the like]
+  // -----------------------
+  // -----------------------
+  // [temporary, this should be set elsewhere ideally]
   static const scene::Mesh::AttributeLocationMap kDefaultFxPipelineAttributeLocationMap{
     {
-      { Geometry::AttributeType::Position, 0u },
-      { Geometry::AttributeType::Normal,   1u },
-      { Geometry::AttributeType::Texcoord, 2u },
+      { Geometry::AttributeType::Position, shader_interop::kAttribLocation_Position },
+      { Geometry::AttributeType::Normal,   shader_interop::kAttribLocation_Normal },
+      { Geometry::AttributeType::Texcoord, shader_interop::kAttribLocation_Texcoord },
+      { Geometry::AttributeType::Tangent,  shader_interop::kAttribLocation_Tangent }, //
     }
   };
+  // -----------------------
+  // -----------------------
   return load_and_upload(gltf_filename, kDefaultFxPipelineAttributeLocationMap);
 }
 

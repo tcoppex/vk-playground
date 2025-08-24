@@ -1,6 +1,12 @@
 #ifndef SHADERS_SCENE_PBR_METALLIC_ROUGHNESS_INTEROP_H_
 #define SHADERS_SCENE_PBR_METALLIC_ROUGHNESS_INTEROP_H_
 
+#ifdef __cplusplus
+#include "framework/shaders/scene/attributes_location.h"
+#else
+#include "../attributes_location.h"
+#endif
+
 // ---------------------------------------------------------------------------
 
 #ifdef __cplusplus
@@ -11,16 +17,11 @@
 
 // ---------------------------------------------------------------------------
 
-const UINT kAttribLocation_Position = 0;
-const UINT kAttribLocation_Normal   = 1;
-const UINT kAttribLocation_Texcoord = 2;
-
-// ---------------------------------------------------------------------------
-
 const UINT kDescriptorSetBinding_UniformBuffer         = 0;
 const UINT kDescriptorSetBinding_TextureAtlas          = 1;
-const UINT kDescriptorSetBinding_IrradianceEnvMap      = 2;
-const UINT kDescriptorSetBinding_MaterialStorageBuffer = 3;
+const UINT kDescriptorSetBinding_EnvMap_Specular       = 2;
+const UINT kDescriptorSetBinding_EnvMap_Irradiance     = 3;
+const UINT kDescriptorSetBinding_MaterialStorageBuffer = 4;
 
 // ---------------------------------------------------------------------------
 // Application Frame uniform.
@@ -39,15 +40,18 @@ struct UniformData {
 struct Material {
   vec3 emissive_factor;
   UINT emissive_texture_id;
-
   vec4 diffuse_factor;
   UINT diffuse_texture_id;
   UINT orm_texture_id;
-  UINT normal_texture_id;
-  UINT padding0_[1];
+  float metallic_factor;
+  float roughness_factor;
 
-  // float metallic;
-  // float roughness;
+  UINT normal_texture_id;
+
+  float alpha_cutoff;
+
+  UINT padding0_[2];
+
   // float ao;
   // vec2 brdf;
 };

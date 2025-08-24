@@ -162,6 +162,14 @@ void Resources::initialize_submesh_descriptors(Mesh::AttributeLocationMap const&
   for (auto& mesh : meshes) {
     mesh->initialize_submesh_descriptors(attribute_to_location);
   }
+
+  // --------------------
+  // [~] When we expect Tangent we force recalculate them.
+  //     Resulting indices might be incorrect.
+  if (attribute_to_location.contains(Geometry::AttributeType::Tangent)) {
+    for (auto& mesh : meshes) { mesh->recalculate_tangents(); } //
+  }
+  // --------------------
 }
 
 // ----------------------------------------------------------------------------

@@ -21,10 +21,13 @@ namespace {
 
 //
 // Internal interleaved vertex structure used when bRestructureAttribs is set to true.
+// (Used for main topological attributes, others attributes should reside on different buffers,
+//    eg. extra uvs, colors, skin weights, morph targets, ...)
 //
 struct VertexInternal_t {
   vec3 position;
   vec3 normal;
+  vec4 tangent;
   vec2 texcoord;
 
   static
@@ -47,6 +50,14 @@ struct VertexInternal_t {
         }
       },
       {
+        Geometry::AttributeType::Tangent,
+        {
+          .format = Geometry::AttributeFormat::RGBA_F32,
+          .offset = offsetof(VertexInternal_t, tangent),
+          .stride = sizeof(VertexInternal_t),
+        }
+      },
+      {
         Geometry::AttributeType::Texcoord,
         {
           .format = Geometry::AttributeFormat::RG_F32,
@@ -62,6 +73,7 @@ struct VertexInternal_t {
     return {
       { Geometry::AttributeType::Position,  buffer_offset },
       { Geometry::AttributeType::Normal,    buffer_offset },
+      { Geometry::AttributeType::Tangent,   buffer_offset },
       { Geometry::AttributeType::Texcoord,  buffer_offset },
     };
   }
@@ -211,13 +223,12 @@ void ExtractPrimitiveVertices(cgltf_primitive const& prim, std::vector<VertexInt
     else if (attrib.type == cgltf_attribute_type_tangent) {
       // LOG_CHECK(accessor->type == cgltf_type_vec4);
       // LOGD( "> loading tangents." );
-      // for (cgltf_size vertex_index = 0; vertex_index < vertex_count; ++vertex_index) {
-      //   auto& vertex = vertices[vertex_index];
-      //   cgltf_accessor_read_float( accessor, vertex_index, lina::ptr(vertex.tangent), 4);
-      //   vec3 t3 = lina::to_vec3(tangent);
-      //        t3 = vec3(linalg::mul(world_matrix, vec4(t3, 0.0f));
-      //   vertex.tangent = vec4(t3, vertex.tangent.w);
-      // }
+      for (cgltf_size vertex_index = 0; vertex_index < vertex_count; ++vertex_index) {
+        auto& vertex = vertices[vertex_index];
+        cgltf_accessor_read_float( accessor, vertex_index, lina::ptr(vertex.tangent), 4);
+        // vec3 t3 = vec3(linalg::mul(world_matrix, vec4(lina::to_vec3(tangent), 0.0f)));
+        // vertex.tangent = vec4(t3, vertex.tangent.w);
+      }
     }
     // Texcoords.
     else if (attrib.type == cgltf_attribute_type_texcoord) {
@@ -394,6 +405,8 @@ PointerToIndexMap_t ExtractMaterials(
       }
       if (cgltf_texture const* tex = pbr_mr.metallic_roughness_texture.texture; tex) {
         material->orm_texture_id = textures_indices.at(tex);
+        material->metallic_factor = pbr_mr.metallic_factor;
+        material->roughness_factor = pbr_mr.roughness_factor;
       }
       if (cgltf_texture const* tex = gl_material.normal_texture.texture; tex) {
         material->normal_texture_id = textures_indices.at(tex);
@@ -406,6 +419,7 @@ PointerToIndexMap_t ExtractMaterials(
           lina::ptr(material->emissive_factor)
         );
       }
+      material->alpha_cutoff = gl_material.alpha_cutoff;
     } else {
       LOGW("[GLTF] Material %03u has unsupported material type.", (uint32_t)material_id);
       continue;

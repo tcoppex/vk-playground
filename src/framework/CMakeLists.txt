@@ -37,11 +37,13 @@ add_library(
 
 target_link_libraries(${target} PRIVATE
   ${SharedLibs}
+  ${MikkTSpace}
   VulkanMemoryAllocator
 )
 
 target_include_directories(${target} PRIVATE
   ${SharedIncludeDirs}
+  ${MikkTSpace_SOURCE_DIR}
 )
 
 target_compile_definitions(${target} PRIVATE

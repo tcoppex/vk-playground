@@ -319,6 +319,20 @@ CPMAddPackage(
 )
 set(LINALG_INCLUDE_DIR ${linalg_SOURCE_DIR})
 
+# Include MikkTSpace
+CPMAddPackage(
+  NAME MikkTSpace
+  GITHUB_REPOSITORY mmikk/MikkTSpace
+  GIT_TAG 3e895b49d05ea07e4c2133156cfa94369e19e409
+)
+set(MikkTSpace mikktspace)
+add_library(
+  ${MikkTSpace}
+  STATIC
+  ${MikkTSpace_SOURCE_DIR}/mikktspace.c
+  ${MikkTSpace_SOURCE_DIR}/mikktspace.h
+)
+
 # Sometimes we need to link libm.
 helpers_findLibM()
 
