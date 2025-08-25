@@ -359,7 +359,6 @@ void Resources::upload_images(Context const& context) {
     device_images.push_back(context.create_image_2d(
       extent.width,
       extent.height,
-      1u,
       VK_FORMAT_R8G8B8A8_UNORM, //
       VK_IMAGE_USAGE_TRANSFER_DST_BIT
     ));

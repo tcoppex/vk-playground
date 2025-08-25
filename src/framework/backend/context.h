@@ -59,7 +59,7 @@ class Context {
 
   // --- Image ---
 
-  backend::Image create_image_2d(uint32_t width, uint32_t height, uint32_t layer_count, VkFormat const format, VkImageUsageFlags const extra_usage = {}) const;
+  backend::Image create_image_2d(uint32_t width, uint32_t height, VkFormat const format, VkImageUsageFlags const extra_usage = {}) const;
 
   // --- Shader Module ---
 

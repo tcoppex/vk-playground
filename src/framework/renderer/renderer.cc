@@ -28,7 +28,7 @@ void Renderer::init(Context const& context, std::shared_ptr<ResourceAllocator> a
 
   /* Create a default depth stencil buffer. */
   VkExtent2D const dimension{swapchain_.get_surface_size()};
-  depth_stencil_ = context.create_image_2d(dimension.width, dimension.height, 1u, get_valid_depth_format());
+  depth_stencil_ = context.create_image_2d(dimension.width, dimension.height, get_valid_depth_format());
 
   /* Initialize resources for the semaphore timeline. */
   // See https://docs.vulkan.org/samples/latest/samples/extensions/timeline_semaphore/README.html
@@ -710,7 +710,7 @@ bool Renderer::load_image_2d(CommandEncoder const& cmd, std::string_view const& 
   };
 
   image = ctx_ptr_->create_image_2d(
-    extent.width, extent.height, 1u, format, VK_IMAGE_USAGE_TRANSFER_DST_BIT
+    extent.width, extent.height, format, VK_IMAGE_USAGE_TRANSFER_DST_BIT
   );
 
   /* Copy host data to a staging buffer. */

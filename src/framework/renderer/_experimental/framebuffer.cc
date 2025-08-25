@@ -30,7 +30,6 @@ void Framebuffer::resize(VkExtent2D const dimension) {
     color = context_ptr_->create_image_2d(
       dimension.width,
       dimension.height,
-      1u,
       desc_.color_desc.format,
       RenderTarget::kDefaultImageUsageFlags //
     );
@@ -47,7 +46,6 @@ void Framebuffer::resize(VkExtent2D const dimension) {
       depth_stencil = context_ptr_->create_image_2d(
         dimension.width,
         dimension.height,
-        1u,
         desc_.depth_stencil_format,
         VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT
       );

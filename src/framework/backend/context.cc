@@ -51,7 +51,7 @@ void Context::deinit() {
 
 // ----------------------------------------------------------------------------
 
-backend::Image Context::create_image_2d(uint32_t width, uint32_t height, uint32_t layer_count, VkFormat const format, VkImageUsageFlags const extra_usage) const {
+backend::Image Context::create_image_2d(uint32_t width, uint32_t height, VkFormat const format, VkImageUsageFlags const extra_usage) const {
   VkImageUsageFlags usage{
       VK_IMAGE_USAGE_SAMPLED_BIT
     | extra_usage
@@ -77,7 +77,7 @@ backend::Image Context::create_image_2d(uint32_t width, uint32_t height, uint32_
       1u
     },
     .mipLevels = 1u, //
-    .arrayLayers = layer_count,
+    .arrayLayers = 1u, //
     .samples = VK_SAMPLE_COUNT_1_BIT,
     .tiling = VK_IMAGE_TILING_OPTIMAL,
     .usage = usage,
