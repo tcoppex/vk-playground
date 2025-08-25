@@ -268,6 +268,10 @@ float saturate(float x) {
   return min(max(x, 0.0), 1.0);
 }
 
+vec2 saturate(vec2 x) {
+  return min(max(x, 0.0), 1.0);
+}
+
 // ----------------------------------------------------------------------------
 
 // Map a range from [edge0, edge1] to [0, 1].
