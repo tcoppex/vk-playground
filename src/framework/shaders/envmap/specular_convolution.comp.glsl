@@ -18,6 +18,7 @@
 
 #include <envmap/interop.h>
 #include <shared/maths.glsl>
+#include <shared/lighting/pbr.glsl>
 
 // ----------------------------------------------------------------------------
 
@@ -50,10 +51,11 @@ void main() {
   // --------------
 
   const int numSamples = int(pushConstant.numSamples);
-  const float roughness_sqr = pushConstant.roughnessSquared;
+  const float inv_samples = 1.0f / float(numSamples);
   const uint mip_level = pushConstant.mipLevel;
 
-  const float inv_samples = 1.0f / float(numSamples);
+  const float roughness_sqr = pushConstant.roughnessSquared;
+  const float roughness = sqrt(roughness_sqr); //
 
   // When calculating the envmap, the Reflection ray is the View direction is the Normal.
   const vec3 N = cubemap_view_direction(coords, resolution);
@@ -63,20 +65,28 @@ void main() {
   const mat3 basis_ws = basis_from_view(V);
 
   vec3 prefilteredColor = vec3(0.0);
-  float weights = 0.0f;
+  float totalWeight = 0.0f;
 
   for (int i = 0; i < numSamples; ++i) {
     const vec2 pt = hammersley2d( i, inv_samples);
-    const vec3 H  = importance_sample_GGX( basis_ws, pt, roughness_sqr);
-    const vec3 L  = normalize(2.0 * dot(V, H) * H - V);
-    
+    const vec3 H  = fast_importance_sample_GGX( basis_ws, pt, roughness_sqr);
+    float v_dot_h = dot(V, H);
+    const vec3 L = normalize(2.0 * v_dot_h * H - V);
     const float n_dot_l = max(dot(N, L), 0.0);
+
     if (n_dot_l > 0.0) {
-      prefilteredColor += texture(inDiffuseEnvmap, L).rgb * n_dot_l;
-      weights += n_dot_l;
+      float n_dot_h = max(dot(N, H), 0.0);
+      v_dot_h = max(v_dot_h, 0.0);
+
+      float D   = ndf_GGX(n_dot_h, roughness_sqr);
+      float pdf = max(D * n_dot_h / (4.0 * v_dot_h), 1e-6);
+
+      float weight = n_dot_l / pdf;
+      prefilteredColor += texture(inDiffuseEnvmap, L).rgb * weight;
+      totalWeight += weight;
     }
   }
-  prefilteredColor /= max(weights, 0.0001);
+  prefilteredColor /= max(totalWeight, 0.0001);
 
   // --------------
 
