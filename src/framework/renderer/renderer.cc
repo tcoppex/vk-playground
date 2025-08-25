@@ -76,17 +76,17 @@ void Renderer::init(Context const& context, std::shared_ptr<ResourceAllocator> a
   init_descriptor_pool();
 
   sampler_pool_.init(device_);
-  sampler_LinearRepeatMipMapAniso_ = sampler_pool_.get({
-    .magFilter = VK_FILTER_LINEAR,
-    .minFilter = VK_FILTER_LINEAR,
-    .mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
-    .addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-    .addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-    .addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
-    .anisotropyEnable = VK_TRUE,
-    .maxAnisotropy = 16.0f,
-    .maxLod = VK_LOD_CLAMP_NONE,
-  });
+  // sampler_LinearRepeatMipMapAniso_ = sampler_pool_.get({
+  //   .magFilter = VK_FILTER_LINEAR,
+  //   .minFilter = VK_FILTER_LINEAR,
+  //   .mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
+  //   .addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+  //   .addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+  //   .addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+  //   .anisotropyEnable = VK_TRUE,
+  //   .maxAnisotropy = 16.0f,
+  //   .maxLod = VK_LOD_CLAMP_NONE,
+  // });
 
   /* Renderer internal helpers. */
   skybox_.init(context, *this);

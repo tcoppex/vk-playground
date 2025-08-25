@@ -15,6 +15,18 @@ class SamplerPool {
 
   void init(VkDevice device) {
     device_ = device;
+
+    default_sampler_ = get({
+      .magFilter = VK_FILTER_LINEAR,
+      .minFilter = VK_FILTER_LINEAR,
+      .mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
+      .addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+      .addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+      .addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+      .anisotropyEnable = VK_TRUE,
+      .maxAnisotropy = 16.0f,
+      .maxLod = VK_LOD_CLAMP_NONE,
+    });
   }
 
   void deinit() {
@@ -23,6 +35,10 @@ class SamplerPool {
     }
     map_.clear();
     *this = {};
+  }
+
+  VkSampler default_sampler() const {
+    return default_sampler_;
   }
 
   VkSampler get(VkSamplerCreateInfo info) {
@@ -91,6 +107,7 @@ class SamplerPool {
 
  private:
   VkDevice device_{};
+  VkSampler default_sampler_{};
 
   std::unordered_map<VkSamplerCreateInfo, VkSampler, InfoHash, InfoKeyEqual> map_{};
 };
