@@ -48,13 +48,10 @@ struct Material {
   float roughness_factor;
 
   UINT normal_texture_id;
+  UINT occlusion_texture_id;
 
   float alpha_cutoff;
-
-  UINT padding0_[2];
-
-  // float ao;
-  // vec2 brdf;
+  UINT padding0_[1];
 };
 
 // ---------------------------------------------------------------------------

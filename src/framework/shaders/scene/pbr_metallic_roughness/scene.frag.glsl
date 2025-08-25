@@ -113,9 +113,8 @@ PBRMetallicRoughness_Material_t calculate_pbr_material_data(
   data.metallic = orm.z * mat.metallic_factor;
 
   // Ambient Occlusion.
-  // const float ao = texture(uTextureChannels[mat.occlusion_texture_id], frag.uv).x;
-  // data.ao = pow(ao, 1.5);
-  data.ao = 1.0; //
+  const float ao = texture(uTextureChannels[mat.occlusion_texture_id], frag.uv).x;
+  data.ao = pow(ao, 1.5);
 
   // -- fragment derivative materials ---
   {
