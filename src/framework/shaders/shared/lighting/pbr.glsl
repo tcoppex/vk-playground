@@ -139,7 +139,9 @@ vec3 colorize_pbr(in FragInfo_t frag_info, in PBRMetallicRoughness_Material_t ma
   // Derived the BRDF specific materials from global ones.
   const BRDFMaterial_t brdf_mat = get_brdf_material(mat);
 
-  // Sum reflectance contribution.
+  vec3 kD_factor = brdf_mat.albedo / Pi();
+
+  // Sum reflectance contribution (Lambert + Cook–Torrance).
   vec3 L0 = vec3(0.0);
   for (int i = 0; i < uNumLights; ++i)
   {
@@ -154,7 +156,7 @@ vec3 colorize_pbr(in FragInfo_t frag_info, in PBRMetallicRoughness_Material_t ma
     const vec3 F = f_Schlick( cosTheta, brdf_mat.F0);
  
     // Deduct the diffuse term from it.
-    const vec3 kD = (1.0 - F) * brdf_mat.albedo / Pi();
+    const vec3 kD = (1.0 - F) * kD_factor;
 
     // Calculate the BRDF specular term.
     const vec3 kS = brdf_CookTorranceSpecular( light, frag_info.n_dot_v, F, brdf_mat.roughness_sqr);
@@ -167,10 +169,9 @@ vec3 colorize_pbr(in FragInfo_t frag_info, in PBRMetallicRoughness_Material_t ma
   vec3 ambient = vec3(0.0);
   {
     const vec3 F = f_SchlickRoughness( frag_info.n_dot_v, brdf_mat.F0, mat.roughness);
-    const vec3 kD = (1.0 - F) * mat.color.rgb;//, brdf_mat.albedo;
-    const vec3 kS = mat.prefiltered * (F * mat.BRDF.x + mat.BRDF.y) * 1; //
-    
-    ambient += (mat.irradiance * kD + kS) * mat.ao;
+    vec3 diffuseIBL  = mat.irradiance * (1.0 - F) * brdf_mat.albedo;
+    vec3 specularIBL = mat.prefiltered * (F * mat.BRDF.x + mat.BRDF.y);
+    ambient = (diffuseIBL + specularIBL) * mat.ao;
   }
 
   // Final light color.
