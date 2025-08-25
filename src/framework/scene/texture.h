@@ -11,12 +11,15 @@ struct Texture {
  public:
   Texture() = default;
 
-  uint32_t getChannelIndex() const {
-    return host_image_index; //
+  Texture(uint32_t _host_image_index, VkSampler _sampler)
+    : host_image_index(_host_image_index)
+    , sampler(_sampler)
+  {}
+
+  uint32_t channel_index() const {
+    return host_image_index;
   }
 
- public:
-  uint32_t texture_index{UINT32_MAX}; //
   uint32_t host_image_index{UINT32_MAX};
   VkSampler sampler;
 };
