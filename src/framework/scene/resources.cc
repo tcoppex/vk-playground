@@ -15,7 +15,8 @@
 namespace scene {
 
 void Resources::release() {
-  assert(allocator != nullptr);
+  LOG_CHECK(allocator != nullptr);
+
   for (auto& img : device_images) {
     allocator->destroy_image(&img);
   }
@@ -31,7 +32,7 @@ void Resources::release() {
 // ----------------------------------------------------------------------------
 
 bool Resources::load_from_file(std::string_view const& filename, SamplerPool& sampler_pool, bool bRestructureAttribs) {
-  assert( material_fx_registry_ != nullptr );
+  LOG_CHECK( material_fx_registry_ != nullptr );
 
   std::string const basename{ utils::ExtractBasename(filename) };
 
