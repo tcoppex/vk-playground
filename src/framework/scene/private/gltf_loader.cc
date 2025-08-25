@@ -639,7 +639,7 @@ void ExtractMeshes(
 
         // Material.
         if (prim.material) {
-          uint32_t material_index = materials_indices.at(prim.material);
+          uint32_t const material_index = materials_indices.at(prim.material);
           mesh->submeshes[prim_index].material_ref = material_refs[ material_index ];
         }
 

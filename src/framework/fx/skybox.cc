@@ -207,7 +207,6 @@ void Skybox::compute_specular_brdf_lut(Context const& context, Renderer const& r
     void setup(VkExtent2D const dimension) final {
       ComputeFx::setup(dimension);
 
-      // -------------------
       context_ptr_->update_descriptor_set(descriptor_set_, {
         {
           .binding = kDefaultStorageImageBindingOutput,
@@ -218,7 +217,6 @@ void Skybox::compute_specular_brdf_lut(Context const& context, Renderer const& r
           } },
         }
       });
-      // -------------------
     }
 
     std::string getShaderName() const final {
@@ -239,16 +237,13 @@ void Skybox::compute_specular_brdf_lut(Context const& context, Renderer const& r
     }
 
     void releaseImagesAndBuffers() final {
-      // Let empty to prevent the output image to be released.
+      // Left empty to prevent the output image to be destroyed.
     }
   };
 
-  // We do not realy need to encapsulate the PostFx inside a PostFxPipeline here.
   TPostFxPipeline<IntegrateBRDF> brdf_pipeline{};
-
   brdf_pipeline.init(context, renderer);
   brdf_pipeline.setup({ kBRDFLutResolution, kBRDFLutResolution });
-  specular_brdf_lut_ = brdf_pipeline.getImageOutput();
 
   auto cmd = context.create_transient_command_encoder();
   {
@@ -259,8 +254,7 @@ void Skybox::compute_specular_brdf_lut(Context const& context, Renderer const& r
   specular_brdf_lut_ = brdf_pipeline.getImageOutput();
   brdf_pipeline.release();
 
-  /// WORK in Progress
-  // [TODO] implement mip-mapping
+  // [TODO] Calculate mip-maps.
 }
 
 /* -------------------------------------------------------------------------- */

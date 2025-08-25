@@ -42,6 +42,7 @@ bool Resources::load_from_file(std::string_view const& filename, SamplerPool& sa
 
   utils::FileReader file{};
   if (!file.read(filename)) {
+    LOGE("GLTF: failed to read the file.");
     return false;
   }
 
@@ -62,7 +63,7 @@ bool Resources::load_from_file(std::string_view const& filename, SamplerPool& sa
 
 #if 0
 
-    /* --- (alternative) Serialized version --- */
+    /* --- Serialized version --- */
 
     auto samplers_lut       = ExtractSamplers(data, sampler_pool);
     auto skeletons_indices  = ExtractSkeletons(data, skeletons);
@@ -71,7 +72,7 @@ bool Resources::load_from_file(std::string_view const& filename, SamplerPool& sa
       data, images_indices, samplers_lut, textures
     );
     auto materials_indices  = ExtractMaterials(
-      data, textures_indices, textures, material_refs, *material_fx_registry_
+      data, textures_indices, textures, material_refs, *material_fx_registry_, optionnal_texture_binding_
     );
     ExtractMeshes(
       data, materials_indices, material_refs,
@@ -156,13 +157,16 @@ bool Resources::load_from_file(std::string_view const& filename, SamplerPool& sa
   cgltf_free(data);
 
 #ifndef NDEBUG
-    std::cout << "Images count : " << host_images.size() << std::endl;
-    std::cout << "Texture count : " << textures.size() << std::endl;
-    std::cout << "Material count : " << material_refs.size() << std::endl;
-    std::cout << "Skeleton count : " << skeletons.size() << std::endl;
-    std::cout << "Animation count : " << animations_map.size() << std::endl;
-    std::cout << "Mesh count : " << meshes.size() << std::endl;
-    std::cerr << " ----------------- gltf loaded ----------------- " << std::endl;
+    // This will also display the extra data procedurally created.
+    std::cout << basename << " loaded." << std::endl;
+    std::cout << "┌────────────┬─────────── " << std::endl;
+    std::cout << "│ Images     │ " << host_images.size() << std::endl;
+    std::cout << "│ Textures   │ " << textures.size() << std::endl;
+    std::cout << "│ Materials  │ " << material_refs.size() << std::endl;
+    std::cout << "│ Skeletons  │ " << skeletons.size() << std::endl;
+    std::cout << "│ Animations │ " << animations_map.size() << std::endl;
+    std::cout << "│ Meshes     │ " << meshes.size() << std::endl;
+    std::cerr << "└────────────┴───────────" << std::endl;
 #endif
 
   return true;

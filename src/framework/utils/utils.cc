@@ -13,7 +13,7 @@ bool FileReader::Read(std::string_view filename, std::vector<uint8_t>& out) {
 
   std::ifstream file(filename.data(), std::ios::binary | std::ios::ate);
   if (!file) {
-    std::cerr << "[WARNING] \"" << filename << "\" not found." << std::endl;
+    std::cerr << "[WARNING] File \"" << filename << "\" not found." << std::endl;
     return false;
   }
 
