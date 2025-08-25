@@ -9,7 +9,7 @@
 #include "framework/fx/envmap.h"
 
 namespace shader_interop::skybox {
-#include "framework/shaders/skybox/interop.h"
+#include "framework/shaders/skybox/interop.h" //
 }
 
 class Context;
@@ -25,7 +25,7 @@ class Skybox {
  public:
   Skybox() = default;
 
-  void init(Context const& context, Renderer const& renderer);
+  void init(Context const& context, Renderer& renderer);
 
   void release(Context const& context, Renderer const& renderer);
 
@@ -37,11 +37,15 @@ class Skybox {
     return envmap_;
   }
 
-  backend::Image const& specular_cubemap() const {
+  backend::Image const& specular_brdf_lut() const {
+    return specular_brdf_lut_;
+  }
+
+  backend::Image const& prefiltered_specular_map() const {
     return envmap_.get_image(Envmap::ImageType::Specular);
   }
 
-  backend::Image const& irradiance_cubemap() const {
+  backend::Image const& irradiance_map() const {
     return envmap_.get_image(Envmap::ImageType::Irradiance);
   }
 
@@ -50,15 +54,15 @@ class Skybox {
   }
 
  private:
-  void compute_brdf_lut();
+  void compute_specular_brdf_lut(Context const& context, Renderer const& renderer);
 
  private:
   using PushConstant_t = shader_interop::skybox::PushConstant;
 
   Envmap envmap_{};
 
-  backend::Image brdf_lut_{}; //
-  VkSampler sampler_{}; //
+  backend::Image specular_brdf_lut_{};
+  VkSampler sampler_{};
 
   scene::Mesh cube_{};
   backend::Buffer vertex_buffer_{};

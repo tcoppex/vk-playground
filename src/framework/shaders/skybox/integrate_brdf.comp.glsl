@@ -21,8 +21,8 @@
 
 // ----------------------------------------------------------------------------
 
-layout(rg16f, set = 0, binding = kDescriptorSetBinding_StorageImage)
-writeonly uniform image2D uDstImg;
+layout(rg16f, set = 0, binding = kDescriptorSetBinding_IntegrateBRDF_StorageImage) //
+uniform writeonly image2D outImage[];
 
 layout(push_constant, scalar) uniform PushConstant_ {
   PushConstant pushConstant;
@@ -84,7 +84,7 @@ void main()
   const vec2 uv = vec2(coords.xy) / float(resolution);
   const vec2 data = integrate_brdf(uv.x, uv.y, numSamples);
 
-  imageStore( uDstImg, coords, vec4(data, 0.0, 1.0));
+  imageStore(outImage[0], coords, vec4(data, 0.0, 1.0));
 }
 
 // ----------------------------------------------------------------------------

@@ -2,8 +2,18 @@
 #define SHADERS_SHARED_LIGHTING_INC_PBR_GLSL_
 
 #include <shared/lighting/common.glsl>
-#include <shared/structs/material.glsl>
 #include <shared/constants.glsl>
+
+struct PBRMetallicRoughness_Material_t {
+  vec3 color;
+  vec3 emissive;
+  float roughness;
+  float metallic;
+  vec3 irradiance;
+  vec3 prefiltered;
+  vec2 BRDF;
+  float ao;
+};
 
 // ----------------------------------------------------------------------------
 //
@@ -75,7 +85,7 @@ struct BRDFMaterial_t {
   float roughness_sqr;
 };
 
-BRDFMaterial_t get_brdf_material(in Material_t mat) {
+BRDFMaterial_t get_brdf_material(in PBRMetallicRoughness_Material_t mat) {
   // Surface reflection at zero incidence.
   const vec3 kF0 = vec3(0.04);
   const vec3 color = mat.color.rgb;
@@ -94,7 +104,7 @@ BRDFMaterial_t get_brdf_material(in Material_t mat) {
 
 // ----------------------------------------------------------------------------
 
-vec3 colorize_pbr(in FragInfo_t frag_info, in Material_t mat) {
+vec3 colorize_pbr(in FragInfo_t frag_info, in PBRMetallicRoughness_Material_t mat) {
   //-----------
   LightInfo_t uLightInfos[4];
   const int uNumLights = 1;

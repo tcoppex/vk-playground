@@ -17,16 +17,18 @@ const UINT kAttribLocation_Texcoord = 2;
 
 // ----------------------------------------------------------------------------
 
-const UINT kDescriptorSetBinding_Sampler        = 0;
-const UINT kDescriptorSetBinding_StorageImage   = 1;
+const UINT kDescriptorSetBinding_Skybox_Sampler = 0;
 
 // ----------------------------------------------------------------------------
 
-const UINT kCompute_IntegrateBRDF_kernelSize_x = 16u;
-const UINT kCompute_IntegrateBRDF_kernelSize_y = 16u;
+const UINT kDescriptorSetBinding_IntegrateBRDF_StorageImage = 2; //
+
+const UINT kCompute_IntegrateBRDF_kernelSize_x = 32u; //
+const UINT kCompute_IntegrateBRDF_kernelSize_y = 32u; //
 
 // ----------------------------------------------------------------------------
 
+// 80 bytes
 struct PushConstant {
   mat4 viewProjectionMatrix;
   float hdrIntensity;

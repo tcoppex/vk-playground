@@ -19,9 +19,10 @@
 
 const UINT kDescriptorSetBinding_UniformBuffer         = 0;
 const UINT kDescriptorSetBinding_TextureAtlas          = 1;
-const UINT kDescriptorSetBinding_EnvMap_Specular       = 2;
+const UINT kDescriptorSetBinding_EnvMap_Prefiltered    = 2;
 const UINT kDescriptorSetBinding_EnvMap_Irradiance     = 3;
-const UINT kDescriptorSetBinding_MaterialStorageBuffer = 4;
+const UINT kDescriptorSetBinding_SpecularBRDF          = 4;
+const UINT kDescriptorSetBinding_MaterialStorageBuffer = 5;
 
 // ---------------------------------------------------------------------------
 // Application Frame uniform.
