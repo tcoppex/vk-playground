@@ -30,20 +30,22 @@ class PBRMetallicRoughnessFx final : public TMaterialFx<PBRMetallicRoughnessMate
     );
 
     auto const& skybox = renderer_ptr_->skybox();
-    auto const& default_sampler = renderer_ptr_->get_default_sampler();
-
+    auto const& ibl_sampler = skybox.sampler();
+    
     context_ptr_->update_descriptor_set(descriptor_set_, {
       {
         .binding = pbr_metallic_roughness_shader_interop::kDescriptorSetBinding_UniformBuffer,
         .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
         .buffers = { { uniform_buffer_.buffer } },
       },
+
+      // Image-Based Lighting inputs.
       {
         .binding = pbr_metallic_roughness_shader_interop::kDescriptorSetBinding_EnvMap_Prefiltered,
         .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
         .images = {
           {
-            .sampler = default_sampler,
+            .sampler = ibl_sampler,
             .imageView = skybox.prefiltered_specular_map().view, //
             .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
           }
@@ -54,7 +56,7 @@ class PBRMetallicRoughnessFx final : public TMaterialFx<PBRMetallicRoughnessMate
         .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
         .images = {
           {
-            .sampler = default_sampler,
+            .sampler = ibl_sampler,
             .imageView = skybox.irradiance_map().view, //
             .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
           }
@@ -65,12 +67,14 @@ class PBRMetallicRoughnessFx final : public TMaterialFx<PBRMetallicRoughnessMate
         .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
         .images = {
           {
-            .sampler = default_sampler,
+            .sampler = ibl_sampler,
             .imageView = skybox.specular_brdf_lut().view,
             .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
           }
         },
       },
+
+      // MaterialFx instance materials SSBO.
       // ---------------------------
       {
         .binding = pbr_metallic_roughness_shader_interop::kDescriptorSetBinding_MaterialStorageBuffer,
