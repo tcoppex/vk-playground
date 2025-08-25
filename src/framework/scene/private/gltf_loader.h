@@ -20,14 +20,14 @@ using PointerToResourceMap_t = std::unordered_map<void const*, std::shared_ptr<T
 
 /* -------------------------------------------------------------------------- */
 
-PointerToIndexMap_t ExtractImages(
-  cgltf_data const* data,
-  scene::ResourceBuffer<scene::ImageData>& images
-);
-
 PointerToSamplerMap_t ExtractSamplers(
   cgltf_data const* data,
   SamplerPool& sampler_pool
+);
+
+PointerToIndexMap_t ExtractImages(
+  cgltf_data const* data,
+  scene::ResourceBuffer<scene::ImageData>& images
 );
 
 PointerToIndexMap_t ExtractTextures(
@@ -42,7 +42,8 @@ PointerToIndexMap_t ExtractMaterials(
   PointerToIndexMap_t const& textures_indices,
   scene::ResourceBuffer<scene::Texture> const& textures,
   scene::ResourceBuffer<scene::MaterialRef>& material_refs,
-  scene::MaterialFxRegistry& material_fx_registry
+  scene::MaterialFxRegistry& material_fx_registry,
+  scene::OptionalTextureBinding &default_bindings
 );
 
 PointerToIndexMap_t ExtractSkeletons(

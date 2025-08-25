@@ -279,41 +279,6 @@ void ExtractPrimitiveVertices(cgltf_primitive const& prim, std::vector<VertexInt
 
 namespace internal::gltf_loader {
 
-PointerToIndexMap_t ExtractImages(
-  cgltf_data const* data,
-  scene::ResourceBuffer<scene::ImageData>& images
-) {
-  PointerToIndexMap_t image_indices{};
-
-  images.reserve(data->images_count);
-
-  stbi_set_flip_vertically_on_load(false); //
-  for (cgltf_size image_id = 0; image_id < data->images_count; ++image_id) {
-    cgltf_image const& gl_image = data->images[image_id];
-    cgltf_buffer_view *buffer_view = gl_image.buffer_view;
-
-    if (!buffer_view || !buffer_view->buffer) {
-      continue;
-    }
-
-    stbi_uc const* buffer_data{
-      reinterpret_cast<stbi_uc const*>(buffer_view->buffer->data) + buffer_view->offset
-    };
-
-    auto image = std::make_shared<scene::ImageData>();
-
-    /* Image tasks should be retrieved outside this function via 'image->getLoadAsyncResult()' */
-    image->loadAsync(buffer_data, buffer_view->size);
-
-    image_indices.try_emplace(&gl_image, image_id);
-    images.push_back( std::move(image) );
-  }
-
-  return image_indices;
-}
-
-// ----------------------------------------------------------------------------
-
 PointerToSamplerMap_t ExtractSamplers(
   cgltf_data const* data,
   SamplerPool& sampler_pool
@@ -339,6 +304,42 @@ PointerToSamplerMap_t ExtractSamplers(
 
 // ----------------------------------------------------------------------------
 
+PointerToIndexMap_t ExtractImages(
+  cgltf_data const* data,
+  scene::ResourceBuffer<scene::ImageData>& images
+) {
+  PointerToIndexMap_t image_indices{};
+
+  uint32_t const index_offset = static_cast<uint32_t>(images.size());
+  images.reserve(images.size() + data->images_count);
+
+  stbi_set_flip_vertically_on_load(false); //
+  for (cgltf_size image_id = 0; image_id < data->images_count; ++image_id) {
+    cgltf_image const& gl_image = data->images[image_id];
+    cgltf_buffer_view *buffer_view = gl_image.buffer_view;
+
+    if (!buffer_view || !buffer_view->buffer) {
+      continue;
+    }
+
+    stbi_uc const* buffer_data{
+      reinterpret_cast<stbi_uc const*>(buffer_view->buffer->data) + buffer_view->offset
+    };
+
+    auto image = std::make_shared<scene::ImageData>();
+
+    /* Image tasks should be retrieved outside this function via 'image->getLoadAsyncResult()' */
+    image->loadAsync(buffer_data, buffer_view->size);
+
+    image_indices.try_emplace(&gl_image, index_offset + image_id);
+    images.push_back( std::move(image) );
+  }
+
+  return image_indices;
+}
+
+// ----------------------------------------------------------------------------
+
 PointerToIndexMap_t ExtractTextures(
   cgltf_data const* data,
   PointerToIndexMap_t const& image_indices,
@@ -347,7 +348,8 @@ PointerToIndexMap_t ExtractTextures(
 ) {
   PointerToIndexMap_t textures_indices{};
 
-  textures.reserve(data->textures_count);
+  uint32_t const index_offset = static_cast<uint32_t>(textures.size());
+  textures.reserve(index_offset + data->textures_count);
 
   for (cgltf_size texture_id = 0; texture_id < data->textures_count; ++texture_id) {
     cgltf_texture const& gl_texture = data->textures[texture_id];
@@ -359,11 +361,10 @@ PointerToIndexMap_t ExtractTextures(
     LOG_CHECK(samplers_lut.contains(gl_texture.sampler));
 
     auto texture = std::make_shared<scene::Texture>();
-    texture->texture_index = texture_id; //
     texture->host_image_index = image_indices.at(gl_texture.image);
     texture->sampler = samplers_lut.at(gl_texture.sampler);
 
-    textures_indices.try_emplace(&gl_texture, texture_id);
+    textures_indices.try_emplace(&gl_texture, index_offset + texture_id);
     textures.push_back( std::move(texture) );
   }
 
@@ -377,7 +378,8 @@ PointerToIndexMap_t ExtractMaterials(
   PointerToIndexMap_t const& textures_indices,
   scene::ResourceBuffer<scene::Texture> const& textures,
   scene::ResourceBuffer<scene::MaterialRef>& material_refs,
-  scene::MaterialFxRegistry& material_fx_registry
+  scene::MaterialFxRegistry& material_fx_registry,
+  scene::OptionalTextureBinding &default_bindings
 ) {
   PointerToIndexMap_t materials_indices{};
 
@@ -407,28 +409,46 @@ PointerToIndexMap_t ExtractMaterials(
 
       if (cgltf_texture const* tex = pbr_mr.base_color_texture.texture; tex) {
         material->diffuse_texture_id = textures_indices.at(tex);
-        std::copy(
-          std::cbegin(pbr_mr.base_color_factor),
-          std::cend(pbr_mr.base_color_factor),
-          lina::ptr(material->diffuse_factor)
-        );
+      } else {
+        material->diffuse_texture_id = default_bindings.basecolor;
       }
+      std::copy(
+        std::cbegin(pbr_mr.base_color_factor),
+        std::cend(pbr_mr.base_color_factor),
+        lina::ptr(material->diffuse_factor)
+      );
+
       if (cgltf_texture const* tex = pbr_mr.metallic_roughness_texture.texture; tex) {
         material->orm_texture_id = textures_indices.at(tex);
-        material->metallic_factor = pbr_mr.metallic_factor;
-        material->roughness_factor = pbr_mr.roughness_factor;
+      } else {
+        material->orm_texture_id = default_bindings.roughness_metallic;
       }
+      material->roughness_factor = pbr_mr.roughness_factor;
+      material->metallic_factor = pbr_mr.metallic_factor;
+
+      if (cgltf_texture const* tex = gl_material.occlusion_texture.texture; tex) {
+        material->occlusion_texture_id = textures_indices.at(tex);
+      } else {
+        material->occlusion_texture_id = default_bindings.occlusion;
+      }
+
       if (cgltf_texture const* tex = gl_material.normal_texture.texture; tex) {
         material->normal_texture_id = textures_indices.at(tex);
+      } else {
+        material->normal_texture_id = default_bindings.normal;
       }
+
       if (cgltf_texture const* tex = gl_material.emissive_texture.texture; tex) {
         material->emissive_texture_id = textures_indices.at(tex);
-        std::copy(
-          std::cbegin(gl_material.emissive_factor),
-          std::cend(gl_material.emissive_factor),
-          lina::ptr(material->emissive_factor)
-        );
+      } else {
+        material->emissive_texture_id = default_bindings.emissive;
       }
+      std::copy(
+        std::cbegin(gl_material.emissive_factor),
+        std::cend(gl_material.emissive_factor),
+        lina::ptr(material->emissive_factor)
+      );
+
       material->alpha_cutoff = gl_material.alpha_cutoff;
     } else {
       LOGW("[GLTF] Material %03u has unsupported material type.", (uint32_t)material_id);

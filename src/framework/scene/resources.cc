@@ -99,7 +99,8 @@ bool Resources::load_from_file(std::string_view const& filename, SamplerPool& sa
       return ExtractImages(data, host_images);
     });
 
-    auto taskTextures = run_task_ret([&taskImageData, &taskSamplers, data, &textures = this->textures] {
+    auto taskTextures = run_task_ret(
+      [&taskImageData, &taskSamplers, data, &textures = this->textures] {
       auto images_indices = taskImageData.get();
       auto samplers_lut = taskSamplers.get();
       return ExtractTextures(data, images_indices, samplers_lut, textures);
@@ -110,10 +111,13 @@ bool Resources::load_from_file(std::string_view const& filename, SamplerPool& sa
       data,
       &textures = this->textures,
       &material_refs = this->material_refs,
-      &material_fx_registry = *this->material_fx_registry_
+      &material_fx_registry = *this->material_fx_registry_,
+      &default_bindings = this->optionnal_texture_binding_
     ] {
       auto textures_indices = taskTextures.get();
-      return ExtractMaterials(data, textures_indices, textures, material_refs, material_fx_registry);
+      return ExtractMaterials(
+        data, textures_indices, textures, material_refs, material_fx_registry, default_bindings
+      );
     });
 
     auto skeletons_indices = taskSkeletons.get();
@@ -228,7 +232,7 @@ DescriptorSetWriteEntry Resources::descriptor_set_texture_atlas_entry(uint32_t c
   LOG_CHECK( !device_images.empty() );
 
   for (auto const& texture : textures) {
-    auto const& img = device_images.at(texture->getChannelIndex());
+    auto const& img = device_images.at(texture->channel_index());
     texture_atlas_entry.images.push_back({
       .sampler = texture->sampler,
       .imageView = img.view,
@@ -244,6 +248,30 @@ DescriptorSetWriteEntry Resources::descriptor_set_texture_atlas_entry(uint32_t c
 void Resources::prepare_material_fx(Context const& context, Renderer const& renderer) {
   material_fx_registry_ = new MaterialFxRegistry();
   material_fx_registry_->setup(context, renderer);
+
+  // Create default 1x1 textures for optionnal bindings.
+  //  -> Creation should be left to each MaterialFx
+  // ----------------------
+#if 1
+  auto const& sampler = renderer.get_default_sampler();
+
+  auto push_default_texture{
+    [&textures = this->textures, &host_images = this->host_images, &sampler]
+    (std::array<uint8_t, 4> const& c) -> uint32_t {
+      uint32_t texture_id = textures.size();
+      textures.push_back( std::make_shared<Texture>(host_images.size(), sampler) );
+      host_images.push_back( std::make_shared<ImageData>(c[0], c[1], c[2], c[3]) );
+      return texture_id;
+    }
+  };
+
+  optionnal_texture_binding_.basecolor          = push_default_texture({255, 255, 255, 255});
+  optionnal_texture_binding_.normal             = push_default_texture({128, 128, 255, 255});
+  optionnal_texture_binding_.roughness_metallic = push_default_texture({255, 255, 0, 255});
+  optionnal_texture_binding_.occlusion          = push_default_texture({255, 255, 255, 255});
+  optionnal_texture_binding_.emissive           = push_default_texture({0, 0, 0, 255});
+#endif
+  // ----------------------
 }
 
 // ----------------------------------------------------------------------------

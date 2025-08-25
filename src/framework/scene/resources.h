@@ -28,6 +28,15 @@ using ResourceMap = std::unordered_map<std::string, std::shared_ptr<T>>;
 template<typename T>
 using ResourceBuffer = std::vector<std::shared_ptr<T>>;
 
+// (tmp) Default texture binding when none availables.
+struct OptionalTextureBinding {
+  uint32_t basecolor;
+  uint32_t normal;
+  uint32_t roughness_metallic;
+  uint32_t occlusion;
+  uint32_t emissive;
+};
+
 // ----------------------------------------------------------------------------
 
 ///
@@ -98,6 +107,7 @@ struct Resources {
   std::shared_ptr<ResourceAllocator> allocator{};
 
   // (shared MaterialFx instances)
+  OptionalTextureBinding optionnal_texture_binding_{};
   MaterialFxRegistry *material_fx_registry_{};
 };
 
