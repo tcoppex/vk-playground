@@ -60,7 +60,7 @@ class RenderTarget : public backend::RTInterface {
   }
 
   backend::Image const& get_color_attachment(uint32_t i = 0u) const final {
-    return colors_.at(i);
+    return colors_[i];
   }
 
   backend::Image const& get_depth_stencil_attachment() const final {

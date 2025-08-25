@@ -55,7 +55,7 @@ class Framebuffer final : public backend::RPInterface {
   void resize(VkExtent2D const dimension);
 
   backend::Image const& get_color_attachment() const {
-    return outputs_[BufferName::Color].at(get_swap_index());
+    return outputs_[BufferName::Color][get_swap_index()];
   }
 
   // ----- RPInterface Overrides -----
@@ -73,7 +73,7 @@ class Framebuffer final : public backend::RPInterface {
   }
 
   VkFramebuffer get_swap_attachment() const final {
-    return framebuffers_.at(get_swap_index());
+    return framebuffers_[get_swap_index()];
   }
 
  private:

@@ -220,16 +220,18 @@ class PassDataNoFx final : public PostFxInterface {
     buffers_ = inputs;
   }
 
-  backend::Image const& getImageOutput(uint32_t index) const final {
-    return images_.at(index);
+  backend::Image const& getImageOutput(uint32_t index = 0u) const override {
+    LOG_CHECK(index < images_.size());
+    return images_[index];
   }
 
-  std::vector<backend::Image> const& getImageOutputs() const final {
+  std::vector<backend::Image> const& getImageOutputs() const override {
     return images_;
   }
 
-  backend::Buffer const& getBufferOutput(uint32_t index) const final {
-    return buffers_.at(index);
+  backend::Buffer const& getBufferOutput(uint32_t index = 0u) const override {
+    LOG_CHECK(index < buffers_.size());
+    return buffers_[index];
   }
 
   std::vector<backend::Buffer> const& getBufferOutputs() const final {

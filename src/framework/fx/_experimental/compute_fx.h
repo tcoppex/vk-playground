@@ -49,7 +49,8 @@ class ComputeFx : public PostGenericFx {
   // --- Getters ---
 
   backend::Image const& getImageOutput(uint32_t index = 0u) const override {
-    return images_.at(index);
+    LOG_CHECK(index < images_.size());
+    return images_[index];
   }
 
   std::vector<backend::Image> const& getImageOutputs() const override {
@@ -57,7 +58,8 @@ class ComputeFx : public PostGenericFx {
   }
 
   backend::Buffer const& getBufferOutput(uint32_t index = 0u) const override {
-    return buffers_.at(index);
+    LOG_CHECK(index < buffers_.size());
+    return buffers_[index];
   }
 
   std::vector<backend::Buffer> const& getBufferOutputs() const override {
