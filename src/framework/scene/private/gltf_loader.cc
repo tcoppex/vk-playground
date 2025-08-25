@@ -590,17 +590,20 @@ void ExtractMeshes(
           // Indices.
           if (prim.indices) {
             cgltf_accessor const* accessor = prim.indices;
-            cgltf_buffer_view const* buffer_view = accessor->buffer_view;
-            cgltf_buffer const* buffer = buffer_view->buffer;
-
             if (auto index_format = ConvertIndexFormat(accessor); index_format != Geometry::IndexFormat::kUnknown) {
               // [the same index format should be shared by the whole mesh.]
               mesh->set_index_format(index_format);
-
               primitive.indexCount = accessor->count;
+
+              cgltf_buffer_view const* buffer_view = accessor->buffer_view;
+              cgltf_buffer const* buffer = buffer_view->buffer;
+
+              size_t const index_size = cgltf_component_size(accessor->component_type);
+              size_t const stride = accessor->stride ? accessor->stride : index_size;
+              size_t const total_size = accessor->count * stride;
               primitive.indexOffset = mesh->add_indices_data(
                 reinterpret_cast<std::byte const*>(buffer->data) + buffer_view->offset + accessor->offset,
-                buffer_view->size
+                total_size
               );
             }
           }
