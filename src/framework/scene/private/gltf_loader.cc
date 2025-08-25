@@ -320,6 +320,10 @@ PointerToSamplerMap_t ExtractSamplers(
 ) {
   PointerToSamplerMap_t samplers_lut{};
 
+  // The glTF spec allow for unspecified sampler on texture, so we define
+  // one by default as fallback.
+  samplers_lut[nullptr] = sampler_pool.default_sampler();
+
   for (cgltf_size sampler_id = 0; sampler_id < data->samplers_count; ++sampler_id) {
     cgltf_sampler const& sampler = data->samplers[sampler_id];
     if (!samplers_lut.contains(&sampler)) {
@@ -347,6 +351,12 @@ PointerToIndexMap_t ExtractTextures(
 
   for (cgltf_size texture_id = 0; texture_id < data->textures_count; ++texture_id) {
     cgltf_texture const& gl_texture = data->textures[texture_id];
+
+    if (gl_texture.sampler == nullptr) {
+      LOGD("%s : empty sampler on glTF texture.", __FUNCTION__);
+    }
+    LOG_CHECK(image_indices.contains(gl_texture.image));
+    LOG_CHECK(samplers_lut.contains(gl_texture.sampler));
 
     auto texture = std::make_shared<scene::Texture>();
     texture->texture_index = texture_id; //
