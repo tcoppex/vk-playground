@@ -106,6 +106,10 @@ class GenericCommandEncoder {
 
   template<uint32_t tX = 1u, uint32_t tY = 1u, uint32_t tZ = 1u>
   void dispatch(uint32_t x = 1u, uint32_t y = 1u, uint32_t z = 1u) const {
+    LOG_CHECK(x > 0u);
+    LOG_CHECK(y > 0u);
+    LOG_CHECK(z > 0u);
+
     vkCmdDispatch(command_buffer_,
       vkutils::GetKernelGridDim(x, tX),
       vkutils::GetKernelGridDim(y, tY),
