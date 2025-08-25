@@ -2,7 +2,8 @@
 
 // ----------------------------------------------------------------------------
 
-layout(set = 0, binding = 0, rgba8) uniform readonly image2D inImages[];
+layout(set = 0, binding = 0, rgba8)
+uniform readonly image2D inImages[];
 
 layout(binding = 1) buffer outValue {
   uint minmax[2];

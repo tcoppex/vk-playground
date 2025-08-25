@@ -67,9 +67,16 @@ bool Resources::load_from_file(std::string_view const& filename, SamplerPool& sa
     auto samplers_lut       = ExtractSamplers(data, sampler_pool);
     auto skeletons_indices  = ExtractSkeletons(data, skeletons);
     auto images_indices     = ExtractImages(data, host_images);
-    auto textures_indices   = ExtractTextures(data, images_indices, samplers_lut, textures);
-    auto materials_indices  = ExtractMaterials(data, textures_indices, textures, material_refs);
-    ExtractMeshes(data, materials_indices, material_refs, skeletons_indices, skeletons, meshes, bRestructureAttribs);
+    auto textures_indices   = ExtractTextures(
+      data, images_indices, samplers_lut, textures
+    );
+    auto materials_indices  = ExtractMaterials(
+      data, textures_indices, textures, material_refs, *material_fx_registry_
+    );
+    ExtractMeshes(
+      data, materials_indices, material_refs,
+      skeletons_indices, skeletons, meshes, bRestructureAttribs
+    );
 
 #else
 

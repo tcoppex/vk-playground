@@ -86,6 +86,10 @@ void CommandEncoder::copy_buffer(backend::Buffer const& src, size_t src_offset, 
 // ----------------------------------------------------------------------------
 
 void CommandEncoder::transition_images_layout(std::vector<backend::Image> const& images, VkImageLayout const src_layout, VkImageLayout const dst_layout) const {
+  /// [devnote] This is an helper method to transition multiple 2d single layer,
+  //      single level images, using the default VkImageMemoryBarrier2 params
+  //      as defined in 'GenericCommandEncoder::pipeline_image_barriers'.
+
   VkImageMemoryBarrier2 const barrier2{
     .oldLayout = src_layout,
     .newLayout = dst_layout,
@@ -407,15 +411,22 @@ void RenderPassEncoder::set_viewport_scissor(VkRect2D const rect, bool flip_y) c
 // ----------------------------------------------------------------------------
 
 void RenderPassEncoder::draw(DrawDescriptor const& desc, backend::Buffer const& vertex_buffer, backend::Buffer const& index_buffer) const {
-  auto const& vi{desc.vertexInput};
+  // Vertex Input.
+  {
+    auto const& vi{desc.vertexInput};
 
-  // [TODO] shoud be disabled when vertex input is not dynamic.
-  set_vertex_input(vi);
+    // (shoud be disabled when vertex input is not dynamic)
+    set_vertex_input(vi);
 
-  for (size_t i = 0; i < vi.bindings.size(); ++i) {
-    bind_vertex_buffer(vertex_buffer, vi.bindings[i].binding, vi.vertexBufferOffsets[i]);
+    for (size_t i = 0; i < vi.bindings.size(); ++i) {
+      bind_vertex_buffer(vertex_buffer, vi.bindings[i].binding, vi.vertexBufferOffsets[i]);
+    }
   }
 
+  // Topology.
+  // set_primitive_topology(desc.topology);
+
+  // Draw.
   if (desc.indexCount > 0u) [[likely]] {
     bind_index_buffer(index_buffer, desc.indexType, desc.indexOffset);
     draw_indexed(desc.indexCount, desc.instanceCount);

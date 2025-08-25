@@ -2,7 +2,7 @@
 //
 //    10 - material
 //
-//  When we learned how to properly load good clothing for our meshes.
+//  Where we don't bother and use the internal material & rendering system.
 //
 //
 /* -------------------------------------------------------------------------- */

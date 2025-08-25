@@ -123,7 +123,7 @@ class PipelineInterface {
   }
 
  protected:
-  VkPipelineLayout pipeline_layout_{};
+  VkPipelineLayout pipeline_layout_{}; //
   VkPipeline pipeline_{};
   VkPipelineBindPoint bind_point_{};
 };
@@ -222,6 +222,8 @@ struct VertexInputDescriptor {
 /* [WIP] generic requirements to draw something. */
 struct DrawDescriptor {
   VertexInputDescriptor vertexInput{};
+
+  //VkPrimitiveTopology topology{};
 
   uint64_t indexOffset{};
   VkIndexType indexType{};

@@ -295,7 +295,9 @@ bool Envmap::load_diffuse_envmap(std::string_view hdr_filename) {
       cmd.bind_descriptor_set(descriptor_set_, VK_SHADER_STAGE_COMPUTE_BIT);
 
       push_constant_.mapResolution = kDiffuseResolution; //
-      cmd.push_constant(push_constant_, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_COMPUTE_BIT);
+      cmd.push_constant(push_constant_, VK_SHADER_STAGE_VERTEX_BIT
+                                      | VK_SHADER_STAGE_FRAGMENT_BIT
+                                      | VK_SHADER_STAGE_COMPUTE_BIT);
 
       cmd.dispatch<
         shader_interop::envmap::kCompute_SphericalTransform_kernelSize_x,
@@ -492,7 +494,9 @@ void Envmap::compute_irradiance() {
       cmd.bind_descriptor_set(descriptor_set_, VK_SHADER_STAGE_COMPUTE_BIT);
 
       push_constant_.mapResolution = kIrradianceResolution;
-      cmd.push_constant(push_constant_, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_COMPUTE_BIT);
+      cmd.push_constant(push_constant_, VK_SHADER_STAGE_VERTEX_BIT
+                                      | VK_SHADER_STAGE_FRAGMENT_BIT
+                                      | VK_SHADER_STAGE_COMPUTE_BIT);
 
       cmd.dispatch<
         shader_interop::envmap::kCompute_Irradiance_kernelSize_x,
