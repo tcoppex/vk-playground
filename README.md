@@ -53,6 +53,7 @@ cmake --build build --config Release
  * Volk 1.4 (_via CPM_)
  * VulkanMemoryAllocator 3.2.0 (_via CPM_)
  * ImGUI (_via CPM_)
+ * MikkTSpace (_via CPM_)
  * linalg v2.2 (_via CPM_)
  * stb_image.h (_included_)
 
