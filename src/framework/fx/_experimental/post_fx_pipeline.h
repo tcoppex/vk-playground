@@ -51,7 +51,7 @@ class PostFxPipeline : public PostFxInterface {
 
  public:
   void init(Context const& context, Renderer const& renderer) override {
-    assert(!effects_.empty());
+    LOG_CHECK(!effects_.empty());
     PostFxInterface::init(context, renderer);
     for (auto fx : effects_) {
       fx->init(context, renderer);
@@ -87,22 +87,22 @@ class PostFxPipeline : public PostFxInterface {
   }
 
   void setImageInputs(std::vector<backend::Image> const& inputs) override {
-    assert(!effects_.empty());
+    LOG_CHECK(!effects_.empty());
     effects_.front()->setImageInputs(inputs);
   }
 
   void setBufferInputs(std::vector<backend::Buffer> const& inputs) override {
-    assert(!effects_.empty());
+    LOG_CHECK(!effects_.empty());
     effects_.front()->setBufferInputs(inputs);
   }
 
   backend::Image const& getImageOutput(uint32_t index = 0u) const override {
-    assert(!effects_.empty());
+    LOG_CHECK(!effects_.empty());
     return effects_.back()->getImageOutput(index);
   }
 
   std::vector<backend::Image> const& getImageOutputs() const override {
-    assert(!effects_.empty());
+    LOG_CHECK(!effects_.empty());
     return effects_.back()->getImageOutputs();
   }
 
