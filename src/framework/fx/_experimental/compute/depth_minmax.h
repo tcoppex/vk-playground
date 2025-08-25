@@ -9,21 +9,19 @@ namespace fx::compute {
 
 class DepthMinMax final : public ComputeFx {
  public:
-  void resize(VkExtent2D const dimension) final {
-    if ( (dimension.width == dimension_.width)
-      && (dimension.height == dimension_.height)
-      && (!images_.empty() || !buffers_.empty())
-      ) {
-      return;
+  bool resize(VkExtent2D const dimension) final {
+    if (!ComputeFx::resize(dimension)) {
+      return false;
     }
-    dimension_ = dimension;
 
-    buffers_.resize(1u);
-    buffers_[0] = allocator_->create_buffer(
+    // (malformed, should use internal method to update descriptor..)
+    buffers_.push_back( allocator_->create_buffer(
       2u * sizeof(float),
         VK_BUFFER_USAGE_2_STORAGE_BUFFER_BIT
       | VK_BUFFER_USAGE_2_TRANSFER_SRC_BIT_KHR
-    );
+    ));
+
+    return true;
   }
 
  protected:

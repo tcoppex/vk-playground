@@ -17,7 +17,7 @@ class RenderTargetFx : public FragmentFx
   void execute(CommandEncoder& cmd) override; //
 
  public:
-  void resize(VkExtent2D const dimension) override;
+  bool resize(VkExtent2D const dimension) override;
 
   backend::Image const& getImageOutput(uint32_t index = 0u) const override;
 

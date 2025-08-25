@@ -10,12 +10,12 @@ std::string RenderTargetFx::GetMapScreenVertexShaderName() {
 
 // ----------------------------------------------------------------------------
 
-void RenderTargetFx::resize(VkExtent2D const dimension) {
+bool RenderTargetFx::resize(VkExtent2D const dimension) {
   if (!render_target_) {
     createRenderTarget(dimension);
-  } else {
-    render_target_->resize(dimension);
+    return true;
   }
+  return render_target_->resize(dimension);
 }
 
 // ----------------------------------------------------------------------------

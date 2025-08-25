@@ -52,7 +52,7 @@ class PostFxInterface : public virtual FxInterface {
   virtual ~PostFxInterface() {}
 
  public:
-  virtual void resize(VkExtent2D const dimension) = 0;
+  virtual bool resize(VkExtent2D const dimension) = 0;
 
   virtual backend::Image const& getImageOutput(uint32_t index = 0u) const = 0;
 

@@ -43,10 +43,10 @@ void RenderTarget::release() {
 
 // ----------------------------------------------------------------------------
 
-void RenderTarget::resize(VkExtent2D const extent) {
+bool RenderTarget::resize(VkExtent2D const extent) {
   if ((extent.width == extent_.width)
    && (extent.height == extent_.height)) {
-    return;
+    return false;
   }
 
   release();
@@ -54,7 +54,7 @@ void RenderTarget::resize(VkExtent2D const extent) {
 
   /* Create color images. */
   for (auto &color : colors_) {
-    color = context_ptr_->create_image_2d(extent_.width, extent_.height, 1u, color.format, kDefaultImageUsageFlags);
+    color = context_ptr_->create_image_2d(extent_.width, extent_.height, color.format, kDefaultImageUsageFlags);
   }
   // context_ptr_->transition_images_layout(colors_, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
 
@@ -62,8 +62,10 @@ void RenderTarget::resize(VkExtent2D const extent) {
 
   /* Create an optional depth-stencil buffer. */
   if (depth_stencil_.format != VK_FORMAT_UNDEFINED) {
-    depth_stencil_ = context_ptr_->create_image_2d(extent_.width, extent_.height, 1u, depth_stencil_.format);
+    depth_stencil_ = context_ptr_->create_image_2d(extent_.width, extent_.height, depth_stencil_.format);
   }
+
+  return true;
 }
 
 /* -------------------------------------------------------------------------- */

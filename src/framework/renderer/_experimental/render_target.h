@@ -42,7 +42,7 @@ class RenderTarget : public backend::RTInterface {
 
   // [TODO: rework and remove context from args]
   // (might be put inside a generic command encoder to resize similar objects)
-  void resize(VkExtent2D const extent); //
+  bool resize(VkExtent2D const extent); //
 
  public:
   // ----- RTInterface Overrides -----

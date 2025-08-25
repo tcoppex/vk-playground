@@ -65,10 +65,12 @@ class PostFxPipeline : public PostFxInterface {
     setupDependencies();
   }
 
-  void resize(VkExtent2D const dimension) override {
+  bool resize(VkExtent2D const dimension) override {
+    bool has_resized = false;
     for (auto fx : effects_) {
-      fx->resize(dimension);
+      has_resized = fx->resize(dimension);
     }
+    return has_resized;
   }
 
   void release() override {
@@ -201,7 +203,7 @@ class TPostFxPipeline : public PostFxPipeline {
 class PassDataNoFx final : public PostFxInterface {
  public:
   void setup(VkExtent2D const dimension) final {}
-  void resize(VkExtent2D const dimension) final {}
+  bool resize(VkExtent2D const dimension) final { return false; }
   void execute(CommandEncoder& cmd) final {}
   void setupUI() final {}
 
