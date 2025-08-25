@@ -17,12 +17,11 @@
 class SampleApp final : public Application {
  private:
   bool setup() final {
-    wm_->setTitle("10 - materia gonanza");
+    wm_->setTitle("10 - kavalkada materia");
 
     renderer_.set_color_clear_value({ 0.72f, 0.28f, 0.30f, 0.0f });
     renderer_.skybox().setup(ASSETS_DIR "textures/"
-      // "qwantani_dusk_2_2k.hdr"
-      "rogland_clear_night_2k.hdr"
+      "qwantani_dusk_2_2k.hdr"
     );
 
     /* Setup the ArcBall camera. */
@@ -42,9 +41,7 @@ class SampleApp final : public Application {
 
     /* Load a glTF Scene. */
     future_scene_ = renderer_.async_load_to_device(ASSETS_DIR "models/"
-      // "DamagedHelmet.glb"
-      "simple_kaidou.glb"
-      // "boulder_01_4k.glb"
+      "DamagedHelmet.glb"
     );
 
     return true;
