@@ -325,7 +325,7 @@ PointerToSamplerMap_t ExtractSamplers(
     if (!samplers_lut.contains(&sampler)) {
       samplers_lut.try_emplace(
         &sampler,
-        sampler_pool.getSampler(ConvertSamplerInfo(sampler))
+        sampler_pool.get(ConvertSamplerInfo(sampler))
       );
     }
   }

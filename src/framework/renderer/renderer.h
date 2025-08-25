@@ -125,6 +125,14 @@ class Renderer : public backend::RTInterface {
     return default_sampler_;
   }
 
+  SamplerPool& sampler_pool() {
+    return sampler_pool_;
+  }
+
+  SamplerPool const& sampler_pool() const {
+    return sampler_pool_;
+  }
+
   // --- Resources gltf objects ---
 
   GLTFScene load_and_upload(std::string_view gltf_filename, scene::Mesh::AttributeLocationMap const& attribute_to_location);

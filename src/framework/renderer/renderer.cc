@@ -76,8 +76,7 @@ void Renderer::init(Context const& context, std::shared_ptr<ResourceAllocator> a
   init_descriptor_pool();
 
   sampler_pool_.init(device_);
-  default_sampler_ = sampler_pool_.getSampler({
-    .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+  default_sampler_ = sampler_pool_.get({
     .magFilter = VK_FILTER_LINEAR,
     .minFilter = VK_FILTER_LINEAR,
     .mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,

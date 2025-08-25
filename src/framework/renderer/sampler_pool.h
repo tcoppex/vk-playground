@@ -25,7 +25,8 @@ class SamplerPool {
     *this = {};
   }
 
-  VkSampler getSampler(VkSamplerCreateInfo const& info) {
+  VkSampler get(VkSamplerCreateInfo info) {
+    info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
     if (auto it = map_.find(info); it != map_.end()) {
       return it->second;
     }
@@ -34,7 +35,13 @@ class SamplerPool {
     return sampler;
   }
 
-  void destroySampler(VkSampler sampler) {
+  VkSampler get(VkSamplerCreateInfo const& info) const {
+    LOG_CHECK(info.sType == VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO);
+    LOG_CHECK(map_.contains(info));
+    return map_.find(info)->second;
+  }
+
+  void destroy(VkSampler sampler) {
     for (auto it = map_.begin(); it != map_.end(); ) {
       if (it->second == sampler) {
         vkDestroySampler(device_, it->second, nullptr);
