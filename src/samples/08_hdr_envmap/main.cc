@@ -127,7 +127,7 @@ class SampleApp final : public Application {
           .images = {
             {
               .sampler = renderer_.get_default_sampler(),
-              .imageView = skybox.irradiance_cubemap().view,
+              .imageView = skybox.irradiance_map().view,
               .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             }
           },
