@@ -18,10 +18,10 @@ void Skybox::init(Context const& context, Renderer& renderer) {
   compute_specular_brdf_lut(context, renderer); //
 
   /* Internal sampler */
-  sampler_ = renderer.sampler_pool().get({
+  sampler_LinearClampMipMap_ = renderer.sampler_pool().get({
     .magFilter = VK_FILTER_LINEAR,
     .minFilter = VK_FILTER_LINEAR,
-    // .mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
+    .mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
     .addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
     .addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
     .addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
@@ -68,7 +68,7 @@ void Skybox::init(Context const& context, Renderer& renderer) {
         .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
         .images = {
           {
-            .sampler = sampler_, //
+            .sampler = sampler_LinearClampMipMap_, //
             .imageView = envmap_.get_image(Envmap::ImageType::Diffuse).view,
             .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
           }

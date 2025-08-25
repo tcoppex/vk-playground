@@ -122,7 +122,7 @@ class Renderer : public backend::RTInterface {
   // --- Sampler ---
 
   VkSampler get_default_sampler() const {
-    return default_sampler_;
+    return sampler_LinearRepeatMipMapAniso_;
   }
 
   SamplerPool& sampler_pool() {
@@ -250,7 +250,7 @@ class Renderer : public backend::RTInterface {
 
   /**/
   SamplerPool sampler_pool_{};
-  VkSampler default_sampler_{}; //
+  VkSampler sampler_LinearRepeatMipMapAniso_{}; //
 
   /* Utils */
   Skybox skybox_{};

@@ -41,6 +41,10 @@ class Skybox {
     return specular_brdf_lut_;
   }
 
+  VkSampler const& sampler() const {
+    return sampler_LinearClampMipMap_;
+  }
+
   backend::Image const& prefiltered_specular_map() const {
     return envmap_.get_image(Envmap::ImageType::Specular);
   }
@@ -62,7 +66,7 @@ class Skybox {
   Envmap envmap_{};
 
   backend::Image specular_brdf_lut_{};
-  VkSampler sampler_{};
+  VkSampler sampler_LinearClampMipMap_{};
 
   scene::Mesh cube_{};
   backend::Buffer vertex_buffer_{};
