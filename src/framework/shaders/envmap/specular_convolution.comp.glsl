@@ -25,8 +25,8 @@
 layout(set = 0, binding = kDescriptorSetBinding_Sampler)
 uniform samplerCube inDiffuseEnvmap;
 
-layout(rgba16f, binding = kDescriptorSetBinding_StorageImageArray)
-writeonly uniform imageCube[] outSpecularEnvmap;
+layout(rgba16f, set = 0, binding = kDescriptorSetBinding_StorageImageArray)
+writeonly uniform imageCube outSpecularEnvmap[];
 
 layout(push_constant, scalar) uniform PushConstant_ {
   PushConstant pushConstant;
@@ -57,7 +57,7 @@ void main() {
   const float roughness_sqr = pushConstant.roughnessSquared;
   const float roughness = sqrt(roughness_sqr); //
 
-  // When calculating the envmap, the Reflection ray is the View direction is the Normal.
+  // When calculating the envmap, the Reflection ray is the View direction & the Normal.
   const vec3 N = cubemap_view_direction(coords, resolution);
   const vec3 V = N;
 
@@ -69,7 +69,13 @@ void main() {
 
   for (int i = 0; i < numSamples; ++i) {
     const vec2 pt = hammersley2d( i, inv_samples);
-    const vec3 H  = fast_importance_sample_GGX( basis_ws, pt, roughness_sqr);
+    const vec3 H  =
+#if 0
+      importance_sample_GGX( basis_ws, pt, roughness)
+#else
+      fast_importance_sample_GGX( basis_ws, pt, roughness_sqr)
+#endif
+    ;
     float v_dot_h = dot(V, H);
     const vec3 L = normalize(2.0 * v_dot_h * H - V);
     const float n_dot_l = max(dot(N, L), 0.0);

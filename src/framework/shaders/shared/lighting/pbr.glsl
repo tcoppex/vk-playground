@@ -86,7 +86,7 @@ struct BRDFMaterial_t {
 };
 
 BRDFMaterial_t get_brdf_material(in PBRMetallicRoughness_Material_t mat) {
-  // Surface reflection at zero incidence.
+  // Base reflectance at zero incidence, dielectrics reflect about 4% of light.
   const vec3 kF0 = vec3(0.04);
   const vec3 color = mat.color.rgb;
   
@@ -168,9 +168,10 @@ vec3 colorize_pbr(in FragInfo_t frag_info, in PBRMetallicRoughness_Material_t ma
   // Ambient contribution from Image Based Lighting.
   vec3 ambient = vec3(0.0);
   {
+    const vec2 brdf = mat.BRDF;
     const vec3 F = f_SchlickRoughness( frag_info.n_dot_v, brdf_mat.F0, mat.roughness);
     vec3 diffuseIBL  = mat.irradiance * (1.0 - F) * brdf_mat.albedo;
-    vec3 specularIBL = mat.prefiltered * (F * mat.BRDF.x + mat.BRDF.y);
+    vec3 specularIBL = mat.prefiltered * (F * brdf.x + brdf.y);
     ambient = (diffuseIBL + specularIBL) * mat.ao;
   }
 
