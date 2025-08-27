@@ -38,6 +38,14 @@ class ResourceAllocator {
     return create_staging_buffer(sizeof(T) * host_data.size(), host_data.data());
   }
 
+  void map_memory(backend::Buffer const& buffer, void **data) const {
+    CHECK_VK( vmaMapMemory(allocator_, buffer.allocation, data) );
+  }
+
+  void unmap_memory(backend::Buffer const& buffer) const {
+    vmaUnmapMemory(allocator_, buffer.allocation);
+  }
+
   // (should the allocator be allowed to write on device ?)
   // ------------------------
   size_t write_buffer(
