@@ -106,9 +106,12 @@ backend::Buffer ResourceAllocator::create_staging_buffer(size_t const bytesize, 
 
 // ----------------------------------------------------------------------------
 
-void ResourceAllocator::write_buffer(
-  backend::Buffer const& dst_buffer, size_t const dst_offset,
-  void const* host_data, size_t const host_offset, size_t const bytesize
+size_t ResourceAllocator::write_buffer(
+  backend::Buffer const& dst_buffer,
+  size_t const dst_offset,
+  void const* host_data,
+  size_t const host_offset,
+  size_t const bytesize
 ) {
   assert(host_data != nullptr);
   assert(dst_buffer.buffer != VK_NULL_HANDLE);
@@ -121,6 +124,8 @@ void ResourceAllocator::write_buffer(
          static_cast<const char*>(host_data) + host_offset, bytesize);
 
   vmaUnmapMemory(allocator_, dst_buffer.allocation);
+
+  return dst_offset + bytesize;
 }
 
 // ----------------------------------------------------------------------------

@@ -40,7 +40,7 @@ class ResourceAllocator {
 
   // (should the allocator be allowed to write on device ?)
   // ------------------------
-  void write_buffer(
+  size_t write_buffer(
     backend::Buffer const& dst_buffer, size_t const dst_offset,
     void const* host_data, size_t const host_offset, size_t const bytesize
   );

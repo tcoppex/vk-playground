@@ -138,10 +138,10 @@ class CommandEncoder : public GenericCommandEncoder {
 
   void copy_buffer(backend::Buffer const& src, backend::Buffer const& dst, std::vector<VkBufferCopy> const& regions) const;
 
-  void copy_buffer(backend::Buffer const& src, size_t src_offset, backend::Buffer const& dst, size_t dst_offet, size_t size) const;
+  size_t copy_buffer(backend::Buffer const& src, size_t src_offset, backend::Buffer const& dst, size_t dst_offet, size_t size) const;
 
-  void copy_buffer(backend::Buffer const& src, backend::Buffer const& dst, size_t size) const {
-    copy_buffer(src, 0, dst, 0, size);
+  size_t copy_buffer(backend::Buffer const& src, backend::Buffer const& dst, size_t size) const {
+    return copy_buffer(src, 0, dst, 0, size);
   }
 
   void transfer_host_to_device(void const* host_data, size_t const host_data_size, backend::Buffer const& device_buffer, size_t const device_buffer_offset = 0u) const;

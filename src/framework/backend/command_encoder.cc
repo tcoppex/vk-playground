@@ -72,8 +72,8 @@ void CommandEncoder::copy_buffer(backend::Buffer const& src, backend::Buffer con
 
 // ----------------------------------------------------------------------------
 
-void CommandEncoder::copy_buffer(backend::Buffer const& src, size_t src_offset, backend::Buffer const& dst, size_t dst_offet, size_t size) const {
-  assert(size > 0);
+size_t CommandEncoder::copy_buffer(backend::Buffer const& src, size_t src_offset, backend::Buffer const& dst, size_t dst_offet, size_t size) const {
+  LOG_CHECK(size > 0);
   copy_buffer(src, dst, {
     {
       .srcOffset = static_cast<VkDeviceSize>(src_offset),
@@ -81,6 +81,7 @@ void CommandEncoder::copy_buffer(backend::Buffer const& src, size_t src_offset, 
       .size = static_cast<VkDeviceSize>(size),
     }
   });
+  return src_offset + size;
 }
 
 // ----------------------------------------------------------------------------
