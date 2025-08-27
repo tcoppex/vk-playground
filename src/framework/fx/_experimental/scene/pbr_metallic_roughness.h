@@ -23,47 +23,35 @@ class PBRMetallicRoughnessFx final : public TMaterialFx<PBRMetallicRoughnessMate
   void setup(VkExtent2D const dimension = {}) final {
     TMaterialFx<PBRMetallicRoughnessMaterial>::setup(dimension);
 
-    uniform_buffer_ = allocator_->create_buffer(
-      sizeof(host_data_),
-        VK_BUFFER_USAGE_2_UNIFORM_BUFFER_BIT
-      | VK_BUFFER_USAGE_TRANSFER_DST_BIT
-    );
-
     auto const& skybox = renderer_ptr_->skybox();
-    auto const& ibl_sampler = skybox.sampler();
+    auto const& ibl_sampler = skybox.sampler(); // ClampToEdge Linear MipMap
     
     context_ptr_->update_descriptor_set(descriptor_set_, {
-      {
-        .binding = pbr_metallic_roughness_shader_interop::kDescriptorSetBinding_UniformBuffer,
-        .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-        .buffers = { { uniform_buffer_.buffer } },
-      },
-
       // Image-Based Lighting inputs.
       {
-        .binding = pbr_metallic_roughness_shader_interop::kDescriptorSetBinding_EnvMap_Prefiltered,
+        .binding = pbr_metallic_roughness_shader_interop::kDescriptorSetBinding_IBL_Prefiltered,
         .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
         .images = {
           {
             .sampler = ibl_sampler,
-            .imageView = skybox.prefiltered_specular_map().view, //
+            .imageView = skybox.prefiltered_specular_map().view,
             .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
           }
         },
       },
       {
-        .binding = pbr_metallic_roughness_shader_interop::kDescriptorSetBinding_EnvMap_Irradiance,
+        .binding = pbr_metallic_roughness_shader_interop::kDescriptorSetBinding_IBL_Irradiance,
         .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
         .images = {
           {
             .sampler = ibl_sampler,
-            .imageView = skybox.irradiance_map().view, //
+            .imageView = skybox.irradiance_map().view,
             .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
           }
         },
       },
       {
-        .binding = pbr_metallic_roughness_shader_interop::kDescriptorSetBinding_SpecularBRDF,
+        .binding = pbr_metallic_roughness_shader_interop::kDescriptorSetBinding_IBL_SpecularBRDF,
         .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
         .images = {
           {
@@ -77,7 +65,7 @@ class PBRMetallicRoughnessFx final : public TMaterialFx<PBRMetallicRoughnessMate
       // MaterialFx instance materials SSBO.
       // ---------------------------
       {
-        .binding = pbr_metallic_roughness_shader_interop::kDescriptorSetBinding_MaterialStorageBuffer,
+        .binding = pbr_metallic_roughness_shader_interop::kDescriptorSetBinding_MaterialSSBO,
         .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
         .buffers = { { material_storage_buffer_.buffer } },
       },
@@ -86,34 +74,19 @@ class PBRMetallicRoughnessFx final : public TMaterialFx<PBRMetallicRoughnessMate
   }
 
   void release() final {
-    allocator_->destroy_buffer(uniform_buffer_);
     TMaterialFx<PBRMetallicRoughnessMaterial>::release();
   }
 
  public:
-  // ------------------------------------
   uint32_t getDescriptorSetTextureAtlasBinding() const final {
     return pbr_metallic_roughness_shader_interop::kDescriptorSetBinding_TextureAtlas;
   }
 
-  void pushUniforms() final {
-    context_ptr_->transfer_host_to_device(
-      &host_data_, sizeof(host_data_), uniform_buffer_
-    );
+  uint32_t getDescriptorSetFrameUBOBinding() const final {
+    return pbr_metallic_roughness_shader_interop::kDescriptorSetBinding_FrameUBO;
   }
 
-  void setProjectionMatrix(mat4 const& projection_matrix) final {
-    host_data_.scene.projectionMatrix = projection_matrix;
-  }
-
-  void setCameraPosition(vec3 const& camera_position) final {
-    push_constant_.cameraPosition = camera_position;
-  }
-
-  void setViewMatrix(mat4 const& view_matrix) final {
-    push_constant_.viewMatrix = view_matrix;
-  }
-
+  // ------------------------------------
   void setWorldMatrix(mat4 const& world_matrix) final {
     push_constant_.worldMatrix = world_matrix;
   }
@@ -139,10 +112,12 @@ class PBRMetallicRoughnessFx final : public TMaterialFx<PBRMetallicRoughnessMate
   std::vector<DescriptorSetLayoutParams> getDescriptorSetLayoutParams() const final {
     return {
       {
-        .binding = pbr_metallic_roughness_shader_interop::kDescriptorSetBinding_UniformBuffer,
+        .binding = pbr_metallic_roughness_shader_interop::kDescriptorSetBinding_FrameUBO,
         .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
         .descriptorCount = 1u,
-        .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+        .stageFlags = VK_SHADER_STAGE_VERTEX_BIT
+                    | VK_SHADER_STAGE_FRAGMENT_BIT
+                    ,
         .bindingFlags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT
                       | VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT
                       | VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT
@@ -155,21 +130,21 @@ class PBRMetallicRoughnessFx final : public TMaterialFx<PBRMetallicRoughnessMate
         .bindingFlags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT,
       },
       {
-        .binding = pbr_metallic_roughness_shader_interop::kDescriptorSetBinding_EnvMap_Prefiltered,
+        .binding = pbr_metallic_roughness_shader_interop::kDescriptorSetBinding_IBL_Prefiltered,
         .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
         .descriptorCount = 1u,
         .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
         .bindingFlags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT,
       },
       {
-        .binding = pbr_metallic_roughness_shader_interop::kDescriptorSetBinding_EnvMap_Irradiance,
+        .binding = pbr_metallic_roughness_shader_interop::kDescriptorSetBinding_IBL_Irradiance,
         .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
         .descriptorCount = 1u,
         .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
         .bindingFlags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT,
       },
       {
-        .binding = pbr_metallic_roughness_shader_interop::kDescriptorSetBinding_SpecularBRDF,
+        .binding = pbr_metallic_roughness_shader_interop::kDescriptorSetBinding_IBL_SpecularBRDF,
         .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
         .descriptorCount = 1u,
         .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
@@ -177,7 +152,7 @@ class PBRMetallicRoughnessFx final : public TMaterialFx<PBRMetallicRoughnessMate
       },
       // -----------------------------------
       {
-        .binding = pbr_metallic_roughness_shader_interop::kDescriptorSetBinding_MaterialStorageBuffer,
+        .binding = pbr_metallic_roughness_shader_interop::kDescriptorSetBinding_MaterialSSBO,
         .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
         .descriptorCount = 1u,
         .stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
@@ -192,8 +167,9 @@ class PBRMetallicRoughnessFx final : public TMaterialFx<PBRMetallicRoughnessMate
   std::vector<VkPushConstantRange> getPushConstantRanges() const final {
     return {
       {
-        .stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-        .offset = 0,
+        .stageFlags = VK_SHADER_STAGE_VERTEX_BIT
+                    | VK_SHADER_STAGE_FRAGMENT_BIT
+                    ,
         .size = sizeof(push_constant_),
       }
     };
@@ -206,12 +182,6 @@ class PBRMetallicRoughnessFx final : public TMaterialFx<PBRMetallicRoughnessMate
 
  private:
   pbr_metallic_roughness_shader_interop::PushConstant push_constant_{};
-
-  // -----
-  // Application data (should probably be shared).
-  pbr_metallic_roughness_shader_interop::UniformData host_data_{};
-  backend::Buffer uniform_buffer_{};
-  // -----
 };
 
 }

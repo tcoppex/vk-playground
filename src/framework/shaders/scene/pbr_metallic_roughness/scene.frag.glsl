@@ -5,57 +5,72 @@
 
 // ----------------------------------------------------------------------------
 
-#include "interop.h"
+#include "scene/interop.h"
+#include "scene/pbr_metallic_roughness/interop.h"
 
 #include <shared/maths.glsl>
 #include <shared/lighting/pbr.glsl>
 
 // ----------------------------------------------------------------------------
 
+// -- Frame & Scene --
+
+layout(scalar, set = 0, binding = kDescriptorSetBinding_FrameUBO)
+uniform FrameUBO_ {
+  FrameData uFrame;
+};
+
+// -- Material & Textures --
+
 layout(set = 0, binding = kDescriptorSetBinding_TextureAtlas)
 uniform sampler2D[] uTextureChannels;
 
-layout(set = 0, binding = kDescriptorSetBinding_EnvMap_Prefiltered)
+layout(set = 0, binding = kDescriptorSetBinding_IBL_Prefiltered)
 uniform samplerCube uEnvMapPrefilterd;
 
-layout(set = 0, binding = kDescriptorSetBinding_EnvMap_Irradiance)
+layout(set = 0, binding = kDescriptorSetBinding_IBL_Irradiance)
 uniform samplerCube uEnvMapIrradiance;
 
-layout(set = 0, binding = kDescriptorSetBinding_SpecularBRDF)
+layout(set = 0, binding = kDescriptorSetBinding_IBL_SpecularBRDF)
 uniform sampler2D uSpecularBRDF;
+
+layout(scalar, set = 0, binding = kDescriptorSetBinding_MaterialSSBO)
+buffer MaterialSSBO_ {
+  Material materials[];
+};
+
+// -- Instance PushConstant --
 
 layout(push_constant, scalar) uniform PushConstant_ {
   PushConstant pushConstant;
 };
 
-layout(scalar, set = 0, binding = kDescriptorSetBinding_MaterialStorageBuffer)
-buffer MaterialBuffer_ {
-  Material materials[];
-};
+// ----------------------------------------------------------------------------
+
+layout(location = 0) in vec3 vPositionWS;
+layout(location = 1) in vec3 vNormalWS;
+layout(location = 2) in vec4 vTangentWS;
+layout(location = 3) in vec2 vTexcoord;
+
+layout(location = 0) out vec4 fragColor;
 
 // ----------------------------------------------------------------------------
 
-layout (location = 0) in vec3 vPositionWS;
-layout (location = 1) in vec3 vNormalWS;
-layout (location = 2) in vec4 vTangentWS;
-layout (location = 3) in vec2 vTexcoord;
-
-layout (location = 0) out vec4 fragColor;
-
-// ----------------------------------------------------------------------------
+#define TEXTURE_ATLAS(i)  uTextureChannels[nonuniformEXT(i)]
 
 vec4 sample_DiffuseColor(in Material mat) {
-  return texture(uTextureChannels[mat.diffuse_texture_id], vTexcoord).rgba;
+  return texture(TEXTURE_ATLAS(mat.diffuse_texture_id), vTexcoord).rgba;
 }
 
 vec3 sample_NormalMap(in Material mat) {
-  vec3 normal = texture(uTextureChannels[mat.normal_texture_id], vTexcoord).rgb;
+  vec3 normal = texture(TEXTURE_ATLAS(mat.normal_texture_id), vTexcoord).rgb;
   return normalize(normal * 2.0 - 1.0);
 }
 
 // ----------------------------------------------------------------------------
 
 vec3 calculate_world_space_normal(in vec3 normalWS, in vec4 tangentWS, in vec3 normalTS) {
+#if 0
   vec3 normal = normalize(normalWS);
 
   // TBN basis to transform from tangent-space to world-space.
@@ -68,6 +83,9 @@ vec3 calculate_world_space_normal(in vec3 normalWS, in vec4 tangentWS, in vec3 n
 
   // World-space bump normal.
   return normalize(TBN * normalTS);
+#else
+  return vNormalWS;
+#endif
 }
 
 FragInfo_t calculate_world_space_frag_info(
@@ -104,16 +122,21 @@ PBRMetallicRoughness_Material_t calculate_pbr_material_data(
   data.color = mainColor;
 
   // Emissive.
-  data.emissive = texture(uTextureChannels[mat.emissive_texture_id], frag.uv).rgb;
+  data.emissive = texture(TEXTURE_ATLAS(mat.emissive_texture_id), frag.uv).rgb;
   data.emissive *= mat.emissive_factor;
 
   // Roughness + Metallic.
-  const vec3 orm = texture(uTextureChannels[mat.orm_texture_id], frag.uv).xyz; //
-  data.roughness = max(orm.y, 1e-3) * mat.roughness_factor;
-  data.metallic = orm.z * mat.metallic_factor;
+#if 1
+  const vec3 orm = texture(TEXTURE_ATLAS(mat.orm_texture_id), frag.uv).xyz; //
+  data.roughness = max(orm.y, 1e-3)* 1+0 * mat.roughness_factor;
+  data.metallic = orm.z* 1+0 * mat.metallic_factor;
+#else
+  data.roughness = 1.0;
+  data.metallic = 0.0;
+#endif
 
   // Ambient Occlusion.
-  const float ao = texture(uTextureChannels[mat.occlusion_texture_id], frag.uv).x;
+  const float ao = texture(TEXTURE_ATLAS(mat.occlusion_texture_id), frag.uv).x;
   data.ao = pow(ao, 1.5);
 
   // -- fragment derivative materials ---
@@ -126,12 +149,16 @@ PBRMetallicRoughness_Material_t calculate_pbr_material_data(
     }
     data.irradiance = irradiance;
 
+    // --- those map migh be incorrect, maybe due to mipmaps ---
+
     // Roughness based prefiltered specular.
-    const float roughness_level = data.roughness * log(textureSize(uEnvMapPrefilterd, 0).x);
+    const float levels = log2(float(textureSize(uEnvMapPrefilterd, 0).x)) + 1.0;
+    const float roughness_level = data.roughness * levels;
     data.prefiltered = textureLod( uEnvMapPrefilterd, frag.R, roughness_level).rgb;
+    // data.prefiltered *= 0.5; //
 
     // Roughness based BRDF specular values.
-    vec2 brdf_uv = vec2(frag.n_dot_v, data.roughness).xy;
+    vec2 brdf_uv = vec2(frag.n_dot_v, data.roughness);
     data.BRDF = texture(uSpecularBRDF, brdf_uv).xy;
     data.BRDF = saturate(data.BRDF);
   }
@@ -142,7 +169,7 @@ PBRMetallicRoughness_Material_t calculate_pbr_material_data(
 // ----------------------------------------------------------------------------
 
 void main() {
-  Material mat = materials[pushConstant.material_index];
+  Material mat = materials[nonuniformEXT(pushConstant.material_index)];
 
   /* Diffuse. */
   const vec4 mainColor = sample_DiffuseColor(mat);
@@ -161,7 +188,7 @@ void main() {
 
   /* Fragment infos.*/
   const FragInfo_t frag = calculate_world_space_frag_info(
-    pushConstant.cameraPosition,
+    uFrame.cameraPos_Time.xyz,
     vPositionWS,
     normalWS,
     vTexcoord

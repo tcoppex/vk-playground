@@ -15,13 +15,14 @@
 namespace scene {
 
 void Resources::release() {
-  LOG_CHECK(allocator != nullptr);
+  LOG_CHECK(allocator_ != nullptr);
 
   for (auto& img : device_images) {
-    allocator->destroy_image(&img);
+    allocator_->destroy_image(&img);
   }
-  allocator->destroy_buffer(index_buffer);
-  allocator->destroy_buffer(vertex_buffer);
+  allocator_->destroy_buffer(frame_ubo_);
+  allocator_->destroy_buffer(index_buffer);
+  allocator_->destroy_buffer(vertex_buffer);
 
   material_fx_registry_->release();
   delete material_fx_registry_;
@@ -182,8 +183,9 @@ void Resources::initialize_submesh_descriptors(Mesh::AttributeLocationMap const&
   // --------------------
   // [~] When we expect Tangent we force recalculate them.
   //     Resulting indices might be incorrect.
+
   if (attribute_to_location.contains(Geometry::AttributeType::Tangent)) {
-    for (auto& mesh : meshes) { mesh->recalculate_tangents(); } //
+    // for (auto& mesh : meshes) { mesh->recalculate_tangents(); } //
   }
   // --------------------
 }
@@ -191,8 +193,9 @@ void Resources::initialize_submesh_descriptors(Mesh::AttributeLocationMap const&
 // ----------------------------------------------------------------------------
 
 void Resources::upload_to_device(Context const& context, bool const bReleaseHostDataOnUpload) {
-  if (!allocator) {
-    allocator = context.get_resource_allocator();
+  context_ptr_ = &context;
+  if (!allocator_) {
+    allocator_ = context.get_resource_allocator();
   }
 
   /* Transfer Materials */
@@ -253,9 +256,18 @@ void Resources::prepare_material_fx(Context const& context, Renderer const& rend
   material_fx_registry_ = new MaterialFxRegistry();
   material_fx_registry_->setup(context, renderer);
 
+  // ----------------------
+  frame_ubo_ = context.get_resource_allocator()->create_buffer(
+    sizeof(frame_data_),
+      VK_BUFFER_USAGE_2_UNIFORM_BUFFER_BIT
+    | VK_BUFFER_USAGE_TRANSFER_DST_BIT
+  );
+  material_fx_registry_->update_frame_ubo(frame_ubo_);
+  // ----------------------
+
+  // ----------------------
   // Create default 1x1 textures for optionnal bindings.
   //  -> Creation should be left to each MaterialFx
-  // ----------------------
 #if 1
   auto const& sampler = renderer.get_default_sampler();
 
@@ -269,11 +281,12 @@ void Resources::prepare_material_fx(Context const& context, Renderer const& rend
     }
   };
 
-  optionnal_texture_binding_.basecolor          = push_default_texture({255, 255, 255, 255});
-  optionnal_texture_binding_.normal             = push_default_texture({128, 128, 255, 255});
-  optionnal_texture_binding_.roughness_metallic = push_default_texture({255, 255, 0, 255});
-  optionnal_texture_binding_.occlusion          = push_default_texture({255, 255, 255, 255});
-  optionnal_texture_binding_.emissive           = push_default_texture({0, 0, 0, 255});
+  auto &bindings = optionnal_texture_binding_;
+  bindings.basecolor          = push_default_texture({255, 255, 255, 255});
+  bindings.normal             = push_default_texture({128, 128, 255, 255});
+  bindings.roughness_metallic = push_default_texture({  0, 255,   0, 255});
+  bindings.occlusion          = push_default_texture({255, 255, 255, 255});
+  bindings.emissive           = push_default_texture({  0,   0,   0, 255});
 #endif
   // ----------------------
 }
@@ -285,7 +298,7 @@ void Resources::render(RenderPassEncoder const& pass, Camera const& camera) {
 
   using FxToSubmeshesMap = std::map< MaterialFx*, std::vector<Mesh::SubMesh const*> >;
 
-  // 1) Retrieve submeshes associated to each Fx.
+  // Retrieve submeshes associated to each Fx.
   //    { Submeshes share Materials share Fx }
   FxToSubmeshesMap fx_to_submeshes{};
   for (auto const& mesh : meshes) {
@@ -299,25 +312,28 @@ void Resources::render(RenderPassEncoder const& pass, Camera const& camera) {
   }
   LOG_CHECK( !fx_to_submeshes.empty() );
 
-  // 2) (optionnal) Preprocess each buffer of submeshes
+  // (optionnal) Preprocess each buffer of submeshes
   //  -> sort per material instance
   //  -> sort wrt camera
   // ..
 
-  // 3) (optionnal) Create shared material buffer for each Fx.
-  // ..
+  // Update the shared Frame UBO.
+  frame_data_ = {
+    .projectionMatrix = camera.proj(),
+    .viewMatrix = camera.view(),
+    .viewProjMatrix = camera.viewproj(),
+    .cameraPos_Time = vec4(camera.position(), 0.0f), //
+    .screenSize = vec2(), //
+  };
+  context_ptr_->transfer_host_to_device(
+    &frame_data_, sizeof(frame_data_), frame_ubo_
+  );
 
-  // 4) Render each Fx.
+  // Render each Fx.
   uint32_t instance_index = 0u;
   for (auto& [fx, submeshes] : fx_to_submeshes) {
     // Bind pipeline & descriptor set.
     fx->prepareDrawState(pass); //
-
-    // Update host-side camera (pushConstant, uniforms).
-    fx->updateCameraData(camera);
-
-    // Transfer app uniforms to device (internal to fx for now).
-    fx->pushUniforms();
 
     // Draw submeshes.
     for (auto* submesh : submeshes) {
@@ -376,11 +392,11 @@ void Resources::reset_internal_device_resource_info() {
 
 void Resources::upload_images(Context const& context) {
   assert(total_image_size > 0);
-  assert(allocator != nullptr);
+  assert(allocator_ != nullptr);
 
   /* Create a staging buffer. */
   backend::Buffer staging_buffer{
-    allocator->create_staging_buffer( total_image_size ) //
+    allocator_->create_staging_buffer( total_image_size ) //
   };
 
   device_images.reserve(host_images.size()); //
@@ -405,7 +421,7 @@ void Resources::upload_images(Context const& context) {
 
     /* Upload image to staging buffer */
     uint32_t const img_bytesize{ host_image->getBytesize() };
-    allocator->write_buffer(
+    allocator_->write_buffer(
       staging_buffer, staging_offset, host_image->getPixels(), 0u, img_bytesize
     );
     copies.push_back({
@@ -436,16 +452,16 @@ void Resources::upload_images(Context const& context) {
 
 void Resources::upload_buffers(Context const& context) {
   assert(vertex_buffer_size > 0);
-  assert(allocator != nullptr);
+  assert(allocator_ != nullptr);
 
-  vertex_buffer = allocator->create_buffer(
+  vertex_buffer = allocator_->create_buffer(
     vertex_buffer_size,
     VK_BUFFER_USAGE_2_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_2_TRANSFER_DST_BIT_KHR,
     VMA_MEMORY_USAGE_GPU_ONLY
   );
 
   if (index_buffer_size > 0) {
-    index_buffer = allocator->create_buffer(
+    index_buffer = allocator_->create_buffer(
       index_buffer_size,
       VK_BUFFER_USAGE_2_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_2_TRANSFER_DST_BIT_KHR,
       VMA_MEMORY_USAGE_GPU_ONLY
@@ -454,7 +470,7 @@ void Resources::upload_buffers(Context const& context) {
 
   /* Copy host mesh data to staging buffer */
   backend::Buffer mesh_staging_buffer{
-    allocator->create_staging_buffer(vertex_buffer_size + index_buffer_size)
+    allocator_->create_staging_buffer(vertex_buffer_size + index_buffer_size)
   };
   {
     size_t vertex_offset{0u};
@@ -462,12 +478,12 @@ void Resources::upload_buffers(Context const& context) {
 
     for (auto const& mesh : meshes) {
       auto const& vertices = mesh->get_vertices();
-      allocator->write_buffer(mesh_staging_buffer, vertex_offset, vertices.data(), 0u, vertices.size());
+      allocator_->write_buffer(mesh_staging_buffer, vertex_offset, vertices.data(), 0u, vertices.size());
       vertex_offset += vertices.size();
 
       if (index_buffer_size > 0) {
         auto const& indices = mesh->get_indices();
-        allocator->write_buffer(mesh_staging_buffer, index_offset, indices.data(), 0u, indices.size());
+        allocator_->write_buffer(mesh_staging_buffer, index_offset, indices.data(), 0u, indices.size());
         index_offset += indices.size();
       }
     }

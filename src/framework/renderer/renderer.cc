@@ -1,13 +1,8 @@
 #include "framework/renderer/renderer.h"
 #include "framework/backend/context.h"
+#include "framework/renderer/_experimental/render_target.h"
 
-#include "framework/renderer/_experimental/render_target.h" //
-
-#include "stb/stb_image.h" //
-
-namespace shader_interop {
-#include "framework/shaders/scene/attributes_location.h"
-}
+#include "framework/shaders/scene/interop.h" // for kAttribLocation_*
 
 /* -------------------------------------------------------------------------- */
 
@@ -764,10 +759,10 @@ GLTFScene Renderer::load_and_upload(std::string_view gltf_filename) {
   // [temporary, this should be set elsewhere ideally]
   static const scene::Mesh::AttributeLocationMap kDefaultFxPipelineAttributeLocationMap{
     {
-      { Geometry::AttributeType::Position, shader_interop::kAttribLocation_Position },
-      { Geometry::AttributeType::Normal,   shader_interop::kAttribLocation_Normal },
-      { Geometry::AttributeType::Texcoord, shader_interop::kAttribLocation_Texcoord },
-      { Geometry::AttributeType::Tangent,  shader_interop::kAttribLocation_Tangent }, //
+      { Geometry::AttributeType::Position, kAttribLocation_Position },
+      { Geometry::AttributeType::Normal,   kAttribLocation_Normal },
+      { Geometry::AttributeType::Texcoord, kAttribLocation_Texcoord },
+      { Geometry::AttributeType::Tangent,  kAttribLocation_Tangent }, //
     }
   };
   // -----------------------

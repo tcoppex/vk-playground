@@ -343,6 +343,8 @@ list(APPEND SharedLibs
 )
 
 list(APPEND SharedIncludeDirs
+  ${FRAMEWORK_SHADERS_DIR} #!
+
   ${GLFW_INCLUDE_DIR}
   ${CGLTF_INCLUDE_DIR}
   ${LINALG_INCLUDE_DIR}

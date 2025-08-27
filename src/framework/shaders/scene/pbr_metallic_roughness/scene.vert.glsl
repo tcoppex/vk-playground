@@ -4,44 +4,43 @@
 
 // ----------------------------------------------------------------------------
 
-#include "interop.h"
+#include "scene/interop.h"
+#include "scene/pbr_metallic_roughness/interop.h"
 
 // ----------------------------------------------------------------------------
 
-layout(scalar, set = 0, binding = kDescriptorSetBinding_UniformBuffer) uniform UBO_ {
-  UniformData uData;
+layout(scalar, set = 0, binding = kDescriptorSetBinding_FrameUBO)
+uniform FrameUBO_ {
+  FrameData uFrame;
 };
 
-layout(push_constant, scalar) uniform PushConstant_ {
+layout(scalar, push_constant) uniform PushConstant_ {
   PushConstant pushConstant;
 };
 
 // ----------------------------------------------------------------------------
 
-layout (location = kAttribLocation_Position) in vec3 inPosition;
-layout (location = kAttribLocation_Normal  ) in vec3 inNormal;
-layout (location = kAttribLocation_Texcoord) in vec2 inTexcoord;
-layout (location = kAttribLocation_Tangent)  in vec4 inTangent;
+layout(location = kAttribLocation_Position) in vec3 inPosition;
+layout(location = kAttribLocation_Normal  ) in vec3 inNormal;
+layout(location = kAttribLocation_Texcoord) in vec2 inTexcoord;
+layout(location = kAttribLocation_Tangent)  in vec4 inTangent;
 
-layout (location = 0) out vec3 vPositionWS;
-layout (location = 1) out vec3 vNormalWS;
-layout (location = 2) out vec4 vTangentWS;
-layout (location = 3) out vec2 vTexcoord;
+layout(location = 0) out vec3 vPositionWS;
+layout(location = 1) out vec3 vNormalWS;
+layout(location = 2) out vec4 vTangentWS;
+layout(location = 3) out vec2 vTexcoord;
 
 // ----------------------------------------------------------------------------
 
 void main() {
-  mat4 worldMatrix = pushConstant.worldMatrix;
+  mat4 worldMatrix = pushConstant.worldMatrix; //
   mat3 normalMatrix = mat3(worldMatrix);
 
-  mat4 viewProjMatrix = uData.scene.projectionMatrix
-                      * pushConstant.viewMatrix
-                      ;
   vec4 worldPos = worldMatrix * vec4(inPosition, 1.0);
 
   // -------
 
-  gl_Position = viewProjMatrix * worldPos;
+  gl_Position = uFrame.viewProjMatrix * worldPos;
   vPositionWS = worldPos.xyz;
 
   vNormalWS   = normalize(normalMatrix * inNormal);

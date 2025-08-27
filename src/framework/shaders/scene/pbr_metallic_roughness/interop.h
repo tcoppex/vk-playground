@@ -1,82 +1,51 @@
 #ifndef SHADERS_SCENE_PBR_METALLIC_ROUGHNESS_INTEROP_H_
 #define SHADERS_SCENE_PBR_METALLIC_ROUGHNESS_INTEROP_H_
 
-#ifdef __cplusplus
-#include "framework/shaders/scene/attributes_location.h"
-#else
-#include "../attributes_location.h"
-#endif
-
 // ---------------------------------------------------------------------------
 
-#ifdef __cplusplus
-#define UINT uint32_t
-#else
-#define UINT uint
-#endif
+const uint kDescriptorSetBinding_FrameUBO           = 0;
+
+const uint kDescriptorSetBinding_IBL_Prefiltered    = 1;
+const uint kDescriptorSetBinding_IBL_Irradiance     = 2;
+const uint kDescriptorSetBinding_IBL_SpecularBRDF   = 3;
+
+const uint kDescriptorSetBinding_TextureAtlas       = 4;
+const uint kDescriptorSetBinding_MaterialSSBO       = 5;
 
 // ---------------------------------------------------------------------------
-
-const UINT kDescriptorSetBinding_UniformBuffer         = 0;
-const UINT kDescriptorSetBinding_TextureAtlas          = 1;
-const UINT kDescriptorSetBinding_EnvMap_Prefiltered    = 2;
-const UINT kDescriptorSetBinding_EnvMap_Irradiance     = 3;
-const UINT kDescriptorSetBinding_SpecularBRDF          = 4;
-const UINT kDescriptorSetBinding_MaterialStorageBuffer = 5;
-
-// ---------------------------------------------------------------------------
-// Application Frame uniform.
-
-struct Scene {
-  mat4 projectionMatrix;
-};
-
-struct UniformData {
-  Scene scene;
-};
-
-// ---------------------------------------------------------------------------
-// Fx Materials uniform.
+// Fx Materials SSBOs struct.
 
 struct Material {
   vec3 emissive_factor;
-  UINT emissive_texture_id;
+  uint emissive_texture_id;
   vec4 diffuse_factor;
-  UINT diffuse_texture_id;
-  UINT orm_texture_id;
+  uint diffuse_texture_id;
+  uint orm_texture_id;
   float metallic_factor;
   float roughness_factor;
 
-  UINT normal_texture_id;
-  UINT occlusion_texture_id;
+  uint normal_texture_id;
+  uint occlusion_texture_id;
 
   float alpha_cutoff;
-  UINT padding0_[1];
+  uint padding0_[1];
 };
 
 // ---------------------------------------------------------------------------
 // Instance PushConstants.
 
-// [Currently 160 bytes, should aim for < 128 bytes]
+// [80 bytes < 128 bytes]
 struct PushConstant {
-  UINT instance_index;
-  UINT material_index;
-  bool enable_irradiance; //
-  UINT padding0_[1];
+  uint instance_index;
+  uint material_index;
+  bool enable_irradiance; // (use a uint flag instead)
+  uint padding0_[1];
 
   // -----------------
-
   // (should go to a SSBO)
   mat4 worldMatrix; //
-
-  // (should go to the Pass UBO)
-  mat4 viewMatrix; //
-  vec3 cameraPosition;
-  UINT padding1_[1];
 };
 
 // ---------------------------------------------------------------------------
-
-#undef UINT
 
 #endif

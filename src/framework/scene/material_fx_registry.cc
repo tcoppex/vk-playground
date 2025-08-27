@@ -54,6 +54,14 @@ void MaterialFxRegistry::update_texture_atlas(std::function<DescriptorSetWriteEn
 
 // ----------------------------------------------------------------------------
 
+void MaterialFxRegistry::update_frame_ubo(backend::Buffer const& frame_ubo) const {
+  for (auto [_, fx] : map_) {
+    fx->updateDescriptorSetFrameUBO(frame_ubo);
+  }
+}
+
+// ----------------------------------------------------------------------------
+
 MaterialFx* MaterialFxRegistry::material_fx(MaterialRef const& ref) const {
   if (auto it = map_.find(ref.material_type_index); it != map_.end()) {
     return it->second;

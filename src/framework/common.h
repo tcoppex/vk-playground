@@ -27,6 +27,7 @@
 
 #include "lina/lina.h"
 using namespace lina::aliases;
+using uint = uint32_t; //
 
 #include "framework/utils/utils.h"
 #include "framework/utils/logger.h"

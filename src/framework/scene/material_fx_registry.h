@@ -44,6 +44,8 @@ class MaterialFxRegistry {
 
   void update_texture_atlas(std::function<DescriptorSetWriteEntry(uint32_t)> update_fn);
 
+  void update_frame_ubo(backend::Buffer const& frame_ubo) const;
+
   MaterialFx* material_fx(MaterialRef const& ref) const;
 
  private:
