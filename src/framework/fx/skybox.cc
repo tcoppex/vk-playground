@@ -26,6 +26,7 @@ void Skybox::init(Context const& context, Renderer& renderer) {
     .addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
     .addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
     .anisotropyEnable = VK_FALSE,
+    .maxLod = VK_LOD_CLAMP_NONE,
   });
 
   /* Create the skybox geometry on the device. */
@@ -51,7 +52,7 @@ void Skybox::init(Context const& context, Renderer& renderer) {
     cube_.clear_indices_and_vertices();
   }
 
-  /* Shared descriptor sets */
+  /* Descriptor sets */
   {
     descriptor_set_layout_ = renderer.create_descriptor_set_layout({
       {

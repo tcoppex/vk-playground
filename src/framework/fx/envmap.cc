@@ -23,9 +23,9 @@ void Envmap::init(Context const& context, Renderer const& renderer) {
   {
     VkImageCreateInfo image_info{
       .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-      .flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT, //
+      .flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT,
       .imageType = VK_IMAGE_TYPE_2D,
-      .mipLevels = 1u, //
+      .mipLevels = 1u,
       .arrayLayers = 6u,
       .samples = VK_SAMPLE_COUNT_1_BIT,
       .tiling = VK_IMAGE_TILING_OPTIMAL,
@@ -65,21 +65,9 @@ void Envmap::init(Context const& context, Renderer const& renderer) {
 
     image_info.extent = { kSpecularResolution, kSpecularResolution, 1u };
     image_info.mipLevels = kSpecularLevelCount;
-    view_info.subresourceRange.levelCount = image_info.mipLevels;
     // view_info.subresourceRange.baseMipLevel = 2u;
+    view_info.subresourceRange.levelCount = image_info.mipLevels;
     allocator_->create_image_with_view(image_info, view_info, &images_[ImageType::Specular]);
-
-    // /* The BRDF LUT is a simple 2D texture of RG16F */
-    // image_info.flags = 0;
-    // image_info.format = VK_FORMAT_R16G16_SFLOAT;
-    // image_info.extent = { kBRDFLutResolution, kBRDFLutResolution, 1u };
-    // image_info.arrayLayers = 1u;
-    // image_info.mipLevels = 1u;
-    // view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    // view_info.format = image_info.format;
-    // view_info.subresourceRange.levelCount = image_info.mipLevels;
-    // view_info.subresourceRange.layerCount = image_info.arrayLayers;
-    // allocator_->create_image_with_view(image_info, view_info, &brdf_lut_);
   }
 
   /* Shared descriptor sets */
@@ -151,9 +139,7 @@ void Envmap::init(Context const& context, Renderer const& renderer) {
     .setLayouts = { descriptor_set_layout_ },
     .pushConstantRanges = {
       {
-        .stageFlags = VK_SHADER_STAGE_VERTEX_BIT
-                    | VK_SHADER_STAGE_FRAGMENT_BIT
-                    | VK_SHADER_STAGE_COMPUTE_BIT
+        .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT
                     ,
         .size = sizeof(push_constant_),
       }
@@ -185,6 +171,7 @@ void Envmap::init(Context const& context, Renderer const& renderer) {
       .addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, //
       .addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
       .anisotropyEnable = VK_FALSE,
+      .maxLod = 0,
     };
     CHECK_VK( vkCreateSampler(context.get_device(), &sampler_create_info, nullptr, &sampler_) );
   }
@@ -231,26 +218,6 @@ bool Envmap::setup(std::string_view hdr_filename) {
   compute_irradiance();
   compute_specular();
 
-  // ------------------
-
-  // // [debug]
-  // context_->update_descriptor_set(descriptor_set_, {
-  //   {
-  //     .binding = shader_interop::envmap::kDescriptorSetBinding_Sampler,
-  //     .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-  //     .images = {
-  //       {
-  //         // [do not have mip map]
-  //         .sampler = sampler_, //
-  //         .imageView =
-  //           irradiance_envmap_.view,
-  //           // specular_envmap_.view,
-  //         .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-  //       }
-  //     }
-  //   }
-  // });
-
   return true;
 }
 
@@ -295,9 +262,7 @@ bool Envmap::load_diffuse_envmap(std::string_view hdr_filename) {
       cmd.bind_descriptor_set(descriptor_set_, VK_SHADER_STAGE_COMPUTE_BIT);
 
       push_constant_.mapResolution = kDiffuseResolution; //
-      cmd.push_constant(push_constant_, VK_SHADER_STAGE_VERTEX_BIT
-                                      | VK_SHADER_STAGE_FRAGMENT_BIT
-                                      | VK_SHADER_STAGE_COMPUTE_BIT);
+      cmd.push_constant(push_constant_, VK_SHADER_STAGE_COMPUTE_BIT);
 
       cmd.dispatch<
         shader_interop::envmap::kCompute_SphericalTransform_kernelSize_x,
@@ -369,9 +334,7 @@ void Envmap::compute_irradiance_sh_coeff() {
     cmd.bind_pipeline(compute_pipelines_[ComputeStage::IrradianceSHCoeff]);
     {
       push_constant_.mapResolution = kDiffuseResolution;
-      cmd.push_constant(push_constant_, VK_SHADER_STAGE_VERTEX_BIT
-                                      | VK_SHADER_STAGE_FRAGMENT_BIT
-                                      | VK_SHADER_STAGE_COMPUTE_BIT);
+      cmd.push_constant(push_constant_, VK_SHADER_STAGE_COMPUTE_BIT);
       cmd.dispatch<
         shader_interop::envmap::kCompute_IrradianceSHCoeff_kernelSize_x,
         shader_interop::envmap::kCompute_IrradianceSHCoeff_kernelSize_y
@@ -415,9 +378,7 @@ void Envmap::compute_irradiance_sh_coeff() {
       push_constant_.numElements = nelems;
       push_constant_.readOffset = read_offset;
       push_constant_.writeOffset = write_offset;
-      cmd.push_constant(push_constant_, VK_SHADER_STAGE_VERTEX_BIT
-                                      | VK_SHADER_STAGE_FRAGMENT_BIT
-                                      | VK_SHADER_STAGE_COMPUTE_BIT);
+      cmd.push_constant(push_constant_, VK_SHADER_STAGE_COMPUTE_BIT);
 
       cmd.dispatch<reduceKernelSize>(nelems);
 
@@ -494,9 +455,7 @@ void Envmap::compute_irradiance() {
       cmd.bind_descriptor_set(descriptor_set_, VK_SHADER_STAGE_COMPUTE_BIT);
 
       push_constant_.mapResolution = kIrradianceResolution;
-      cmd.push_constant(push_constant_, VK_SHADER_STAGE_VERTEX_BIT
-                                      | VK_SHADER_STAGE_FRAGMENT_BIT
-                                      | VK_SHADER_STAGE_COMPUTE_BIT);
+      cmd.push_constant(push_constant_, VK_SHADER_STAGE_COMPUTE_BIT);
 
       cmd.dispatch<
         shader_interop::envmap::kCompute_Irradiance_kernelSize_x,
@@ -538,13 +497,19 @@ void Envmap::compute_specular() {
       .baseMipLevel = 0u,
       .levelCount = 1,
       .baseArrayLayer = 0u,
-      .layerCount = 6u,
+      .layerCount = kFaceCount,
     },
   };
-  std::vector<VkDescriptorImageInfo> desc_image_infos(kSpecularLevelCount, {.imageLayout = VK_IMAGE_LAYOUT_GENERAL});
+  std::vector<VkDescriptorImageInfo> desc_image_infos(kSpecularLevelCount, {
+    .sampler = VK_NULL_HANDLE,
+    .imageLayout = VK_IMAGE_LAYOUT_GENERAL,
+  });
+
   for (uint32_t level = 0u; level < kSpecularLevelCount; ++level) {
     view_info.subresourceRange.baseMipLevel = level;
-    CHECK_VK(vkCreateImageView(context_->get_device(), &view_info, nullptr, &desc_image_infos[level].imageView));
+    CHECK_VK(vkCreateImageView(
+      context_->get_device(), &view_info, nullptr, &desc_image_infos[level].imageView
+    ));
   }
 
   context_->update_descriptor_set(descriptor_set_, {
@@ -557,44 +522,47 @@ void Envmap::compute_specular() {
 
   auto cmd = context_->create_transient_command_encoder();
   {
-    float constexpr kInvMaxLevel{
-      (kSpecularLevelCount <= 1u) ? 1.0f : 1.0f / static_cast<float>(kSpecularLevelCount - 1u)
-    };
+    cmd.pipeline_image_barriers({
+      {
+          .srcStageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+          .srcAccessMask = 0,
+          .dstStageMask = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+          .dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT,
+        .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+        .newLayout = VK_IMAGE_LAYOUT_GENERAL,
+        .image = specular.image,
+        .subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, kSpecularLevelCount, 0, kFaceCount }
+      }
+    });
 
     cmd.bind_pipeline(compute_pipelines_[ComputeStage::Specular]);
     cmd.bind_descriptor_set(descriptor_set_, VK_SHADER_STAGE_COMPUTE_BIT);
     for (uint32_t level = 0u; level < kSpecularLevelCount; ++level) {
-      float const roughness = static_cast<float>(level) * kInvMaxLevel;
+      float const roughness = static_cast<float>(level) * kInvMaxSpecularLevel;
 
-      push_constant_.mapResolution = kIrradianceResolution >> level;
+      push_constant_.mapResolution = kSpecularResolution >> level;
       push_constant_.numSamples = kSpecularSampleCount;
       push_constant_.roughnessSquared = std::pow(roughness, 2.0f);
       push_constant_.mipLevel = level;
-      cmd.push_constant(push_constant_, VK_SHADER_STAGE_VERTEX_BIT
-                                      | VK_SHADER_STAGE_FRAGMENT_BIT
-                                      | VK_SHADER_STAGE_COMPUTE_BIT);
-
-      cmd.pipeline_image_barriers({
-        {
-          .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-          .newLayout = VK_IMAGE_LAYOUT_GENERAL,
-          .image = specular.image,
-          .subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, level, 1, 0, 6 }
-        }
-      });
+      cmd.push_constant(push_constant_, VK_SHADER_STAGE_COMPUTE_BIT);
 
       cmd.dispatch<
         shader_interop::envmap::kCompute_Specular_kernelSize_x,
-        shader_interop::envmap::kCompute_Specular_kernelSize_y
-      >(push_constant_.mapResolution, push_constant_.mapResolution, 6u);
+        shader_interop::envmap::kCompute_Specular_kernelSize_y,
+        1u
+      >(push_constant_.mapResolution, push_constant_.mapResolution, kFaceCount);
     }
 
     cmd.pipeline_image_barriers({
       {
+          .srcStageMask = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+          .srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT,
+          .dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+          .dstAccessMask = VK_ACCESS_SHADER_READ_BIT,
         .oldLayout = VK_IMAGE_LAYOUT_GENERAL,
         .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
         .image = specular.image,
-        .subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, kSpecularLevelCount, 0, 6 }
+        .subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, kSpecularLevelCount, 0, kFaceCount }
       }
     });
   }

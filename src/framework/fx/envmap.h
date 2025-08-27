@@ -17,13 +17,18 @@ class Renderer;
 
 class Envmap {
  public:
-  static constexpr uint32_t kDiffuseResolution{ 1024u };
-  static constexpr uint32_t kIrradianceResolution{ 256u };
-  static constexpr uint32_t kSpecularResolution{ 256u };
-  static constexpr uint32_t kSpecularSampleCount{ 64u };
+  static uint32_t constexpr kFaceCount{ 6u };
 
+  static constexpr uint32_t kDiffuseResolution{ 1024u };
+  static constexpr uint32_t kIrradianceResolution{ 128u };
+  static constexpr uint32_t kSpecularResolution{ 256u };
+
+  static constexpr uint32_t kSpecularSampleCount{ 64u };
   static constexpr uint32_t kSpecularLevelCount{
     utils::Log2_u32(kSpecularResolution)
+  };
+  static float constexpr kInvMaxSpecularLevel{
+    (kSpecularLevelCount <= 1u) ? 1.0f : 1.0f / static_cast<float>(kSpecularLevelCount - 1u)
   };
 
  public:
