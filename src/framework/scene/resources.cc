@@ -368,6 +368,7 @@ void Resources::reset_internal_device_resource_info() {
   vertex_buffer_size = 0u;
   index_buffer_size = 0u;
 
+  uint32_t transform_index = 0u;
   for (auto const& mesh : meshes) {
     uint64_t const vertex_size = mesh->get_vertices().size();
     uint64_t const index_size = mesh->get_indices().size();
@@ -379,6 +380,8 @@ void Resources::reset_internal_device_resource_info() {
     });
     vertex_buffer_size += vertex_size;
     index_buffer_size += index_size;
+
+    mesh->transform_index = transform_index++; //
   }
 
   for (auto const& host_image : host_images) {
@@ -475,15 +478,8 @@ void Resources::upload_buffers(Context const& context) {
   }
 
   // ----------------
-  std::vector<mat4> transforms(meshes.size());
-  size_t const transforms_buffer_size{ transforms.size() * sizeof(transforms[0]) };
+  size_t const transforms_buffer_size{ meshes.size() * sizeof(mat4) };
   {
-    for (size_t i = 0; i < meshes.size(); ++i) {
-      auto mesh = meshes[i];
-      mesh->transform_index = static_cast<uint32_t>(i); //
-      transforms[i] = mesh->world_matrix;
-    }
-
     // We assume most meshes would be static, so with unfrequent updates.
     transforms_ssbo_ = allocator_->create_buffer(
       transforms_buffer_size,
@@ -503,26 +499,25 @@ void Resources::upload_buffers(Context const& context) {
   {
     size_t vertex_offset{0u};
     size_t index_offset{vertex_buffer_size};
+    size_t transform_offset{vertex_buffer_size + index_buffer_size};
 
-    // [multiples mapping / unmapping is overkill]
+    std::byte* device_data{};
+    allocator_->map_memory(staging_buffer, (void**)&device_data);
     for (auto const& mesh : meshes) {
       auto const& vertices = mesh->get_vertices();
-      vertex_offset = allocator_->write_buffer(
-        staging_buffer, vertex_offset, vertices.data(), 0u, vertices.size() * sizeof(vertices[0])
-      );
+      memcpy(device_data + vertex_offset, vertices.data(), vertices.size());
+      vertex_offset += vertices.size();
 
       if (index_buffer_size > 0) {
         auto const& indices = mesh->get_indices();
-        index_offset = allocator_->write_buffer(
-          staging_buffer, index_offset, indices.data(), 0u, indices.size() * sizeof(indices[0])
-        );
+        memcpy(device_data + index_offset, indices.data(), indices.size());
+        index_offset += indices.size();
       }
-    }
 
-    // Transforms.
-    allocator_->write_buffer(
-      staging_buffer, vertex_buffer_size + index_buffer_size, transforms.data(), 0u, transforms_buffer_size
-    );
+      memcpy(device_data + transform_offset, lina::ptr(mesh->world_matrix), sizeof(mat4));
+      transform_offset += sizeof(mat4);
+    }
+    allocator_->unmap_memory(staging_buffer);
   }
 
   /* Copy device data from staging buffers to their respective buffers. */
