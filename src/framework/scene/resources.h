@@ -11,8 +11,6 @@
 #include "framework/scene/camera.h"
 #include "framework/scene/material_fx_registry.h"
 
-#include "framework/shaders/scene/interop.h"
-
 class Context;
 class ResourceAllocator;
 class SamplerPool;
@@ -113,8 +111,8 @@ struct Resources {
   OptionalTextureBinding optionnal_texture_binding_{};
   MaterialFxRegistry *material_fx_registry_{};
 
-  FrameData frame_data_{};
   backend::Buffer frame_ubo_{};
+  backend::Buffer transforms_ssbo_{};
 };
 
 }  // namespace scene

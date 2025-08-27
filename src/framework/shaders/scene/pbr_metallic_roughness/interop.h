@@ -4,13 +4,14 @@
 // ---------------------------------------------------------------------------
 
 const uint kDescriptorSetBinding_FrameUBO           = 0;
+const uint kDescriptorSetBinding_TransformSSBO      = 1;
 
-const uint kDescriptorSetBinding_IBL_Prefiltered    = 1;
-const uint kDescriptorSetBinding_IBL_Irradiance     = 2;
-const uint kDescriptorSetBinding_IBL_SpecularBRDF   = 3;
+const uint kDescriptorSetBinding_IBL_Prefiltered    = 2;
+const uint kDescriptorSetBinding_IBL_Irradiance     = 3;
+const uint kDescriptorSetBinding_IBL_SpecularBRDF   = 4;
 
-const uint kDescriptorSetBinding_TextureAtlas       = 4;
-const uint kDescriptorSetBinding_MaterialSSBO       = 5;
+const uint kDescriptorSetBinding_TextureAtlas       = 5;
+const uint kDescriptorSetBinding_MaterialSSBO       = 6;
 
 // ---------------------------------------------------------------------------
 // Fx Materials SSBOs struct.
@@ -36,14 +37,10 @@ struct Material {
 
 // [80 bytes < 128 bytes]
 struct PushConstant {
-  uint instance_index;
+  uint transform_index;
   uint material_index;
+  uint instance_index;
   bool enable_irradiance; // (use a uint flag instead)
-  uint padding0_[1];
-
-  // -----------------
-  // (should go to a SSBO)
-  mat4 worldMatrix; //
 };
 
 // ---------------------------------------------------------------------------

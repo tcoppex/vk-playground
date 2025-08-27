@@ -1,6 +1,7 @@
 #version 460
 #extension GL_GOOGLE_include_directive : require
 #extension GL_EXT_scalar_block_layout : require
+#extension GL_EXT_nonuniform_qualifier : require
 
 // ----------------------------------------------------------------------------
 
@@ -12,6 +13,11 @@
 layout(scalar, set = 0, binding = kDescriptorSetBinding_FrameUBO)
 uniform FrameUBO_ {
   FrameData uFrame;
+};
+
+layout(scalar, set = 0, binding = kDescriptorSetBinding_TransformSSBO)
+buffer TransformSSBO_ {
+  TransformSSBO transforms[];
 };
 
 layout(scalar, push_constant) uniform PushConstant_ {
@@ -33,21 +39,18 @@ layout(location = 3) out vec2 vTexcoord;
 // ----------------------------------------------------------------------------
 
 void main() {
-  mat4 worldMatrix = pushConstant.worldMatrix; //
+  TransformSSBO transform = transforms[nonuniformEXT(pushConstant.transform_index)];
+  mat4 worldMatrix = transform.worldMatrix;
   mat3 normalMatrix = mat3(worldMatrix);
-
   vec4 worldPos = worldMatrix * vec4(inPosition, 1.0);
 
   // -------
 
   gl_Position = uFrame.viewProjMatrix * worldPos;
   vPositionWS = worldPos.xyz;
-
   vNormalWS   = normalize(normalMatrix * inNormal);
   vTangentWS  = vec4(normalize(normalMatrix * inTangent.xyz), inTangent.w);
-
   vTexcoord   = inTexcoord.xy;
-
 }
 
 // ----------------------------------------------------------------------------

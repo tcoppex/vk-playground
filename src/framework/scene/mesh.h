@@ -70,6 +70,7 @@ struct Mesh : Geometry {
 
  public:
   // ------------------------
+  uint32_t transform_index{}; // Use to reference the transform SSBO.
   mat4f world_matrix{linalg::identity}; //
   std::shared_ptr<Skeleton> skeleton{};
   std::vector<SubMesh> submeshes{};

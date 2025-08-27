@@ -40,11 +40,19 @@ class MaterialFxRegistry {
     return {};
   }
 
-  void push_material_storage_buffers() const;
+  /* Update DescriptorSet Entries for all MaterialFx. */
 
   void update_texture_atlas(std::function<DescriptorSetWriteEntry(uint32_t)> update_fn);
 
-  void update_frame_ubo(backend::Buffer const& frame_ubo) const;
+  void update_frame_ubo(backend::Buffer const& buffer) const;
+
+  void update_transforms_ssbo(backend::Buffer const& buffer) const;
+
+  /* Push updated for all MaterialFx. */
+
+  void push_material_storage_buffers() const;
+
+  /* Getters */
 
   MaterialFx* material_fx(MaterialRef const& ref) const;
 

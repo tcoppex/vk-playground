@@ -5,10 +5,10 @@
 #include "framework/renderer/renderer.h" //
 #include "framework/renderer/sampler_pool.h"
 #include "framework/utils/utils.h"
-
-#include "framework/fx/_experimental/material_fx.h"
+#include "framework/fx/_experimental/material_fx.h" //
 
 #include "framework/scene/private/gltf_loader.h"
+#include "framework/shaders/scene/interop.h"
 
 /* -------------------------------------------------------------------------- */
 
@@ -23,6 +23,7 @@ void Resources::release() {
   allocator_->destroy_buffer(frame_ubo_);
   allocator_->destroy_buffer(index_buffer);
   allocator_->destroy_buffer(vertex_buffer);
+  allocator_->destroy_buffer(transforms_ssbo_);
 
   material_fx_registry_->release();
   delete material_fx_registry_;
@@ -258,9 +259,12 @@ void Resources::prepare_material_fx(Context const& context, Renderer const& rend
 
   // ----------------------
   frame_ubo_ = context.get_resource_allocator()->create_buffer(
-    sizeof(frame_data_),
+    sizeof(FrameData),
       VK_BUFFER_USAGE_2_UNIFORM_BUFFER_BIT
-    | VK_BUFFER_USAGE_TRANSFER_DST_BIT
+    | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+      VMA_MEMORY_USAGE_AUTO,
+      VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
+    | VMA_ALLOCATION_CREATE_MAPPED_BIT
   );
   material_fx_registry_->update_frame_ubo(frame_ubo_);
   // ----------------------
@@ -310,15 +314,19 @@ void Resources::render(RenderPassEncoder const& pass, Camera const& camera) {
       }
     }
   }
-  LOG_CHECK( !fx_to_submeshes.empty() );
+  if (fx_to_submeshes.empty()) {
+    return;
+  }
 
   // (optionnal) Preprocess each buffer of submeshes
   //  -> sort per material instance
   //  -> sort wrt camera
   // ..
 
+  // -------------------------------------------
   // Update the shared Frame UBO.
-  frame_data_ = {
+
+  FrameData const frame_data{
     .projectionMatrix = camera.proj(),
     .viewMatrix = camera.view(),
     .viewProjMatrix = camera.viewproj(),
@@ -326,8 +334,9 @@ void Resources::render(RenderPassEncoder const& pass, Camera const& camera) {
     .screenSize = vec2(), //
   };
   context_ptr_->transfer_host_to_device(
-    &frame_data_, sizeof(frame_data_), frame_ubo_
+    &frame_data, sizeof(frame_data), frame_ubo_
   );
+  // -------------------------------------------
 
   // Render each Fx.
   uint32_t instance_index = 0u;
@@ -339,12 +348,8 @@ void Resources::render(RenderPassEncoder const& pass, Camera const& camera) {
     for (auto* submesh : submeshes) {
       auto mesh = submesh->parent;
 
-      // (tmp) should go to separate fx wide SSBO
-      // ---------------------
-      fx->setWorldMatrix(mesh->world_matrix); //
-      // ---------------------
-
       // Submesh's pushConstants.
+      fx->setTransformIndex(mesh->transform_index);
       fx->setMaterialIndex(submesh->material_ref->material_index);
       fx->setInstanceIndex(instance_index++);
       fx->pushConstant(pass);
@@ -451,9 +456,10 @@ void Resources::upload_images(Context const& context) {
 // ----------------------------------------------------------------------------
 
 void Resources::upload_buffers(Context const& context) {
-  assert(vertex_buffer_size > 0);
-  assert(allocator_ != nullptr);
+  LOG_CHECK(vertex_buffer_size > 0);
+  LOG_CHECK(allocator_ != nullptr);
 
+  /* Allocate device buffers for meshes & their transforms. */
   vertex_buffer = allocator_->create_buffer(
     vertex_buffer_size,
     VK_BUFFER_USAGE_2_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_2_TRANSFER_DST_BIT_KHR,
@@ -468,36 +474,97 @@ void Resources::upload_buffers(Context const& context) {
     );
   }
 
-  /* Copy host mesh data to staging buffer */
-  backend::Buffer mesh_staging_buffer{
-    allocator_->create_staging_buffer(vertex_buffer_size + index_buffer_size)
+  // ----------------
+  std::vector<mat4> transforms(meshes.size());
+  size_t const transforms_buffer_size{ transforms.size() * sizeof(transforms[0]) };
+  {
+    for (size_t i = 0; i < meshes.size(); ++i) {
+      auto mesh = meshes[i];
+      mesh->transform_index = static_cast<uint32_t>(i); //
+      transforms[i] = mesh->world_matrix;
+    }
+
+    // We assume most meshes would be static, so with unfrequent updates.
+    transforms_ssbo_ = allocator_->create_buffer(
+      transforms_buffer_size,
+      VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+      VMA_MEMORY_USAGE_GPU_ONLY
+    );
+
+    // Update the transform SSBO descriptor set entry for all MaterialFx.
+    material_fx_registry_->update_transforms_ssbo(transforms_ssbo_);
+  }
+  // ----------------
+
+  /* Copy host mesh data to the staging buffer. */
+  backend::Buffer staging_buffer{
+    allocator_->create_staging_buffer(vertex_buffer_size + index_buffer_size + transforms_buffer_size)
   };
   {
     size_t vertex_offset{0u};
     size_t index_offset{vertex_buffer_size};
 
+    // [multiples mapping / unmapping is overkill]
     for (auto const& mesh : meshes) {
       auto const& vertices = mesh->get_vertices();
-      allocator_->write_buffer(mesh_staging_buffer, vertex_offset, vertices.data(), 0u, vertices.size());
-      vertex_offset += vertices.size();
+      vertex_offset = allocator_->write_buffer(
+        staging_buffer, vertex_offset, vertices.data(), 0u, vertices.size() * sizeof(vertices[0])
+      );
 
       if (index_buffer_size > 0) {
         auto const& indices = mesh->get_indices();
-        allocator_->write_buffer(mesh_staging_buffer, index_offset, indices.data(), 0u, indices.size());
-        index_offset += indices.size();
+        index_offset = allocator_->write_buffer(
+          staging_buffer, index_offset, indices.data(), 0u, indices.size() * sizeof(indices[0])
+        );
       }
     }
+
+    // Transforms.
+    allocator_->write_buffer(
+      staging_buffer, vertex_buffer_size + index_buffer_size, transforms.data(), 0u, transforms_buffer_size
+    );
   }
 
   /* Copy device data from staging buffers to their respective buffers. */
   auto cmd = context.create_transient_command_encoder(Context::TargetQueue::Transfer);
   {
-    cmd.copy_buffer(mesh_staging_buffer, 0u, vertex_buffer, 0u, vertex_buffer_size);
+    size_t src_offset{0};
+
+    src_offset = cmd.copy_buffer(staging_buffer, src_offset, vertex_buffer, 0u, vertex_buffer_size);
     if (index_buffer_size > 0) {
-      cmd.copy_buffer(mesh_staging_buffer, vertex_buffer_size, index_buffer, 0u, index_buffer_size);
+      src_offset = cmd.copy_buffer(staging_buffer, src_offset, index_buffer, 0u, index_buffer_size);
     }
+    src_offset = cmd.copy_buffer(staging_buffer, src_offset, transforms_ssbo_, 0u, transforms_buffer_size);
+
+    cmd.pipeline_buffer_barriers({
+      {
+        .srcStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT,
+        .srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
+        .dstStageMask = VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
+        .dstAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT,
+        .buffer = vertex_buffer.buffer,
+        .size = vertex_buffer_size,
+      },
+      {
+        .srcStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT,
+        .srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
+        .dstStageMask = VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
+        .dstAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT,
+        .buffer = index_buffer.buffer,
+        .size = index_buffer_size,
+      },
+      {
+        .srcStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT,
+        .srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
+        .dstStageMask = VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, //
+        .dstAccessMask = VK_ACCESS_SHADER_READ_BIT,
+        .buffer = transforms_ssbo_.buffer,
+        .size = transforms_buffer_size,
+      },
+    });
   }
   context.finish_transient_command_encoder(cmd);
+
 }
 
 }  // namespace scene

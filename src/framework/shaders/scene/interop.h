@@ -12,7 +12,6 @@ const uint kAttribLocation_Tangent  = 3;
 
 struct FrameData {
   mat4 projectionMatrix;
-
   mat4 viewMatrix;
   mat4 viewProjMatrix;
   vec4 cameraPos_Time;   // xyz = camera, w = time
@@ -20,9 +19,9 @@ struct FrameData {
   vec2 _pad0;
 };
 
-// struct TransformSSBO {
-//   mat4 worldMatrix;
-// }
+struct TransformSSBO {
+  mat4 worldMatrix;
+};
 
 // ----------------------------------------------------------------------------
 

@@ -35,7 +35,6 @@ void MaterialFxRegistry::release() {
 // ----------------------------------------------------------------------------
 
 void MaterialFxRegistry::push_material_storage_buffers() const {
-  LOG_CHECK( !map_.empty() );
   for (auto [_, fx] : map_) {
     fx->pushMaterialStorageBuffer();
   }
@@ -44,19 +43,26 @@ void MaterialFxRegistry::push_material_storage_buffers() const {
 // ----------------------------------------------------------------------------
 
 void MaterialFxRegistry::update_texture_atlas(std::function<DescriptorSetWriteEntry(uint32_t)> update_fn) {
-  LOG_CHECK( !map_.empty() );
   for (auto [_, fx] : map_) {
     fx->updateDescriptorSetTextureAtlasEntry(
-      update_fn( fx->getDescriptorSetTextureAtlasBinding() )
+      update_fn( fx->getTextureAtlasBinding() )
     );
   }
 }
 
 // ----------------------------------------------------------------------------
 
-void MaterialFxRegistry::update_frame_ubo(backend::Buffer const& frame_ubo) const {
+void MaterialFxRegistry::update_frame_ubo(backend::Buffer const& buffer) const {
   for (auto [_, fx] : map_) {
-    fx->updateDescriptorSetFrameUBO(frame_ubo);
+    fx->updateDescriptorSetFrameUBO(buffer);
+  }
+}
+
+// ----------------------------------------------------------------------------
+
+void MaterialFxRegistry::update_transforms_ssbo(backend::Buffer const& buffer) const {
+  for (auto [_, fx] : map_) {
+    fx->updateDescriptorSetTransformsSSBO(buffer);
   }
 }
 

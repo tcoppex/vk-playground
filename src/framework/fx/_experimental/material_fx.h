@@ -50,27 +50,30 @@ class MaterialFx : public FragmentFx {
     context_ptr_->update_descriptor_set(descriptor_set_, { entry });
   }
 
-  void updateDescriptorSetFrameUBO(backend::Buffer const& frame_ubo) const {
+  void updateDescriptorSetFrameUBO(backend::Buffer const& buf) const {
     context_ptr_->update_descriptor_set(descriptor_set_, {{
-      .binding = getDescriptorSetFrameUBOBinding(),
+      .binding = getFrameUniformBufferBinding(),
       .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-      .buffers = { { frame_ubo.buffer } },
+      .buffers = { { buf.buffer } },
     }});
   }
 
-  virtual uint32_t getDescriptorSetTextureAtlasBinding() const = 0;
+  void updateDescriptorSetTransformsSSBO(backend::Buffer const& buf) const {
+    context_ptr_->update_descriptor_set(descriptor_set_, {{
+      .binding = getTransformsStorageBufferBinding(),
+      .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+      .buffers = { { buf.buffer } },
+    }});
+  }
 
-  virtual uint32_t getDescriptorSetFrameUBOBinding() const = 0;
-
-  // (uniform buffer, probably to be move to application)
-  // virtual void pushUniforms() {}
-
-  // (probably best in storage buffer)
-  virtual void setWorldMatrix(mat4 const& world_matrix) = 0; //
+  virtual uint32_t getFrameUniformBufferBinding() const = 0;
+  virtual uint32_t getTransformsStorageBufferBinding() const = 0;
+  virtual uint32_t getTextureAtlasBinding() const = 0;
 
   // (per model instance push constants)
-  virtual void setMaterialIndex(uint32_t material_index) = 0;
-  virtual void setInstanceIndex(uint32_t instance_index) = 0;
+  virtual void setTransformIndex(uint32_t index) = 0;
+  virtual void setMaterialIndex(uint32_t index) = 0;
+  virtual void setInstanceIndex(uint32_t index) = 0;
 
   // virtual void setMaterial(::scene::MaterialRef const& material_ref) = 0; //
 
