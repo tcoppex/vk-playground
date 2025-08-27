@@ -379,7 +379,7 @@ PointerToIndexMap_t ExtractMaterials(
   scene::ResourceBuffer<scene::Texture> const& textures,
   scene::ResourceBuffer<scene::MaterialRef>& material_refs,
   scene::MaterialFxRegistry& material_fx_registry,
-  scene::OptionalTextureBinding &default_bindings
+  scene::DefaultTextureBinding &default_bindings
 ) {
   PointerToIndexMap_t materials_indices{};
 
