@@ -21,6 +21,16 @@ void Renderer::init(Context const& context, std::shared_ptr<ResourceAllocator> a
   /* Initialize the swapchain. */
   swapchain_.init(context, surface);
 
+  /* Create the shared pipeline cache. */
+  {
+    VkPipelineCacheCreateInfo const cache_info{
+      .sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO,
+      .initialDataSize = 0u,
+      .pInitialData = nullptr,
+    };
+    CHECK_VK( vkCreatePipelineCache(device_, &cache_info, nullptr, &pipeline_cache_) );
+  }
+
   /* Create a default depth stencil buffer. */
   VkExtent2D const dimension{swapchain_.get_surface_size()};
   depth_stencil_ = context.create_image_2d(dimension.width, dimension.height, get_valid_depth_format());
@@ -104,6 +114,7 @@ void Renderer::deinit() {
   }
 
   allocator_->destroy_image(&depth_stencil_);
+  vkDestroyPipelineCache(device_, pipeline_cache_, nullptr);
   swapchain_.deinit();
 
   *this = {};
@@ -498,9 +509,18 @@ Pipeline Renderer::create_graphics_pipeline(VkPipelineLayout pipeline_layout, Gr
     .pDynamicStates = dynamic_states.data(),
   };
 
+  // TODO
+  // ------------------------------
+  VkPipelineCreateFlagBits flags{
+    // VK_PIPELINE_CREATE_ALLOW_DERIVATIVES_BIT
+    // VK_PIPELINE_CREATE_DERIVATIVE_BIT
+  };
+  // ------------------------------
+
   VkGraphicsPipelineCreateInfo const graphics_pipeline_create_info{
     .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
     .pNext = useDynamicRendering ? &dynamic_rendering_create_info : nullptr,
+    .flags = flags,
     .stageCount = static_cast<uint32_t>(shader_stages.size()),
     .pStages = shader_stages.data(),
     .pVertexInputState = &vertex_input,
@@ -514,11 +534,14 @@ Pipeline Renderer::create_graphics_pipeline(VkPipelineLayout pipeline_layout, Gr
     .pDynamicState = &dynamic_state_create_info,
     .layout = pipeline_layout,
     .renderPass = useDynamicRendering ? VK_NULL_HANDLE : desc.renderPass,
+    .subpass = 0u,
+    .basePipelineHandle = VK_NULL_HANDLE,
+    .basePipelineIndex = 0,
   };
 
   VkPipeline pipeline;
   CHECK_VK(vkCreateGraphicsPipelines(
-    device_, nullptr, 1u, &graphics_pipeline_create_info, nullptr, &pipeline
+    device_, pipeline_cache_, 1u, &graphics_pipeline_create_info, nullptr, &pipeline
   ));
 
   return Pipeline(pipeline_layout, pipeline, VK_PIPELINE_BIND_POINT_GRAPHICS);
@@ -562,7 +585,7 @@ void Renderer::create_compute_pipelines(VkPipelineLayout pipeline_layout, std::v
   std::vector<VkPipeline> pips(modules.size());
 
   CHECK_VK(vkCreateComputePipelines(
-    device_, nullptr, static_cast<uint32_t>(pipeline_infos.size()), pipeline_infos.data(), nullptr, pips.data()
+    device_, pipeline_cache_, static_cast<uint32_t>(pipeline_infos.size()), pipeline_infos.data(), nullptr, pips.data()
   ));
 
   for (size_t i = 0; i < pips.size(); ++i) {

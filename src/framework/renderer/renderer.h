@@ -230,6 +230,9 @@ class Renderer : public backend::RTInterface {
   Swapchain swapchain_{};
   std::vector<backend::Image> proxy_swap_attachment_{};
 
+  /* Pipeline Cache */
+  VkPipelineCache pipeline_cache_;
+
   /* Default depth-stencil buffer. */
   backend::Image depth_stencil_{};
 
