@@ -186,7 +186,7 @@ void Resources::initialize_submesh_descriptors(Mesh::AttributeLocationMap const&
   //     Resulting indices might be incorrect.
 
   if (attribute_to_location.contains(Geometry::AttributeType::Tangent)) {
-    // for (auto& mesh : meshes) { mesh->recalculate_tangents(); } //
+    for (auto& mesh : meshes) { mesh->recalculate_tangents(); } //
   }
   // --------------------
 }
@@ -198,6 +198,17 @@ void Resources::upload_to_device(Context const& context, bool const bReleaseHost
   if (!allocator_) {
     allocator_ = context.get_resource_allocator();
   }
+
+  /* Create the shared Frame UBO */
+  frame_ubo_ = allocator_->create_buffer(
+    sizeof(FrameData),
+      VK_BUFFER_USAGE_2_UNIFORM_BUFFER_BIT
+    | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+      VMA_MEMORY_USAGE_AUTO,
+      VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
+    | VMA_ALLOCATION_CREATE_MAPPED_BIT
+  );
+  material_fx_registry_->update_frame_ubo(frame_ubo_);
 
   /* Transfer Materials */
   material_fx_registry_->push_material_storage_buffers();
@@ -257,19 +268,6 @@ void Resources::prepare_material_fx(Context const& context, Renderer const& rend
   material_fx_registry_ = new MaterialFxRegistry();
   material_fx_registry_->setup(context, renderer);
 
-  // ----------------------
-  frame_ubo_ = context.get_resource_allocator()->create_buffer(
-    sizeof(FrameData),
-      VK_BUFFER_USAGE_2_UNIFORM_BUFFER_BIT
-    | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-      VMA_MEMORY_USAGE_AUTO,
-      VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
-    | VMA_ALLOCATION_CREATE_MAPPED_BIT
-  );
-  material_fx_registry_->update_frame_ubo(frame_ubo_);
-  // ----------------------
-
-  // ----------------------
   // Create default 1x1 textures for optionnal bindings.
   //  -> Creation should be left to each MaterialFx
 #if 1
@@ -292,18 +290,32 @@ void Resources::prepare_material_fx(Context const& context, Renderer const& rend
   bindings.occlusion          = push_default_texture({255, 255, 255, 255});
   bindings.emissive           = push_default_texture({  0,   0,   0, 255});
 #endif
-  // ----------------------
 }
 
 // ----------------------------------------------------------------------------
 
-void Resources::render(RenderPassEncoder const& pass, Camera const& camera) {
+void Resources::update(Camera const& camera, VkExtent2D const& surfaceSize, float elapsedTime) {
+  // Update the shared Frame UBO.
+  FrameData const frame_data{
+    .projectionMatrix = camera.proj(),
+    .viewMatrix = camera.view(),
+    .viewProjMatrix = camera.viewproj(),
+    .cameraPos_Time = vec4(camera.position(), elapsedTime),
+    .resolution = vec2(surfaceSize.width, surfaceSize.height),
+  };
+
+  context_ptr_->transfer_host_to_device(
+    &frame_data, sizeof(frame_data), frame_ubo_
+  );
+}
+
+// ----------------------------------------------------------------------------
+
+void Resources::render(RenderPassEncoder const& pass) {
   LOG_CHECK( material_fx_registry_ != nullptr );
 
+  // Retrieve submeshes associated to each MaterialFx.
   using FxToSubmeshesMap = std::map< MaterialFx*, std::vector<Mesh::SubMesh const*> >;
-
-  // Retrieve submeshes associated to each Fx.
-  //    { Submeshes share Materials share Fx }
   FxToSubmeshesMap fx_to_submeshes{};
   for (auto const& mesh : meshes) {
     for (auto const& submesh : mesh->submeshes) {
@@ -318,31 +330,16 @@ void Resources::render(RenderPassEncoder const& pass, Camera const& camera) {
     return;
   }
 
-  // (optionnal) Preprocess each buffer of submeshes
+  // [TODO] Preprocess each buffer of submeshes
   //  -> sort per material instance
   //  -> sort wrt camera
   // ..
-
-  // -------------------------------------------
-  // Update the shared Frame UBO.
-
-  FrameData const frame_data{
-    .projectionMatrix = camera.proj(),
-    .viewMatrix = camera.view(),
-    .viewProjMatrix = camera.viewproj(),
-    .cameraPos_Time = vec4(camera.position(), 0.0f), //
-    .screenSize = vec2(), //
-  };
-  context_ptr_->transfer_host_to_device(
-    &frame_data, sizeof(frame_data), frame_ubo_
-  );
-  // -------------------------------------------
 
   // Render each Fx.
   uint32_t instance_index = 0u;
   for (auto& [fx, submeshes] : fx_to_submeshes) {
     // Bind pipeline & descriptor set.
-    fx->prepareDrawState(pass); //
+    fx->prepareDrawState(pass);
 
     // Draw submeshes.
     for (auto* submesh : submeshes) {
@@ -351,7 +348,7 @@ void Resources::render(RenderPassEncoder const& pass, Camera const& camera) {
       // Submesh's pushConstants.
       fx->setTransformIndex(mesh->transform_index);
       fx->setMaterialIndex(submesh->material_ref->material_index);
-      fx->setInstanceIndex(instance_index++);
+      fx->setInstanceIndex(instance_index++); //
       fx->pushConstant(pass);
 
       pass.set_primitive_topology(mesh->get_vk_primitive_topology());
@@ -364,22 +361,23 @@ void Resources::render(RenderPassEncoder const& pass, Camera const& camera) {
 // ----------------------------------------------------------------------------
 
 void Resources::reset_internal_device_resource_info() {
-  /* Calculate the offsets to indivual mesh data inside the shared vertices and indices buffers. */
+  /* Calculate the offsets to indivual mesh data inside the shared vertices
+   * and indices buffers. */
   vertex_buffer_size = 0u;
   index_buffer_size = 0u;
 
   uint32_t transform_index = 0u;
   for (auto const& mesh : meshes) {
-    uint64_t const vertex_size = mesh->get_vertices().size();
-    uint64_t const index_size = mesh->get_indices().size();
+    uint64_t const mesh_vertices_size = mesh->get_vertices().size();
+    uint64_t const mesh_indices_size = mesh->get_indices().size();
     mesh->set_device_buffer_info({
       .vertex_offset = vertex_buffer_size,
       .index_offset = index_buffer_size,
-      .vertex_size = vertex_size,
-      .index_size = index_size,
+      .vertex_size = mesh_vertices_size,
+      .index_size = mesh_indices_size,
     });
-    vertex_buffer_size += vertex_size;
-    index_buffer_size += index_size;
+    vertex_buffer_size += mesh_vertices_size;
+    index_buffer_size += mesh_indices_size;
 
     mesh->transform_index = transform_index++; //
   }
@@ -477,7 +475,7 @@ void Resources::upload_buffers(Context const& context) {
     );
   }
 
-  // ----------------
+  // Meshes transforms buffer.
   size_t const transforms_buffer_size{ meshes.size() * sizeof(mat4) };
   {
     // We assume most meshes would be static, so with unfrequent updates.
@@ -486,11 +484,9 @@ void Resources::upload_buffers(Context const& context) {
       VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
       VMA_MEMORY_USAGE_GPU_ONLY
     );
-
-    // Update the transform SSBO descriptor set entry for all MaterialFx.
+    // Update the transform SSBO DescriptorSet entry for all MaterialFx.
     material_fx_registry_->update_transforms_ssbo(transforms_ssbo_);
   }
-  // ----------------
 
   /* Copy host mesh data to the staging buffer. */
   backend::Buffer staging_buffer{
@@ -559,7 +555,6 @@ void Resources::upload_buffers(Context const& context) {
     });
   }
   context.finish_transient_command_encoder(cmd);
-
 }
 
 }  // namespace scene

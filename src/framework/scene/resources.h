@@ -57,7 +57,9 @@ struct Resources {
   /* Create material fx used for rendering [might be move to Renderer]. */
   void prepare_material_fx(Context const& context, Renderer const& renderer); //
 
-  void render(RenderPassEncoder const& pass, Camera const& camera);
+  void update(Camera const& camera, VkExtent2D const& surfaceSize, float elapsedTime);
+
+  void render(RenderPassEncoder const& pass);
 
   template<typename TMaterialFx>
   requires DerivedFrom<TMaterialFx, MaterialFx>

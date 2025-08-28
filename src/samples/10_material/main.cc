@@ -69,24 +69,29 @@ class SampleApp final : public Application {
      && future_scene_.wait_for(0ms) == std::future_status::ready) {
       scene_ = future_scene_.get();
     }
+    if (scene_) {
+      scene_->update(camera_, renderer_.get_surface_size(), elapsed_time());
+    }
   }
 
   void draw() final {
     auto cmd = renderer_.begin_frame();
     {
-      //---------------------
       auto pass = cmd.begin_rendering();
+      {
+        // SKYBOX.
+        if (auto const& skybox = renderer_.skybox(); skybox.is_valid()) {
+          skybox.render(pass, camera_);
+        }
 
-      if (auto const& skybox = renderer_.skybox(); skybox.is_valid()) {
-        skybox.render(pass, camera_);
-      }
-
-      if (scene_) {
-        scene_->render(pass, camera_);
+        // SCENE.
+        if (scene_) {
+          scene_->render(pass);
+        }
       }
       cmd.end_rendering();
-      //---------------------
 
+      // UI.
       cmd.render_ui(renderer_);
     }
     renderer_.end_frame();

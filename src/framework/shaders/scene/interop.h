@@ -15,7 +15,7 @@ struct FrameData {
   mat4 viewMatrix;
   mat4 viewProjMatrix;
   vec4 cameraPos_Time;   // xyz = camera, w = time
-  vec2 screenSize;
+  vec2 resolution;
   vec2 _pad0;
 };
 
