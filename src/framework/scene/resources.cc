@@ -492,7 +492,7 @@ void Resources::upload_buffers(Context const& context) {
   backend::Buffer staging_buffer{
     allocator_->create_staging_buffer(vertex_buffer_size + index_buffer_size + transforms_buffer_size)
   };
-  {
+    {
     size_t vertex_offset{0u};
     size_t index_offset{vertex_buffer_size};
     size_t transform_offset{vertex_buffer_size + index_buffer_size};
@@ -522,12 +522,14 @@ void Resources::upload_buffers(Context const& context) {
     size_t src_offset{0};
 
     src_offset = cmd.copy_buffer(staging_buffer, src_offset, vertex_buffer, 0u, vertex_buffer_size);
+
     if (index_buffer_size > 0) {
       src_offset = cmd.copy_buffer(staging_buffer, src_offset, index_buffer, 0u, index_buffer_size);
     }
+
     src_offset = cmd.copy_buffer(staging_buffer, src_offset, transforms_ssbo_, 0u, transforms_buffer_size);
 
-    cmd.pipeline_buffer_barriers({
+    std::vector<VkBufferMemoryBarrier2> barriers{
       {
         .srcStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT,
         .srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
@@ -539,21 +541,25 @@ void Resources::upload_buffers(Context const& context) {
       {
         .srcStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT,
         .srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
-        .dstStageMask = VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
-        .dstAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT,
-        .buffer = index_buffer.buffer,
-        .size = index_buffer_size,
-      },
-      {
-        .srcStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT,
-        .srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
         .dstStageMask = VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, //
         .dstAccessMask = VK_ACCESS_SHADER_READ_BIT,
         .buffer = transforms_ssbo_.buffer,
         .size = transforms_buffer_size,
       },
-    });
+    };
+    if (index_buffer_size > 0) {
+      barriers.emplace_back(VkBufferMemoryBarrier2{
+        .srcStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT,
+        .srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
+        .dstStageMask = VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
+        .dstAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT,
+        .buffer = index_buffer.buffer,
+        .size = index_buffer_size,
+      });
+    }
+    cmd.pipeline_buffer_barriers(barriers);
   }
+
   context.finish_transient_command_encoder(cmd);
 }
 
