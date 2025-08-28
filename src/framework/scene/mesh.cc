@@ -5,11 +5,11 @@
 namespace scene {
 
 void Mesh::initialize_submesh_descriptors(AttributeLocationMap const& attribute_to_location) {
+  LOG_CHECK( get_primitive_count() > 0 );
   if (submeshes.empty()) {
     submeshes.resize(get_primitive_count(), {.parent = this});
-  } else {
-    assert( get_primitive_count() == submeshes.size() );
   }
+  LOG_CHECK( get_primitive_count() == submeshes.size() );
 
   for (uint32_t i = 0u; i < get_primitive_count(); ++i) {
     auto const& prim{ get_primitive(i) };
@@ -20,6 +20,7 @@ void Mesh::initialize_submesh_descriptors(AttributeLocationMap const& attribute_
       .indexOffset = device_buffer_info_.index_offset + prim.indexOffset, //
       .indexType = get_vk_index_type(),
       .indexCount = prim.indexCount,
+      .vertexCount = prim.vertexCount,
       .instanceCount = 1u, //
     };
   }
