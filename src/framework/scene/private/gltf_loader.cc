@@ -583,7 +583,9 @@ void ExtractMeshes(
     //
     if (bRestructureAttribs) [[likely]] {
       mesh->set_attributes(VertexInternal_t::GetAttributeInfoMap());
-      mesh->set_topology(Geometry::Topology::TriangleList); //
+
+      // XXX (Do not support different topology yet) XXX
+      mesh->set_topology(Geometry::Topology::TriangleList); // xxx
 
       // Hold the interleaved attributes of the mesh in the same interleaved buffer.
       std::vector<VertexInternal_t> vertices{};
@@ -595,8 +597,10 @@ void ExtractMeshes(
       for (size_t prim_index = 0u; prim_index < valid_prim_indices.size(); ++prim_index) {
         uint32_t const valid_prim_index{ valid_prim_indices[prim_index] };
         cgltf_primitive const& prim{ node.mesh->primitives[valid_prim_index] };
+        LOG_CHECK(prim.type == cgltf_primitive_type_triangles);
 
         Geometry::Primitive primitive{};
+        primitive.topology = ConvertTopology(prim);
 
         if (prim.has_draco_mesh_compression) {
           std::vector<uint32_t> indices{};
@@ -636,6 +640,8 @@ void ExtractMeshes(
                 reinterpret_cast<std::byte const*>(buffer->data) + buffer_view->offset + accessor->offset,
                 total_size
               );
+            } else {
+              LOGD("index format unsupported.");
             }
           }
         }

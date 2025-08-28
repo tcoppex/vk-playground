@@ -73,6 +73,8 @@ class Geometry {
   using AttributeInfoMap     = std::map<AttributeType, AttributeInfo>;
 
   struct Primitive {
+    Topology topology{Topology::kUnknown};
+
     uint32_t vertexCount{};
     uint32_t indexCount{};
 
