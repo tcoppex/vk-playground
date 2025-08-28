@@ -35,8 +35,8 @@ void RenderTargetFx::execute(CommandEncoder& cmd) {
   // -----------------------------
   auto pass = cmd.begin_rendering(render_target_);
   {
-    setupRenderPass(pass);
-    updatePushConstant(pass); //
+    prepareDrawState(pass);
+    pushConstant(pass); //
     draw(pass);
   }
   cmd.end_rendering();

@@ -46,12 +46,10 @@ class FragmentFx : public virtual GenericFx {
     return renderer_ptr_->get_surface_size(); //
   }
 
-  // [rename?]
-  virtual void setupRenderPass(RenderPassEncoder const& pass) {
-    pass.set_viewport_scissor(getRenderSurfaceSize()); //
+  virtual void prepareDrawState(RenderPassEncoder const& pass) {
     pass.bind_pipeline(pipeline_);
     pass.bind_descriptor_set(descriptor_set_, pipeline_layout_, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
-    // updatePushConstant(pass); //
+    pass.set_viewport_scissor(getRenderSurfaceSize()); //
   }
 
  protected:

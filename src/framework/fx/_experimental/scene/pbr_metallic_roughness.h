@@ -185,7 +185,7 @@ class PBRMetallicRoughnessFx final : public TMaterialFx<PBRMetallicRoughnessMate
     };
   }
 
-  void updatePushConstant(GenericCommandEncoder const &cmd) final {
+  void pushConstant(GenericCommandEncoder const &cmd) final {
     push_constant_.enable_irradiance = renderer_ptr_->skybox().is_valid(); //
     cmd.push_constant(push_constant_, pipeline_layout_, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
   }

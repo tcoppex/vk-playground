@@ -53,7 +53,7 @@ void ComputeFx::execute(CommandEncoder& cmd) {
 
   cmd.bind_pipeline(pipeline_);
   cmd.bind_descriptor_set(descriptor_set_, pipeline_layout_, VK_SHADER_STAGE_COMPUTE_BIT);
-  updatePushConstant(cmd);
+  pushConstant(cmd);
 
   // -------------------------
   cmd.dispatch<32u, 32u>(

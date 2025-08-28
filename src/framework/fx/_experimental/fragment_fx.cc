@@ -42,8 +42,8 @@ void FragmentFx::execute(CommandEncoder& cmd) {
   // -----------------------------
   auto pass = cmd.begin_rendering(); //
   {
-    setupRenderPass(pass);
-    updatePushConstant(pass); //
+    prepareDrawState(pass);
+    pushConstant(pass); //
     draw(pass);
   }
   cmd.end_rendering();

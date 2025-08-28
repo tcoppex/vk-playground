@@ -29,23 +29,16 @@ class MaterialFx : public FragmentFx {
     FragmentFx::setup(dimension);
   }
 
-  // (we need those as public, so we expose them with new names..)
-  // ------------------------------------
-  void prepareDrawState(RenderPassEncoder const& pass) {
-    setupRenderPass(pass);
+  void prepareDrawState(RenderPassEncoder const& pass) override {
+    FragmentFx::prepareDrawState(pass);
   }
 
-  void pushConstant(GenericCommandEncoder const& cmd) {
-    updatePushConstant(cmd);
+  void pushConstant(GenericCommandEncoder const& cmd) override {
+    FragmentFx::pushConstant(cmd);
   }
-  // ------------------------------------
 
-  virtual CreatedMaterial createMaterial() = 0;
+  // -- frame-wide resource descriptor --
 
-  virtual void pushMaterialStorageBuffer() const = 0;
-
- public:
-  // (application-wide)
   void updateDescriptorSetTextureAtlasEntry(DescriptorSetWriteEntry const& entry) const {
     context_ptr_->update_descriptor_set(descriptor_set_, { entry });
   }

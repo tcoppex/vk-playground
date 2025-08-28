@@ -46,10 +46,12 @@ class GenericFx : public virtual FxInterface {
     return {};
   }
 
-  virtual void updatePushConstant(GenericCommandEncoder const& cmd) {}
+  virtual void pushConstant(GenericCommandEncoder const& cmd) {}
 
   virtual void createPipelineLayout() {
-    descriptor_set_layout_ = renderer_ptr_->create_descriptor_set_layout(getDescriptorSetLayoutParams());
+    descriptor_set_layout_ = renderer_ptr_->create_descriptor_set_layout(
+      getDescriptorSetLayoutParams()
+    );
     pipeline_layout_ = renderer_ptr_->create_pipeline_layout({
       .setLayouts = { descriptor_set_layout_ },
       .pushConstantRanges = getPushConstantRanges()

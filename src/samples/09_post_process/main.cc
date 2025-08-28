@@ -114,7 +114,7 @@ class SceneFx final : public RenderTargetFx {
     };
   }
 
-  void updatePushConstant(GenericCommandEncoder const &cmd) final {
+  void pushConstant(GenericCommandEncoder const &cmd) final {
     cmd.push_constant(push_constant_, pipeline_layout_, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
   }
 
@@ -163,7 +163,7 @@ class SceneFx final : public RenderTargetFx {
           push_constant_.model.material_index = material_ref.material_index;
         }
         push_constant_.model.instance_index = instance_index++;
-        updatePushConstant(pass);
+        pushConstant(pass);
         pass.draw(submesh.draw_descriptor, gltf_model_->vertex_buffer, gltf_model_->index_buffer);
       }
     }

@@ -233,7 +233,7 @@ void Skybox::compute_specular_brdf_lut(Context const& context, Renderer const& r
       };
     }
 
-    void updatePushConstant(GenericCommandEncoder const &cmd) final {
+    void pushConstant(GenericCommandEncoder const &cmd) final {
       cmd.push_constant(push_constant_, pipeline_layout_, VK_SHADER_STAGE_COMPUTE_BIT);
     }
 
