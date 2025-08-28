@@ -14,6 +14,7 @@ static constexpr bool kFrameworkHasDraco{false};
 #include "framework/renderer/sampler_pool.h"
 
 #include "framework/fx/_experimental/scene/pbr_metallic_roughness.h" //
+#include "framework/fx/_experimental/scene/unlit.h" //
 
 /* -------------------------------------------------------------------------- */
 
@@ -393,8 +394,17 @@ PointerToIndexMap_t ExtractMaterials(
 
     // PBR MetallicRoughness.
     if (gl_material.unlit) {
-      LOGW("[GLTF] Unlit material not supported.");
-      continue;
+      auto [ref, material] = material_fx_registry.create_material<fx::scene::UnlitMaterialFx>();
+      if (material_ref = std::make_shared<scene::MaterialRef>()) {
+        *material_ref = ref;
+      }
+
+      auto const& pbr_mr = gl_material.pbr_metallic_roughness;
+      std::copy(
+        std::cbegin(pbr_mr.base_color_factor),
+        std::cend(pbr_mr.base_color_factor),
+        lina::ptr(material->diffuse_factor)
+      );
     } else if (gl_material.has_pbr_metallic_roughness) {
       auto const& pbr_mr = gl_material.pbr_metallic_roughness;
 
@@ -403,7 +413,6 @@ PointerToIndexMap_t ExtractMaterials(
 
       if (material_ref = std::make_shared<scene::MaterialRef>()) {
         *material_ref = ref;
-        material_ref->index = material_id;
       }
       // ------------------------
 
@@ -454,6 +463,8 @@ PointerToIndexMap_t ExtractMaterials(
       LOGW("[GLTF] Material %03u has unsupported material type.", (uint32_t)material_id);
       continue;
     }
+
+    material_ref->index = material_id;
 
     materials_indices.try_emplace(&gl_material, material_id);
     material_refs.push_back( std::move(material_ref) ); //

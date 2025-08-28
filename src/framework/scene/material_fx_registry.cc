@@ -4,6 +4,7 @@
 #include "framework/renderer/renderer.h"
 
 #include "framework/fx/_experimental/scene/pbr_metallic_roughness.h" //
+#include "framework/fx/_experimental/scene/unlit.h" //
 
 /* -------------------------------------------------------------------------- */
 
@@ -14,7 +15,11 @@ void MaterialFxRegistry::setup(Context const& context, Renderer const& renderer)
     {
       type_index<fx::scene::PBRMetallicRoughnessFx>(),
       new fx::scene::PBRMetallicRoughnessFx() // use std::unique_ptr ?
-    }
+    },
+    {
+      type_index<fx::scene::UnlitMaterialFx>(),
+      new fx::scene::UnlitMaterialFx()
+    },
   };
 
   for (auto [_, fx] : map_) {
@@ -44,9 +49,9 @@ void MaterialFxRegistry::push_material_storage_buffers() const {
 
 void MaterialFxRegistry::update_texture_atlas(std::function<DescriptorSetWriteEntry(uint32_t)> update_fn) {
   for (auto [_, fx] : map_) {
-    fx->updateDescriptorSetTextureAtlasEntry(
-      update_fn( fx->getTextureAtlasBinding() )
-    );
+    if (uint binding = fx->getTextureAtlasBinding(); binding != kInvalidIndexU32) {
+      fx->updateDescriptorSetTextureAtlasEntry(update_fn(binding));
+    }
   }
 }
 

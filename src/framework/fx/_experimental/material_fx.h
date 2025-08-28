@@ -8,7 +8,6 @@
 /* -------------------------------------------------------------------------- */
 
 ///
-/// [wip]
 /// Specialized FragmentFx with custom material.
 ///
 /// Ideally should derive from GenericFx rather than FragmentFx, but this would
@@ -60,15 +59,27 @@ class MaterialFx : public FragmentFx {
   }
 
   virtual uint32_t getFrameUniformBufferBinding() const = 0;
-  virtual uint32_t getTransformsStorageBufferBinding() const = 0;
-  virtual uint32_t getTextureAtlasBinding() const = 0;
 
-  // (per model instance push constants)
+  virtual uint32_t getTransformsStorageBufferBinding() const = 0;
+
+  virtual uint32_t getTextureAtlasBinding() const {
+    return kInvalidIndexU32;
+  }
+
+  // -- mesh instance push constants --
+
   virtual void setTransformIndex(uint32_t index) = 0;
   virtual void setMaterialIndex(uint32_t index) = 0;
   virtual void setInstanceIndex(uint32_t index) = 0;
 
+  // -- material utils --
+
+  virtual CreatedMaterial createMaterial() = 0;
+
+  virtual void pushMaterialStorageBuffer() const = 0;
+
   // virtual void setMaterial(::scene::MaterialRef const& material_ref) = 0; //
+  // virtual void buildMaterialUI(::scene::MaterialRef const& material_ref) {}
 
  private:
   // (we might probably discard them altogether)
@@ -143,8 +154,11 @@ class TMaterialFx : public MaterialFx {
   }
 
   void pushMaterialStorageBuffer() const override {
-    LOG_CHECK(!materials_.empty());
     LOG_CHECK(materials_.size() < kDefaultMaterialCount);
+
+    if (materials_.empty()) {
+      return;
+    }
 
     if constexpr (kEditMode) {
       allocator_->upload_host_to_device(
@@ -159,7 +173,6 @@ class TMaterialFx : public MaterialFx {
         material_storage_buffer_
       );
     }
-
   }
 
   MaterialType const& material(uint32_t index) const {
