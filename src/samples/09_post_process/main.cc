@@ -16,7 +16,7 @@
 #include "framework/fx/_experimental/fragment/normaldepth_edge.h"
 #include "framework/fx/_experimental/fragment/object_edge.h"
 
-#include "framework/fx/_experimental/scene/pbr_metallic_roughness.h"
+#include "framework/fx/material/pbr_metallic_roughness.h"
 
 namespace shader_interop {
 #include "shaders/interop.h"

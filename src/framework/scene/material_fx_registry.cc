@@ -3,14 +3,15 @@
 #include "framework/backend/context.h"
 #include "framework/renderer/renderer.h"
 
-#include "framework/fx/_experimental/scene/pbr_metallic_roughness.h" //
-#include "framework/fx/_experimental/scene/unlit.h" //
+#include "framework/fx/material/pbr_metallic_roughness.h" //
+#include "framework/fx/material/unlit.h" //
 
 /* -------------------------------------------------------------------------- */
 
 namespace scene {
 
 void MaterialFxRegistry::setup(Context const& context, Renderer const& renderer) {
+  // [ ideally we should preprocess the scene and only setup the pipeline used ]
   map_ = {
     {
       type_index<fx::scene::PBRMetallicRoughnessFx>(),

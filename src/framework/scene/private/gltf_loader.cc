@@ -13,8 +13,8 @@ static constexpr bool kFrameworkHasDraco{false};
 
 #include "framework/renderer/sampler_pool.h"
 
-#include "framework/fx/_experimental/scene/pbr_metallic_roughness.h" //
-#include "framework/fx/_experimental/scene/unlit.h" //
+#include "framework/fx/material/pbr_metallic_roughness.h" //
+#include "framework/fx/material/unlit.h" //
 
 /* -------------------------------------------------------------------------- */
 

@@ -1,7 +1,7 @@
 #ifndef FRAMEWORK_FX_SCENE_UNLIT_H_
 #define FRAMEWORK_FX_SCENE_UNLIT_H_
 
-#include "framework/fx/_experimental/material_fx.h"
+#include "framework/fx/material/material_fx.h"
 
 /* -------------------------------------------------------------------------- */
 
