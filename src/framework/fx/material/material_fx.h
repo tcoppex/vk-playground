@@ -1,22 +1,13 @@
 #ifndef HELLOVK_FRAMEWORK_FX_MATERIAL_FX_H_
 #define HELLOVK_FRAMEWORK_FX_MATERIAL_FX_H_
 
-#include "framework/fx/_experimental/fragment_fx.h"
-
+#include "framework/common.h"
+#include "framework/renderer/renderer.h"
 #include "framework/scene/material.h" //
 
 /* -------------------------------------------------------------------------- */
 
-///
-/// Specialized FragmentFx with custom material.
-///
-/// Ideally should derive from GenericFx rather than FragmentFx, but this would
-/// requires to rethink the post processing pipeline. Maybe in the future.
-///
-
-// ----------------------------------------------------------------------------
-
-class MaterialFx : public FragmentFx {
+class MaterialFx {
  public:
   struct CreatedMaterial {
     ::scene::MaterialRef ref;
@@ -24,18 +15,116 @@ class MaterialFx : public FragmentFx {
   };
 
  public:
-  void setup(VkExtent2D const dimension = {}) override {
-    FragmentFx::setup(dimension);
+  MaterialFx() = default;
+  virtual ~MaterialFx() {}
+
+  virtual void init(Context const& context, Renderer const& renderer) {
+    context_ptr_ = &context;
+    renderer_ptr_ = &renderer;
+    allocator_ = context.get_resource_allocator();
   }
 
-  void prepareDrawState(RenderPassEncoder const& pass) override {
-    FragmentFx::prepareDrawState(pass);
+  virtual void setup(VkExtent2D const dimension = {}) {
+    LOG_CHECK(nullptr != context_ptr_);
+    createPipelineLayout();
+    createPipeline();
+    descriptor_set_ = renderer_ptr_->create_descriptor_set(descriptor_set_layout_); //
   }
 
-  void pushConstant(GenericCommandEncoder const& cmd) override {
-    FragmentFx::pushConstant(cmd);
+  virtual void release() {
+    if (pipeline_layout_ != VK_NULL_HANDLE) {
+      renderer_ptr_->destroy_pipeline(pipeline_);
+      renderer_ptr_->destroy_pipeline_layout(pipeline_layout_); //
+      renderer_ptr_->destroy_descriptor_set_layout(descriptor_set_layout_);
+      pipeline_layout_ = VK_NULL_HANDLE;
+    }
   }
 
+  virtual void prepareDrawState(RenderPassEncoder const& pass) {
+    pass.bind_pipeline(pipeline_);
+    pass.bind_descriptor_set(descriptor_set_, pipeline_layout_, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+    pass.set_viewport_scissor(renderer_ptr_->get_surface_size()); //
+  }
+
+  virtual void pushConstant(GenericCommandEncoder const& cmd) = 0;
+
+ protected:
+  virtual std::string getVertexShaderName() const = 0;
+
+  virtual std::string getShaderName() const = 0;
+
+  virtual std::vector<VkPushConstantRange> getPushConstantRanges() const {
+    return {};
+  }
+
+  virtual std::vector<DescriptorSetLayoutParams> getDescriptorSetLayoutParams() const {
+    return {}; //
+  }
+
+  virtual void createPipelineLayout() {
+    descriptor_set_layout_ = renderer_ptr_->create_descriptor_set_layout(
+      getDescriptorSetLayoutParams()
+    );
+    pipeline_layout_ = renderer_ptr_->create_pipeline_layout({
+      .setLayouts = { descriptor_set_layout_ },
+      .pushConstantRanges = getPushConstantRanges()
+    });
+  }
+
+  virtual GraphicsPipelineDescriptor_t getGraphicsPipelineDescriptor(std::vector<backend::ShaderModule> const& shaders) const {
+    return {
+      .dynamicStates = {
+        VK_DYNAMIC_STATE_VERTEX_INPUT_EXT,
+        VK_DYNAMIC_STATE_PRIMITIVE_TOPOLOGY,
+      },
+      .vertex = {
+        .module = shaders[0u].module,
+      },
+      .fragment = {
+        .module = shaders[1u].module,
+        .targets = {
+          {
+            .format = renderer_ptr_->get_color_attachment(0).format,
+            // .blend = {
+            //   .enable = VK_TRUE,
+            //   .color = {
+            //     .operation = VK_BLEND_OP_ADD,
+            //     .srcFactor = VK_BLEND_FACTOR_SRC_ALPHA,
+            //     .dstFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+            //   },
+            //   .alpha =  {
+            //     .operation = VK_BLEND_OP_ADD,
+            //     .srcFactor = VK_BLEND_FACTOR_ONE,
+            //     .dstFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+            //   },
+            // }
+          },
+        },
+      },
+      .depthStencil = {
+        .depthTestEnable = VK_TRUE,
+        .depthWriteEnable = VK_TRUE,
+        .depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL,
+      },
+      .primitive = {
+        .cullMode = VK_CULL_MODE_BACK_BIT,
+      }
+    };
+  }
+
+  virtual void createPipeline() {
+    auto shaders{context_ptr_->create_shader_modules({
+      getVertexShaderName(),
+      getShaderName()
+    })};
+    pipeline_ = renderer_ptr_->create_graphics_pipeline(
+      pipeline_layout_,
+      getGraphicsPipelineDescriptor(shaders)
+    );
+    context_ptr_->release_shader_modules(shaders);
+  }
+
+ public:
   // -- frame-wide resource descriptor --
 
   void updateDescriptorSetTextureAtlasEntry(DescriptorSetWriteEntry const& entry) const {
@@ -185,7 +274,8 @@ class TMaterialFx : public MaterialFx {
   }
 
   void setupMaterialStorageBuffer() {
-    size_t buffersize = kDefaultMaterialCount * sizeof(MaterialType);
+    size_t const buffersize = kDefaultMaterialCount * sizeof(MaterialType);
+    materials_.reserve(kDefaultMaterialCount);
 
     if constexpr (kEditMode) {
       // Setup the SSBO for frequent host-device mapping (slower).
