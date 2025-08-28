@@ -1,4 +1,5 @@
 #include "framework/utils/cgltf_wrapper.h"
+#include "framework/utils/logger.h"
 #include <cassert>
 
 /* -------------------------------------------------------------------------- */
@@ -29,7 +30,7 @@ Geometry::AttributeType ConvertAttributeType(cgltf_attribute const& attribute) {
       return Geometry::AttributeType::Weights;
 
     default:
-      // LOGD("[GLTF] Unsupported attribute type %s.", attribute.name);
+      LOGD("[GLTF] Unsupported attribute type %s.", attribute.name);
       return Geometry::AttributeType::kUnknown;
   }
 }
@@ -48,7 +49,7 @@ Geometry::AttributeFormat ConvertAttributeFormat(cgltf_accessor const* accessor)
           return Geometry::AttributeFormat::RGBA_U16;
 
         default:
-          // LOGD("[GLTF] Unsupported accessor vec4 format %d", accessor->component_type);
+          LOGD("[GLTF] Unsupported accessor vec4 format %d", accessor->component_type);
           return Geometry::AttributeFormat::kUnknown;
       }
 
@@ -61,7 +62,7 @@ Geometry::AttributeFormat ConvertAttributeFormat(cgltf_accessor const* accessor)
       return Geometry::AttributeFormat::RG_F32;
 
     default:
-      // LOGD("[GLTF] Unsupported accessor format.");
+      LOGD("[GLTF] Unsupported accessor format.");
       return Geometry::AttributeFormat::kUnknown;
   }
 }
@@ -73,10 +74,15 @@ Geometry::IndexFormat ConvertIndexFormat(cgltf_accessor const* accessor) {
     }
     else if (accessor->component_type == cgltf_component_type_r_16u) {
       return Geometry::IndexFormat::U16;
+    } else if (accessor->component_type == cgltf_component_type_r_8u) {
+      return Geometry::IndexFormat::U8;
+    } else {
+      LOGD("[GLTF] Unsupported component_type %d.", accessor->component_type);
     }
+  } else {
+    LOGD("[GLTF] Unsupported index type %d.", accessor->type);
   }
 
-  // LOGD("[GLTF] Unsupported index format.");
   return Geometry::IndexFormat::kUnknown;
 }
 
@@ -92,7 +98,6 @@ Geometry::Topology ConvertTopology(cgltf_primitive const& primitive) {
       return Geometry::Topology::PointList;
 
     default:
-      // LOGD("[GLTF] Unsupported topology.");
       return Geometry::Topology::kUnknown;
   }
 }

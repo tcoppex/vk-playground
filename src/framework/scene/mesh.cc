@@ -80,13 +80,22 @@ VkPrimitiveTopology Mesh::get_vk_primitive_topology() const {
 // ----------------------------------------------------------------------------
 
 VkIndexType Mesh::get_vk_index_type() const {
-  switch (get_index_format()) {
+  auto format = get_index_format();
+  switch (format) {
+
+    case IndexFormat::U32:
+      return VK_INDEX_TYPE_UINT32;
+
     case IndexFormat::U16:
       return VK_INDEX_TYPE_UINT16;
 
+    // VULKAN 1.4 or VK_KHR_index_type_uint8
+    case IndexFormat::U8:
+      return VK_INDEX_TYPE_UINT8;
+
     default:
-    case IndexFormat::U32:
-      return VK_INDEX_TYPE_UINT32;
+      LOGD("Unsupported IndexFormat : %d", int(format));
+      return VK_INDEX_TYPE_UINT8;
   }
 }
 

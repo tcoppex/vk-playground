@@ -31,6 +31,7 @@ class Geometry {
   };
 
   enum class IndexFormat {
+    U8,
     U16,
     U32,
     kCount,

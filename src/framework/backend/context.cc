@@ -369,6 +369,12 @@ bool Context::init_device() {
     );
 
     add_device_feature(
+      VK_KHR_INDEX_TYPE_UINT8_EXTENSION_NAME,
+      feature_.index_type_uint8,
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INDEX_TYPE_UINT8_FEATURES_KHR
+    );
+
+    add_device_feature(
       VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME,
       feature_.dynamic_rendering,
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR
