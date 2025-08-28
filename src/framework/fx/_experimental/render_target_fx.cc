@@ -45,7 +45,7 @@ void RenderTargetFx::execute(CommandEncoder& cmd) {
 
 // ----------------------------------------------------------------------------
 
-backend::Image const& RenderTargetFx::getImageOutput(uint32_t index) const {
+backend::Image RenderTargetFx::getImageOutput(uint32_t index) const {
   return render_target_->get_color_attachment(index); //
 }
 

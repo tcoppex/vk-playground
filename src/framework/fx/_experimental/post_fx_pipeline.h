@@ -96,7 +96,7 @@ class PostFxPipeline : public PostFxInterface {
     effects_.front()->setBufferInputs(inputs);
   }
 
-  backend::Image const& getImageOutput(uint32_t index = 0u) const override {
+  backend::Image getImageOutput(uint32_t index = 0u) const override {
     LOG_CHECK(!effects_.empty());
     return effects_.back()->getImageOutput(index);
   }
@@ -106,7 +106,7 @@ class PostFxPipeline : public PostFxInterface {
     return effects_.back()->getImageOutputs();
   }
 
-  backend::Buffer const& getBufferOutput(uint32_t index) const override {
+  backend::Buffer getBufferOutput(uint32_t index) const override {
     return effects_.back()->getBufferOutput(index);
   }
 
@@ -220,7 +220,7 @@ class PassDataNoFx final : public PostFxInterface {
     buffers_ = inputs;
   }
 
-  backend::Image const& getImageOutput(uint32_t index = 0u) const override {
+  backend::Image getImageOutput(uint32_t index = 0u) const override {
     LOG_CHECK(index < images_.size());
     return images_[index];
   }
@@ -229,7 +229,7 @@ class PassDataNoFx final : public PostFxInterface {
     return images_;
   }
 
-  backend::Buffer const& getBufferOutput(uint32_t index = 0u) const override {
+  backend::Buffer getBufferOutput(uint32_t index = 0u) const override {
     LOG_CHECK(index < buffers_.size());
     return buffers_[index];
   }

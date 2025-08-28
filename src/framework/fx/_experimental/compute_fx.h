@@ -48,7 +48,7 @@ class ComputeFx : public PostGenericFx {
 
   // --- Getters ---
 
-  backend::Image const& getImageOutput(uint32_t index = 0u) const override {
+  backend::Image getImageOutput(uint32_t index = 0u) const override {
     LOG_CHECK(index < images_.size());
     return images_[index];
   }
@@ -57,7 +57,7 @@ class ComputeFx : public PostGenericFx {
     return images_;
   }
 
-  backend::Buffer const& getBufferOutput(uint32_t index = 0u) const override {
+  backend::Buffer getBufferOutput(uint32_t index = 0u) const override {
     LOG_CHECK(index < buffers_.size());
     return buffers_[index];
   }

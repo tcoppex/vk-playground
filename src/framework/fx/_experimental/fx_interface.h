@@ -54,11 +54,11 @@ class PostFxInterface : public virtual FxInterface {
  public:
   virtual bool resize(VkExtent2D const dimension) = 0;
 
-  virtual backend::Image const& getImageOutput(uint32_t index = 0u) const = 0;
+  virtual backend::Image getImageOutput(uint32_t index = 0u) const = 0;
 
   virtual std::vector<backend::Image> const& getImageOutputs() const = 0;
 
-  virtual backend::Buffer const& getBufferOutput(uint32_t index = 0u) const = 0;
+  virtual backend::Buffer getBufferOutput(uint32_t index = 0u) const = 0;
 
   virtual std::vector<backend::Buffer> const& getBufferOutputs() const = 0;
 

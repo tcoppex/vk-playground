@@ -19,11 +19,11 @@ class RenderTargetFx : public FragmentFx
  public:
   bool resize(VkExtent2D const dimension) override;
 
-  backend::Image const& getImageOutput(uint32_t index = 0u) const override;
+  backend::Image getImageOutput(uint32_t index = 0u) const override;
 
   virtual std::vector<backend::Image> const& getImageOutputs() const override;
 
-  backend::Buffer const& getBufferOutput(uint32_t index = 0u) const override {
+  backend::Buffer getBufferOutput(uint32_t index = 0u) const override {
     return unused_buffers_[index];
   }
 
