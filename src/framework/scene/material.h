@@ -7,10 +7,31 @@ namespace scene {
 
 /* -------------------------------------------------------------------------- */
 
+struct MaterialStates {
+  enum class AlphaMode {
+    OpaqueMask,
+    Blend,
+    kCount
+  } alpha_mode{AlphaMode::OpaqueMask};
+
+  bool operator==(MaterialStates const& other) const noexcept {
+    return alpha_mode == other.alpha_mode;
+  }
+
+  struct Hasher {
+    size_t operator()(MaterialStates const& s) const noexcept {
+      return std::hash<int>()(static_cast<int>(s.alpha_mode));
+    }
+  };
+};
+
 struct MaterialRef {
   uint32_t index{ kInvalidIndexU32 };
+
   std::type_index material_type_index{ kInvalidTypeIndex }; //
   uint32_t material_index{ kInvalidIndexU32 };
+
+  MaterialStates states{};
 };
 
 // (tmp) Default texture binding when none availables.

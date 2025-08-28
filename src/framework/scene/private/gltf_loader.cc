@@ -391,15 +391,24 @@ PointerToIndexMap_t ExtractMaterials(
       return view.texture ? textures_indices.at(view.texture) : _default_binding;
   };
 
+  // -------------------
+
   for (cgltf_size material_id = 0; material_id < data->materials_count; ++material_id) {
     cgltf_material const& mat = data->materials[material_id];
 
     // (no need for shared_ptr)
     std::shared_ptr<scene::MaterialRef> material_ref{}; //
 
+    scene::MaterialStates states{
+      .alpha_mode = (mat.alpha_mode == cgltf_alpha_mode_blend) ?
+          scene::MaterialStates::AlphaMode::Blend
+        : scene::MaterialStates::AlphaMode::OpaqueMask
+        ,
+    };
+
     // Unlit
     if (mat.unlit) {
-      auto [ref, material] = material_fx_registry.create_material<fx::scene::UnlitMaterialFx>();
+      auto [ref, material] = material_fx_registry.create_material<fx::scene::UnlitMaterialFx>(states);
       if (material_ref = std::make_shared<scene::MaterialRef>()) {
         *material_ref = ref;
       }
@@ -417,7 +426,7 @@ PointerToIndexMap_t ExtractMaterials(
       auto const& pbr_mr = mat.pbr_metallic_roughness;
 
       // ------------------------
-      auto [ref, material] = material_fx_registry.create_material<fx::scene::PBRMetallicRoughnessFx>();
+      auto [ref, material] = material_fx_registry.create_material<fx::scene::PBRMetallicRoughnessFx>(states);
 
       if (material_ref = std::make_shared<scene::MaterialRef>()) {
         *material_ref = ref;
@@ -445,7 +454,6 @@ PointerToIndexMap_t ExtractMaterials(
         lina::ptr(material->emissive_factor)
       );
 
-      // cgltf_alpha_mode alpha_mode;
 
       material->alpha_cutoff = mat.alpha_cutoff;
       material->double_sided = mat.double_sided;

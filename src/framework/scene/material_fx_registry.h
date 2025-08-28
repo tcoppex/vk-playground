@@ -2,7 +2,6 @@
 #define HELLO_VK_FRAMEWORK_SCENE_MATERIAL_FX_REGISTRY_H_
 
 #include "framework/common.h"
-
 #include "framework/scene/material.h"
 #include "framework/backend/types.h" // for DescriptorSetWriteEntry
 
@@ -29,9 +28,9 @@ class MaterialFxRegistry {
   template<typename MaterialFxT>
   requires DerivedFrom<MaterialFxT, MaterialFx>
   std::tuple<MaterialRef, typename MaterialFxT::MaterialType*>
-  create_material() {
+  create_material(scene::MaterialStates states) {
     if (auto it = map_.find(type_index<MaterialFxT>()); it != map_.end()) {
-      auto [ref, raw_ptr] = it->second->createMaterial();
+      auto [ref, raw_ptr] = it->second->createMaterial(states);
       return {
         ref,
         static_cast<MaterialFxT::MaterialType*>(raw_ptr)

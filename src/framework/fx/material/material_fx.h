@@ -163,50 +163,34 @@ class MaterialFx {
 
   // -- material utils --
 
-  virtual CreatedMaterial createMaterial() = 0;
+  virtual CreatedMaterial createMaterial(scene::MaterialStates sates) = 0;
 
   virtual void pushMaterialStorageBuffer() const = 0;
 
-  // virtual void setMaterial(::scene::MaterialRef const& material_ref) = 0; //
-  // virtual void buildMaterialUI(::scene::MaterialRef const& material_ref) {}
-
- private:
-  // (we might probably discard them altogether)
-  // ------------------------------------
-  void draw(RenderPassEncoder const& pass) override {} //
-  void execute(CommandEncoder& cmd) override {} //
-  // ------------------------------------
-
-  GraphicsPipelineDescriptor_t getGraphicsPipelineDescriptor(std::vector<backend::ShaderModule> const& shaders) const override {
-    return {
-      .dynamicStates = {
-        VK_DYNAMIC_STATE_VERTEX_INPUT_EXT,
-        VK_DYNAMIC_STATE_PRIMITIVE_TOPOLOGY,
-      },
-      .vertex = {
-        .module = shaders[0u].module,
-      },
-      .fragment = {
-        .module = shaders[1u].module,
-        .targets = {
-          { .format = renderer_ptr_->get_color_attachment(0).format },
-        },
-      },
-      .depthStencil = {
-        .depthTestEnable = VK_TRUE,
-        .depthWriteEnable = VK_TRUE,
-        .depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL,
-      },
-      .primitive = {
-        .cullMode = VK_CULL_MODE_BACK_BIT,
-      }
-    };
-  }
 
  protected:
   backend::Buffer material_storage_buffer_{};
+
+  // --------------------------
+  Context const* context_ptr_{};
+  Renderer const* renderer_ptr_{};
+  std::shared_ptr<ResourceAllocator> allocator_{};
+  // ----------------
+  VkDescriptorSetLayout descriptor_set_layout_{};
+  VkDescriptorSet descriptor_set_{}; //
+  VkPipelineLayout pipeline_layout_{}; //
+  // ----------------
+  Pipeline pipeline_{};
 };
 
+
+
+
+
+
+
+
+// ----------------------------------------------------------------------------
 // ----------------------------------------------------------------------------
 
 template<typename MaterialT>
@@ -233,11 +217,13 @@ class TMaterialFx : public MaterialFx {
     MaterialFx::release();
   }
 
-  CreatedMaterial createMaterial() override {
+  CreatedMaterial createMaterial(scene::MaterialStates states) override {
     auto& mat = materials_.emplace_back(defaultMaterial());
     scene::MaterialRef ref = {
+      .index = kInvalidIndexU32,
       .material_type_index = MaterialTypeIndex(),
       .material_index = static_cast<uint32_t>(materials_.size() - 1u),
+      .states = states,
     };
     return { ref, &mat };
   }
@@ -299,11 +285,7 @@ class TMaterialFx : public MaterialFx {
 
  protected:
   std::vector<MaterialType> materials_{};
-
-  // To handle the 3 kind of pipeline properly, as we don't have access to dynamic
-  //  blending extension, it might be interesting to create a PipelineCache
-  // and maybe store the AlphaMode on alongside materials..
-  // scene::AlphaMode alpha_mode_; //
+  std::map<scene::MaterialStates, Pipeline> pipelines_{};
 };
 
 /* -------------------------------------------------------------------------- */
