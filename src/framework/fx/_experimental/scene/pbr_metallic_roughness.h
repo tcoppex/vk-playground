@@ -190,6 +190,12 @@ class PBRMetallicRoughnessFx final : public TMaterialFx<PBRMetallicRoughnessMate
     cmd.push_constant(push_constant_, pipeline_layout_, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
   }
 
+  MaterialType defaultMaterial() const final {
+    return {
+      .alpha_cutoff = 0.5f,
+    };
+  }
+
  private:
   pbr_metallic_roughness_shader_interop::PushConstant push_constant_{};
 };

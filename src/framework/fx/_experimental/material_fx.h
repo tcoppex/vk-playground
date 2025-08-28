@@ -145,7 +145,7 @@ class TMaterialFx : public MaterialFx {
   }
 
   CreatedMaterial createMaterial() override {
-    auto& mat = materials_.emplace_back();
+    auto& mat = materials_.emplace_back(defaultMaterial());
     scene::MaterialRef ref = {
       .material_type_index = MaterialTypeIndex(),
       .material_index = static_cast<uint32_t>(materials_.size() - 1u),
@@ -180,6 +180,10 @@ class TMaterialFx : public MaterialFx {
   }
 
  private:
+  virtual MaterialType defaultMaterial() const {
+   return {};
+  }
+
   void setupMaterialStorageBuffer() {
     size_t buffersize = kDefaultMaterialCount * sizeof(MaterialType);
 
@@ -205,6 +209,11 @@ class TMaterialFx : public MaterialFx {
 
  protected:
   std::vector<MaterialType> materials_{};
+
+  // To handle the 3 kind of pipeline properly, as we don't have access to dynamic
+  //  blending extension, it might be interesting to create a PipelineCache
+  // and maybe store the AlphaMode on alongside materials..
+  // scene::AlphaMode alpha_mode_; //
 };
 
 /* -------------------------------------------------------------------------- */
