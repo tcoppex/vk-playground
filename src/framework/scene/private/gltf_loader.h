@@ -43,7 +43,7 @@ PointerToIndexMap_t ExtractMaterials(
   scene::ResourceBuffer<scene::Texture> const& textures,
   scene::ResourceBuffer<scene::MaterialRef>& material_refs,
   scene::MaterialFxRegistry& material_fx_registry,
-  scene::DefaultTextureBinding &default_bindings
+  scene::DefaultTextureBinding const& bindings
 );
 
 PointerToIndexMap_t ExtractSkeletons(
