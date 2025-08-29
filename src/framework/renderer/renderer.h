@@ -86,6 +86,18 @@ class Renderer : public backend::RTInterface {
 
   // --- Pipeline ---
 
+  VkGraphicsPipelineCreateInfo get_graphics_pipeline_create_info(
+    GraphicsPipelineCreateInfoData_t &data,
+    VkPipelineLayout pipeline_layout,
+    GraphicsPipelineDescriptor_t const& desc
+  ) const;
+
+  void create_graphics_pipelines(
+    VkPipelineLayout pipeline_layout,
+    std::vector<GraphicsPipelineDescriptor_t> const& descs,
+    std::vector<Pipeline> *out_pipelines
+  ) const;
+
   Pipeline create_graphics_pipeline(VkPipelineLayout pipeline_layout, GraphicsPipelineDescriptor_t const& desc) const;
 
   // Specialized version that create the layout internally.

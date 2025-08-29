@@ -292,19 +292,24 @@ VkPipelineLayout Renderer::create_pipeline_layout(PipelineLayoutDescriptor_t con
 
 // ----------------------------------------------------------------------------
 
-Pipeline Renderer::create_graphics_pipeline(VkPipelineLayout pipeline_layout, GraphicsPipelineDescriptor_t const& desc) const {
-  assert( pipeline_layout != VK_NULL_HANDLE );
-  assert( desc.vertex.module != VK_NULL_HANDLE );
-  assert( desc.fragment.module != VK_NULL_HANDLE );
-  // assert( !desc.vertex.buffers.empty() );
+VkGraphicsPipelineCreateInfo Renderer::get_graphics_pipeline_create_info(
+  GraphicsPipelineCreateInfoData_t &data,
+  VkPipelineLayout pipeline_layout,
+  GraphicsPipelineDescriptor_t const& desc
+) const {
+  LOG_CHECK( desc.vertex.module != VK_NULL_HANDLE );
+  LOG_CHECK( desc.fragment.module != VK_NULL_HANDLE );
 
   if (desc.fragment.targets.empty()) {
     LOGD("Warning : fragment targets were not specified for a graphic pipeline.");
   }
-  // assert( desc.fragment.targets[0].format != VK_FORMAT_UNDEFINED );
+
+  bool const useDynamicRendering{desc.renderPass == VK_NULL_HANDLE};
+
+  data = {};
 
   // Default color blend attachment.
-  std::vector<VkPipelineColorBlendAttachmentState> color_blend_attachments{
+  data.color_blend_attachments = {
     {
       .blendEnable = VK_FALSE,
       .srcColorBlendFactor = VK_BLEND_FACTOR_ZERO,
@@ -322,14 +327,10 @@ Pipeline Renderer::create_graphics_pipeline(VkPipelineLayout pipeline_layout, Gr
     }
   };
 
-  bool const useDynamicRendering{desc.renderPass == VK_NULL_HANDLE};
-
   /* Dynamic Rendering. */
-  VkPipelineRenderingCreateInfo dynamic_rendering_create_info{};
-  std::vector<VkFormat> color_attachments{};
   if (useDynamicRendering)
   {
-    color_attachments.resize(desc.fragment.targets.size());
+    data.color_attachments.resize(desc.fragment.targets.size());
 
     /* (~) If no depth format is setup, use the renderer's one. */
     VkFormat const depth_format{
@@ -340,8 +341,11 @@ Pipeline Renderer::create_graphics_pipeline(VkPipelineLayout pipeline_layout, Gr
       vkutils::IsValidStencilFormat(depth_format) ? depth_format : VK_FORMAT_UNDEFINED
     };
 
-    color_blend_attachments.resize(color_attachments.size(), color_blend_attachments[0u]);
-    for (size_t i = 0; i < color_attachments.size(); ++i) {
+    data.color_blend_attachments.resize(
+      data.color_attachments.size(),
+      data.color_blend_attachments[0u]
+    );
+    for (size_t i = 0; i < data.color_attachments.size(); ++i) {
       auto &target = desc.fragment.targets[i];
 
       /* (~) If no color format is setup, use the renderer's one. */
@@ -349,9 +353,9 @@ Pipeline Renderer::create_graphics_pipeline(VkPipelineLayout pipeline_layout, Gr
         (target.format != VK_FORMAT_UNDEFINED) ? target.format
                                                : get_color_attachment(i).format
       };
-      color_attachments[i] = color_format;
+      data.color_attachments[i] = color_format;
 
-      color_blend_attachments[i] = {
+      data.color_blend_attachments[i] = {
         .blendEnable = target.blend.enable,
         .srcColorBlendFactor = target.blend.color.srcFactor,
         .dstColorBlendFactor = target.blend.color.dstFactor,
@@ -363,10 +367,10 @@ Pipeline Renderer::create_graphics_pipeline(VkPipelineLayout pipeline_layout, Gr
       };
     }
 
-    dynamic_rendering_create_info = {
+    data.dynamic_rendering_create_info = {
       .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
-      .colorAttachmentCount = static_cast<uint32_t>(color_attachments.size()),
-      .pColorAttachmentFormats = color_attachments.data(),
+      .colorAttachmentCount = static_cast<uint32_t>(data.color_attachments.size()),
+      .pColorAttachmentFormats = data.color_attachments.data(),
       .depthAttachmentFormat = depth_format,
       .stencilAttachmentFormat = stencil_format,
     };
@@ -376,7 +380,7 @@ Pipeline Renderer::create_graphics_pipeline(VkPipelineLayout pipeline_layout, Gr
   auto getShaderEntryPoint{[](std::string const& entryPoint) -> char const* {
     return entryPoint.empty() ? kDefaulShaderEntryPoint : entryPoint.c_str();
   }};
-  std::vector<VkPipelineShaderStageCreateInfo> shader_stages{
+  data.shader_stages = {
     {
       .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
       .stage = VK_SHADER_STAGE_VERTEX_BIT,
@@ -392,47 +396,44 @@ Pipeline Renderer::create_graphics_pipeline(VkPipelineLayout pipeline_layout, Gr
   };
 
   /* Vertex Input */
-  VkPipelineVertexInputStateCreateInfo vertex_input{};
-  std::vector<VkVertexInputBindingDescription> vertex_bindings{};
-  std::vector<VkVertexInputAttributeDescription> vertex_attributes{};
   {
     uint32_t binding = 0u;
     for (auto const& buffer : desc.vertex.buffers) {
-      vertex_bindings.push_back({
+      data.vertex_bindings.push_back({
         .binding = binding,
         .stride = buffer.stride,
         .inputRate = buffer.inputRate,
       });
       for (auto attrib : buffer.attributes) {
         attrib.binding = binding;
-        vertex_attributes.push_back(attrib);
+        data.vertex_attributes.push_back(attrib);
       }
       ++binding;
     }
 
-    vertex_input = {
+    data.vertex_input = {
       .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-      .vertexBindingDescriptionCount = static_cast<uint32_t>(vertex_bindings.size()),
-      .pVertexBindingDescriptions = vertex_bindings.data(),
-      .vertexAttributeDescriptionCount = static_cast<uint32_t>(vertex_attributes.size()),
-      .pVertexAttributeDescriptions = vertex_attributes.data(),
+      .vertexBindingDescriptionCount = static_cast<uint32_t>(data.vertex_bindings.size()),
+      .pVertexBindingDescriptions = data.vertex_bindings.data(),
+      .vertexAttributeDescriptionCount = static_cast<uint32_t>(data.vertex_attributes.size()),
+      .pVertexAttributeDescriptions = data.vertex_attributes.data(),
     };
   }
 
   /* Input Assembly */
-  VkPipelineInputAssemblyStateCreateInfo input_assembly{
+  data.input_assembly = {
     .sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
     .topology = desc.primitive.topology,
     .primitiveRestartEnable = VK_FALSE,
   };
 
   /* Tessellation */
-  VkPipelineTessellationStateCreateInfo tessellation{
+  data.tessellation = {
     .sType = VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO,
   };
 
   /* Viewport Scissor */
-  VkPipelineViewportStateCreateInfo viewport{
+  data.viewport = {
     .sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
     // Viewport and Scissor are set as dynamic, but without VK_EXT_extended_dynamic_state
     // we need to specify the number for each one.
@@ -441,7 +442,7 @@ Pipeline Renderer::create_graphics_pipeline(VkPipelineLayout pipeline_layout, Gr
   };
 
   /* Rasterization */
-  VkPipelineRasterizationStateCreateInfo rasterization{
+  data.rasterization = {
     .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
     .depthClampEnable = VK_FALSE,
     .rasterizerDiscardEnable = VK_FALSE,
@@ -452,7 +453,7 @@ Pipeline Renderer::create_graphics_pipeline(VkPipelineLayout pipeline_layout, Gr
   };
 
   /* Multisampling */
-  VkPipelineMultisampleStateCreateInfo multisample{
+  data.multisample = {
     .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
     .rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
     .sampleShadingEnable = VK_FALSE,
@@ -461,7 +462,7 @@ Pipeline Renderer::create_graphics_pipeline(VkPipelineLayout pipeline_layout, Gr
   };
 
   /* Depth Stencil */
-  VkPipelineDepthStencilStateCreateInfo depth_stencil{
+  data.depth_stencil = {
     .sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
     .depthTestEnable = desc.depthStencil.depthTestEnable,
     .depthWriteEnable = desc.depthStencil.depthWriteEnable,
@@ -473,17 +474,17 @@ Pipeline Renderer::create_graphics_pipeline(VkPipelineLayout pipeline_layout, Gr
   };
 
   /* Color Blend */
-  VkPipelineColorBlendStateCreateInfo color_blend{
+  data.color_blend = {
     .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
     .logicOpEnable = VK_FALSE,
     .logicOp = VK_LOGIC_OP_COPY,
-    .attachmentCount = static_cast<uint32_t>(color_blend_attachments.size()),
-    .pAttachments = color_blend_attachments.data(),
+    .attachmentCount = static_cast<uint32_t>(data.color_blend_attachments.size()),
+    .pAttachments = data.color_blend_attachments.data(),
     .blendConstants = { 0.0f, 0.0f, 0.0f, 0.0f },
   };
 
   /* Dynamic states */
-  std::vector<VkDynamicState> dynamic_states{
+  data.dynamic_states = {
     VK_DYNAMIC_STATE_VIEWPORT,
     VK_DYNAMIC_STATE_SCISSOR,
 
@@ -500,48 +501,90 @@ Pipeline Renderer::create_graphics_pipeline(VkPipelineLayout pipeline_layout, Gr
     // VK_DYNAMIC_STATE_PRIMITIVE_TOPOLOGY_EXT,
     // VK_DYNAMIC_STATE_CULL_MODE_EXT,
   };
-  dynamic_states.insert(
-    dynamic_states.end(), desc.dynamicStates.begin(), desc.dynamicStates.end()
+  data.dynamic_states.insert(
+    data.dynamic_states.end(), desc.dynamicStates.begin(), desc.dynamicStates.end()
   );
-  VkPipelineDynamicStateCreateInfo const dynamic_state_create_info{
+  data.dynamic_state_create_info = {
     .sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
-    .dynamicStateCount = static_cast<uint32_t>(dynamic_states.size()),
-    .pDynamicStates = dynamic_states.data(),
+    .dynamicStateCount = static_cast<uint32_t>(data.dynamic_states.size()),
+    .pDynamicStates = data.dynamic_states.data(),
   };
-
-  // TODO
-  // ------------------------------
-  VkPipelineCreateFlagBits flags{
-    // VK_PIPELINE_CREATE_ALLOW_DERIVATIVES_BIT
-    // VK_PIPELINE_CREATE_DERIVATIVE_BIT
-  };
-  // ------------------------------
 
   VkGraphicsPipelineCreateInfo const graphics_pipeline_create_info{
     .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
-    .pNext = useDynamicRendering ? &dynamic_rendering_create_info : nullptr,
-    .flags = flags,
-    .stageCount = static_cast<uint32_t>(shader_stages.size()),
-    .pStages = shader_stages.data(),
-    .pVertexInputState = &vertex_input,
-    .pInputAssemblyState = &input_assembly,
-    .pTessellationState = &tessellation,
-    .pViewportState = &viewport, //
-    .pRasterizationState = &rasterization,
-    .pMultisampleState = &multisample,
-    .pDepthStencilState = &depth_stencil,
-    .pColorBlendState = &color_blend,
-    .pDynamicState = &dynamic_state_create_info,
+    .pNext = useDynamicRendering ? &data.dynamic_rendering_create_info : nullptr,
+    .flags = 0,
+    .stageCount = static_cast<uint32_t>(data.shader_stages.size()),
+    .pStages = data.shader_stages.data(),
+    .pVertexInputState = &data.vertex_input,
+    .pInputAssemblyState = &data.input_assembly,
+    .pTessellationState = &data.tessellation,
+    .pViewportState = &data.viewport, //
+    .pRasterizationState = &data.rasterization,
+    .pMultisampleState = &data.multisample,
+    .pDepthStencilState = &data.depth_stencil,
+    .pColorBlendState = &data.color_blend,
+    .pDynamicState = &data.dynamic_state_create_info,
     .layout = pipeline_layout,
     .renderPass = useDynamicRendering ? VK_NULL_HANDLE : desc.renderPass,
     .subpass = 0u,
     .basePipelineHandle = VK_NULL_HANDLE,
-    .basePipelineIndex = 0,
+    .basePipelineIndex = -1,
   };
 
-  VkPipeline pipeline;
+  return graphics_pipeline_create_info;
+}
+
+// ----------------------------------------------------------------------------
+
+void Renderer::create_graphics_pipelines(
+  VkPipelineLayout pipeline_layout,
+  std::vector<GraphicsPipelineDescriptor_t> const& descs,
+  std::vector<Pipeline> *out_pipelines
+) const {
+  LOG_CHECK( pipeline_layout != VK_NULL_HANDLE );
+
+  /// When batching pipelines, most underlying data will not changes, so
+  /// we could improve setupping by changing only those needed (like
+  /// color_blend_attachments).
+  std::vector<GraphicsPipelineCreateInfoData_t> datas(descs.size());
+
+  std::vector<VkGraphicsPipelineCreateInfo> create_infos(descs.size());
+  for (size_t i = 0; i < descs.size(); ++i) {
+    create_infos[i] = get_graphics_pipeline_create_info(datas[i], pipeline_layout, descs[i]);
+    create_infos[i].flags |= VK_PIPELINE_CREATE_DERIVATIVE_BIT;
+    create_infos[i].basePipelineIndex = 0;
+  }
+  create_infos[0].flags &= ~VK_PIPELINE_CREATE_DERIVATIVE_BIT;
+  create_infos[0].flags |= VK_PIPELINE_CREATE_ALLOW_DERIVATIVES_BIT;
+  create_infos[0].basePipelineIndex = -1;
+
+  std::vector<VkPipeline> pipelines(descs.size());
   CHECK_VK(vkCreateGraphicsPipelines(
-    device_, pipeline_cache_, 1u, &graphics_pipeline_create_info, nullptr, &pipeline
+    device_, pipeline_cache_, create_infos.size(), create_infos.data(), nullptr, pipelines.data()
+  ));
+
+  for (size_t i = 0; i < descs.size(); ++i) {
+    (*out_pipelines)[i] = Pipeline(pipeline_layout, pipelines[i], VK_PIPELINE_BIND_POINT_GRAPHICS);
+  }
+}
+
+// ----------------------------------------------------------------------------
+
+Pipeline Renderer::create_graphics_pipeline(
+  VkPipelineLayout pipeline_layout,
+  GraphicsPipelineDescriptor_t const& desc
+) const {
+  LOG_CHECK( pipeline_layout != VK_NULL_HANDLE );
+
+  GraphicsPipelineCreateInfoData_t data{};
+  VkGraphicsPipelineCreateInfo const create_info{
+    get_graphics_pipeline_create_info(data, pipeline_layout, desc)
+  };
+
+  VkPipeline pipeline{};
+  CHECK_VK(vkCreateGraphicsPipelines(
+    device_, pipeline_cache_, 1u, &create_info, nullptr, &pipeline
   ));
 
   return Pipeline(pipeline_layout, pipeline, VK_PIPELINE_BIND_POINT_GRAPHICS);

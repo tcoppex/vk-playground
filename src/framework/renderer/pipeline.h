@@ -34,7 +34,26 @@ struct PipelineLayoutDescriptor_t {
 
 // ----------------------------------------------------------------------------
 
-// GraphicsPipelineDescriptor_t::Vertex::Buffer
+struct GraphicsPipelineCreateInfoData_t {
+  std::vector<VkPipelineColorBlendAttachmentState> color_blend_attachments{};
+
+  std::vector<VkFormat> color_attachments{};
+  std::vector<VkPipelineShaderStageCreateInfo> shader_stages{};
+  std::vector<VkVertexInputBindingDescription> vertex_bindings{};
+  std::vector<VkVertexInputAttributeDescription> vertex_attributes{};
+  std::vector<VkDynamicState> dynamic_states{};
+
+  VkPipelineRenderingCreateInfo dynamic_rendering_create_info{};
+  VkPipelineVertexInputStateCreateInfo vertex_input{};
+  VkPipelineInputAssemblyStateCreateInfo input_assembly{};
+  VkPipelineTessellationStateCreateInfo tessellation{};
+  VkPipelineViewportStateCreateInfo viewport{};
+  VkPipelineRasterizationStateCreateInfo rasterization{};
+  VkPipelineMultisampleStateCreateInfo multisample{};
+  VkPipelineDepthStencilStateCreateInfo depth_stencil{};
+  VkPipelineColorBlendStateCreateInfo color_blend{};
+  VkPipelineDynamicStateCreateInfo dynamic_state_create_info{};
+};
 
 // Descriptor structure to create GraphicsPipeline, à la WebGPU.
 struct GraphicsPipelineDescriptor_t {
@@ -64,7 +83,7 @@ struct GraphicsPipelineDescriptor_t {
       VkFormat format{};
       VkColorComponentFlags writeMask{kDefaultColorWriteMask};
 
-      struct Blending {
+      struct Blend {
         struct Parameters {
           VkBlendOp operation{};
           VkBlendFactor srcFactor{};
