@@ -11,6 +11,7 @@
 
 #include <cstdint>
 #include <cstdlib>
+#include <cstring>
 
 #include <string_view>
 #include <vector>
@@ -59,6 +60,14 @@ template <typename T>
 inline auto RunTaskGeneric = [](auto&& fn) -> std::future<T> {
   return std::async(std::launch::async, std::forward<decltype(fn)>(fn));
 };
+
+template<typename T>
+std::vector<std::byte> ToBytes(const T& value) {
+  static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable");
+  std::vector<std::byte> buffer(sizeof(T));
+  std::memcpy(buffer.data(), &value, sizeof(T));
+  return buffer;
+}
 
 // --- functions ---
 
