@@ -5,38 +5,61 @@
 
 /* -------------------------------------------------------------------------- */
 
-class ComputeFx : public GenericFx {
+class ComputeFx : public PostGenericFx {
  public:
-  static constexpr uint32_t kDefaultStorageImageBinding{ 0u };
-  static constexpr uint32_t kDefaultStorageBufferBinding{ 1u };
+  // (should be defined in a shared interop.h)
+  static constexpr uint32_t kDefaultStorageImageBindingInput{ 0u }; //
+  static constexpr uint32_t kDefaultStorageBufferBindingInput{ 1u }; //
+
+  static constexpr uint32_t kDefaultStorageImageBindingOutput{ 2u }; //
+  static constexpr uint32_t kDefaultStorageBufferBindingOutput{ 3u }; //
+
+  static constexpr uint32_t kDefaultDescriptorStorageImageCount{ 4u }; //
+  static constexpr uint32_t kDefaultDescriptorStorageBufferCount{ 4u }; //
 
  public:
-  ComputeFx() = default;
+  bool resize(VkExtent2D const dimension) override {
+    LOG_CHECK(dimension.width > 0);
+    LOG_CHECK(dimension.height > 0);
+    if ( (dimension.width == dimension_.width)
+      && (dimension.height == dimension_.height)
+      && (!images_.empty() || !buffers_.empty())
+      ) {
+      return false;
+    }
+    dimension_ = dimension;
 
-  virtual ~ComputeFx() {}
+    return true;
+  }
 
-  virtual void resize(VkExtent2D const dimension) = 0;
-
-
- public:
   void release() override;
 
   void execute(CommandEncoder& cmd) override;
+
+  // --- Setters ---
 
   void setImageInputs(std::vector<backend::Image> const& inputs) override;
 
   void setBufferInputs(std::vector<backend::Buffer> const& inputs) override;
 
-  backend::Image const& getImageOutput(uint32_t index = 0u) const override {
-    return images_.at(index);
+  // TODO
+  // void setImageOutputs(std::vector<backend::Image> const& inputs) override;
+  // void setBufferOutputs(std::vector<backend::Buffer> const& inputs) override;
+
+  // --- Getters ---
+
+  backend::Image getImageOutput(uint32_t index = 0u) const override {
+    LOG_CHECK(index < images_.size());
+    return images_[index];
   }
 
   std::vector<backend::Image> const& getImageOutputs() const override {
     return images_;
   }
 
-  backend::Buffer const& getBufferOutput(uint32_t index = 0u) const override {
-    return buffers_.at(index);
+  backend::Buffer getBufferOutput(uint32_t index = 0u) const override {
+    LOG_CHECK(index < buffers_.size());
+    return buffers_[index];
   }
 
   std::vector<backend::Buffer> const& getBufferOutputs() const override {
@@ -44,23 +67,37 @@ class ComputeFx : public GenericFx {
   }
 
  protected:
-  virtual std::string getShaderName() const = 0;
-
   virtual void releaseImagesAndBuffers();
 
   std::vector<DescriptorSetLayoutParams> getDescriptorSetLayoutParams() const override {
     return {
+      // INPUTS
       {
-        .binding = kDefaultStorageImageBinding,
+        .binding = kDefaultStorageImageBindingInput,
         .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-        .descriptorCount = 4u, //
+        .descriptorCount = kDefaultDescriptorStorageImageCount,
         .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
         .bindingFlags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT,
       },
       {
-        .binding = kDefaultStorageBufferBinding,
+        .binding = kDefaultStorageBufferBindingInput,
         .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-        .descriptorCount = 4u, //
+        .descriptorCount = kDefaultDescriptorStorageBufferCount,
+        .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
+        .bindingFlags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT,
+      },
+      // OUTPUTS
+      {
+        .binding = kDefaultStorageImageBindingOutput,
+        .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+        .descriptorCount = kDefaultDescriptorStorageImageCount,
+        .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
+        .bindingFlags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT,
+      },
+      {
+        .binding = kDefaultStorageBufferBindingOutput,
+        .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+        .descriptorCount = kDefaultDescriptorStorageBufferCount,
         .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
         .bindingFlags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT,
       },
@@ -70,10 +107,26 @@ class ComputeFx : public GenericFx {
   void createPipeline() override;
 
  protected:
+  VkExtent2D dimension_{}; //
+
+  // Outputs.
   std::vector<backend::Image> images_{};
   std::vector<backend::Buffer> buffers_{};
-  VkExtent2D dimension_{}; //
 };
+
+// ----------------------------------------------------------------------------
+
+// [move to context?]
+// template<typename PushConstantT>
+// std::tuple< std::vector<backend::Image>, std::vector<backend::Buffer> >
+// RunSingleComputeKernel(
+//   std::string_view shader_path,
+//   PushConstantT const& push_constant,
+//   std::vector<backend::Image> const& input_images,
+//   std::vector<backend::Buffer> const& input_buffers,
+//   std::vector<backend::Image> const& output_images,
+//   std::vector<backend::Buffer> const& ouput_buffers
+// );
 
 /* -------------------------------------------------------------------------- */
 

@@ -1,0 +1,1061 @@
+#define CGLTF_IMPLEMENTATION
+#define STB_IMAGE_IMPLEMENTATION
+
+#include "framework/scene/private/gltf_loader.h"
+
+#if defined(FRAMEWORK_HAS_DRACO) && FRAMEWORK_HAS_DRACO
+#include <draco/compression/decode.h>
+#include <draco/mesh/mesh.h>
+static constexpr bool kFrameworkHasDraco{true};
+#else
+static constexpr bool kFrameworkHasDraco{false};
+#endif
+
+#include "framework/renderer/sampler_pool.h"
+
+#include "framework/fx/material/pbr_metallic_roughness.h" //
+#include "framework/fx/material/unlit.h" //
+
+/* -------------------------------------------------------------------------- */
+
+namespace {
+
+std::type_index MaterialTypeIndex(cgltf_material const& mat) {
+  if (mat.unlit) {
+    return fx::scene::UnlitMaterialFx::MaterialTypeIndex();
+  } else if (mat.has_pbr_metallic_roughness) {
+    return fx::scene::PBRMetallicRoughnessFx::MaterialTypeIndex();
+  }
+  return kInvalidTypeIndex;
+}
+
+// ----------------------------------------------------------------------------
+
+scene::MaterialStates GetMaterialStates(cgltf_material const& mat) {
+  scene::MaterialStates states{
+    .alpha_mode = (mat.alpha_mode == cgltf_alpha_mode_opaque) ?
+        scene::MaterialStates::AlphaMode::Opaque
+      : (mat.alpha_mode == cgltf_alpha_mode_blend) ?
+        scene::MaterialStates::AlphaMode::Blend
+      : scene::MaterialStates::AlphaMode::Mask
+      ,
+  };
+  return states;
+}
+
+// ----------------------------------------------------------------------------
+
+//
+// Internal interleaved vertex structure used when bRestructureAttribs is set to true.
+// (Used for main topological attributes, others attributes should reside on different buffers,
+//    eg. extra uvs, colors, skin weights, morph targets, ...)
+//
+struct VertexInternal_t {
+  vec3 position;
+  vec3 normal;
+  vec4 tangent;
+  vec2 texcoord;
+
+  static
+  Geometry::AttributeInfoMap GetAttributeInfoMap() {
+    return {
+      {
+        Geometry::AttributeType::Position,
+        {
+          .format = Geometry::AttributeFormat::RGB_F32,
+          .offset = offsetof(VertexInternal_t, position),
+          .stride = sizeof(VertexInternal_t),
+        }
+      },
+      {
+        Geometry::AttributeType::Normal,
+        {
+          .format = Geometry::AttributeFormat::RGB_F32,
+          .offset = offsetof(VertexInternal_t, normal),
+          .stride = sizeof(VertexInternal_t),
+        }
+      },
+      {
+        Geometry::AttributeType::Tangent,
+        {
+          .format = Geometry::AttributeFormat::RGBA_F32,
+          .offset = offsetof(VertexInternal_t, tangent),
+          .stride = sizeof(VertexInternal_t),
+        }
+      },
+      {
+        Geometry::AttributeType::Texcoord,
+        {
+          .format = Geometry::AttributeFormat::RG_F32,
+          .offset = offsetof(VertexInternal_t, texcoord),
+          .stride = sizeof(VertexInternal_t),
+        }
+      },
+    };
+  }
+
+  static
+  Geometry::AttributeOffsetMap GetAttributeOffsetMap(uint64_t buffer_offset) {
+    return {
+      { Geometry::AttributeType::Position,  buffer_offset },
+      { Geometry::AttributeType::Normal,    buffer_offset },
+      { Geometry::AttributeType::Tangent,   buffer_offset },
+      { Geometry::AttributeType::Texcoord,  buffer_offset },
+    };
+  }
+};
+
+// ----------------------------------------------------------------------------
+
+bool DecompressDracoPrimitive(cgltf_primitive const& prim, std::vector<VertexInternal_t>& vertices, std::vector<uint32_t>& indices) {
+  if (!prim.has_draco_mesh_compression) {
+    LOGE("Error: Primitive does not have draco compression.");
+    return false;
+  }
+
+  cgltf_draco_mesh_compression const& draco = prim.draco_mesh_compression;
+  if (!draco.buffer_view || !draco.buffer_view->buffer || !draco.buffer_view->buffer->data) {
+    LOGE("Error: Draco buffer view is invalid.");
+    return false;
+  }
+
+#if FRAMEWORK_HAS_DRACO
+  std::unique_ptr<draco::Mesh> draco_mesh{};
+  {
+    cgltf_accessor const* pos_accessor = nullptr;
+
+    for (cgltf_size attrib_index = 0; attrib_index < draco.attributes_count; ++attrib_index) {
+      if (draco.attributes[attrib_index].type == cgltf_attribute_type_position) {
+        pos_accessor = draco.attributes[attrib_index].data;
+        break;
+      }
+    }
+    if (!pos_accessor) {
+      LOGE("Draco primitive has no POSITION attribute");
+      return false;
+    }
+
+    cgltf_buffer_view const* view = draco.buffer_view; //pos_accessor->buffer_view;
+    assert(view);
+
+    cgltf_buffer const* buffer = view->buffer;
+    uint8_t const* draco_data = reinterpret_cast<const uint8_t*>(buffer->data) + view->offset;
+    size_t const draco_size = view->size;
+
+    draco::DecoderBuffer decoder_buffer;
+    decoder_buffer.Init(reinterpret_cast<const char*>(draco_data), draco_size);
+
+    draco::Decoder decoder;
+    if (auto result = decoder.DecodeMeshFromBuffer(&decoder_buffer); result.ok()) {
+      draco_mesh = std::move(result).value();
+    }
+  }
+
+  if (!draco_mesh) {
+    LOGE("Draco decompression failed");
+    return false;
+  }
+
+  uint32_t const vertex_count = draco_mesh->num_points();
+  vertices.resize(vertex_count);
+
+  for (cgltf_size attrib_index = 0; attrib_index < draco.attributes_count; ++attrib_index) {
+    cgltf_attribute const& attrib = draco.attributes[attrib_index];
+
+    draco::PointAttribute const* pt_attr = nullptr;
+
+    switch (attrib.type) {
+      case cgltf_attribute_type_position:
+        pt_attr = draco_mesh->GetNamedAttribute(draco::GeometryAttribute::POSITION);
+        for (uint32_t vertex_index = 0; vertex_index < vertex_count; ++vertex_index) {
+          auto &vertex = vertices[vertex_index];
+          pt_attr->GetValue(draco::AttributeValueIndex(vertex_index), lina::ptr(vertex.position));
+        }
+        break;
+
+      case cgltf_attribute_type_normal:
+        pt_attr = draco_mesh->GetNamedAttribute(draco::GeometryAttribute::NORMAL);
+        for (uint32_t vertex_index = 0; vertex_index < vertex_count; ++vertex_index) {
+          auto &vertex = vertices[vertex_index];
+          pt_attr->GetValue(draco::AttributeValueIndex(vertex_index), lina::ptr(vertex.normal));
+        }
+        break;
+
+      case cgltf_attribute_type_texcoord:
+        if (attrib.index > 0) {
+          LOGW("MultiTexturing not supported (Draco)");
+          continue;
+        }
+        pt_attr = draco_mesh->GetNamedAttribute(draco::GeometryAttribute::TEX_COORD);
+        for (uint32_t vertex_index = 0; vertex_index < vertex_count; ++vertex_index) {
+          auto &vertex = vertices[vertex_index];
+          pt_attr->GetValue(draco::AttributeValueIndex(vertex_index), lina::ptr(vertex.texcoord));
+        }
+        break;
+
+      default:
+        LOGW("Unsupported Draco attribute type: %d", attrib.type);
+        break;
+    }
+  }
+
+  // Indices.
+  if (prim.indices) {
+    const int num_faces = draco_mesh->num_faces();
+    indices.reserve(num_faces * 3);
+
+    for (draco::FaceIndex face_index(0); face_index < num_faces; ++face_index) {
+      const draco::Mesh::Face& face = draco_mesh->face(face_index);
+      for (auto const& face_pt : face) {
+        indices.push_back(face_pt.value());
+      }
+    }
+  }
+#endif
+
+  return true;
+}
+
+// ----------------------------------------------------------------------------
+
+void ExtractPrimitiveVertices(cgltf_primitive const& prim, std::vector<VertexInternal_t>& vertices) {
+  uint32_t const vertex_count = prim.attributes[0].data->count;
+  vertices.resize(vertex_count);
+
+  for (cgltf_size attrib_index = 0; attrib_index < prim.attributes_count; ++attrib_index) {
+    cgltf_attribute const& attrib{ prim.attributes[attrib_index] };
+    cgltf_accessor const* accessor = attrib.data;
+    assert(accessor->count == vertex_count);
+
+    // Positions.
+    if (attrib.type == cgltf_attribute_type_position) {
+      LOG_CHECK(accessor->type == cgltf_type_vec3);
+      // LOGD( "> loading positions." );
+      for (cgltf_size vertex_index = 0; vertex_index < vertex_count; ++vertex_index) {
+        auto& vertex = vertices[vertex_index];
+        cgltf_accessor_read_float( accessor, vertex_index, lina::ptr(vertex.position), 3);
+      }
+    }
+    // Normals.
+    else if (attrib.type == cgltf_attribute_type_normal) {
+      LOG_CHECK(accessor->type == cgltf_type_vec3);
+      // LOGD( "> loading normals." );
+      for (cgltf_size vertex_index = 0; vertex_index < vertex_count; ++vertex_index) {
+        auto& vertex = vertices[vertex_index];
+        cgltf_accessor_read_float( accessor, vertex_index, lina::ptr(vertex.normal), 3);
+      }
+    }
+    // Tangents
+    else if (attrib.type == cgltf_attribute_type_tangent) {
+      // LOG_CHECK(accessor->type == cgltf_type_vec4);
+      // LOGD( "> loading tangents." );
+      for (cgltf_size vertex_index = 0; vertex_index < vertex_count; ++vertex_index) {
+        auto& vertex = vertices[vertex_index];
+        cgltf_accessor_read_float( accessor, vertex_index, lina::ptr(vertex.tangent), 4);
+        // vec3 t3 = vec3(linalg::mul(world_matrix, vec4(lina::to_vec3(tangent), 0.0f)));
+        // vertex.tangent = vec4(t3, vertex.tangent.w);
+      }
+    }
+    // Texcoords.
+    else if (attrib.type == cgltf_attribute_type_texcoord) {
+      LOG_CHECK(accessor->type == cgltf_type_vec2);
+      if (attrib.index <= 0) {
+        // LOGD( "> loading texture coordinates." );
+        for (cgltf_size vertex_index = 0; vertex_index < vertex_count; ++vertex_index) {
+          auto& vertex = vertices[vertex_index];
+          cgltf_accessor_read_float( accessor, vertex_index, lina::ptr(vertex.texcoord), 2);
+        }
+      }
+    }
+    // Joints.
+    else if (attrib.type == cgltf_attribute_type_joints) {
+      // LOG_CHECK(accessor->type == cgltf_type_vec4);
+      // LOGD( "> loading joint indices." );
+      // for (cgltf_size vertex_index = 0; vertex_index < vertex_count; ++vertex_index) {
+      //   LOG_CHECK(0 != cgltf_accessor_read_uint( accessor, vertex_index, lina::ptr(joints), 4));
+      //   raw.joints.push_back( joints );
+      // }
+    }
+    // Weights.
+    else if (attrib.type == cgltf_attribute_type_weights) {
+      // LOGD( "> loading joint weights." );
+      // LOG_CHECK(accessor->type == cgltf_type_vec4);
+      // raw.weights.reserve(vertex_count);
+      // vec4 weights;
+      // for (cgltf_size vertex_index = 0; vertex_index < vertex_count; ++vertex_index) {
+      //   LOG_CHECK(0 != cgltf_accessor_read_float( accessor, vertex_index, lina::ptr(weights), 4));
+      //   // weights = vec4(0.0, 0.0, 0.0, 0.0);
+      //   raw.weights.push_back( weights );
+      // }
+    }
+  }
+}
+
+// ----------------------------------------------------------------------------
+
+// std::string GetImageRefID(cgltf_image const* image, std::string_view alt) {
+//   return std::string{
+//     image->name ? image->name : (image->uri ? image->uri : std::string(alt))
+//   };
+// }
+
+} // namespace ""
+
+/* -------------------------------------------------------------------------- */
+
+namespace internal::gltf_loader {
+
+PointerToSamplerMap_t ExtractSamplers(
+  cgltf_data const* data,
+  SamplerPool& sampler_pool
+) {
+  PointerToSamplerMap_t samplers_lut{};
+
+  // The glTF spec allow for unspecified sampler on texture, so we define
+  // one by default as fallback.
+  samplers_lut[nullptr] = sampler_pool.default_sampler();
+
+  for (cgltf_size sampler_id = 0; sampler_id < data->samplers_count; ++sampler_id) {
+    cgltf_sampler const& sampler = data->samplers[sampler_id];
+    if (!samplers_lut.contains(&sampler)) {
+      samplers_lut.try_emplace(
+        &sampler,
+        sampler_pool.get(ConvertSamplerInfo(sampler))
+      );
+    }
+  }
+
+  return samplers_lut;
+}
+
+// ----------------------------------------------------------------------------
+
+PointerToIndexMap_t ExtractImages(
+  cgltf_data const* data,
+  scene::ResourceBuffer<scene::ImageData>& images
+) {
+  PointerToIndexMap_t image_indices{};
+
+  uint32_t const index_offset = static_cast<uint32_t>(images.size());
+  images.reserve(images.size() + data->images_count);
+
+  stbi_set_flip_vertically_on_load(false); //
+  for (cgltf_size image_id = 0; image_id < data->images_count; ++image_id) {
+    cgltf_image const& gl_image = data->images[image_id];
+    cgltf_buffer_view *buffer_view = gl_image.buffer_view;
+
+    if (!buffer_view || !buffer_view->buffer) {
+      continue;
+    }
+
+    stbi_uc const* buffer_data{
+      reinterpret_cast<stbi_uc const*>(buffer_view->buffer->data) + buffer_view->offset
+    };
+
+    auto image = std::make_shared<scene::ImageData>();
+
+    /* Image tasks should be retrieved outside this function via 'image->getLoadAsyncResult()' */
+    image->loadAsync(buffer_data, buffer_view->size);
+
+    image_indices.try_emplace(&gl_image, index_offset + image_id);
+    images.push_back( std::move(image) );
+  }
+
+  return image_indices;
+}
+
+// ----------------------------------------------------------------------------
+
+PointerToIndexMap_t ExtractTextures(
+  cgltf_data const* data,
+  PointerToIndexMap_t const& image_indices,
+  PointerToSamplerMap_t const& samplers_lut, //
+  scene::ResourceBuffer<scene::Texture>& textures
+) {
+  PointerToIndexMap_t textures_indices{};
+
+  uint32_t const index_offset = static_cast<uint32_t>(textures.size());
+  textures.reserve(index_offset + data->textures_count);
+
+  for (cgltf_size texture_id = 0; texture_id < data->textures_count; ++texture_id) {
+    cgltf_texture const& gl_texture = data->textures[texture_id];
+
+    if (gl_texture.sampler == nullptr) {
+      LOGD("%s : empty sampler on glTF texture.", __FUNCTION__);
+    }
+    LOG_CHECK(image_indices.contains(gl_texture.image));
+    LOG_CHECK(samplers_lut.contains(gl_texture.sampler));
+
+    auto texture = std::make_shared<scene::Texture>();
+    texture->host_image_index = image_indices.at(gl_texture.image);
+    texture->sampler = samplers_lut.at(gl_texture.sampler);
+
+    textures_indices.try_emplace(&gl_texture, index_offset + texture_id);
+    textures.push_back( std::move(texture) );
+  }
+
+  return textures_indices;
+}
+
+// ----------------------------------------------------------------------------
+
+void PreprocessMaterials(
+  cgltf_data const* data,
+  scene::MaterialFxRegistry& material_fx_registry
+) {
+  for (cgltf_size i = 0; i < data->materials_count; ++i) {
+    cgltf_material const& mat = data->materials[i];
+    scene::MaterialStates const states{GetMaterialStates(mat)};
+    std::type_index const type_index{MaterialTypeIndex(mat)};
+
+    if (type_index != kInvalidTypeIndex) {
+      material_fx_registry.register_material_states(type_index, states);
+    }
+  }
+}
+
+PointerToIndexMap_t ExtractMaterials(
+  cgltf_data const* data,
+  PointerToIndexMap_t const& textures_indices,
+  scene::ResourceBuffer<scene::Texture> const& textures,
+  scene::ResourceBuffer<scene::MaterialRef>& material_refs,
+  scene::MaterialFxRegistry& material_fx_registry,
+  scene::DefaultTextureBinding const &bindings
+) {
+  PointerToIndexMap_t materials_indices{};
+
+  material_refs.reserve(data->materials_count);
+
+  auto get_texture = [&textures_indices]
+    (cgltf_texture_view const& view, uint32_t _default_binding) {
+      return view.texture ? textures_indices.at(view.texture) : _default_binding;
+  };
+
+  // -------------------
+
+  for (cgltf_size material_id = 0; material_id < data->materials_count; ++material_id) {
+    cgltf_material const& mat = data->materials[material_id];
+    scene::MaterialStates const states{GetMaterialStates(mat)};
+    std::type_index const typeindex{MaterialTypeIndex(mat)};
+
+    std::shared_ptr<scene::MaterialRef> material_ref{}; //
+
+    if (typeindex == fx::scene::PBRMetallicRoughnessFx::MaterialTypeIndex())
+    {
+      auto const& pbr_mr = mat.pbr_metallic_roughness;
+
+      // ------------------------
+      auto [ref, material] = material_fx_registry.create_material<fx::scene::PBRMetallicRoughnessFx>(states);
+
+      if (material_ref = std::make_shared<scene::MaterialRef>()) {
+        *material_ref = ref;
+      }
+      // ------------------------
+
+      material->diffuse_texture_id = get_texture(pbr_mr.base_color_texture, bindings.basecolor);
+      std::copy(
+        std::cbegin(pbr_mr.base_color_factor),
+        std::cend(pbr_mr.base_color_factor),
+        lina::ptr(material->diffuse_factor)
+      );
+
+      material->orm_texture_id = get_texture(pbr_mr.metallic_roughness_texture, bindings.roughness_metallic);
+      material->roughness_factor = pbr_mr.roughness_factor;
+      material->metallic_factor = pbr_mr.metallic_factor;
+
+      material->occlusion_texture_id = get_texture(mat.occlusion_texture, bindings.occlusion);
+      material->normal_texture_id = get_texture(mat.normal_texture, bindings.normal);
+
+      material->emissive_texture_id = get_texture(mat.emissive_texture, bindings.emissive);
+      std::copy(
+        std::cbegin(mat.emissive_factor),
+        std::cend(mat.emissive_factor),
+        lina::ptr(material->emissive_factor)
+      );
+
+      material->alpha_cutoff = mat.alpha_cutoff;
+      material->double_sided = mat.double_sided;
+    }
+    else if (typeindex == fx::scene::UnlitMaterialFx::MaterialTypeIndex())
+    {
+      auto [ref, material] = material_fx_registry.create_material<fx::scene::UnlitMaterialFx>(states);
+      if (material_ref = std::make_shared<scene::MaterialRef>()) {
+        *material_ref = ref;
+      }
+
+      auto const& pbr_mr = mat.pbr_metallic_roughness;
+      std::copy(
+        std::cbegin(pbr_mr.base_color_factor),
+        std::cend(pbr_mr.base_color_factor),
+        lina::ptr(material->diffuse_factor)
+      );
+    }
+    else
+    {
+      // LOGW("[GLTF] Material %03u has unsupported material type.", (uint32_t)material_id);
+      continue;
+    }
+
+    material_ref->index = material_id;
+    materials_indices.try_emplace(&mat, material_id);
+    material_refs.push_back( std::move(material_ref) ); //
+  }
+
+  return materials_indices;
+}
+
+// ----------------------------------------------------------------------------
+
+PointerToIndexMap_t ExtractSkeletons(
+  cgltf_data const* data,
+  scene::ResourceBuffer<scene::Skeleton>& skeletons
+) {
+  PointerToIndexMap_t skeleton_indices{};
+
+  return skeleton_indices;
+}
+
+// ----------------------------------------------------------------------------
+
+void ExtractMeshes(
+  cgltf_data const* data,
+  PointerToIndexMap_t const& materials_indices,
+  // scene::ResourceBuffer<scene::Material> const& materials,
+  scene::ResourceBuffer<scene::MaterialRef> const& material_refs,
+  PointerToIndexMap_t const& skeleton_indices,
+  scene::ResourceBuffer<scene::Skeleton>const& skeletons,
+  scene::ResourceBuffer<scene::Mesh>& meshes,
+  bool const bRestructureAttribs
+) {
+  /**
+   * Each Mesh hold its geometry,
+   * each primitive consist of a material and offset in the mesh geometry.
+   * We assume every primitives of a Mesh have the same topology / attributes
+   ***/
+
+  /* Preprocess meshes nodes. */
+  std::vector<uint32_t> meshNodeIndices{};
+  for (cgltf_size i = 0; i < data->nodes_count; ++i) {
+    cgltf_node const& node = data->nodes[i];
+    if (node.mesh) {
+      // mesh_count += node.mesh->primitives_count;
+      meshNodeIndices.push_back(i);
+      if (node.has_mesh_gpu_instancing) {
+        LOGW("[GLTF] GPU instancing not supported.");
+      }
+    }
+  }
+  meshes.reserve(meshNodeIndices.size());
+
+  // Parse each mesh nodes (for primitives & skeleton).
+  for (auto i : meshNodeIndices) {
+    cgltf_node const& node = data->nodes[i];
+
+    std::vector<uint32_t> valid_prim_indices{};
+    uint32_t total_vertex_count{0u};
+
+    // -----------------
+    // A. Preprocess primitives.
+    for (cgltf_size j = 0; j < node.mesh->primitives_count; ++j) {
+      cgltf_primitive const& prim = node.mesh->primitives[j];
+
+      if (prim.attributes_count <= 0u) {
+        LOGW("[GLTF] A primitive was missing attributes.");
+        continue;
+      }
+      if (prim.has_draco_mesh_compression && (!kFrameworkHasDraco || !bRestructureAttribs)) {
+        LOGW("[GLTF] Draco mesh compression is not supported.");
+        continue;
+      }
+      if (prim.type != cgltf_primitive_type_triangles) {
+        LOGW("[GLTF] Non TRIANGLES primitives are not supported.");
+      }
+      if (prim.targets_count > 0) {
+        LOGW("[GLTF] Morph targets are not supported.");
+      }
+      bool is_sparse = false;
+      for (cgltf_size k = 0; k < prim.attributes_count; ++k) {
+        cgltf_attribute const& attribute = prim.attributes[k];
+        cgltf_accessor const* accessor = attribute.data;
+        if (accessor->is_sparse) {
+          LOGW("[GLTF] Sparse attributes are not supported.");
+          is_sparse = true;
+          break;
+        }
+      }
+      if (is_sparse) {
+        continue;
+      }
+
+      total_vertex_count += prim.attributes[0].data->count;
+      valid_prim_indices.push_back(j);
+    }
+
+    if (valid_prim_indices.empty()) {
+      LOGW("[GLTF] A Mesh was bypassed due to unsupported features.");
+      continue;
+    }
+
+    // -----------------
+    // B. Create a new mesh.
+    auto mesh = std::make_shared<scene::Mesh>();
+    {
+      cgltf_node_transform_world(&node, lina::ptr(mesh->world_matrix));
+      mesh->submeshes.resize(valid_prim_indices.size(), {.parent = mesh.get()});
+    }
+
+    // -----------------
+    // C. Retrieve its vertex attributes and indices.
+    //
+    //      The first branch force the attributes into a specific interleaved format
+    //        allowing the engine to always assume the same layout.
+    //
+    //      The second take the attributes as is.
+    //
+    if (bRestructureAttribs) [[likely]] {
+      mesh->set_attributes(VertexInternal_t::GetAttributeInfoMap());
+
+      // XXX (Do not support different topology yet) XXX
+      mesh->set_topology(Geometry::Topology::TriangleList); // xxx
+
+      // Hold the interleaved attributes of the mesh in the same interleaved buffer.
+      std::vector<VertexInternal_t> vertices{};
+
+      // Offset to the primitive attributes inside the mesh buffer.
+      uint64_t attribs_buffer_offset{0};
+
+      /* Parse the primitives. */
+      for (size_t prim_index = 0u; prim_index < valid_prim_indices.size(); ++prim_index) {
+        uint32_t const valid_prim_index{ valid_prim_indices[prim_index] };
+        cgltf_primitive const& prim{ node.mesh->primitives[valid_prim_index] };
+        LOG_CHECK(prim.type == cgltf_primitive_type_triangles);
+
+        Geometry::Primitive primitive{};
+        primitive.topology = ConvertTopology(prim);
+
+        if (prim.has_draco_mesh_compression) {
+          std::vector<uint32_t> indices{};
+
+          // Attributes & Indices.
+          if (!DecompressDracoPrimitive(prim, vertices, indices)) {
+            continue;
+          }
+
+          if (prim.indices) {
+            mesh->set_index_format(Geometry::IndexFormat::U32);
+            primitive.indexCount = static_cast<uint32_t>(indices.size());
+            primitive.indexOffset = mesh->add_indices_data(
+              reinterpret_cast<const std::byte*>(indices.data()),
+              indices.size() * sizeof(uint32_t)
+            );
+          }
+        } else {
+          // Attributes.
+          ExtractPrimitiveVertices(prim, vertices);
+
+          // Indices.
+          if (prim.indices) {
+            cgltf_accessor const* accessor = prim.indices;
+            if (auto index_format = ConvertIndexFormat(accessor); index_format != Geometry::IndexFormat::kUnknown) {
+              // [the same index format should be shared by the whole mesh.]
+              mesh->set_index_format(index_format);
+              primitive.indexCount = accessor->count;
+
+              cgltf_buffer_view const* buffer_view = accessor->buffer_view;
+              cgltf_buffer const* buffer = buffer_view->buffer;
+
+              size_t const index_size = cgltf_component_size(accessor->component_type);
+              size_t const stride = accessor->stride ? accessor->stride : index_size;
+              size_t const total_size = accessor->count * stride;
+              primitive.indexOffset = mesh->add_indices_data(
+                reinterpret_cast<std::byte const*>(buffer->data) + buffer_view->offset + accessor->offset,
+                total_size
+              );
+            } else {
+              LOGD("index format unsupported.");
+            }
+          }
+        }
+
+        /* Add the primitive interleaved attributes to the mesh, and retrieve its internal offset. */
+        attribs_buffer_offset = mesh->add_vertices_data(
+          reinterpret_cast<std::byte const*>(vertices.data()),
+          vertices.size() * sizeof(vertices[0u])
+        );
+        primitive.vertexCount = static_cast<uint32_t>(vertices.size());
+        primitive.bufferOffsets = VertexInternal_t::GetAttributeOffsetMap(attribs_buffer_offset);
+
+        // Material.
+        if (prim.material) {
+          uint32_t const material_index = materials_indices.at(prim.material);
+          mesh->submeshes[prim_index].material_ref = material_refs[ material_index ];
+        }
+
+        mesh->add_primitive(primitive);
+      }
+    } else {
+      /* Utility function. */
+      auto isAccessorOffsetFlat{[](cgltf_accessor const* acc) -> bool {
+        size_t const kAccessorOffsetLimit = 2048;
+        return (acc->offset == 0) || (acc->offset >= kAccessorOffsetLimit);
+      }};
+
+      /* Setup the shared attributes from the first primitive.
+       * This assume all mesh primitives share the same layout.
+       */
+      {
+        cgltf_primitive const& prim{ node.mesh->primitives[valid_prim_indices[0u]] };
+
+        mesh->set_topology(ConvertTopology(prim));
+
+        for (cgltf_size j = 0; j < prim.attributes_count; ++j) {
+          cgltf_attribute const& attribute = prim.attributes[j];
+          cgltf_accessor const* accessor = attribute.data;
+
+          if (auto type = ConvertAttributeType(attribute); type != Geometry::AttributeType::kUnknown) {
+            size_t const accessorOffset{ isAccessorOffsetFlat(accessor) ? 0u : accessor->offset };
+            mesh->add_attribute(type, {
+              .format = ConvertAttributeFormat(accessor),
+              .offset = static_cast<uint32_t>(accessorOffset),
+              .stride = static_cast<uint32_t>(accessor->stride),
+            });
+          }
+        }
+      }
+
+      /* Parse the primitives. */
+      for (uint32_t prim_index = 0u; prim_index < valid_prim_indices.size(); ++prim_index) {
+        uint32_t const valid_prim_index = valid_prim_indices[prim_index];
+        cgltf_primitive const& prim{ node.mesh->primitives[valid_prim_index] };
+        LOG_CHECK(ConvertTopology(prim) == mesh->get_topology());
+
+        Geometry::Primitive primitive{};
+
+        /* Retrieve primitive attributes offsets, when relevant. */
+        std::map<cgltf_accessor const*, uint64_t> accessor_buffer_offsets{};
+
+        // Attributes.
+        for (cgltf_size attrib_index = 0; attrib_index < prim.attributes_count; ++attrib_index) {
+          cgltf_attribute const& attribute = prim.attributes[attrib_index];
+
+          if (auto type = ConvertAttributeType(attribute); type != Geometry::AttributeType::kUnknown) {
+            auto accessor = attribute.data;
+            auto buffer_view = accessor->buffer_view;
+
+            // (overwritten, but shared by all attributes as it's non-sparsed)
+            primitive.vertexCount = accessor->count;
+
+            uint64_t bufferOffset{};
+            if (isAccessorOffsetFlat(accessor)) {
+              bufferOffset = mesh->add_vertices_data(
+                reinterpret_cast<std::byte const*>(buffer_view->buffer->data) + buffer_view->offset + accessor->offset,
+                buffer_view->size
+              );
+              accessor_buffer_offsets[accessor] = bufferOffset;
+            } else {
+              bufferOffset = accessor_buffer_offsets[accessor];
+            }
+            primitive.bufferOffsets[type] = bufferOffset;
+          }
+        }
+
+        // Indices.
+        if (prim.indices) {
+          cgltf_accessor const* accessor = prim.indices;
+          cgltf_buffer_view const* buffer_view = accessor->buffer_view;
+          cgltf_buffer const* buffer = buffer_view->buffer;
+
+          if (auto index_format = ConvertIndexFormat(accessor); index_format != Geometry::IndexFormat::kUnknown) {
+            mesh->set_index_format(index_format);
+
+            primitive.indexCount = accessor->count;
+            primitive.indexOffset = mesh->add_indices_data(
+              reinterpret_cast<std::byte const*>(buffer->data) + buffer_view->offset + accessor->offset, //
+              buffer_view->size
+            );
+          }
+        }
+
+        // Material.
+        if (prim.material) {
+          uint32_t material_index = materials_indices.at(prim.material);
+          mesh->submeshes[prim_index].material_ref = material_refs[ material_index ];
+        }
+
+        mesh->add_primitive(primitive);
+      }
+    }
+
+#if 0
+    // -----------------
+    // D. (optionnal) Retrieve the mesh skeleton.
+    if (cgltf_skin const* skin = node.skin; skin) {
+
+      cgltf_size const jointCount = skin->joints_count;
+
+      auto skeleton = std::make_shared<scene::Skeleton>(jointCount);
+
+      {
+
+
+        // LUT Map to find parent nodes index.
+        std::unordered_map<cgltf_node const*, int32_t> joint_indices(jointCount);
+        for (cgltf_size jointIndex = 0; jointIndex < jointCount; ++jointIndex) {
+          cgltf_node const* joint = skin->joints[jointIndex];
+          joint_indices[joint] = static_cast<int32_t>(jointIndex);
+        }
+
+        // Fill skeleton basic data (no matrices).
+        for (cgltf_size jointIndex = 0; jointIndex < jointCount; ++jointIndex) {
+          cgltf_node const* joint = skin->joints[jointIndex];
+
+          std::string const jointName = joint->name ? joint->name
+                                                    : std::string(basename + "::Joint_" + std::to_string(jointIndex));
+          auto const& it = joint_indices.find(joint->parent);
+          int32_t const parentIndex = (it != joint_indices.end()) ? it->second : -1;
+
+          skeleton->names[jointIndex] = jointName;
+          skeleton->parents[jointIndex] = parentIndex;
+          skeleton->index_map[jointName] = static_cast<int32_t>(jointIndex);
+        }
+
+        // Calculates global inverse bind matrices.
+        {
+          // Retrieve local matrices.
+          auto &matrices = skeleton->inverse_bind_matrices;
+          auto const bufferSize = (sizeof(matrices[0]) / sizeof(*lina::ptr(matrices[0]))) * matrices.size();
+          LOG_CHECK(bufferSize == (16 * jointCount));
+          cgltf_accessor_unpack_floats(skin->inverse_bind_matrices, lina::ptr(matrices[0]), bufferSize);
+
+          // Transform them to world space.
+          auto const inverse_world_matrix{linalg::inverse(mesh->world_matrix)};
+          skeleton->transformInverseBindMatrices(inverse_world_matrix);
+        }
+
+        skeletons_map[skinName] = skeleton;
+      }
+
+      mesh->skeleton = skeleton;
+    }
+#endif
+
+    meshes.push_back( std::move(mesh) );
+  }
+}
+
+// ----------------------------------------------------------------------------
+
+void ExtractAnimations(
+  cgltf_data const* data,
+  std::string const& basename,
+  scene::ResourceMap<scene::Skeleton>& skeletons_map,
+  scene::ResourceMap<scene::AnimationClip>& animations_map
+) {
+  if (!data || (data->animations_count == 0u)) {
+    return;
+  }
+  if (skeletons_map.empty()) {
+    LOGE("[GLTF] animations without skeleton are not supported.");
+    return;
+  }
+
+  // --------
+
+  // LUT to find skeleton via animations name.
+  std::unordered_map<std::string, std::string> animationName_to_SkeletonName;
+  for (cgltf_size i = 0; i < data->skins_count; ++i) {
+    cgltf_skin* skin = &data->skins[i];
+    auto const skeletonName = skin->name ? skin->name
+                            : basename + std::string("::Skeleton_" + std::to_string(i));
+    for (size_t j = 0; j < skin->joints_count; ++j) {
+      cgltf_node* joint_node = skin->joints[j];
+      for (size_t k = 0; k < data->animations_count; ++k) {
+        cgltf_animation const& animation = data->animations[k];
+        auto const clipName = animation.name ? animation.name
+                            : basename + std::string("::Animation_" + std::to_string(k));
+        for (size_t l = 0; l < animation.channels_count; ++l) {
+          cgltf_animation_channel* channel = &animation.channels[l];
+          if (channel->target_node == joint_node) {
+            animationName_to_SkeletonName[clipName] = skeletonName;
+          }
+        }
+      }
+    }
+  }
+
+  // --------
+
+  std::vector<float> inputs, outputs;
+  animations_map.reserve(data->animations_count);
+
+  // Retrieve Animations.
+  for (cgltf_size i = 0; i < data->animations_count; ++i) {
+    cgltf_animation const& animation = data->animations[i];
+    std::string const clipName = animation.name ? animation.name
+                               : basename + std::string("##Animation_" + std::to_string(i));
+    LOG_CHECK(animation.samplers_count == animation.channels_count);
+
+    // Find animation's skeleton.
+    std::shared_ptr<scene::Skeleton> skeleton{nullptr};
+    if (auto skelname_it = animationName_to_SkeletonName.find(clipName); skelname_it != animationName_to_SkeletonName.end()) {
+      auto skelname = skelname_it->second;
+      if (auto skel_it = skeletons_map.find(skelname); skel_it != skeletons_map.end()) {
+        skeleton = skel_it->second;
+      }
+    }
+    if (nullptr == skeleton) {
+      if (auto it = skeletons_map.begin(); it != skeletons_map.end()) {
+        LOGW("[GLTF] used the first available skeleton found.");
+        skeleton = it->second;
+      } else {
+        LOGE("[GLTF] cannot find animation's skeleton.");
+        continue;
+      }
+    }
+
+    // Preprocess channels to detect max sample count, in case the exporter compressed them.
+    bool bResamplingNeededCheck = false;
+    cgltf_size sampleCount{animation.channels[0].sampler->output->count};
+    for (cgltf_size channel_id = 0; channel_id < animation.channels_count; ++channel_id) {
+      auto const& channel = animation.channels[channel_id];
+      auto const* sampler = channel.sampler;
+      auto const* input = sampler->input;
+
+      // We only support scalar sampling.
+      LOG_CHECK(input->type == cgltf_type_scalar);
+
+      // Check if the exporter have optimized animations by removing duplicate frames.
+      bResamplingNeededCheck = (sampleCount > 1) && (sampleCount != sampler->output->count);
+
+      inputs.resize(input->count);
+      cgltf_accessor_unpack_floats(input, inputs.data(), inputs.size());
+      sampleCount = std::max(sampleCount, sampler->output->count);
+    }
+    if (bResamplingNeededCheck) {
+      LOGW("[GLTF] Some animations will be resampled.");
+    }
+
+    // Create the animation clip.
+    auto clip = std::make_shared<scene::AnimationClip>();
+    float const clipDuration = inputs.back();
+    clip->setup(clipName, sampleCount, clipDuration, skeleton->jointCount());
+
+    // Parse each channels (ie. transform per joint).
+    cgltf_accessor const* last_input_accessor{nullptr};
+    for (cgltf_size channel_id = 0; channel_id < animation.channels_count; ++channel_id) {
+      auto const& channel{ animation.channels[channel_id] };
+      auto const* sampler{ channel.sampler };
+      auto const* input{ sampler->input };
+      auto const* output{ sampler->output };
+
+      // Find target joint's index.
+      int32_t jointIndex = -1;
+      if (auto jointName = channel.target_node->name; jointName != nullptr) {
+        if (auto it = skeleton->index_map.find(jointName); it != skeleton->index_map.end()) {
+          jointIndex = it->second;
+        }
+      }
+      if (jointIndex < 0) {
+        LOGE("[GLTF] cannot find joint index in LUT.");
+        break;
+      }
+
+      // Inputs (eg. time).
+      if (input != last_input_accessor) {
+        inputs.resize(input->count);
+        cgltf_accessor_unpack_floats(input, inputs.data(), inputs.size());
+        last_input_accessor = input;
+      }
+
+      // Outputs (eg. rotation).
+      cgltf_size const output_ncomp{cgltf_num_components(output->type)};
+      outputs.resize(output_ncomp * output->count);
+      cgltf_accessor_unpack_floats(output, outputs.data(), outputs.size());
+
+      // Check if we need to resample outputs.
+      bool const bNeedResampling{(sampleCount > 1) && (sampleCount != output->count)};
+      cgltf_size frameStart, frameEnd;
+      float lerpFactor;
+
+      for (cgltf_size sid = 0; sid < sampleCount; ++sid) {
+        auto &pose = clip->poses[sid];
+        auto &joint = pose.joints[jointIndex];
+
+        // Calculate resampling parameters when needed.
+        if (bNeedResampling) [[unlikely]] {
+          // [optimization]
+          // Most of the time there would be only two frames, the first and the last,
+          // which would be identical and would not require any interpolation
+          // (just copying them to the whole range).
+
+          cgltf_size const src_sampleCount{ output->count };
+          float const dt = sid / static_cast<float>(sampleCount - 1);
+
+          frameStart = static_cast<int>(floor(dt * src_sampleCount));
+          frameEnd = static_cast<int>(ceil(dt * src_sampleCount));
+          frameStart = std::min(frameStart, src_sampleCount - 1);
+          frameEnd = std::min(frameEnd, src_sampleCount - 1);
+
+          float const start_time = inputs.at(frameStart);
+          float const diff_time = inputs.at(frameEnd) - start_time;
+          float const dst_time = dt * clipDuration;
+          lerpFactor = (diff_time > 0.0f) ? (dst_time - start_time) / diff_time : 0.0f;
+        }
+
+        switch(channel.target_path) {
+          case cgltf_animation_path_type_translation:
+          {
+            vec3f const* v = reinterpret_cast<vec3f const*>(outputs.data());
+            joint.translation = bNeedResampling ? linalg::lerp(v[frameStart], v[frameEnd], lerpFactor)
+                                                : v[sid]
+                                                ;
+          }
+          break;
+
+          case cgltf_animation_path_type_rotation:
+          {
+            vec4f const* q = reinterpret_cast<vec4f const*>(outputs.data());
+            joint.rotation = bNeedResampling ? linalg::qnlerp(q[frameStart], q[frameEnd], lerpFactor)
+                                             : q[sid]
+                                             ;
+          }
+          break;
+
+          case cgltf_animation_path_type_scale:
+          {
+            vec3f const* v = reinterpret_cast<vec3f const*>(outputs.data());
+            vec3f s = bNeedResampling ? linalg::lerp(v[frameStart], v[frameEnd], lerpFactor)
+                                      : v[sid]
+                                      ;
+
+            float const kTolerance = 1.0e-5f;
+            if (lina::almost_equal(s[0], s[1], kTolerance)
+             && lina::almost_equal(s[0], s[2], kTolerance)
+             && lina::almost_equal(s[1], s[2], kTolerance))
+            {
+              joint.scale = s[0];
+            }
+            else
+            {
+              LOGW("[GLTF] Non-uniform scale not supported for skinning.");
+            }
+          }
+          break;
+
+          case cgltf_animation_path_type_weights:
+          default:
+            LOGW("[GLTF] Unsupported animation type.");
+          break;
+        }
+      }
+    }
+
+    skeleton->clips.push_back(clip);
+
+    animations_map.try_emplace(clipName, std::move(clip));
+  }
+}
+
+} // namespace internal::gltf_loader
+
+/* -------------------------------------------------------------------------- */

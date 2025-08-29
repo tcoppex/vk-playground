@@ -106,6 +106,37 @@ function(helpers_findLibM)
   endif()
 endfunction(helpers_findLibM)
 
+
+function(download_asset assets_dir url)
+  file(MAKE_DIRECTORY ${assets_dir})
+  get_filename_component(filename ${url} NAME)
+  set(dest "${assets_dir}/${filename}")
+  if(NOT EXISTS ${dest})
+    message(STATUS "Downloading ${filename}...")
+    file(DOWNLOAD
+      ${url}
+      ${dest}
+      SHOW_PROGRESS
+      STATUS status
+      LOG log
+    )
+    list(GET status 0 status_code)
+    if(NOT status_code EQUAL 0)
+      message(FATAL_ERROR "Failed to download ${url}: ${log}")
+    endif()
+  else()
+    message(STATUS "${filename} already exists, skipping download")
+  endif()
+endfunction()
+
+function(download_model url)
+  download_asset(${PROJECT_ASSETS_DIR}/models/ ${url})
+endfunction()
+
+function(download_texture url)
+  download_asset(${PROJECT_ASSETS_DIR}/textures/ ${url})
+endfunction()
+
 # -----------------------------------------------------------------------------
 # Internal configuration attributes.
 # -----------------------------------------------------------------------------
@@ -255,6 +286,25 @@ CPMAddPackage(
 )
 set(CGLTF_INCLUDE_DIR ${cgltf_SOURCE_DIR})
 
+
+# Include Draco
+# see https://github.com/google/draco/blob/1.5.7/BUILDING.md#cmake-build-configuration
+option(FRAMEWORK_HAS_DRACO OFF)
+
+if(FRAMEWORK_HAS_DRACO)
+  CPMAddPackage(
+    NAME Draco
+    GITHUB_REPOSITORY google/draco
+    GIT_TAG 1.5.7
+    OPTIONS
+      "DRACO_TRANSCODER_SUPPORTED OFF"
+  )
+  set(DRACO_INCLUDE_DIR  ${Draco_SOURCE_DIR})
+
+  list(APPEND SharedIncludeDirs ${DRACO_INCLUDE_DIR})
+  list(APPEND SharedLibs draco)
+endif()
+
 # Include Volk
 CPMAddPackage(
   NAME volk
@@ -300,6 +350,20 @@ CPMAddPackage(
 )
 set(LINALG_INCLUDE_DIR ${linalg_SOURCE_DIR})
 
+# Include MikkTSpace
+CPMAddPackage(
+  NAME MikkTSpace
+  GITHUB_REPOSITORY mmikk/MikkTSpace
+  GIT_TAG 3e895b49d05ea07e4c2133156cfa94369e19e409
+)
+set(MikkTSpace mikktspace)
+add_library(
+  ${MikkTSpace}
+  STATIC
+  ${MikkTSpace_SOURCE_DIR}/mikktspace.c
+  ${MikkTSpace_SOURCE_DIR}/mikktspace.h
+)
+
 # Sometimes we need to link libm.
 helpers_findLibM()
 
@@ -310,6 +374,8 @@ list(APPEND SharedLibs
 )
 
 list(APPEND SharedIncludeDirs
+  ${FRAMEWORK_SHADERS_DIR} #!
+
   ${GLFW_INCLUDE_DIR}
   ${CGLTF_INCLUDE_DIR}
   ${LINALG_INCLUDE_DIR}

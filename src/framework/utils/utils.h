@@ -11,13 +11,18 @@
 
 #include <cstdint>
 #include <cstdlib>
+#include <cstring>
 
 #include <string_view>
 #include <vector>
+#include <future>
+#include <functional>
 
 /* -------------------------------------------------------------------------- */
 
 namespace utils {
+
+// --- structs ---
 
 struct FileReader {
   static
@@ -34,13 +39,7 @@ struct FileReader {
   std::vector<uint8_t> buffer;
 };
 
-char* ReadBinaryFile(const char* filename, size_t* filesize);
-
-std::string ExtractBasename(std::string_view const& path);
-
-size_t AlignTo(size_t const byteLength, size_t const byteAlignment);
-
-size_t AlignTo256(size_t const byteLength);
+// --- constexpr functions ---
 
 constexpr uint32_t Log2_u32(uint32_t x) {
   uint32_t result = 0;
@@ -50,6 +49,39 @@ constexpr uint32_t Log2_u32(uint32_t x) {
   }
   return result;
 }
+
+// --- template functions ---
+
+size_t HashCombine(size_t seed, auto const& value) {
+  return seed ^ (std::hash<std::decay_t<decltype(value)>>{}(value) + 0x9e3779b9 + (seed << 6) + (seed >> 2));
+}
+
+template <typename T>
+inline auto RunTaskGeneric = [](auto&& fn) -> std::future<T> {
+  return std::async(std::launch::async, std::forward<decltype(fn)>(fn));
+};
+
+template<typename T>
+std::vector<std::byte> ToBytes(const T& value) {
+  static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable");
+  std::vector<std::byte> buffer(sizeof(T));
+  std::memcpy(buffer.data(), &value, sizeof(T));
+  return buffer;
+}
+
+// --- functions ---
+
+char* ReadBinaryFile(const char* filename, size_t* filesize);
+
+std::string ExtractBasename(std::string_view filename, bool keepExtension = false);
+
+std::string ExtractExtension(std::string_view filename);
+
+size_t AlignTo(size_t const byteLength, size_t const byteAlignment);
+
+size_t AlignTo256(size_t const byteLength);
+
+// ----------------------------------------------------------------------------
 
 } // namespace "utils"
 

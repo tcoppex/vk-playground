@@ -3,6 +3,7 @@
 
 /* -------------------------------------------------------------------------- */
 
+#include <map>
 #include "framework/backend/vk_utils.h"
 
 #define VMA_DYNAMIC_VULKAN_FUNCTIONS 1
@@ -94,6 +95,16 @@ struct ShaderModule {
   VkShaderModule module;
 };
 
+enum class ShaderStage {
+  None = 0,
+  Vertex = VK_SHADER_STAGE_VERTEX_BIT,
+  Fragment = VK_SHADER_STAGE_FRAGMENT_BIT,
+  Compute = VK_SHADER_STAGE_COMPUTE_BIT,
+  kCount,
+};
+
+using ShaderMap = std::map<ShaderStage, ShaderModule>;
+
 // ----------------------------------------------------------------------------
 
 // Pipeline
@@ -123,7 +134,7 @@ class PipelineInterface {
   }
 
  protected:
-  VkPipelineLayout pipeline_layout_{};
+  VkPipelineLayout pipeline_layout_{}; //
   VkPipeline pipeline_{};
   VkPipelineBindPoint bind_point_{};
 };
@@ -222,6 +233,8 @@ struct VertexInputDescriptor {
 /* [WIP] generic requirements to draw something. */
 struct DrawDescriptor {
   VertexInputDescriptor vertexInput{};
+
+  //VkPrimitiveTopology topology{};
 
   uint64_t indexOffset{};
   VkIndexType indexType{};

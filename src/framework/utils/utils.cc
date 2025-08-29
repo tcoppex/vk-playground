@@ -13,7 +13,7 @@ bool FileReader::Read(std::string_view filename, std::vector<uint8_t>& out) {
 
   std::ifstream file(filename.data(), std::ios::binary | std::ios::ate);
   if (!file) {
-    std::cerr << "[WARNING] \"" << filename << "\" not found." << std::endl;
+    std::cerr << "[WARNING] File \"" << filename << "\" not found." << std::endl;
     return false;
   }
 
@@ -64,12 +64,20 @@ char* ReadBinaryFile(const char *filename, size_t *filesize) {
 
 // ----------------------------------------------------------------------------
 
-std::string ExtractBasename(std::string_view const& path) {
-  size_t start = path.find_last_of("/\\");
+std::string ExtractBasename(std::string_view filename, bool keepExtension) {
+  size_t start = filename.find_last_of("/\\");
   start = (start == std::string_view::npos) ? 0 : start + 1;
-  size_t end = path.find_last_of('.', path.length());
-  end = (end == std::string_view::npos || end < start) ? path.length() : end;
-  return std::string(path.substr(start, end - start));
+  size_t end = keepExtension ? filename.length() : filename.find_last_of('.', filename.length());
+  end = (end == std::string_view::npos || end < start) ? filename.length() : end;
+  return std::string(filename.substr(start, end - start));
+}
+
+std::string ExtractExtension(std::string_view filename) {
+  auto const dot_pos = filename.rfind('.');
+  if (dot_pos == std::string_view::npos || dot_pos == 0) {
+    return {};
+  }
+  return std::string(filename.substr(dot_pos + 1));
 }
 
 // ----------------------------------------------------------------------------

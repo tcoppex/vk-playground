@@ -233,11 +233,22 @@ vec3 sample_hemisphere_cos(float u, float v) {
 
 // Sample an hemisphere using Hammersley pointset on a roughness dependant specular lobe
 // and return it as a direction vector in world space.
-vec3 importance_sample_GGX(in mat3 basis_ws, in vec2 pt, float roughness_sqr) {
+// [potentially incorrect, use roughness squared instead of roughness]
+vec3 fast_importance_sample_GGX(in mat3 basis_ws, in vec2 pt, float roughness_sqr) {
   const float a = roughness_sqr * roughness_sqr * pt.y; //
   const float u = a / (1.0 + a - pt.y);
   const float v = pt.x;
   return normalize(basis_ws * sample_hemisphere_cos( u, v ));
+}
+
+// [flatten up version]
+vec3 importance_sample_GGX(in mat3 basis_ws, in vec2 xi, float roughness) {
+  float a = roughness * roughness;
+  float phi = TwoPi() * xi.x;
+  float cosTheta = sqrt((1.0 - xi.y) / (1.0 + (a * a - 1.0) * xi.y));
+  float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
+  vec3 H = vec3(cos(phi) * sinTheta, sin(phi) * sinTheta, cosTheta);
+  return normalize(basis_ws * H);
 }
 
 // ----------------------------------------------------------------------------
@@ -265,6 +276,10 @@ vec4 hermite_mix(in vec3 p0, in vec3 p1, in vec3 t0, in vec3 t1, in float u) {
 // ----------------------------------------------------------------------------
 
 float saturate(float x) {
+  return min(max(x, 0.0), 1.0);
+}
+
+vec2 saturate(vec2 x) {
   return min(max(x, 0.0), 1.0);
 }
 

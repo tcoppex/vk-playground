@@ -1,8 +1,12 @@
 # Customs
+assets
+DOCs
 build
 bin
+imgui.ini
 *.spv
 *.dev.md
+.*
 
 # Prerequisites
 *.d

@@ -11,10 +11,12 @@
 #include "framework/scene/camera.h"
 #include "framework/scene/arcball_controller.h"
 
-#include "framework/fx/_experimental/fx_pipeline.h"
+#include "framework/fx/_experimental/post_fx_pipeline.h"
 #include "framework/fx/_experimental/compute/depth_minmax.h"
 #include "framework/fx/_experimental/fragment/normaldepth_edge.h"
 #include "framework/fx/_experimental/fragment/object_edge.h"
+
+#include "framework/fx/material/pbr_metallic_roughness.h"
 
 namespace shader_interop {
 #include "shaders/interop.h"
@@ -27,26 +29,34 @@ namespace shader_interop {
  *  - RGBA_32F Color Texture,
  *  - RGBA_32F Data Texture (XY Normal + Z Depth + W ObjectId).
 **/
-class SceneFx final : public FragmentFx {
+class SceneFx final : public RenderTargetFx {
  private:
   static constexpr uint32_t kMaxNumTextures = 128u;
 
  public:
-  void init(Context const& context, Renderer const& renderer) final {
-    FragmentFx::init(context, renderer);
+  void setup(VkExtent2D const dimension) final {
+    RenderTargetFx::setup(dimension);
 
     uniform_buffer_ = allocator_->create_buffer(
       sizeof(host_data_),
         VK_BUFFER_USAGE_2_UNIFORM_BUFFER_BIT
       | VK_BUFFER_USAGE_TRANSFER_DST_BIT
     );
+
+    context_ptr_->update_descriptor_set(descriptor_set_, {
+      {
+        .binding = shader_interop::kDescriptorSetBinding_UniformBuffer,
+        .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+        .buffers = { { uniform_buffer_.buffer } },
+      }
+    });
   }
 
   void release() final {
     allocator_->destroy_buffer(uniform_buffer_);
-    gltf_model_->release(allocator_); //
+    gltf_model_->release(); //
 
-    FragmentFx::release();
+    RenderTargetFx::release();
   }
 
  protected:
@@ -104,7 +114,7 @@ class SceneFx final : public FragmentFx {
     };
   }
 
-  void updatePushConstant(GenericCommandEncoder const &cmd) final {
+  void pushConstant(GenericCommandEncoder const &cmd) final {
     cmd.push_constant(push_constant_, pipeline_layout_, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
   }
 
@@ -146,12 +156,14 @@ class SceneFx final : public FragmentFx {
       );
 
       for (auto const& submesh : mesh->submeshes) {
-        if (auto mat = submesh.material; mat && mat->albedoTexture) {
-          push_constant_.model.albedo_texture_index = mat->albedoTexture->texture_index;
-          push_constant_.model.material_index = mat->index;
-          push_constant_.model.instance_index = instance_index++;
+        auto const& material_ref = *(submesh.material_ref);
+        if (auto *fx = gltf_model_->material_fx<fx::scene::PBRMetallicRoughnessFx>(material_ref); fx) {
+          auto pbr_material = fx->material(material_ref.material_index);
+          push_constant_.model.albedo_texture_index = pbr_material.diffuse_texture_id;
+          push_constant_.model.material_index = material_ref.material_index;
         }
-        updatePushConstant(pass);
+        push_constant_.model.instance_index = instance_index++;
+        pushConstant(pass);
         pass.draw(submesh.draw_descriptor, gltf_model_->vertex_buffer, gltf_model_->index_buffer);
       }
     }
@@ -159,30 +171,13 @@ class SceneFx final : public FragmentFx {
 
  public:
   void setModel(GLTFScene model) {
-    LOG_CHECK(model->textures.size() <= kMaxNumTextures); //
+    LOG_CHECK(model->device_images.size() <= kMaxNumTextures); //
 
     gltf_model_ = model;
 
     /* Update the Sampler Atlas descriptor with the currently loaded textures. */
-    DescriptorSetWriteEntry texture_atlas_entry{
-      .binding = shader_interop::kDescriptorSetBinding_Sampler,
-      .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-    };
-    for (auto const& tex : gltf_model_->textures) {
-      texture_atlas_entry.images.push_back({
-        .sampler = renderer_ptr_->get_default_sampler(), //
-        .imageView = tex.view,
-        .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-      });
-    }
-
-    renderer_ptr_->update_descriptor_set(descriptor_set_, {
-      {
-        .binding = shader_interop::kDescriptorSetBinding_UniformBuffer,
-        .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-        .buffers = { { uniform_buffer_.buffer } },
-      },
-      texture_atlas_entry,
+    context_ptr_->update_descriptor_set(descriptor_set_, {
+      gltf_model_->descriptor_set_texture_atlas_entry( shader_interop::kDescriptorSetBinding_Sampler )
     });
   }
 
@@ -221,12 +216,12 @@ class SceneFx final : public FragmentFx {
 // ----------------------------------------------------------------------------
 
 /**
- * Customized FxPipeline which use a SceneFx as entry point, and a custom
+ * Customized PostFxPipeline which use a SceneFx as entry point, and a custom
  * FragmentFx as final compositions tage.
 **/
-class ToonFxPipeline final : public TFxPipeline<SceneFx> {
+class ToonFxPipeline final : public TPostFxPipeline<SceneFx> {
  public:
-  class ToonComposition final : public FragmentFx {
+  class ToonComposition final : public RenderTargetFx {
     std::string getShaderName() const final {
       return COMPILED_SHADERS_DIR "toon.frag.glsl";
     }
@@ -261,7 +256,7 @@ class ToonFxPipeline final : public TFxPipeline<SceneFx> {
       },
     });
 
-    FxPipeline::init(context, renderer);
+    PostFxPipeline::init(context, renderer);
   }
 };
 
@@ -279,7 +274,7 @@ class SampleApp final : public Application {
     /* Setup the ArcBall camera. */
     {
       camera_.setPerspective(
-        lina::radians(60.0f),
+        lina::radians(45.0f),
         viewport_size_.width,
         viewport_size_.height,
         0.01f,
@@ -319,27 +314,23 @@ class SampleApp final : public Application {
     toon_pipeline_.release();
   }
 
-  void frame() final {
-    /* Update. */
-    {
-      const float dt = get_delta_time();
+  void update(float const dt) final {
+    camera_.update(dt);
 
-      camera_.update( dt );
+    mat4 const world_matrix{
+      lina::rotation_matrix_axis(
+        vec3(-0.25f, 1.0f, -0.15f),
+        frame_time() * 0.0f //
+      )
+    };
 
-      mat4 const world_matrix{
-        lina::rotation_matrix_axis(
-          vec3(-0.25f, 1.0f, -0.15f),
-          get_frame_time() * 0.0f //
-        )
-      };
+    auto sceneFx = toon_pipeline_.getEntryFx();
+    sceneFx->setCameraPosition(camera_.position());
+    sceneFx->setViewMatrix(camera_.view());
+    sceneFx->setWorldMatrix(world_matrix);
+  }
 
-      auto sceneFx = toon_pipeline_.getEntryFx();
-      sceneFx->setCameraPosition(camera_.position());
-      sceneFx->setViewMatrix(camera_.view());
-      sceneFx->setWorldMatrix(world_matrix);
-    }
-
-    /* Render. */
+  void draw() final {
     auto cmd = renderer_.begin_frame();
     {
       /* Main rendering + Toon post-processing. */
@@ -349,12 +340,12 @@ class SampleApp final : public Application {
       cmd.blit(toon_pipeline_, renderer_);
 
       /* Draw UI on top. */
-      cmd.draw_ui(renderer_);
+      cmd.render_ui(renderer_);
     }
     renderer_.end_frame();
   }
 
-  void setup_ui() final {
+  void build_ui() final {
     ImGui::Begin("Settings");
     {
       ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);

@@ -42,7 +42,7 @@ class RenderTarget : public backend::RTInterface {
 
   // [TODO: rework and remove context from args]
   // (might be put inside a generic command encoder to resize similar objects)
-  void resize(VkExtent2D const extent); //
+  bool resize(VkExtent2D const extent); //
 
  public:
   // ----- RTInterface Overrides -----
@@ -60,7 +60,7 @@ class RenderTarget : public backend::RTInterface {
   }
 
   backend::Image const& get_color_attachment(uint32_t i = 0u) const final {
-    return colors_.at(i);
+    return colors_[i];
   }
 
   backend::Image const& get_depth_stencil_attachment() const final {

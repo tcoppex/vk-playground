@@ -1,13 +1,13 @@
 #ifndef POST_NORMAL_DEPTH_EDGE_H_
 #define POST_NORMAL_DEPTH_EDGE_H_
 
-#include "framework/fx/_experimental/fragment_fx.h"
+#include "framework/fx/_experimental/render_target_fx.h"
 
 /* -------------------------------------------------------------------------- */
 
 namespace fx::frag {
 
-class NormalDepthEdge final : public FragmentFx {
+class NormalDepthEdge final : public RenderTargetFx {
  public:
   // [tmp]
   void setInputs(backend::Image const& data_image, backend::Buffer const& depth_minmax_buffer) {
@@ -42,7 +42,7 @@ class NormalDepthEdge final : public FragmentFx {
     };
   }
 
-  void updatePushConstant(GenericCommandEncoder const &cmd) final {
+  void pushConstant(GenericCommandEncoder const &cmd) final {
     cmd.push_constant(push_constant_, pipeline_layout_, VK_SHADER_STAGE_FRAGMENT_BIT);
   }
 

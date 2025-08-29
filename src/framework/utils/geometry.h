@@ -31,6 +31,7 @@ class Geometry {
   };
 
   enum class IndexFormat {
+    U8,
     U16,
     U32,
     kCount,
@@ -61,26 +62,30 @@ class Geometry {
     kUnknown
   };
 
-  using AttributeLocationMap = std::map<AttributeType, uint32_t>;
-  using AttributeOffsetMap   = std::map<AttributeType, uint64_t>;
-
-  /**
-   * When all attributes are != 0 the data are not interleaved and buffers should
-   * be bind separately, with offset depending on the number of elements and the
-   * format of attributes before them...
-   */
   struct AttributeInfo {
     AttributeFormat format{};
     uint32_t offset{};
     uint32_t stride{};
   };
 
+  using AttributeLocationMap = std::map<AttributeType, uint32_t>;
+  using AttributeOffsetMap   = std::map<AttributeType, uint64_t>;
+  using AttributeInfoMap     = std::map<AttributeType, AttributeInfo>;
+
   struct Primitive {
+    Topology topology{Topology::kUnknown};
+
     uint32_t vertexCount{};
     uint32_t indexCount{};
 
     uint64_t indexOffset{};
-    AttributeOffsetMap bufferOffsets{};
+
+    /**
+     * When all attributes share the same offset their data are interleaved,
+     * otherwhise buffers should be bind separately,
+     * with offset depending on the number of elements and the format of attributes before them.
+     */
+    AttributeOffsetMap bufferOffsets{}; //
   };
 
  public:
@@ -120,8 +125,9 @@ class Geometry {
 
  public:
   Geometry() = default;
-  
   ~Geometry() = default;
+
+  /* --- Getters --- */
 
   Topology get_topology() const {
     return topology_;
@@ -130,8 +136,6 @@ class Geometry {
   IndexFormat get_index_format() const {
     return index_format_;
   }
-
-  /* RENAME 'get_total_X_count' */
 
   uint32_t get_index_count() const {
     return index_count_;
@@ -169,6 +173,12 @@ class Geometry {
     return static_cast<uint32_t>(primitives_.size());
   }
 
+  /* --- Setters --- */
+
+  void set_attributes(AttributeInfoMap const attributes) {
+    attributes_ = attributes;
+  }
+
   void set_topology(Topology const topology) {
     topology_ = topology;
   }
@@ -177,18 +187,28 @@ class Geometry {
     index_format_ = format;
   }
 
-  void clear_indices_and_vertices();
+  /* --- Utils --- */
 
-  uint64_t add_vertices_data(std::byte const* data, uint32_t bytesize);
-
-  uint64_t add_indices_data(std::byte const* data, uint32_t bytesize);
+  bool has_attribute(AttributeType const type) const {
+    return attributes_.contains(type);
+  }
 
   void add_attribute(AttributeType const type, AttributeInfo const& info);
 
   void add_primitive(Primitive primitive);
 
+  /* Return the current bytesize of the vertex attributes buffer. */
+  uint64_t add_vertices_data(std::byte const* data, uint32_t bytesize);
+
+  /* Return the current bytesize of the indices buffer. */
+  uint64_t add_indices_data(std::byte const* data, uint32_t bytesize);
+
+  void clear_indices_and_vertices();
+
+  bool recalculate_tangents();
+
  protected:
-  std::map<AttributeType, AttributeInfo> attributes_{};
+  AttributeInfoMap attributes_{};
   std::vector<Primitive> primitives_{};
 
  private:

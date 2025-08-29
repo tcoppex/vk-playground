@@ -205,11 +205,11 @@ class SampleApp final : public Application {
   void frame() final {
     /* Update the world matrix. */
     {
-      float const frame_time{ get_frame_time() };
+      float const tick{ frame_time() };
 
       push_constant_.model.worldMatrix = lina::rotation_matrix_axis(
-        vec3(3.0f * frame_time, 0.8f, sinf(frame_time)),
-        frame_time * 0.62f
+        vec3(3.0f * tick, 0.8f, sinf(tick)),
+        tick * 0.62f
       );
     }
 

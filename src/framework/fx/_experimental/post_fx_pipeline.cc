@@ -1,9 +1,9 @@
-#include "framework/fx/_experimental/fx_pipeline.h"
+#include "framework/fx/_experimental/post_fx_pipeline.h"
 #include "framework/fx/_experimental/compute_fx.h"
 
 /* -------------------------------------------------------------------------- */
 
-void FxPipeline::setupDependencies() {
+void PostFxPipeline::setupDependencies() {
   assert(context_ptr_ != nullptr);
   assert(!effects_.empty());
 

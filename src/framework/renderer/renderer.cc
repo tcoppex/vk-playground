@@ -1,9 +1,8 @@
 #include "framework/renderer/renderer.h"
 #include "framework/backend/context.h"
+#include "framework/renderer/_experimental/render_target.h"
 
-#include "framework/renderer/_experimental/render_target.h" //
-
-#include "stb/stb_image.h" //
+#include "framework/shaders/scene/interop.h" // for kAttribLocation_*
 
 /* -------------------------------------------------------------------------- */
 
@@ -22,9 +21,19 @@ void Renderer::init(Context const& context, std::shared_ptr<ResourceAllocator> a
   /* Initialize the swapchain. */
   swapchain_.init(context, surface);
 
+  /* Create the shared pipeline cache. */
+  {
+    VkPipelineCacheCreateInfo const cache_info{
+      .sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO,
+      .initialDataSize = 0u,
+      .pInitialData = nullptr,
+    };
+    CHECK_VK( vkCreatePipelineCache(device_, &cache_info, nullptr, &pipeline_cache_) );
+  }
+
   /* Create a default depth stencil buffer. */
   VkExtent2D const dimension{swapchain_.get_surface_size()};
-  depth_stencil_ = context.create_image_2d(dimension.width, dimension.height, 1u, get_valid_depth_format());
+  depth_stencil_ = context.create_image_2d(dimension.width, dimension.height, get_valid_depth_format());
 
   /* Initialize resources for the semaphore timeline. */
   // See https://docs.vulkan.org/samples/latest/samples/extensions/timeline_semaphore/README.html
@@ -71,20 +80,21 @@ void Renderer::init(Context const& context, std::shared_ptr<ResourceAllocator> a
   /* Create a generic descriptor pool for the framework / app. */
   init_descriptor_pool();
 
-  /* Create a linear sampler to be use everywhere */
-  VkSamplerCreateInfo const sampler_create_info{
-    .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
-    .magFilter = VK_FILTER_LINEAR,
-    .minFilter = VK_FILTER_LINEAR,
-    .mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
-    .addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT, //CLAMP_TO_EDGE,
-    .addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT, //CLAMP_TO_EDGE,
-    .addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
-    .anisotropyEnable = VK_TRUE,
-    .maxAnisotropy = 16.0f,
-    .maxLod = VK_LOD_CLAMP_NONE,
-  };
-  CHECK_VK( vkCreateSampler(device_, &sampler_create_info, nullptr, &linear_sampler_) );
+  sampler_pool_.init(device_);
+  // sampler_LinearRepeatMipMapAniso_ = sampler_pool_.get({
+  //   .magFilter = VK_FILTER_LINEAR,
+  //   .minFilter = VK_FILTER_LINEAR,
+  //   .mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
+  //   .addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+  //   .addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+  //   .addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+  //   .anisotropyEnable = VK_TRUE,
+  //   .maxAnisotropy = 16.0f,
+  //   .maxLod = VK_LOD_CLAMP_NONE,
+  // });
+
+  /* Renderer internal helpers. */
+  skybox_.init(context, *this);
 }
 
 // ----------------------------------------------------------------------------
@@ -92,21 +102,22 @@ void Renderer::init(Context const& context, std::shared_ptr<ResourceAllocator> a
 void Renderer::deinit() {
   assert(device_ != VK_NULL_HANDLE);
 
-  vkDestroySampler(device_, linear_sampler_, nullptr);
+  skybox_.release(*ctx_ptr_, *this);
+
+  sampler_pool_.deinit();
 
   vkDestroyDescriptorPool(device_, descriptor_pool_, nullptr);
-
   vkDestroySemaphore(device_, timeline_.semaphore, nullptr);
-
   for (auto & frame : timeline_.frames) {
     vkFreeCommandBuffers(device_, frame.command_pool, 1u, &frame.command_buffer);
     vkDestroyCommandPool(device_, frame.command_pool, nullptr);
   }
 
   allocator_->destroy_image(&depth_stencil_);
+  vkDestroyPipelineCache(device_, pipeline_cache_, nullptr);
   swapchain_.deinit();
 
-  device_ = VK_NULL_HANDLE;
+  *this = {};
 }
 
 // ----------------------------------------------------------------------------
@@ -230,7 +241,7 @@ std::shared_ptr<RenderTarget> Renderer::create_default_render_target(uint32_t nu
     .color_formats = {},
     .depth_stencil_format = get_valid_depth_format(),
     .size = swapchain_.get_surface_size(),
-    .sampler = linear_sampler_,
+    .sampler = get_default_sampler(),
   };
   desc.color_formats.resize(num_color_outputs, get_color_attachment().format);
 
@@ -281,19 +292,24 @@ VkPipelineLayout Renderer::create_pipeline_layout(PipelineLayoutDescriptor_t con
 
 // ----------------------------------------------------------------------------
 
-Pipeline Renderer::create_graphics_pipeline(VkPipelineLayout pipeline_layout, GraphicsPipelineDescriptor_t const& desc) const {
-  assert( pipeline_layout != VK_NULL_HANDLE );
-  assert( desc.vertex.module != VK_NULL_HANDLE );
-  assert( desc.fragment.module != VK_NULL_HANDLE );
-  // assert( !desc.vertex.buffers.empty() );
+VkGraphicsPipelineCreateInfo Renderer::get_graphics_pipeline_create_info(
+  GraphicsPipelineCreateInfoData_t &data,
+  VkPipelineLayout pipeline_layout,
+  GraphicsPipelineDescriptor_t const& desc
+) const {
+  LOG_CHECK( desc.vertex.module != VK_NULL_HANDLE );
+  LOG_CHECK( desc.fragment.module != VK_NULL_HANDLE );
 
   if (desc.fragment.targets.empty()) {
     LOGD("Warning : fragment targets were not specified for a graphic pipeline.");
   }
-  // assert( desc.fragment.targets[0].format != VK_FORMAT_UNDEFINED );
+
+  bool const useDynamicRendering{desc.renderPass == VK_NULL_HANDLE};
+
+  data = {};
 
   // Default color blend attachment.
-  std::vector<VkPipelineColorBlendAttachmentState> color_blend_attachments{
+  data.color_blend_attachments = {
     {
       .blendEnable = VK_FALSE,
       .srcColorBlendFactor = VK_BLEND_FACTOR_ZERO,
@@ -311,14 +327,10 @@ Pipeline Renderer::create_graphics_pipeline(VkPipelineLayout pipeline_layout, Gr
     }
   };
 
-  bool const useDynamicRendering{desc.renderPass == VK_NULL_HANDLE};
-
   /* Dynamic Rendering. */
-  VkPipelineRenderingCreateInfo dynamic_rendering_create_info{};
-  std::vector<VkFormat> color_attachments{};
   if (useDynamicRendering)
   {
-    color_attachments.resize(desc.fragment.targets.size());
+    data.color_attachments.resize(desc.fragment.targets.size());
 
     /* (~) If no depth format is setup, use the renderer's one. */
     VkFormat const depth_format{
@@ -329,8 +341,11 @@ Pipeline Renderer::create_graphics_pipeline(VkPipelineLayout pipeline_layout, Gr
       vkutils::IsValidStencilFormat(depth_format) ? depth_format : VK_FORMAT_UNDEFINED
     };
 
-    color_blend_attachments.resize(color_attachments.size(), color_blend_attachments[0u]);
-    for (size_t i = 0; i < color_attachments.size(); ++i) {
+    data.color_blend_attachments.resize(
+      data.color_attachments.size(),
+      data.color_blend_attachments[0u]
+    );
+    for (size_t i = 0; i < data.color_attachments.size(); ++i) {
       auto &target = desc.fragment.targets[i];
 
       /* (~) If no color format is setup, use the renderer's one. */
@@ -338,9 +353,9 @@ Pipeline Renderer::create_graphics_pipeline(VkPipelineLayout pipeline_layout, Gr
         (target.format != VK_FORMAT_UNDEFINED) ? target.format
                                                : get_color_attachment(i).format
       };
-      color_attachments[i] = color_format;
+      data.color_attachments[i] = color_format;
 
-      color_blend_attachments[i] = {
+      data.color_blend_attachments[i] = {
         .blendEnable = target.blend.enable,
         .srcColorBlendFactor = target.blend.color.srcFactor,
         .dstColorBlendFactor = target.blend.color.dstFactor,
@@ -352,76 +367,86 @@ Pipeline Renderer::create_graphics_pipeline(VkPipelineLayout pipeline_layout, Gr
       };
     }
 
-    dynamic_rendering_create_info = {
+    data.dynamic_rendering_create_info = {
       .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
-      .colorAttachmentCount = static_cast<uint32_t>(color_attachments.size()),
-      .pColorAttachmentFormats = color_attachments.data(),
+      .colorAttachmentCount = static_cast<uint32_t>(data.color_attachments.size()),
+      .pColorAttachmentFormats = data.color_attachments.data(),
       .depthAttachmentFormat = depth_format,
       .stencilAttachmentFormat = stencil_format,
     };
   }
 
+
   /* Shaders stages */
   auto getShaderEntryPoint{[](std::string const& entryPoint) -> char const* {
     return entryPoint.empty() ? kDefaulShaderEntryPoint : entryPoint.c_str();
   }};
-  std::vector<VkPipelineShaderStageCreateInfo> shader_stages{
+
+  data.shader_stages = {
+    // VERTEX
     {
       .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+      .flags = 0,
       .stage = VK_SHADER_STAGE_VERTEX_BIT,
       .module = desc.vertex.module,
       .pName = getShaderEntryPoint(desc.vertex.entryPoint),
     },
+    // FRAGMENT
     {
       .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+      .flags = 0,
       .stage = VK_SHADER_STAGE_FRAGMENT_BIT,
       .module = desc.fragment.module,
       .pName = getShaderEntryPoint(desc.fragment.entryPoint),
     }
   };
 
+  /* Shader specializations */
+  data.specializations.resize(data.shader_stages.size());
+  data.shader_stages[0].pSpecializationInfo =
+    data.specializations[0].info(desc.vertex.specializationConstants);
+  data.shader_stages[1].pSpecializationInfo =
+    data.specializations[1].info(desc.fragment.specializationConstants);
+
   /* Vertex Input */
-  VkPipelineVertexInputStateCreateInfo vertex_input{};
-  std::vector<VkVertexInputBindingDescription> vertex_bindings{};
-  std::vector<VkVertexInputAttributeDescription> vertex_attributes{};
   {
     uint32_t binding = 0u;
     for (auto const& buffer : desc.vertex.buffers) {
-      vertex_bindings.push_back({
+      data.vertex_bindings.push_back({
         .binding = binding,
         .stride = buffer.stride,
         .inputRate = buffer.inputRate,
       });
       for (auto attrib : buffer.attributes) {
         attrib.binding = binding;
-        vertex_attributes.push_back(attrib);
+        data.vertex_attributes.push_back(attrib);
       }
       ++binding;
     }
 
-    vertex_input = {
+    data.vertex_input = {
       .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-      .vertexBindingDescriptionCount = static_cast<uint32_t>(vertex_bindings.size()),
-      .pVertexBindingDescriptions = vertex_bindings.data(),
-      .vertexAttributeDescriptionCount = static_cast<uint32_t>(vertex_attributes.size()),
-      .pVertexAttributeDescriptions = vertex_attributes.data(),
+      .vertexBindingDescriptionCount = static_cast<uint32_t>(data.vertex_bindings.size()),
+      .pVertexBindingDescriptions = data.vertex_bindings.data(),
+      .vertexAttributeDescriptionCount = static_cast<uint32_t>(data.vertex_attributes.size()),
+      .pVertexAttributeDescriptions = data.vertex_attributes.data(),
     };
   }
 
   /* Input Assembly */
-  VkPipelineInputAssemblyStateCreateInfo input_assembly{
+  data.input_assembly = {
     .sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
     .topology = desc.primitive.topology,
     .primitiveRestartEnable = VK_FALSE,
   };
 
   /* Tessellation */
-  VkPipelineTessellationStateCreateInfo tessellation{
+  data.tessellation = {
     .sType = VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO,
   };
 
   /* Viewport Scissor */
-  VkPipelineViewportStateCreateInfo viewport{
+  data.viewport = {
     .sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
     // Viewport and Scissor are set as dynamic, but without VK_EXT_extended_dynamic_state
     // we need to specify the number for each one.
@@ -430,7 +455,7 @@ Pipeline Renderer::create_graphics_pipeline(VkPipelineLayout pipeline_layout, Gr
   };
 
   /* Rasterization */
-  VkPipelineRasterizationStateCreateInfo rasterization{
+  data.rasterization = {
     .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
     .depthClampEnable = VK_FALSE,
     .rasterizerDiscardEnable = VK_FALSE,
@@ -441,7 +466,7 @@ Pipeline Renderer::create_graphics_pipeline(VkPipelineLayout pipeline_layout, Gr
   };
 
   /* Multisampling */
-  VkPipelineMultisampleStateCreateInfo multisample{
+  data.multisample = {
     .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
     .rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
     .sampleShadingEnable = VK_FALSE,
@@ -450,7 +475,7 @@ Pipeline Renderer::create_graphics_pipeline(VkPipelineLayout pipeline_layout, Gr
   };
 
   /* Depth Stencil */
-  VkPipelineDepthStencilStateCreateInfo depth_stencil{
+  data.depth_stencil = {
     .sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
     .depthTestEnable = desc.depthStencil.depthTestEnable,
     .depthWriteEnable = desc.depthStencil.depthWriteEnable,
@@ -462,17 +487,17 @@ Pipeline Renderer::create_graphics_pipeline(VkPipelineLayout pipeline_layout, Gr
   };
 
   /* Color Blend */
-  VkPipelineColorBlendStateCreateInfo color_blend{
+  data.color_blend = {
     .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
     .logicOpEnable = VK_FALSE,
     .logicOp = VK_LOGIC_OP_COPY,
-    .attachmentCount = static_cast<uint32_t>(color_blend_attachments.size()),
-    .pAttachments = color_blend_attachments.data(),
+    .attachmentCount = static_cast<uint32_t>(data.color_blend_attachments.size()),
+    .pAttachments = data.color_blend_attachments.data(),
     .blendConstants = { 0.0f, 0.0f, 0.0f, 0.0f },
   };
 
   /* Dynamic states */
-  std::vector<VkDynamicState> dynamic_states{
+  data.dynamic_states = {
     VK_DYNAMIC_STATE_VIEWPORT,
     VK_DYNAMIC_STATE_SCISSOR,
 
@@ -489,36 +514,90 @@ Pipeline Renderer::create_graphics_pipeline(VkPipelineLayout pipeline_layout, Gr
     // VK_DYNAMIC_STATE_PRIMITIVE_TOPOLOGY_EXT,
     // VK_DYNAMIC_STATE_CULL_MODE_EXT,
   };
-  dynamic_states.insert(
-    dynamic_states.end(), desc.dynamicStates.begin(), desc.dynamicStates.end()
+  data.dynamic_states.insert(
+    data.dynamic_states.end(), desc.dynamicStates.begin(), desc.dynamicStates.end()
   );
-  VkPipelineDynamicStateCreateInfo const dynamic_state_create_info{
+  data.dynamic_state_create_info = {
     .sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
-    .dynamicStateCount = static_cast<uint32_t>(dynamic_states.size()),
-    .pDynamicStates = dynamic_states.data(),
+    .dynamicStateCount = static_cast<uint32_t>(data.dynamic_states.size()),
+    .pDynamicStates = data.dynamic_states.data(),
   };
 
   VkGraphicsPipelineCreateInfo const graphics_pipeline_create_info{
     .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
-    .pNext = useDynamicRendering ? &dynamic_rendering_create_info : nullptr,
-    .stageCount = static_cast<uint32_t>(shader_stages.size()),
-    .pStages = shader_stages.data(),
-    .pVertexInputState = &vertex_input,
-    .pInputAssemblyState = &input_assembly,
-    .pTessellationState = &tessellation,
-    .pViewportState = &viewport, //
-    .pRasterizationState = &rasterization,
-    .pMultisampleState = &multisample,
-    .pDepthStencilState = &depth_stencil,
-    .pColorBlendState = &color_blend,
-    .pDynamicState = &dynamic_state_create_info,
+    .pNext = useDynamicRendering ? &data.dynamic_rendering_create_info : nullptr,
+    .flags = 0,
+    .stageCount = static_cast<uint32_t>(data.shader_stages.size()),
+    .pStages = data.shader_stages.data(),
+    .pVertexInputState = &data.vertex_input,
+    .pInputAssemblyState = &data.input_assembly,
+    .pTessellationState = &data.tessellation,
+    .pViewportState = &data.viewport, //
+    .pRasterizationState = &data.rasterization,
+    .pMultisampleState = &data.multisample,
+    .pDepthStencilState = &data.depth_stencil,
+    .pColorBlendState = &data.color_blend,
+    .pDynamicState = &data.dynamic_state_create_info,
     .layout = pipeline_layout,
     .renderPass = useDynamicRendering ? VK_NULL_HANDLE : desc.renderPass,
+    .subpass = 0u,
+    .basePipelineHandle = VK_NULL_HANDLE,
+    .basePipelineIndex = -1,
   };
 
-  VkPipeline pipeline;
+  return graphics_pipeline_create_info;
+}
+
+// ----------------------------------------------------------------------------
+
+void Renderer::create_graphics_pipelines(
+  VkPipelineLayout pipeline_layout,
+  std::vector<GraphicsPipelineDescriptor_t> const& descs,
+  std::vector<Pipeline> *out_pipelines
+) const {
+  LOG_CHECK( pipeline_layout != VK_NULL_HANDLE );
+
+  /// When batching pipelines, most underlying data will not changes, so
+  /// we could improve setupping by changing only those needed (like
+  /// color_blend_attachments).
+  std::vector<GraphicsPipelineCreateInfoData_t> datas(descs.size());
+
+  std::vector<VkGraphicsPipelineCreateInfo> create_infos(descs.size());
+  for (size_t i = 0; i < descs.size(); ++i) {
+    create_infos[i] = get_graphics_pipeline_create_info(datas[i], pipeline_layout, descs[i]);
+    create_infos[i].flags |= VK_PIPELINE_CREATE_DERIVATIVE_BIT;
+    create_infos[i].basePipelineIndex = 0;
+  }
+  create_infos[0].flags &= ~VK_PIPELINE_CREATE_DERIVATIVE_BIT;
+  create_infos[0].flags |= VK_PIPELINE_CREATE_ALLOW_DERIVATIVES_BIT;
+  create_infos[0].basePipelineIndex = -1;
+
+  std::vector<VkPipeline> pipelines(descs.size());
   CHECK_VK(vkCreateGraphicsPipelines(
-    device_, nullptr, 1u, &graphics_pipeline_create_info, nullptr, &pipeline
+    device_, pipeline_cache_, create_infos.size(), create_infos.data(), nullptr, pipelines.data()
+  ));
+
+  for (size_t i = 0; i < descs.size(); ++i) {
+    (*out_pipelines)[i] = Pipeline(pipeline_layout, pipelines[i], VK_PIPELINE_BIND_POINT_GRAPHICS);
+  }
+}
+
+// ----------------------------------------------------------------------------
+
+Pipeline Renderer::create_graphics_pipeline(
+  VkPipelineLayout pipeline_layout,
+  GraphicsPipelineDescriptor_t const& desc
+) const {
+  LOG_CHECK( pipeline_layout != VK_NULL_HANDLE );
+
+  GraphicsPipelineCreateInfoData_t data{};
+  VkGraphicsPipelineCreateInfo const create_info{
+    get_graphics_pipeline_create_info(data, pipeline_layout, desc)
+  };
+
+  VkPipeline pipeline{};
+  CHECK_VK(vkCreateGraphicsPipelines(
+    device_, pipeline_cache_, 1u, &create_info, nullptr, &pipeline
   ));
 
   return Pipeline(pipeline_layout, pipeline, VK_PIPELINE_BIND_POINT_GRAPHICS);
@@ -562,7 +641,7 @@ void Renderer::create_compute_pipelines(VkPipelineLayout pipeline_layout, std::v
   std::vector<VkPipeline> pips(modules.size());
 
   CHECK_VK(vkCreateComputePipelines(
-    device_, nullptr, static_cast<uint32_t>(pipeline_infos.size()), pipeline_infos.data(), nullptr, pips.data()
+    device_, pipeline_cache_, static_cast<uint32_t>(pipeline_infos.size()), pipeline_infos.data(), nullptr, pips.data()
   ));
 
   for (size_t i = 0; i < pips.size(); ++i) {
@@ -665,75 +744,8 @@ VkDescriptorSet Renderer::create_descriptor_set(VkDescriptorSetLayout const layo
 
 VkDescriptorSet Renderer::create_descriptor_set(VkDescriptorSetLayout const layout, std::vector<DescriptorSetWriteEntry> const& entries) const {
   auto const descriptor_set{ create_descriptor_set(layout) };
-  update_descriptor_set(descriptor_set, entries);
+  ctx_ptr_->update_descriptor_set(descriptor_set, entries);
   return descriptor_set;
-}
-
-// ----------------------------------------------------------------------------
-
-void Renderer::update_descriptor_set(VkDescriptorSet const& descriptor_set, std::vector<DescriptorSetWriteEntry> const& entries) const {
-  if (entries.empty()) {
-    return;
-  }
-
-  std::vector<VkWriteDescriptorSet> write_descriptor_sets;
-  write_descriptor_sets.reserve(entries.size());
-
-  std::vector<DescriptorSetWriteEntry> updated_entries{entries};
-
-  for (auto& entry : updated_entries) {
-    VkWriteDescriptorSet write_descriptor_set{
-      .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-      .dstSet = descriptor_set,
-      .dstBinding = entry.binding,
-      .dstArrayElement = 0u,
-      .descriptorType = entry.type,
-    };
-
-    switch (entry.type) {
-      case VK_DESCRIPTOR_TYPE_SAMPLER:
-      case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
-      case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
-      case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
-        LOG_CHECK(entry.buffers.empty() && entry.bufferViews.empty());
-
-        write_descriptor_set.pImageInfo = entry.images.data();
-        write_descriptor_set.descriptorCount = static_cast<uint32_t>(entry.images.size());
-      break;
-
-      case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
-      case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
-      case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
-      case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
-        LOG_CHECK(entry.images.empty() && entry.bufferViews.empty());
-        for (auto &buf : entry.buffers) {
-          buf.range = (buf.range == 0) ? VK_WHOLE_SIZE : buf.range;
-        }
-        write_descriptor_set.pBufferInfo = entry.buffers.data();
-        write_descriptor_set.descriptorCount = static_cast<uint32_t>(entry.buffers.size());
-      break;
-
-      case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
-        LOG_CHECK(entry.images.empty() && entry.buffers.empty());
-        write_descriptor_set.pTexelBufferView = entry.bufferViews.data();
-        write_descriptor_set.descriptorCount = static_cast<uint32_t>(entry.bufferViews.size());
-      break;
-
-      default:
-        LOGE("Unknown descriptor type: %d", static_cast<int>(entry.type));
-        continue;
-    }
-
-    write_descriptor_sets.push_back(write_descriptor_set);
-  }
-
-  vkUpdateDescriptorSets(
-    device_,
-    static_cast<uint32_t>(write_descriptor_sets.size()),
-    write_descriptor_sets.data(),
-    0u,
-    nullptr
-  );
 }
 
 // ----------------------------------------------------------------------------
@@ -771,7 +783,7 @@ bool Renderer::load_image_2d(CommandEncoder const& cmd, std::string_view const& 
   };
 
   image = ctx_ptr_->create_image_2d(
-    extent.width, extent.height, 1u, format, VK_IMAGE_USAGE_TRANSFER_DST_BIT
+    extent.width, extent.height, format, VK_IMAGE_USAGE_TRANSFER_DST_BIT
   );
 
   /* Copy host data to a staging buffer. */
@@ -802,12 +814,39 @@ bool Renderer::load_image_2d(std::string_view const& filename, backend::Image &i
 
 // ----------------------------------------------------------------------------
 
-std::shared_ptr<scene::Resources> Renderer::load_and_upload(std::string_view gltf_filename, scene::Mesh::AttributeLocationMap const& attribute_to_location) {
-  auto R = std::make_shared<scene::Resources>();
-  R->load_from_file(gltf_filename);
-  R->initialize_submesh_descriptors(attribute_to_location);
-  R->upload_to_device(*ctx_ptr_);
-  return R;
+GLTFScene Renderer::load_and_upload(std::string_view gltf_filename, scene::Mesh::AttributeLocationMap const& attribute_to_location) {
+  GLTFScene scene = std::make_shared<scene::Resources>();
+
+  if (scene) {
+    scene->prepare_material_fx(*ctx_ptr_, *this); //
+
+    if (scene->load_from_file(gltf_filename, sampler_pool_)) {
+      scene->initialize_submesh_descriptors(attribute_to_location);
+      scene->upload_to_device(*ctx_ptr_);
+      return scene;
+    }
+  }
+
+  return nullptr;
+}
+
+// ----------------------------------------------------------------------------
+
+GLTFScene Renderer::load_and_upload(std::string_view gltf_filename) {
+  // -----------------------
+  // -----------------------
+  // [temporary, this should be set elsewhere ideally]
+  static const scene::Mesh::AttributeLocationMap kDefaultFxPipelineAttributeLocationMap{
+    {
+      { Geometry::AttributeType::Position, kAttribLocation_Position },
+      { Geometry::AttributeType::Normal,   kAttribLocation_Normal },
+      { Geometry::AttributeType::Texcoord, kAttribLocation_Texcoord },
+      { Geometry::AttributeType::Tangent,  kAttribLocation_Tangent }, //
+    }
+  };
+  // -----------------------
+  // -----------------------
+  return load_and_upload(gltf_filename, kDefaultFxPipelineAttributeLocationMap);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -816,7 +855,7 @@ std::shared_ptr<scene::Resources> Renderer::load_and_upload(std::string_view glt
 void Renderer::init_descriptor_pool() {
   uint32_t const kMaxDescriptorPoolSets{ 256u };
 
-  /* Baseline pool suggestion, to adjust based on application needs. */
+  /* Default pool, to adjust based on application needs. */
   descriptor_pool_sizes_ = {
     { VK_DESCRIPTOR_TYPE_SAMPLER, 50 },                 // standalone samplers
     { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 300 }, // textures in materials

@@ -1,7 +1,7 @@
 #ifndef POST_EDGE_H_
 #define POST_EDGE_H_
 
-#include "framework/fx/_experimental/fragment_fx.h"
+#include "framework/fx/_experimental/render_target_fx.h"
 
 /* -------------------------------------------------------------------------- */
 
@@ -10,7 +10,7 @@ namespace fx::frag {
 /**
  * Detect difference between two integer from the w component of a rgba textures.
  **/
-class ObjectEdge final : public FragmentFx {
+class ObjectEdge final : public RenderTargetFx {
  public:
   void setupUI() final {
     if (!ImGui::CollapsingHeader("Object edge")) {
@@ -29,7 +29,7 @@ class ObjectEdge final : public FragmentFx {
     };
   }
 
-  void updatePushConstant(GenericCommandEncoder const &cmd) final {
+  void pushConstant(GenericCommandEncoder const &cmd) final {
     cmd.push_constant(push_constant_, pipeline_layout_, VK_SHADER_STAGE_FRAGMENT_BIT);
   }
 

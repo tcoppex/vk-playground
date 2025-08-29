@@ -67,41 +67,57 @@ bool IsValidStencilFormat(VkFormat const format) {
 // ----------------------------------------------------------------------------
 
 // (from nvpro_sample/minimal_latest)
-std::tuple<VkPipelineStageFlags2, VkAccessFlags2> MakePipelineStageAccessTuple(VkImageLayout const state) {
+std::tuple<VkPipelineStageFlags2, VkAccessFlags2> MakePipelineStageAccessTuple(
+  VkImageLayout const state
+) {
   switch(state) {
     case VK_IMAGE_LAYOUT_UNDEFINED:
-      return std::make_tuple(VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT,
-                             VK_ACCESS_2_NONE);
-
-    case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
-      return std::make_tuple(VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-                             VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT
-                           | VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT);
-
-    case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
-      return std::make_tuple(VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT
-                           | VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT
-                           | VK_PIPELINE_STAGE_2_PRE_RASTERIZATION_SHADERS_BIT,
-                             VK_ACCESS_2_SHADER_READ_BIT);
-
-    case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
-      return std::make_tuple(VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-                             VK_ACCESS_2_TRANSFER_READ_BIT);
-
-    case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
-      return std::make_tuple(VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-                             VK_ACCESS_2_TRANSFER_WRITE_BIT);
+      return std::make_tuple( VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT,
+                              VK_ACCESS_2_NONE);
 
     case VK_IMAGE_LAYOUT_GENERAL:
-      return std::make_tuple(VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT
-                           | VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-                             VK_ACCESS_2_MEMORY_READ_BIT
-                           | VK_ACCESS_2_MEMORY_WRITE_BIT
-                           | VK_ACCESS_2_TRANSFER_WRITE_BIT);
+      return std::make_tuple( VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT
+                            | VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+                              VK_ACCESS_2_MEMORY_READ_BIT
+                            | VK_ACCESS_2_MEMORY_WRITE_BIT
+                            | VK_ACCESS_2_TRANSFER_WRITE_BIT);
+
+    case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+      return std::make_tuple( VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                              VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT
+                            | VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT);
+
+    case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+      return std::make_tuple( VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT
+                            | VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT
+                            | VK_PIPELINE_STAGE_2_PRE_RASTERIZATION_SHADERS_BIT,
+                              VK_ACCESS_2_SHADER_READ_BIT);
+
+    case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+      return std::make_tuple( VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+                              VK_ACCESS_2_TRANSFER_READ_BIT);
+
+    case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+      return std::make_tuple( VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+                              VK_ACCESS_2_TRANSFER_WRITE_BIT);
+
+    // VK_KHR_swapchain
 
     case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
-      return std::make_tuple(VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-                             VK_ACCESS_2_NONE);
+      return std::make_tuple( VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                              VK_ACCESS_2_NONE);
+    // VK_VERSION_1_3
+
+    case VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL:
+      return std::make_tuple( VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT
+                            | VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT
+                            | VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT
+                            | VK_PIPELINE_STAGE_2_PRE_RASTERIZATION_SHADERS_BIT
+                            | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT
+                            | VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
+                              VK_ACCESS_2_SHADER_SAMPLED_READ_BIT
+                            | VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT
+                            | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT);
 
     default: {
       LOGD("%s: Unknown enum %s.", __FUNCTION__, string_VkImageLayout(state));

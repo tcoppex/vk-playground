@@ -4,6 +4,7 @@
 /* -------------------------------------------------------------------------- */
 
 #include <chrono>
+using namespace std::chrono_literals;
 
 #include "framework/common.h"
 #include "framework/backend/context.h"
@@ -23,21 +24,28 @@ class Application : public EventCallbacks {
   int run();
 
  protected:
-  float get_elapsed_time() const;
+  float elapsed_time() const;
 
-  float get_frame_time() const {
+  float frame_time() const {
     return frame_time_;
   }
 
-  float get_delta_time() const {
+  float delta_time() const {
     return frame_time_ - last_frame_time_;
   }
 
  protected:
   virtual bool setup() { return true; }
   virtual void release() {}
-  virtual void setup_ui() {}
-  virtual void frame() {}
+  virtual void build_ui() {}
+
+  virtual void update(float const dt) {}
+  virtual void draw() {}
+
+  virtual void frame() {
+    update(delta_time());
+    draw();
+  }
 
  private:
   bool presetup();

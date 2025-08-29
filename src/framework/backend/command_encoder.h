@@ -6,7 +6,7 @@
 #include "framework/backend/vk_utils.h"
 
 class RenderPassEncoder;
-class FxInterface;
+class PostFxInterface;
 
 /* -------------------------------------------------------------------------- */
 
@@ -40,6 +40,7 @@ class GenericCommandEncoder {
   void bind_descriptor_set(VkDescriptorSet const descriptor_set, VkPipelineLayout const pipeline_layout, VkShaderStageFlags const stage_flags) const;
 
   void bind_descriptor_set(VkDescriptorSet const descriptor_set, VkShaderStageFlags const stage_flags) const {
+    LOG_CHECK(VK_NULL_HANDLE != currently_bound_pipeline_layout_);
     bind_descriptor_set(descriptor_set, currently_bound_pipeline_layout_, stage_flags);
   }
 
@@ -74,13 +75,13 @@ class GenericCommandEncoder {
 
   template<typename T> requires (!SpanConvertible<T>)
   void push_constant(T const& value, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS, uint32_t const offset = 0u) const {
-    assert(currently_bound_pipeline_layout_ != VK_NULL_HANDLE);
+    LOG_CHECK(VK_NULL_HANDLE != currently_bound_pipeline_layout_);
     push_constant(value, currently_bound_pipeline_layout_, stage_flags, offset);
   }
 
   template<typename T> requires (SpanConvertible<T>)
   void push_constants(T const& values, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS, uint32_t const offset = 0u) const {
-    assert(currently_bound_pipeline_layout_ != VK_NULL_HANDLE);
+    LOG_CHECK(VK_NULL_HANDLE != currently_bound_pipeline_layout_);
     push_constants(values, currently_bound_pipeline_layout_, stage_flags, offset);
   }
 
@@ -105,6 +106,10 @@ class GenericCommandEncoder {
 
   template<uint32_t tX = 1u, uint32_t tY = 1u, uint32_t tZ = 1u>
   void dispatch(uint32_t x = 1u, uint32_t y = 1u, uint32_t z = 1u) const {
+    LOG_CHECK(x > 0u);
+    LOG_CHECK(y > 0u);
+    LOG_CHECK(z > 0u);
+
     vkCmdDispatch(command_buffer_,
       vkutils::GetKernelGridDim(x, tX),
       vkutils::GetKernelGridDim(y, tY),
@@ -133,10 +138,10 @@ class CommandEncoder : public GenericCommandEncoder {
 
   void copy_buffer(backend::Buffer const& src, backend::Buffer const& dst, std::vector<VkBufferCopy> const& regions) const;
 
-  void copy_buffer(backend::Buffer const& src, size_t src_offset, backend::Buffer const& dst, size_t dst_offet, size_t size) const;
+  size_t copy_buffer(backend::Buffer const& src, size_t src_offset, backend::Buffer const& dst, size_t dst_offet, size_t size) const;
 
-  void copy_buffer(backend::Buffer const& src, backend::Buffer const& dst, size_t size) const {
-    copy_buffer(src, 0, dst, 0, size);
+  size_t copy_buffer(backend::Buffer const& src, backend::Buffer const& dst, size_t size) const {
+    return copy_buffer(src, 0, dst, 0, size);
   }
 
   void transfer_host_to_device(void const* host_data, size_t const host_data_size, backend::Buffer const& device_buffer, size_t const device_buffer_offset = 0u) const;
@@ -173,7 +178,7 @@ class CommandEncoder : public GenericCommandEncoder {
 
   void blit_image_2d(backend::Image const& src, VkImageLayout src_layout, backend::Image const& dst, VkImageLayout dst_layout, VkExtent2D const& extent) const;
 
-  void blit(FxInterface const& fx_src, backend::RTInterface const& rt_dst) const;
+  void blit(PostFxInterface const& fx_src, backend::RTInterface const& rt_dst) const;
 
   // --- Rendering ---
 
@@ -188,10 +193,9 @@ class CommandEncoder : public GenericCommandEncoder {
   RenderPassEncoder begin_render_pass(backend::RPInterface const& render_pass) const;
   void end_render_pass() const;
 
-
   // --- UI ----
 
-  void draw_ui(backend::RTInterface &render_target); 
+  void render_ui(backend::RTInterface &render_target);
 
 
  protected:

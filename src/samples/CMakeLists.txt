@@ -1,4 +1,37 @@
 # -----------------------------------------------------------------------------
+#
+# Samples CMakeFiles
+#
+# -----------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
+# External Assets Dependencies.
+# -----------------------------------------------------------------------------
+
+list(APPEND glbKhronosAssets
+  # DamagedHelmet     # on LFS
+  AlphaBlendModeTest
+)
+list(APPEND hdriPolyhavenAssets
+  # qwantani_dusk_2_2k    # on LFS
+  rogland_clear_night_2k
+)
+
+foreach(asset IN LISTS glbKhronosAssets)
+  set(GLB_KHRONOS_ASSETS_URL "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/")
+  download_model(
+    "${GLB_KHRONOS_ASSETS_URL}${asset}/glTF-Binary/${asset}.glb"
+  )
+endforeach()
+
+foreach(asset IN LISTS hdriPolyhavenAssets)
+  set(HDRI_POLYHAVEN_ASSETS_URL "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/")
+  download_texture(
+    "${HDRI_POLYHAVEN_ASSETS_URL}${asset}.hdr"
+  )
+endforeach()
+
+# -----------------------------------------------------------------------------
 
 function(add_simple_demo dirname)
   set(SAMPLE_PATH ${SAMPLES_PATH}/${dirname})
@@ -67,7 +100,6 @@ add_simple_demo(06_blend_op)
 add_simple_demo(07_compute)
 add_simple_demo(08_hdr_envmap)
 add_simple_demo(09_post_process)
-
-# add_simple_demo(999_test)
+add_simple_demo(10_material)
 
 # -----------------------------------------------------------------------------

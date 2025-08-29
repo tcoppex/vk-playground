@@ -3,16 +3,19 @@
 
 /* -------------------------------------------------------------------------- */
 
+#include "framework/common.h"
+
 #include "framework/backend/context.h"
 #include "framework/backend/swapchain.h"
 #include "framework/backend/command_encoder.h"
-#include "framework/renderer/pipeline.h"
-#include "framework/scene/resources.h" //
 
+#include "framework/renderer/pipeline.h"
+#include "framework/renderer/sampler_pool.h"
 #include "framework/renderer/_experimental/framebuffer.h" // (for Framebuffer::Descriptor_t)
 #include "framework/renderer/_experimental/render_target.h" // (for RenderTarget::Descriptor_t)
-// class RenderTarget;
 
+#include "framework/scene/resources.h" // (for GLTFScene)
+#include "framework/fx/skybox.h"
 
 /* -------------------------------------------------------------------------- */
 
@@ -50,6 +53,14 @@ class Renderer : public backend::RTInterface {
     return swapchain_;
   }
 
+  Skybox& skybox() {
+    return skybox_;
+  }
+
+  Skybox const& skybox() const {
+    return skybox_;
+  }
+
  public:
   /* ----- Factory ----- */
 
@@ -74,6 +85,18 @@ class Renderer : public backend::RTInterface {
   void destroy_pipeline_layout(VkPipelineLayout layout) const;
 
   // --- Pipeline ---
+
+  VkGraphicsPipelineCreateInfo get_graphics_pipeline_create_info(
+    GraphicsPipelineCreateInfoData_t &data,
+    VkPipelineLayout pipeline_layout,
+    GraphicsPipelineDescriptor_t const& desc
+  ) const;
+
+  void create_graphics_pipelines(
+    VkPipelineLayout pipeline_layout,
+    std::vector<GraphicsPipelineDescriptor_t> const& descs,
+    std::vector<Pipeline> *out_pipelines
+  ) const;
 
   Pipeline create_graphics_pipeline(VkPipelineLayout pipeline_layout, GraphicsPipelineDescriptor_t const& desc) const;
 
@@ -102,8 +125,6 @@ class Renderer : public backend::RTInterface {
 
   VkDescriptorSet create_descriptor_set(VkDescriptorSetLayout const layout, std::vector<DescriptorSetWriteEntry> const& entries) const;
 
-  void update_descriptor_set(VkDescriptorSet const& descriptor_set, std::vector<DescriptorSetWriteEntry> const& entries) const;
-
   // --- Texture ---
 
   bool load_image_2d(CommandEncoder const& cmd, std::string_view const& filename, backend::Image &image) const;
@@ -113,12 +134,29 @@ class Renderer : public backend::RTInterface {
   // --- Sampler ---
 
   VkSampler get_default_sampler() const {
-    return linear_sampler_;
+    return sampler_pool_.default_sampler(); //
+  }
+
+  SamplerPool& sampler_pool() {
+    return sampler_pool_;
+  }
+
+  SamplerPool const& sampler_pool() const {
+    return sampler_pool_;
   }
 
   // --- Resources gltf objects ---
 
-  std::shared_ptr<scene::Resources> load_and_upload(std::string_view gltf_filename, scene::Mesh::AttributeLocationMap const& attribute_to_location);
+  GLTFScene load_and_upload(std::string_view gltf_filename, scene::Mesh::AttributeLocationMap const& attribute_to_location);
+
+  GLTFScene load_and_upload(std::string_view gltf_filename);
+
+  std::future<GLTFScene> async_load_to_device(std::string const& filename) {
+    // [might be incorrect if async spawn a thread, as there is GPU transfer here]
+    return utils::RunTaskGeneric<GLTFScene>([this, filename] {
+      return load_and_upload(filename);
+    });
+  }
 
  public:
   /* ----- RTInterface Overrides ----- */
@@ -204,6 +242,9 @@ class Renderer : public backend::RTInterface {
   Swapchain swapchain_{};
   std::vector<backend::Image> proxy_swap_attachment_{};
 
+  /* Pipeline Cache */
+  VkPipelineCache pipeline_cache_;
+
   /* Default depth-stencil buffer. */
   backend::Image depth_stencil_{};
 
@@ -222,7 +263,9 @@ class Renderer : public backend::RTInterface {
   // Reference to the current CommandEncoder returned by 'begin_frame'
   CommandEncoder cmd_{}; //
 
-  VkSampler linear_sampler_{}; //
+  /* Utils */
+  SamplerPool sampler_pool_{};
+  Skybox skybox_{};
 };
 
 /* -------------------------------------------------------------------------- */

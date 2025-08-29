@@ -22,10 +22,12 @@
 #include <string_view>
 #include <thread>
 #include <type_traits>
+#include <typeindex> //
 #include <vector>
 
 #include "lina/lina.h"
 using namespace lina::aliases;
+using uint = uint32_t; //
 
 #include "framework/utils/utils.h"
 #include "framework/utils/logger.h"
@@ -58,6 +60,11 @@ class EnumArray : public std::array<T, static_cast<size_t>(Indexer::kCount)> {
   EnumArray() : super() {}
   using super::operator[];
 };
+
+struct NullType {};
+
+static constexpr uint32_t kInvalidIndexU32{ std::numeric_limits<uint32_t>::max() };
+static const std::type_index kInvalidTypeIndex{ typeid(NullType) };
 
 /* -------------------------------------------------------------------------- */
 

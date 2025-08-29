@@ -37,11 +37,13 @@ add_library(
 
 target_link_libraries(${target} PRIVATE
   ${SharedLibs}
+  ${MikkTSpace}
   VulkanMemoryAllocator
 )
 
 target_include_directories(${target} PRIVATE
   ${SharedIncludeDirs}
+  ${MikkTSpace_SOURCE_DIR}
 )
 
 target_compile_definitions(${target} PRIVATE
@@ -52,6 +54,12 @@ target_compile_definitions(${target} PRIVATE
   VK_NO_PROTOTYPES
   _USE_MATH_DEFINES
 )
+
+if(FRAMEWORK_HAS_DRACO)
+  target_compile_definitions(${target} PRIVATE FRAMEWORK_HAS_DRACO=1)
+else()
+  target_compile_definitions(${target} PRIVATE FRAMEWORK_HAS_DRACO=0)
+endif()
 
 target_sources(${target} PRIVATE ${IMGUI_SOURCES})
 target_compile_definitions(${target} PRIVATE IMGUI_IMPL_VULKAN_USE_VOLK)

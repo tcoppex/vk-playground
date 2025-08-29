@@ -33,14 +33,6 @@ void main() {
                ;
 
   fragColor = vec4(ambient.xyz, 1.0f);
-
-  if (diffuse.w < 0.499f) {
-    // discard;
-  }
-
-  // vec3 normalColor = 0.5f * (vNormal + 1.0f);
-  // fragColor = vec4(normalColor, 1.0f);
-  // fragColor = vec4(vTexcoord.xy, 0.0, 1.0);
 }
 
 // ----------------------------------------------------------------------------

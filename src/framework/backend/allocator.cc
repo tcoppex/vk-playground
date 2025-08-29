@@ -44,7 +44,7 @@ backend::Buffer ResourceAllocator::create_buffer(
 
   if constexpr (kAutoAlignBufferSize) {
     if (auto const new_size{ utils::AlignTo256(size) }; new_size != size) {
-      LOGW("%s: change size from %lu to %lu.\n", __FUNCTION__, (uint64_t)size, (uint64_t)new_size);
+      LOGW("%s: change size from %u to %u.\n", __FUNCTION__, (uint32_t)size, (uint32_t)new_size);
       size = new_size;
     }
   }
@@ -106,9 +106,12 @@ backend::Buffer ResourceAllocator::create_staging_buffer(size_t const bytesize, 
 
 // ----------------------------------------------------------------------------
 
-void ResourceAllocator::write_buffer(
-  backend::Buffer const& dst_buffer, size_t const dst_offset,
-  void const* host_data, size_t const host_offset, size_t const bytesize
+size_t ResourceAllocator::write_buffer(
+  backend::Buffer const& dst_buffer,
+  size_t const dst_offset,
+  void const* host_data,
+  size_t const host_offset,
+  size_t const bytesize
 ) {
   assert(host_data != nullptr);
   assert(dst_buffer.buffer != VK_NULL_HANDLE);
@@ -121,6 +124,8 @@ void ResourceAllocator::write_buffer(
          static_cast<const char*>(host_data) + host_offset, bytesize);
 
   vmaUnmapMemory(allocator_, dst_buffer.allocation);
+
+  return dst_offset + bytesize;
 }
 
 // ----------------------------------------------------------------------------

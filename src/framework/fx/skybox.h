@@ -9,7 +9,7 @@
 #include "framework/fx/envmap.h"
 
 namespace shader_interop::skybox {
-#include "framework/shaders/skybox/interop.h"
+#include "framework/shaders/skybox/interop.h" //
 }
 
 class Context;
@@ -25,30 +25,48 @@ class Skybox {
  public:
   Skybox() = default;
 
-  void init(Context const& context, Renderer const& renderer);
+  void init(Context const& context, Renderer& renderer);
 
   void release(Context const& context, Renderer const& renderer);
 
   bool setup(std::string_view hdr_filename); //
 
-  void render(RenderPassEncoder& pass, Camera const& camera);
+  void render(RenderPassEncoder& pass, Camera const& camera) const;
 
-  Envmap const& get_envmap() const {
+  Envmap const& envmap() const {
     return envmap_;
   }
 
-  backend::Image const& get_irradiance_cubemap() const {
+  backend::Image const& specular_brdf_lut() const {
+    return specular_brdf_lut_;
+  }
+
+  VkSampler const& sampler() const {
+    return sampler_LinearClampMipMap_;
+  }
+
+  backend::Image const& prefiltered_specular_map() const {
+    return envmap_.get_image(Envmap::ImageType::Specular);
+  }
+
+  backend::Image const& irradiance_map() const {
     return envmap_.get_image(Envmap::ImageType::Irradiance);
   }
 
- private:
-  void compute_brdf_lut();
+  bool is_valid() const {
+    return setuped_;
+  }
 
  private:
+  void compute_specular_brdf_lut(Context const& context, Renderer const& renderer);
+
+ private:
+  using PushConstant_t = shader_interop::skybox::PushConstant;
+
   Envmap envmap_{};
 
-  backend::Image brdf_lut_{}; //
-  VkSampler sampler_{}; //
+  backend::Image specular_brdf_lut_{};
+  VkSampler sampler_LinearClampMipMap_{};
 
   scene::Mesh cube_{};
   backend::Buffer vertex_buffer_{};
@@ -56,10 +74,11 @@ class Skybox {
 
   VkDescriptorSetLayout descriptor_set_layout_{};
   VkDescriptorSet descriptor_set_{};
-  shader_interop::skybox::PushConstant push_constant_{}; // (rename namespace)
 
   VkPipelineLayout pipeline_layout_{};
   Pipeline graphics_pipeline_{};
+
+  bool setuped_{};
 };
 
 /* -------------------------------------------------------------------------- */

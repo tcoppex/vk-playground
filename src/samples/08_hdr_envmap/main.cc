@@ -10,7 +10,7 @@
 
 #include "framework/scene/camera.h"
 #include "framework/scene/arcball_controller.h"
-#include "framework/fx/skybox.h"
+#include "framework/fx/material/pbr_metallic_roughness.h"
 
 namespace shader_interop {
 #include "shaders/interop.h"
@@ -63,12 +63,14 @@ class SampleApp final : public Application {
 
     /* Initialize the skybox and setup the HDR diffuse envmap used to calculate
      * IBL convolutions. */
-    skybox_.init(context_, renderer_);
-    skybox_.setup(ASSETS_DIR "textures/qwantani_dusk_2_2k.hdr");
+    auto &skybox = renderer_.skybox();
+    skybox.setup(ASSETS_DIR "textures/qwantani_dusk_2_2k.hdr");
 
     /* Load glTF Scene / Resources. */
     {
-      std::string const gltf_filename{ASSETS_DIR "models/suzanne.glb"};
+      std::string const gltf_filename{ASSETS_DIR "models/"
+        "suzanne.glb"
+      };
 
       /* Load the model directly on device, as we do not change the model's internal data
        * layout we need to specify how to map its attributes to the shader used. */
@@ -78,7 +80,7 @@ class SampleApp final : public Application {
         { Geometry::AttributeType::Normal,    shader_interop::kAttribLocation_Normal   },
       });
 
-      LOG_CHECK(R->textures.size() <= kMaxNumTextures); //
+      LOG_CHECK(R->device_images.size() <= kMaxNumTextures); //
     }
 
     /* Release the temporary staging buffers. */
@@ -125,7 +127,7 @@ class SampleApp final : public Application {
           .images = {
             {
               .sampler = renderer_.get_default_sampler(),
-              .imageView = skybox_.get_irradiance_cubemap().view,
+              .imageView = skybox.irradiance_map().view,
               .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             }
           },
@@ -133,21 +135,10 @@ class SampleApp final : public Application {
       });
     }
 
-    // --------------
     /* Update the Sampler Atlas descriptor with the currently loaded textures. */
-    DescriptorSetWriteEntry texture_atlas_entry{
-      .binding = shader_interop::kDescriptorSetBinding_Sampler,
-      .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-    };
-    for (auto const& tex : R->textures) {
-      texture_atlas_entry.images.push_back({
-        .sampler = renderer_.get_default_sampler(), //
-        .imageView = tex.view,
-        .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-      });
-    }
-    renderer_.update_descriptor_set(descriptor_set_, { texture_atlas_entry });
-    // --------------
+    context_.update_descriptor_set(descriptor_set_, {
+      R->descriptor_set_texture_atlas_entry( shader_interop::kDescriptorSetBinding_Sampler )
+    });
 
     auto shaders{context_.create_shader_modules(COMPILED_SHADERS_DIR, {
       "simple.vert.glsl",
@@ -211,9 +202,7 @@ class SampleApp final : public Application {
 
     allocator_->destroy_buffer(uniform_buffer_);
 
-    R->release(allocator_); //
-
-    skybox_.release(context_, renderer_);
+    R->release(); //
   }
 
   void update_frame(float const delta_time) {
@@ -229,8 +218,10 @@ class SampleApp final : public Application {
         mesh->world_matrix
       );
       for (auto const& submesh : mesh->submeshes) {
-        if (auto mat = submesh.material; mat && mat->albedoTexture) {
-          push_constant_.model.albedo_texture_index = mat->albedoTexture->texture_index;
+        auto const& material_ref = *(submesh.material_ref);
+        if (auto *fx = R->material_fx<fx::scene::PBRMetallicRoughnessFx>(material_ref); fx) {
+          auto pbr_material = fx->material(material_ref.material_index);
+          push_constant_.model.albedo_texture_index = pbr_material.diffuse_texture_id;
         }
         pass.push_constant(push_constant_, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT); //
         pass.draw(submesh.draw_descriptor, R->vertex_buffer, R->index_buffer);
@@ -239,13 +230,13 @@ class SampleApp final : public Application {
   }
 
   void frame() final {
-    update_frame(get_delta_time());
+    update_frame(delta_time());
 
     mat4 const worldMatrix{
       // linalg::identity
       lina::rotation_matrix_axis(
         vec3(-0.25f, 1.0f, -0.15f),
-        get_frame_time() * 0.4f
+        frame_time() * 0.4f
       )
     };
 
@@ -256,7 +247,7 @@ class SampleApp final : public Application {
         pass.set_viewport_scissor(viewport_size_);
 
         /* First render the skybox. */
-        skybox_.render(pass, camera_);
+        renderer_.skybox().render(pass, camera_);
 
         /* Then the scene / model. */
         pass.bind_pipeline(graphics_pipeline_);
@@ -286,8 +277,6 @@ class SampleApp final : public Application {
 
   Camera camera_{};
   ArcBallController arcball_controller_{};
-
-  Skybox skybox_{};
 
   std::shared_ptr<scene::Resources> R; //
 };

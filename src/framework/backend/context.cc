@@ -51,7 +51,7 @@ void Context::deinit() {
 
 // ----------------------------------------------------------------------------
 
-backend::Image Context::create_image_2d(uint32_t width, uint32_t height, uint32_t layer_count, VkFormat const format, VkImageUsageFlags const extra_usage) const {
+backend::Image Context::create_image_2d(uint32_t width, uint32_t height, VkFormat const format, VkImageUsageFlags const extra_usage) const {
   VkImageUsageFlags usage{
       VK_IMAGE_USAGE_SAMPLED_BIT
     | extra_usage
@@ -77,7 +77,7 @@ backend::Image Context::create_image_2d(uint32_t width, uint32_t height, uint32_
       1u
     },
     .mipLevels = 1u, //
-    .arrayLayers = layer_count,
+    .arrayLayers = 1u, //
     .samples = VK_SAMPLE_COUNT_1_BIT,
     .tiling = VK_IMAGE_TILING_OPTIMAL,
     .usage = usage,
@@ -147,6 +147,10 @@ std::vector<backend::ShaderModule> Context::create_shader_modules(std::vector<st
 
 // ----------------------------------------------------------------------------
 
+void Context::release_shader_module(backend::ShaderModule const& shader) const {
+  vkDestroyShaderModule(device_, shader.module, nullptr);
+}
+
 void Context::release_shader_modules(std::vector<backend::ShaderModule> const& shaders) const {
   for (auto const& shader : shaders) {
     vkDestroyShaderModule(device_, shader.module, nullptr);
@@ -204,6 +208,73 @@ void Context::finish_transient_command_encoder(CommandEncoder const& encoder) co
   vkDestroyFence(device_, fence, nullptr);
 
   vkFreeCommandBuffers(device_, transient_command_pools_[target_queue], 1u, &encoder.command_buffer_);
+}
+
+// ----------------------------------------------------------------------------
+
+void Context::update_descriptor_set(VkDescriptorSet const& descriptor_set, std::vector<DescriptorSetWriteEntry> const& entries) const {
+  if (entries.empty()) {
+    return;
+  }
+
+  std::vector<VkWriteDescriptorSet> write_descriptor_sets{};
+  write_descriptor_sets.reserve(entries.size());
+
+  std::vector<DescriptorSetWriteEntry> updated_entries{entries};
+
+  for (auto& entry : updated_entries) {
+    VkWriteDescriptorSet write_descriptor_set{
+      .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+      .dstSet = descriptor_set,
+      .dstBinding = entry.binding,
+      .dstArrayElement = 0u,
+      .descriptorType = entry.type,
+    };
+
+    switch (entry.type) {
+      case VK_DESCRIPTOR_TYPE_SAMPLER:
+      case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
+      case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+      case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+        LOG_CHECK(entry.buffers.empty() && entry.bufferViews.empty());
+
+        write_descriptor_set.pImageInfo = entry.images.data();
+        write_descriptor_set.descriptorCount = static_cast<uint32_t>(entry.images.size());
+      break;
+
+      case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+      case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+      case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
+      case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
+        LOG_CHECK(entry.images.empty() && entry.bufferViews.empty());
+        for (auto &buf : entry.buffers) {
+          buf.range = (buf.range == 0) ? VK_WHOLE_SIZE : buf.range;
+        }
+        write_descriptor_set.pBufferInfo = entry.buffers.data();
+        write_descriptor_set.descriptorCount = static_cast<uint32_t>(entry.buffers.size());
+      break;
+
+      case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
+        LOG_CHECK(entry.images.empty() && entry.buffers.empty());
+        write_descriptor_set.pTexelBufferView = entry.bufferViews.data();
+        write_descriptor_set.descriptorCount = static_cast<uint32_t>(entry.bufferViews.size());
+      break;
+
+      default:
+        LOGE("Unknown descriptor type: %d", static_cast<int>(entry.type));
+        continue;
+    }
+
+    write_descriptor_sets.push_back(write_descriptor_set);
+  }
+
+  vkUpdateDescriptorSets(
+    device_,
+    static_cast<uint32_t>(write_descriptor_sets.size()),
+    write_descriptor_sets.data(),
+    0u,
+    nullptr
+  );
 }
 
 /* -------------------------------------------------------------------------- */
@@ -299,6 +370,12 @@ bool Context::init_device() {
       VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
       feature_.buffer_device_address,
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_KHR
+    );
+
+    add_device_feature(
+      VK_KHR_INDEX_TYPE_UINT8_EXTENSION_NAME,
+      feature_.index_type_uint8,
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INDEX_TYPE_UINT8_FEATURES_KHR
     );
 
     add_device_feature(

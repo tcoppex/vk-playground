@@ -3,10 +3,13 @@
 #include <cmath>
 #include <cassert>
 #include <cstddef>
+#include <cstring>
 
 #include <algorithm>
 #include <array>
 #include <numeric>
+
+#include "mikktspace.h"
 
 /* -------------------------------------------------------------------------- */
 
@@ -602,11 +605,6 @@ void Geometry::MakePointListPlane(Geometry &geo, float size, uint32_t resx, uint
 
 // ----------------------------------------------------------------------------
 
-void Geometry::clear_indices_and_vertices() {
-  indices_.clear();
-  vertices_.clear();
-}
-
 void Geometry::add_primitive(Primitive primitive) {
   index_count_ += primitive.indexCount;
   vertex_count_ += primitive.vertexCount;
@@ -627,6 +625,131 @@ uint64_t Geometry::add_indices_data(std::byte const* data, uint32_t bytesize) {
 
 void Geometry::add_attribute(AttributeType const type, AttributeInfo const& info) {
   attributes_[type] = info;
+}
+
+void Geometry::clear_indices_and_vertices() {
+  indices_.clear();
+  vertices_.clear();
+}
+
+bool Geometry::recalculate_tangents() {
+  if ( !has_attribute(AttributeType::Position)
+    || !has_attribute(AttributeType::Normal)
+    || !has_attribute(AttributeType::Tangent)
+    || !has_attribute(AttributeType::Texcoord)) {
+    return false;
+  }
+
+  if (indices_.empty()) {
+    return false;
+  }
+
+  if (topology_ != Topology::TriangleList) {
+    return false;
+  }
+
+  struct Helper {
+    Geometry *geo{};
+    Geometry::Primitive const* prim{};
+
+    uint32_t get_index(int iFace, int iVert) const {
+      int index_id = iFace * 3 + iVert;
+      uint32_t idx = 0;
+      auto const* indices = geo->indices_.data() + prim->indexOffset;
+
+      if (geo->index_format_ == Geometry::IndexFormat::U16) {
+        idx = reinterpret_cast<uint16_t const*>(indices)[index_id];
+      } else {
+        idx = reinterpret_cast<uint32_t const*>(indices)[index_id];
+      }
+      return idx;
+    };
+
+    float* get_vertex(Geometry::AttributeType attrib, uint32_t vertex_index) {
+      auto const& attr = geo->attributes_.at(attrib);
+      return reinterpret_cast<float*>(
+        geo->vertices_.data() + attr.offset + vertex_index * attr.stride
+      );
+    };
+  } helper;
+
+
+  SMikkTSpaceInterface interface{
+    .m_getNumFaces = [](SMikkTSpaceContext const* pContext) {
+      auto [_, prim] = *static_cast<Helper*>(pContext->m_pUserData);
+      return static_cast<int>(prim->indexCount / 3u);
+    },
+
+    .m_getNumVerticesOfFace = [](SMikkTSpaceContext const* pContext, int const iFace) {
+      return 3;
+    },
+
+    .m_getPosition = [](SMikkTSpaceContext const* pContext,
+                        float fvPosOut[],
+                        int const iFace,
+                        int const iVert) {
+      Helper *H = static_cast<Helper*>(pContext->m_pUserData);
+      uint32_t vidx = H->get_index(iFace, iVert);
+      float const* pos = H->get_vertex(Geometry::AttributeType::Position, vidx);
+      fvPosOut[0] = pos[0];
+      fvPosOut[1] = pos[1];
+      fvPosOut[2] = pos[2];
+    },
+
+    .m_getNormal = [](SMikkTSpaceContext const* pContext,
+                      float fvNormOut[],
+                      int const iFace,
+                      int const iVert) {
+      Helper *H = static_cast<Helper*>(pContext->m_pUserData);
+      uint32_t vidx = H->get_index(iFace, iVert);
+      float const *nor = H->get_vertex(Geometry::AttributeType::Normal, vidx);
+      fvNormOut[0] = nor[0];
+      fvNormOut[1] = nor[1];
+      fvNormOut[2] = nor[2];
+    },
+
+    .m_getTexCoord = [](SMikkTSpaceContext const* pContext,
+                        float fvTexcOut[],
+                        const int iFace,
+                        const int iVert) {
+      Helper *H = static_cast<Helper*>(pContext->m_pUserData);
+      uint32_t vidx = H->get_index(iFace, iVert);
+      float const *uv = H->get_vertex(Geometry::AttributeType::Texcoord, vidx);
+      fvTexcOut[0] = uv[0];
+      fvTexcOut[1] = uv[1];
+    },
+
+    .m_setTSpaceBasic = [](SMikkTSpaceContext const* pContext,
+                           float const fvTangent[],
+                           float const fSign,
+                           int const iFace,
+                           int const iVert) {
+      Helper *H = static_cast<Helper*>(pContext->m_pUserData);
+      uint32_t vidx = H->get_index(iFace, iVert);
+      float *tangent = H->get_vertex(Geometry::AttributeType::Tangent, vidx);
+      tangent[0] = fvTangent[0];
+      tangent[1] = fvTangent[1];
+      tangent[2] = fvTangent[2];
+      tangent[3] = fSign;
+    },
+
+    .m_setTSpace = nullptr,
+  };
+
+  helper.geo = this;
+  for (auto const& prim : primitives_) {
+    helper.prim = &prim;
+    SMikkTSpaceContext context{&interface, &helper};
+    if (genTangSpaceDefault(&context) == 0) {
+      return false;
+    }
+  }
+
+  if constexpr (true) {
+    // reindex_after_tangent_generation();
+  }
+
+  return true;
 }
 
 /* -------------------------------------------------------------------------- */

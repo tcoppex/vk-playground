@@ -1,858 +1,208 @@
 #include "framework/scene/resources.h"
 
-extern "C" {
-#define CGLTF_IMPLEMENTATION
-#include "cgltf.h"
-
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb/stb_image.h"
-}
-
-#include "framework/utils/utils.h"
 #include "framework/backend/context.h"
-
-/* -------------------------------------------------------------------------- */
-
-/* ---- Helpers ---- */
-
-namespace {
-
-/* Internal helper structure to post-process gltf data */
-// struct MeshData {
-//   std::vector<float> positions;
-//   std::vector<float> texcoords;
-//   std::vector<float> normals;
-//   std::vector<float> tangents;
-//   std::vector<uint16_t> joints;
-//   std::vector<float> weights;
-// };
-
-struct Vertex {
-  vec3f position;
-  vec3f normal;
-  vec2f texcoord;
-};
-
-std::string GetTextureRefID(cgltf_texture const& texture, std::string_view alt) {
-  auto const& image = texture.image;
-  std::string ref{image->name ? image->name : (image->uri ? image->uri : std::string(alt))};
-  return ref;
-}
-
-Geometry::AttributeType GetAttributeType(cgltf_attribute const& attribute) {
-  if (attribute.index != 0u) [[unlikely]] {
-    LOGD("[GLTF] Unsupported multiple attribute of same type %s.", attribute.name);
-    return Geometry::AttributeType::kUnknown;
-  }
-
-  switch (attribute.type) {
-    case cgltf_attribute_type_position:
-      return Geometry::AttributeType::Position;
-
-    case cgltf_attribute_type_texcoord:
-      return Geometry::AttributeType::Texcoord;
-
-    case cgltf_attribute_type_normal:
-      return Geometry::AttributeType::Normal;
-
-    case cgltf_attribute_type_tangent:
-      return Geometry::AttributeType::Tangent;
-
-    case cgltf_attribute_type_joints:
-      return Geometry::AttributeType::Joints;
-
-    case cgltf_attribute_type_weights:
-      return Geometry::AttributeType::Weights;
-
-    default:
-      LOGD("[GLTF] Unsupported attribute type %s.", attribute.name);
-      return Geometry::AttributeType::kUnknown;
-  }
-}
-
-Geometry::AttributeFormat GetAttributeFormat(cgltf_accessor const* accessor) {
-  switch (accessor->type) {
-    case cgltf_type_vec4:
-      switch (accessor->component_type) {
-        case cgltf_component_type_r_32f:
-          return Geometry::AttributeFormat::RGBA_F32;
-
-        case cgltf_component_type_r_32u:
-          return Geometry::AttributeFormat::RGBA_U32;
-
-        case cgltf_component_type_r_16u:
-          return Geometry::AttributeFormat::RGBA_U16;
-
-        default:
-          LOGD("[GLTF] Unsupported accessor vec4 format %d", accessor->component_type);
-          return Geometry::AttributeFormat::kUnknown;
-      }
-
-    case cgltf_type_vec3:
-      LOG_CHECK(accessor->component_type == cgltf_component_type_r_32f);
-      return Geometry::AttributeFormat::RGB_F32;
-
-    case cgltf_type_vec2:
-      LOG_CHECK(accessor->component_type == cgltf_component_type_r_32f);
-      return Geometry::AttributeFormat::RG_F32;
-
-    default:
-      LOGD("[GLTF] Unsupported accessor format.");
-      return Geometry::AttributeFormat::kUnknown;
-  }
-}
-
-Geometry::IndexFormat GetIndexFormat(cgltf_accessor const* accessor) {
-  if (accessor->type == cgltf_type_scalar) [[likely]] {
-    if (accessor->component_type == cgltf_component_type_r_32u) {
-      return Geometry::IndexFormat::U32;
-    }
-    else if (accessor->component_type == cgltf_component_type_r_16u) {
-      return Geometry::IndexFormat::U16;
-    }
-  }
-  LOGD("[GLTF] Unsupported index format.");
-  return Geometry::IndexFormat::kUnknown;
-}
-
-Geometry::Topology GetTopology(cgltf_primitive const& primitive) {
-  switch (primitive.type) {
-    case cgltf_primitive_type_triangles:
-      return Geometry::Topology::TriangleList;
-
-    case cgltf_primitive_type_triangle_strip:
-      return Geometry::Topology::TriangleStrip;
-
-    case cgltf_primitive_type_points:
-      return Geometry::Topology::PointList;
-
-    default:
-      LOGD("[GLTF] Unsupported topology.");
-      return Geometry::Topology::kUnknown;
-  }
-}
-
-// void GetTextureFilter(int const filter, VkFilter &filter, VkSamplerMipmapMode &mipmapMode) {
-//   switch (filter) {
-//     case 9728:
-//       filter = VK_FILTER_NEAREST;
-//     break;
-
-//     case 9729:
-//       filter = VK_FILTER_LINEAR;
-//     break;
-
-//     case 9984:
-//     case 9985:
-//       filter = VK_FILTER_LINEAR;
-//       mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
-//     break;
-
-//     case 9986:
-//     case 9987:
-//       filter = VK_FILTER_LINEAR;
-//       mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-//     break;
-//   };
-// }
-
-// void GetTextureWrap(int wrap, VkSamplerAddressMode &addressMode) {
-//   switch (wrap) {
-//     case 10497:
-//       addressMode = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-//       break;
-
-//     case 33071:
-//       addressMode = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-//       break;
-
-//     case 33648:
-//       addressMode = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
-//       break;
-//   }
-// }
-
-// scene::Sampler GetSampler(cgltf_sampler const& sampler) {
-//   scene::Sampler out;
-//   GetTextureFilter(sampler.mag_filter, out.magFilter, out.mipmapMode);
-//   GetTextureFilter(sampler.min_filter, out.minFilter, out.mipmapMode);
-//   GetTextureWrap(sampler.wrap_s, out.addressModeU);
-//   GetTextureWrap(sampler.wrap_t, out.addressModeV);
-//   return out;
-// }
-
-} // namespace ""
-
-// ----------------------------------------------------------------------------
-
-/* ---- GLTF extractor ---- */
-
-namespace {
-
-void ExtractTextures(std::string const& basename, std::unordered_map<void const*, std::string> & texture_map, cgltf_data const* data, scene::Resources& R) {
-  int constexpr kDefaultNumChannels{ 4 }; //
-
-  stbi_set_flip_vertically_on_load(false);
-
-  for (cgltf_size i = 0; i < data->textures_count; ++i) {
-    cgltf_texture const& texture = data->textures[i];
-
-    if (auto img = texture.image; img) {
-      std::string ref;
-
-      if (auto it = texture_map.find(&texture); it != texture_map.cend()) {
-        ref = it->second;
-      } else {
-        ref = GetTextureRefID(texture, std::string(basename) + "::Texture_" + std::to_string(i));
-        texture_map[&texture] = ref;
-      }
-
-      if (auto it = R.images.find(ref); it != R.images.end()) {
-        continue;
-      }
-
-      auto image = std::make_shared<scene::Image>();
-
-      if (auto bufferView = img->buffer_view; bufferView) {
-        stbi_uc const* bufferData = reinterpret_cast<stbi_uc const*>(bufferView->buffer->data) + bufferView->offset;
-        int32_t const bufferSize = static_cast<int32_t>(bufferView->size);
-
-
-        auto pixel_data = stbi_load_from_memory(
-          bufferData,
-          bufferSize,
-          &image->width,
-          &image->height,
-          &image->channels,
-          kDefaultNumChannels
-        );
-
-
-        if (pixel_data) {
-          image->pixels.reset(pixel_data);
-        } else {
-          LOGW("Fail to load texture %s.", ref.c_str());
-          continue;
-        }
-
-        R.total_image_size += 4u * image->width * image->height; //
-
-        // LOGD("**** %lu  %u  %u*%u", bufferView->size, 4u * image->width * image->height, image->width, image->height);
-      } else {
-        LOGW("Texture %s unsupported.", ref.c_str());
-        continue;
-      }
-
-      // Reference into the scene structure.
-      if (image->pixels != nullptr) {
-        LOGD("[GLTF] Texture \"%s\" has been loaded.", ref.c_str());
-        R.images[ref] = std::move(image);
-      } else {
-        LOGE("[GLTF] Texture \"%s\" failed to be loaded.", ref.c_str());
-      }
-    }
-  }
-}
-
-void ExtractMaterials(std::string const& basename, std::unordered_map<void const*, std::string> &texture_map, std::unordered_map<void const*, std::string> &material_map, cgltf_data const* data, scene::Resources& R) {
-  auto textureRef = [&texture_map](cgltf_texture const& texture, std::string_view suffix) {
-    auto ref = GetTextureRefID(texture, suffix);
-    if (auto it = texture_map.find(&texture); it != texture_map.end()) {
-      return it->second;
-    }
-    texture_map[&texture] = ref;
-    return ref;
-  };
-
-  for (cgltf_size i = 0; i < data->materials_count; ++i) {
-    cgltf_material const& mat = data->materials[i];
-
-    auto const material_name = mat.name ? mat.name
-                                        : std::string(basename + "::Material_" + std::to_string(i));
-    material_map[&mat] = material_name;
-
-    // if (R.materials.find(material_name) == R.materials.end()) continue;
-    // LOG_CHECK(R.materials.find(material_name) == R.materials.end());
-
-    std::shared_ptr<scene::Material> material;
-    if (auto it = R.materials.find(material_name); it != R.materials.end()) {
-      material = it->second;
-    } else {
-      material = std::make_shared<scene::Material>();
-      material->name = material_name;
-    }
-
-    std::string const texture_prefix{ basename + "::Texture_" };
-
-    // [wip] PBR MetallicRoughness.
-    if (mat.has_pbr_metallic_roughness) {
-      auto const& pbr_mr = mat.pbr_metallic_roughness;
-      std::copy(
-        std::cbegin(pbr_mr.base_color_factor),
-        std::cend(pbr_mr.base_color_factor),
-        lina::ptr(material->baseColor)
-      );
-      if (const cgltf_texture* tex = pbr_mr.base_color_texture.texture; tex) {
-        auto ref = textureRef(*tex, texture_prefix + "Albedo");
-        if (auto it = R.images.find(ref); it != R.images.end()) {
-          material->albedoTexture = it->second;
-        } else {
-          LOGD("Fails to find albedo texture '%s'", ref.c_str());
-        }
-      }
-      if (const cgltf_texture* tex = pbr_mr.metallic_roughness_texture.texture; tex) {
-        auto ref = textureRef(*tex, texture_prefix + "MetallicRough");
-        if (auto it = R.images.find(ref); it != R.images.end()) {
-          material->ormTexture = it->second;
-        } else {
-          LOGD("Fails to find metallic rough texture '%s'", ref.c_str());
-        }
-      }
-    } else {
-      LOGW("[GLTF] Material %s has unsupported material type.", material_name.c_str());
-      continue;
-    }
-
-    // Normal texture.
-    if (const cgltf_texture* tex = mat.normal_texture.texture; tex) {
-      auto ref = textureRef(*tex, texture_prefix + "Normal");
-      if (auto it = R.images.find(ref); it != R.images.end()) {
-        material->normalTexture = it->second;
-      }
-    }
-
-    R.materials[material_name] = std::move(material);
-  }
-
-  uint32_t matid = 0u;
-  for (auto& [key, material] : R.materials) {
-    material->index = matid++;
-  }
-}
-
-void ExtractMeshes(std::string const& basename, std::unordered_map<void const*, std::string> const& material_map, cgltf_data const* data, scene::Resources& R) {
-  /* Preprocess meshes nodes. */
-  std::vector<uint32_t> meshNodeIndices;
-  for (cgltf_size i = 0; i < data->nodes_count; ++i) {
-    cgltf_node const& node = data->nodes[i];
-    if (node.mesh) {
-      // mesh_count += node.mesh->primitives_count;
-      meshNodeIndices.push_back(i);
-      if (node.has_mesh_gpu_instancing) {
-        LOGW("[GLTF] GPU instancing not supported.");
-      }
-    }
-  }
-  R.meshes.reserve(meshNodeIndices.size());
-
-  // Utility function.
-  auto isAccessorOffsetFlat{[](cgltf_accessor const* acc) -> bool {
-    size_t const kAccessorOffsetLimit = 2048;
-    return (acc->offset == 0) || (acc->offset >= kAccessorOffsetLimit);
-  }};
-
-  bool constexpr bRestructureData = false;
-  std::vector<Vertex> vertices{};
-
-  /**
-   * Each Mesh hold its geometry,
-   * each primitive consist of a material and offset in the mesh geometry.
-   * We assume every primitives of a Mesh have the same topology / attributes
-   ***/
-
-  // Parse each mesh nodes (for primitives & skeleton).
-  for (auto i : meshNodeIndices) {
-    cgltf_node const& node = data->nodes[i];
-
-    uint32_t total_vertex_count{0u};
-    std::vector<uint32_t> prim_indices{};
-
-    // Preprocess primitives.
-    for (cgltf_size j = 0; j < node.mesh->primitives_count; ++j) {
-      cgltf_primitive const& prim = node.mesh->primitives[j];
-
-      // [Check] Has Attributes.
-      if (prim.attributes_count <= 0u) {
-        LOGW("[GLTF] A primitive was missing attributes.");
-        continue;
-      }
-      // [Check] Compressed.
-      if (prim.has_draco_mesh_compression) {
-        LOGW("[GLTF] Draco mesh compression is not supported.");
-        continue;
-      }
-      // [Check] Non triangles primitives.
-      if (prim.type != cgltf_primitive_type_triangles) {
-        LOGW("[GLTF] The mesh contains non TRIANGLES primitives.");
-        // continue;
-      }
-      // [Check] Morph targets.
-      if (prim.targets_count > 0) {
-        LOGW("[GLTF] Morph targets are not supported.");
-      }
-      // [Check] Sparse attributes.
-      bool is_sparse = false;
-      for (cgltf_size k = 0; k < prim.attributes_count; ++k) {
-        cgltf_attribute const& attribute = prim.attributes[k];
-        cgltf_accessor const* accessor = attribute.data;
-        if (accessor->is_sparse) {
-          LOGW("[GLTF] Sparse attributes are not supported.");
-          is_sparse = true;
-          break;
-        }
-      }
-      if (is_sparse) {
-        continue;
-      }
-
-      total_vertex_count += prim.attributes[0].data->count;
-      prim_indices.push_back(j);
-    }
-
-    if (prim_indices.empty()) {
-      LOGW("[GLTF] A Mesh was bypassed due to unsupported features.");
-      continue;
-    }
-    // LOGD(">> total vertices : %u", total_vertex_count);
-
-    auto mesh = std::make_shared<scene::Mesh>();
-
-    cgltf_node_transform_world(&node, lina::ptr(mesh->world_matrix));
-    mesh->submeshes.resize(prim_indices.size(), {.parent = mesh.get()});
-
-    // -----------------
-
-    if constexpr (bRestructureData) {
-      vertices.resize(total_vertex_count);
-
-    } else {
-
-      /* Setup the shared attributes from the first primitive.
-       *
-       * This suppose all mesh primitives share the same layout.
-       */
-
-      {
-        cgltf_primitive const& prim{ node.mesh->primitives[prim_indices[0u]] };
-
-        mesh->set_topology(GetTopology(prim));
-
-        for (cgltf_size j = 0; j < prim.attributes_count; ++j) {
-          cgltf_attribute const& attribute = prim.attributes[j];
-          cgltf_accessor const* accessor = attribute.data;
-
-          if (auto type = GetAttributeType(attribute); type != Geometry::AttributeType::kUnknown) {
-            size_t const accessorOffset{ isAccessorOffsetFlat(accessor) ? 0u : accessor->offset };
-            mesh->add_attribute(type, {
-              .format = GetAttributeFormat(accessor),
-              .offset = static_cast<uint32_t>(accessorOffset),
-              .stride = static_cast<uint32_t>(accessor->stride),
-            });
-          }
-        }
-      }
-
-      /* Parse the primitives. */
-      for (uint32_t j = 0u; j < prim_indices.size(); ++j) {
-        cgltf_primitive const& prim{ node.mesh->primitives[prim_indices[j]] };
-        LOG_CHECK(GetTopology(prim) == mesh->get_topology());
-
-        Geometry::Primitive primitive{};
-
-        /* Retrieve primitive attributes offsets, when relevant. */
-        std::map<cgltf_accessor const*, uint64_t> accessor_buffer_offsets{};
-
-        for (cgltf_size k = 0; k < prim.attributes_count; ++k) {
-          cgltf_attribute const& attribute = prim.attributes[k];
-
-          if (auto type = GetAttributeType(attribute); type != Geometry::AttributeType::kUnknown) {
-            auto accessor = attribute.data;
-            auto buffer_view = accessor->buffer_view;
-
-            uint64_t bufferOffset{};
-            if (isAccessorOffsetFlat(accessor)) {
-              bufferOffset = mesh->add_vertices_data(
-                reinterpret_cast<std::byte const*>(buffer_view->buffer->data) + buffer_view->offset + accessor->offset,
-                buffer_view->size
-              );
-              accessor_buffer_offsets[accessor] = bufferOffset;
-            } else {
-              bufferOffset = accessor_buffer_offsets[accessor];
-            }
-            primitive.vertexCount = accessor->count;
-            primitive.bufferOffsets[type] = bufferOffset;
-          }
-        }
-
-        if (prim.indices) {
-          cgltf_accessor const* accessor = prim.indices;
-          cgltf_buffer_view const* buffer_view = accessor->buffer_view;
-          cgltf_buffer const* buffer = buffer_view->buffer;
-
-          if (auto index_format = GetIndexFormat(accessor); index_format != Geometry::IndexFormat::kUnknown) {
-            mesh->set_index_format(index_format);
-
-            uint64_t indicesOffset = mesh->add_indices_data(
-              reinterpret_cast<std::byte const*>(buffer->data) + buffer_view->offset + accessor->offset, //
-              buffer_view->size
-            );
-            primitive.indexCount = accessor->count;
-            primitive.indexOffset = indicesOffset; //
-
-            // LOGD("[GLTF] added %lu indices, for a buffer of %lu bytes, to an offset of %lu bytes.\n",
-            //   accessor->count, /*buffer_view->offset, accessor->offset,*/ buffer_view->size, indicesOffset
-            // );
-          }
-        }
-
-        // Assign material when availables.
-        if (prim.material) {
-          if (auto it = material_map.find(prim.material); it != material_map.cend()) {
-            mesh->submeshes[j].material = R.materials[it->second];
-            // LOGD(" *** submeshes has a material named '%s'", it->second.c_str());
-          } else {
-            LOGD("material not found !");
-          }
-        } else {
-          LOGD("no material for this prim ('parrently) !");
-        }
-
-        mesh->add_primitive(primitive);
-      }
-    }
-
-    // -----------------
-
-    // Skeleton.
-    if (cgltf_skin const* skin = node.skin; skin) {
-      auto const skinName = skin->name ? skin->name
-                                       : std::string(basename + "::Skeleton_" + std::to_string(i));
-      auto skel_it = R.skeletons.find(skinName);
-
-      std::shared_ptr<scene::Skeleton> skeleton;
-
-      if (skel_it != R.skeletons.end()) {
-        skeleton = skel_it->second;
-      } else [[likely]] {
-        cgltf_size const jointCount = skin->joints_count;
-
-        skeleton = std::make_shared<scene::Skeleton>(jointCount);
-
-        // LUT Map to find parent nodes index.
-        std::unordered_map<cgltf_node const*, int32_t> joint_indices(jointCount);
-        for (cgltf_size jointIndex = 0; jointIndex < jointCount; ++jointIndex) {
-          cgltf_node const* joint = skin->joints[jointIndex];
-          joint_indices[joint] = static_cast<int32_t>(jointIndex);
-        }
-
-        // Fill skeleton basic data (no matrices).
-        for (cgltf_size jointIndex = 0; jointIndex < jointCount; ++jointIndex) {
-          cgltf_node const* joint = skin->joints[jointIndex];
-
-          std::string const jointName = joint->name ? joint->name
-                                                    : std::string(basename + "::Joint_" + std::to_string(jointIndex));
-          auto const& it = joint_indices.find(joint->parent);
-          int32_t const parentIndex = (it != joint_indices.end()) ? it->second : -1;
-
-          skeleton->names[jointIndex] = jointName;
-          skeleton->parents[jointIndex] = parentIndex;
-          skeleton->index_map[jointName] = static_cast<int32_t>(jointIndex);
-        }
-
-        // Calculates global inverse bind matrices.
-        {
-          // Retrieve local matrices.
-          auto &matrices = skeleton->inverse_bind_matrices;
-          auto const bufferSize = (sizeof(matrices[0]) / sizeof(*lina::ptr(matrices[0]))) * matrices.size();
-          LOG_CHECK(bufferSize == (16 * jointCount));
-          cgltf_accessor_unpack_floats(skin->inverse_bind_matrices, lina::ptr(matrices[0]), bufferSize);
-
-          // Transform them to world space.
-          auto const inverse_world_matrix{linalg::inverse(mesh->world_matrix)};
-          skeleton->transformInverseBindMatrices(inverse_world_matrix);
-        }
-
-        R.skeletons[skinName] = skeleton;
-      }
-
-      mesh->skeleton = skeleton;
-    }
-
-    R.meshes.push_back(mesh);
-  }
-}
-
-void ExtractAnimations(std::string const& basename, cgltf_data const* data, scene::Resources& R) {
-  if (!data || (data->animations_count == 0u)) {
-    return;
-  } else if (R.skeletons.empty()) {
-    LOGE("[GLTF] animations without skeleton are not supported.");
-    return;
-  }
-
-  // --------
-
-  // LUT to find skeleton via animations name.
-  std::unordered_map<std::string, std::string> animationName_to_SkeletonName;
-  for (cgltf_size i = 0; i < data->skins_count; ++i) {
-    cgltf_skin* skin = &data->skins[i];
-    auto const skeletonName = skin->name ? skin->name
-                            : basename + std::string("::Skeleton_" + std::to_string(i));
-    for (size_t j = 0; j < skin->joints_count; ++j) {
-      cgltf_node* joint_node = skin->joints[j];
-      for (size_t k = 0; k < data->animations_count; ++k) {
-        cgltf_animation const& animation = data->animations[k];
-        auto const clipName = animation.name ? animation.name
-                            : basename + std::string("::Animation_" + std::to_string(k));
-        for (size_t l = 0; l < animation.channels_count; ++l) {
-          cgltf_animation_channel* channel = &animation.channels[l];
-          if (channel->target_node == joint_node) {
-            animationName_to_SkeletonName[clipName] = skeletonName;
-          }
-        }
-      }
-    }
-  }
-
-  // --------
-
-  std::vector<float> inputs, outputs;
-  R.animations.reserve(data->animations_count);
-
-  // Retrieve Animations.
-  for (cgltf_size i = 0; i < data->animations_count; ++i) {
-    cgltf_animation const& animation = data->animations[i];
-    std::string const clipName = animation.name ? animation.name
-                               : basename + std::string("##Animation_" + std::to_string(i));
-    LOG_CHECK(animation.samplers_count == animation.channels_count);
-
-    // Find animation's skeleton.
-    std::shared_ptr<scene::Skeleton> skeleton{nullptr};
-    if (auto skelname_it = animationName_to_SkeletonName.find(clipName); skelname_it != animationName_to_SkeletonName.end()) {
-      auto skelname = skelname_it->second;
-      if (auto skel_it = R.skeletons.find(skelname); skel_it != R.skeletons.end()) {
-        skeleton = skel_it->second;
-      }
-    }
-    if (nullptr == skeleton) {
-      if (auto it = R.skeletons.begin(); it != R.skeletons.end()) {
-        LOGW("[GLTF] used the first available skeleton found.");
-        skeleton = it->second;
-      } else {
-        LOGE("[GLTF] cannot find animation's skeleton.");
-        continue;
-      }
-    }
-
-    // Preprocess channels to detect max sample count, in case the exporter compressed them.
-    bool bResamplingNeededCheck = false;
-    cgltf_size sampleCount{animation.channels[0].sampler->output->count};
-    for (cgltf_size channel_id = 0; channel_id < animation.channels_count; ++channel_id) {
-      auto const& channel = animation.channels[channel_id];
-      auto const* sampler = channel.sampler;
-      auto const* input = sampler->input;
-
-      // We only support scalar sampling.
-      LOG_CHECK(input->type == cgltf_type_scalar);
-
-      // Check if the exporter have optimized animations by removing duplicate frames.
-      bResamplingNeededCheck = (sampleCount > 1) && (sampleCount != sampler->output->count);
-
-      inputs.resize(input->count);
-      cgltf_accessor_unpack_floats(input, inputs.data(), inputs.size());
-      sampleCount = std::max(sampleCount, sampler->output->count);
-    }
-    if (bResamplingNeededCheck) {
-      LOGW("[GLTF] Some animations will be resampled.");
-    }
-
-    // Create the animation clip.
-    auto clip = std::make_shared<scene::AnimationClip>();
-    float const clipDuration = inputs.back();
-    clip->setup(clipName, sampleCount, clipDuration, skeleton->jointCount());
-
-    // Parse each channels (ie. transform per joint).
-    cgltf_accessor const* last_input_accessor{nullptr};
-    for (cgltf_size channel_id = 0; channel_id < animation.channels_count; ++channel_id) {
-      auto const& channel{ animation.channels[channel_id] };
-      auto const* sampler{ channel.sampler };
-      auto const* input{ sampler->input };
-      auto const* output{ sampler->output };
-
-      // Find target joint's index.
-      int32_t jointIndex = -1;
-      if (auto jointName = channel.target_node->name; jointName != nullptr) {
-        if (auto it = skeleton->index_map.find(jointName); it != skeleton->index_map.end()) {
-          jointIndex = it->second;
-        }
-      }
-      if (jointIndex < 0) {
-        LOGE("[GLTF] cannot find joint index in LUT.");
-        break;
-      }
-
-      // Inputs (eg. time).
-      if (input != last_input_accessor) {
-        inputs.resize(input->count);
-        cgltf_accessor_unpack_floats(input, inputs.data(), inputs.size());
-        last_input_accessor = input;
-      }
-
-      // Outputs (eg. rotation).
-      cgltf_size const output_ncomp{cgltf_num_components(output->type)};
-      outputs.resize(output_ncomp * output->count);
-      cgltf_accessor_unpack_floats(output, outputs.data(), outputs.size());
-
-      // Check if we need to resample outputs.
-      bool const bNeedResampling{(sampleCount > 1) && (sampleCount != output->count)};
-      cgltf_size frameStart, frameEnd;
-      float lerpFactor;
-
-      for (cgltf_size sid = 0; sid < sampleCount; ++sid) {
-        auto &pose = clip->poses[sid];
-        auto &joint = pose.joints[jointIndex];
-
-        // Calculate resampling parameters when needed.
-        if (bNeedResampling) [[unlikely]] {
-          // [optimization]
-          // Most of the time there would be only two frames, the first and the last,
-          // which would be identical and would not require any interpolation
-          // (just copying them to the whole range).
-
-          cgltf_size const src_sampleCount{ output->count };
-          float const dt = sid / static_cast<float>(sampleCount - 1);
-
-          frameStart = static_cast<int>(floor(dt * src_sampleCount));
-          frameEnd = static_cast<int>(ceil(dt * src_sampleCount));
-          frameStart = std::min(frameStart, src_sampleCount - 1);
-          frameEnd = std::min(frameEnd, src_sampleCount - 1);
-
-          float const start_time = inputs.at(frameStart);
-          float const diff_time = inputs.at(frameEnd) - start_time;
-          float const dst_time = dt * clipDuration;
-          lerpFactor = (diff_time > 0.0f) ? (dst_time - start_time) / diff_time : 0.0f;
-        }
-
-        switch(channel.target_path) {
-          case cgltf_animation_path_type_translation:
-          {
-            vec3f const* v = reinterpret_cast<vec3f const*>(outputs.data());
-            joint.translation = bNeedResampling ? linalg::lerp(v[frameStart], v[frameEnd], lerpFactor)
-                                                : v[sid]
-                                                ;
-          }
-          break;
-
-          case cgltf_animation_path_type_rotation:
-          {
-            vec4f const* q = reinterpret_cast<vec4f const*>(outputs.data());
-            joint.rotation = bNeedResampling ? linalg::qnlerp(q[frameStart], q[frameEnd], lerpFactor)
-                                             : q[sid]
-                                             ;
-          }
-          break;
-
-          case cgltf_animation_path_type_scale:
-          {
-            vec3f const* v = reinterpret_cast<vec3f const*>(outputs.data());
-            vec3f s = bNeedResampling ? linalg::lerp(v[frameStart], v[frameEnd], lerpFactor)
-                                      : v[sid]
-                                      ;
-
-            float const kTolerance = 1.0e-5f;
-            if (lina::almost_equal(s[0], s[1], kTolerance)
-             && lina::almost_equal(s[0], s[2], kTolerance)
-             && lina::almost_equal(s[1], s[2], kTolerance))
-            {
-              joint.scale = s[0];
-            }
-            else
-            {
-              LOGW("[GLTF] Non-uniform scale not supported for skinning.");
-            }
-          }
-          break;
-
-          case cgltf_animation_path_type_weights:
-          default:
-            LOGW("[GLTF] Unsupported animation type.");
-          break;
-        }
-      }
-    }
-
-    skeleton->clips.push_back(clip);
-
-    R.animations[clipName] = std::move(clip);
-  }
-}
-
-}  // namespace ""
+#include "framework/backend/command_encoder.h"
+#include "framework/renderer/renderer.h" //
+#include "framework/renderer/sampler_pool.h"
+#include "framework/utils/utils.h"
+#include "framework/fx/material/material_fx.h" //
+
+#include "framework/scene/private/gltf_loader.h"
+#include "framework/shaders/scene/interop.h"
 
 /* -------------------------------------------------------------------------- */
 
 namespace scene {
 
-void Resources::release(std::shared_ptr<ResourceAllocator> allocator) {
-  for (auto& tex : textures) {
-    allocator->destroy_image(&tex);
-  }
+void Resources::release() {
+  LOG_CHECK(allocator_ != nullptr);
 
-  allocator->destroy_buffer(index_buffer);
-  allocator->destroy_buffer(vertex_buffer);
+  for (auto& img : device_images) {
+    allocator_->destroy_image(&img);
+  }
+  allocator_->destroy_buffer(frame_ubo_);
+  allocator_->destroy_buffer(index_buffer);
+  allocator_->destroy_buffer(vertex_buffer);
+  allocator_->destroy_buffer(transforms_ssbo_);
+
+  material_fx_registry_->release();
+  delete material_fx_registry_;
+
+  *this = {};
 }
 
 // ----------------------------------------------------------------------------
 
-bool Resources::load_from_file(std::string_view const& filename) {
-  utils::FileReader file;
+void Resources::prepare_material_fx(Context const& context, Renderer const& renderer) {
+  material_fx_registry_ = new MaterialFxRegistry();
+  material_fx_registry_->init(context, renderer);
 
-  if (!file.read(filename)) {
-    return false;
+  // Create default 1x1 textures for optionnal bindings.
+  //  -> should it be left to each MaterialFx?
+  {
+    auto const& sampler = renderer.get_default_sampler();
+
+    auto push_default_texture{
+      [&textures = this->textures, &host_images = this->host_images, &sampler]
+      (std::array<uint8_t, 4> const& c) -> uint32_t {
+        uint32_t texture_id = textures.size();
+        textures.push_back( std::make_shared<Texture>(host_images.size(), sampler) );
+        host_images.push_back( std::make_shared<ImageData>(c[0], c[1], c[2], c[3]) );
+        return texture_id;
+      }
+    };
+
+    auto &bindings = optionnal_texture_binding_;
+    bindings.basecolor          = push_default_texture({255, 255, 255, 255});
+    bindings.normal             = push_default_texture({128, 128, 255, 255});
+    bindings.roughness_metallic = push_default_texture({  0, 255,   0, 255});
+    bindings.occlusion          = push_default_texture({255, 255, 255, 255});
+    bindings.emissive           = push_default_texture({  0,   0,   0, 255});
   }
+}
+
+// ----------------------------------------------------------------------------
+
+bool Resources::load_from_file(std::string_view const& filename, SamplerPool& sampler_pool, bool bRestructureAttribs) {
+  LOG_CHECK( material_fx_registry_ != nullptr );
+
+  std::string const basename{ utils::ExtractBasename(filename) };
 
   cgltf_options options{};
   cgltf_result result{};
   cgltf_data* data{};
 
-  result = cgltf_parse(&options, file.buffer.data(), file.buffer.size(), &data);
-  if (result != cgltf_result_success) {
-    LOGE("GLTF: failed to parse file \"%s\" %d.\n", filename.data(), result);
+  utils::FileReader file{};
+  if (!file.read(filename)) {
+    LOGE("GLTF: failed to read the file.");
     return false;
   }
 
-  result = cgltf_load_buffers(&options, data, filename.data());
-  if (result != cgltf_result_success) {
-    LOGE( "GLTF: failed to load buffers in \"%s\".\n", filename.data());
+  if (result = cgltf_parse(&options, file.buffer.data(), file.buffer.size(), &data); cgltf_result_success != result) {
+    LOGE("GLTF: failed to parse file \"%s\" %d.\n", basename.c_str(), result);
+    return false;
+  }
+
+  if (result = cgltf_load_buffers(&options, data, filename.data()); cgltf_result_success != result) {
+    LOGE("GLTF: failed to load buffers in \"%s\" %d.\n", basename.c_str(), result);
     cgltf_free(data);
-    data = nullptr;
     return false;
   }
 
-  std::string const basename{ utils::ExtractBasename(filename) };
-  std::unordered_map<void const*, std::string> texture_map{};
-  std::unordered_map<void const*, std::string> material_map{};
+  /* Extract data */
+  {
+    using namespace internal::gltf_loader;
 
-  // (hack) prepass to give proper name to texture when they've got none.
-  // ExtractMaterials(basename, texture_map, material_map, data, *this);
+    PreprocessMaterials(data, *material_fx_registry_);
+    material_fx_registry_->setup();
 
-  ExtractTextures(basename, texture_map, data, *this);
-  ExtractMaterials(basename, texture_map, material_map, data, *this);
-  ExtractMeshes(basename, material_map, data, *this);
-  ExtractAnimations(basename, data, *this);
+#if 0
 
-#ifndef NDEBUG
-  // std::cout << "Image count : " << images.size() << std::endl;
-  // std::cout << "Material count : " << materials.size() << std::endl;
+    /* --- Serialized version --- */
 
-  // std::cout << "Skeleton count : " << skeletons.size() << std::endl;
-  // std::cout << "Animation count : " << animations.size() << std::endl;
-  // std::cout << "Mesh count : " << meshes.size() << std::endl;
+    auto samplers_lut       = ExtractSamplers(data, sampler_pool);
+    auto skeletons_indices  = ExtractSkeletons(data, skeletons);
+    auto images_indices     = ExtractImages(data, host_images);
+    auto textures_indices   = ExtractTextures(
+      data, images_indices, samplers_lut, textures
+    );
+    auto materials_indices  = ExtractMaterials(
+      data, textures_indices, textures, material_refs, *material_fx_registry_, optionnal_texture_binding_
+    );
+    ExtractMeshes(
+      data, materials_indices, material_refs,
+      skeletons_indices, skeletons, meshes, bRestructureAttribs
+    );
+
+#else
+
+    /* --- Async tasks version --- */
+
+    auto run_task = utils::RunTaskGeneric<void>;
+    auto run_task_ret = utils::RunTaskGeneric<PointerToIndexMap_t>;
+    auto run_task_sampler = utils::RunTaskGeneric<PointerToSamplerMap_t>;
+
+    auto taskSamplers = run_task_sampler([data, &sampler_pool] {
+      return ExtractSamplers(data, sampler_pool);
+    });
+
+    auto taskSkeletons = run_task_ret([data, &skeletons = this->skeletons] {
+      return ExtractSkeletons(data, skeletons);
+    });
+
+    // [real bottleneck, internally images are loaded asynchronously and must be waited for at the end]
+    auto taskImageData = run_task_ret([data, &host_images = this->host_images] {
+      return ExtractImages(data, host_images);
+    });
+
+    auto taskTextures = run_task_ret(
+      [&taskImageData, &taskSamplers, data, &textures = this->textures] {
+      auto images_indices = taskImageData.get();
+      auto samplers_lut = taskSamplers.get();
+      return ExtractTextures(data, images_indices, samplers_lut, textures);
+    });
+
+    auto taskMaterials = run_task_ret([
+      &taskTextures,
+      data,
+      &textures = this->textures,
+      &material_refs = this->material_refs,
+      &material_fx_registry = *this->material_fx_registry_,
+      &default_bindings = this->optionnal_texture_binding_
+    ] {
+      auto textures_indices = taskTextures.get();
+      return ExtractMaterials(
+        data, textures_indices, textures, material_refs, material_fx_registry, default_bindings
+      );
+    });
+
+    auto skeletons_indices = taskSkeletons.get();
+
+    auto taskAnimations = run_task([data, &skeletons_indices, &skeletons = this->skeletons] {
+      // ExtractAnimations(data, basename, skeletons_indices, skeletons, animations_map);
+    });
+
+    auto taskMeshes = run_task([
+      &taskMaterials,
+      data,
+      bRestructureAttribs,
+      &skeletons_indices,
+      &material_refs = this->material_refs,
+      &skeletons = this->skeletons,
+      &meshes = this->meshes
+    ] {
+      auto materials_indices = taskMaterials.get();
+      ExtractMeshes(data, materials_indices, material_refs, skeletons_indices, skeletons, meshes, bRestructureAttribs);
+    });
+
+    taskAnimations.get();
+    taskMeshes.get();
+
 #endif
 
+    /* Wait for the host images to finish loading before using them. */
+    for (auto const& host_image : host_images) {
+      host_image->getLoadAsyncResult();
+    }
+
+    reset_internal_device_resource_info();
+  }
+
+  /* Be sure to have finished loading all images before freeing gltf data */
   cgltf_free(data);
 
-  std::cerr << " ----------------- gltf loaded ----------------- " << std::endl;
+#ifndef NDEBUG
+    // This will also display the extra data procedurally created.
+    std::cout << basename << " loaded." << std::endl;
+    std::cout << "┌────────────┬─────────── " << std::endl;
+    std::cout << "│ Images     │ " << host_images.size() << std::endl;
+    std::cout << "│ Textures   │ " << textures.size() << std::endl;
+    std::cout << "│ Materials  │ " << material_refs.size() << std::endl;
+    std::cout << "│ Skeletons  │ " << skeletons.size() << std::endl;
+    std::cout << "│ Animations │ " << animations_map.size() << std::endl;
+    std::cout << "│ Meshes     │ " << meshes.size() << std::endl;
+    std::cerr << "└────────────┴───────────" << std::endl;
+#endif
 
   return true;
 }
@@ -860,138 +210,402 @@ bool Resources::load_from_file(std::string_view const& filename) {
 // ----------------------------------------------------------------------------
 
 void Resources::initialize_submesh_descriptors(Mesh::AttributeLocationMap const& attribute_to_location) {
-  vertex_buffer_size = 0u;
-  index_buffer_size = 0u;
-
-  for (auto& mesh : meshes) {
-    mesh->vertex_offset = vertex_buffer_size;
-    mesh->index_offset = index_buffer_size;
-    mesh->vertex_size = mesh->get_vertices().size();
-    mesh->index_size = mesh->get_indices().size();
-
-    vertex_buffer_size += mesh->vertex_size;
-    index_buffer_size += mesh->index_size;
-
+  for (auto mesh : meshes) {
     mesh->initialize_submesh_descriptors(attribute_to_location);
   }
 
-  // uint32_t const kMegabyte{ 1024u * 1024u };
-  // LOGI("> vertex buffer size %f Mb", vertex_buffer_size / static_cast<float>(kMegabyte));
-  // LOGI("> index buffer size %f Mb ", index_buffer_size / static_cast<float>(kMegabyte));
-  // LOGI("> total image size %f Mb ", total_image_size / static_cast<float>(kMegabyte));
+  // --------------------
+  // [~] When we expect Tangent we force recalculate them.
+  //     Resulting indices might be incorrect.
+
+  if (attribute_to_location.contains(Geometry::AttributeType::Tangent)) {
+    // for (auto& mesh : meshes) { mesh->recalculate_tangents(); } //
+  }
+  // --------------------
 }
 
 // ----------------------------------------------------------------------------
 
-void Resources::upload_to_device(Context const& context) {
-  auto allocator = context.get_resource_allocator();
+void Resources::upload_to_device(Context const& context, bool const bReleaseHostDataOnUpload) {
+  context_ptr_ = &context;
+  if (!allocator_) {
+    allocator_ = context.get_resource_allocator();
+  }
+
+  /* Create the shared Frame UBO */
+  frame_ubo_ = allocator_->create_buffer(
+    sizeof(FrameData),
+      VK_BUFFER_USAGE_2_UNIFORM_BUFFER_BIT
+    | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+      VMA_MEMORY_USAGE_AUTO,
+      VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
+    | VMA_ALLOCATION_CREATE_MAPPED_BIT
+  );
+  material_fx_registry_->update_frame_ubo(frame_ubo_);
+
+  /* Transfer Materials */
+  material_fx_registry_->push_material_storage_buffers();
 
   /* Transfer Textures */
   if (total_image_size > 0) {
-    /* Create a staging buffer. */
-    backend::Buffer staging_buffer{
-      allocator->create_staging_buffer( total_image_size ) // XXX
-    };
+    upload_images(context);
 
-    textures.reserve(images.size()); //
-
-    std::vector<VkBufferImageCopy> copies;
-    copies.reserve(images.size());
-
-    // ----------------
-
-    uint32_t texture_index = 0u;
-    uint64_t staging_offset = 0u;
-    for (auto& [key, img] : images) {
-      VkExtent3D const extent{
-        .width = static_cast<uint32_t>(img->width),
-        .height = static_cast<uint32_t>(img->height),
-        .depth = 1u,
-      };
-
-      auto tex{context.create_image_2d(
-        extent.width, extent.height, 1u, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_TRANSFER_DST_BIT
-      )};
-      textures.push_back(tex);
-      img->texture_index = textures.size() - 1u;
-
-      /* Upload image to staging buffer */
-      uint32_t const img_bytesize{
-        static_cast<uint32_t>(4u * extent.width * extent.height) //
-      };
-      allocator->write_buffer( staging_buffer, staging_offset,  img->pixels.get(), 0u, img_bytesize);
-
-      copies.push_back({
-        .bufferOffset = staging_offset,
-        .imageSubresource = {
-          .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-          .layerCount = 1u,
-        },
-        .imageExtent = extent,
-      });
-
-      staging_offset += img_bytesize;
-      ++texture_index;
-    }
-
-    // ----------------
-
-    auto cmd{ context.create_transient_command_encoder(Context::TargetQueue::Transfer) };
-    {
-      VkImageLayout const transfer_layout{ VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL };
-
-      cmd.transition_images_layout(textures, VK_IMAGE_LAYOUT_UNDEFINED, transfer_layout);
-      for (uint32_t tex_id = 0u; tex_id < textures.size(); ++tex_id) {
-        vkCmdCopyBufferToImage(cmd.get_handle(), staging_buffer.buffer, textures[tex_id].image, transfer_layout, 1u, &copies[tex_id]);
-      }
-      cmd.transition_images_layout(textures, transfer_layout, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-    }
-    context.finish_transient_command_encoder(cmd);
+    material_fx_registry_->update_texture_atlas([this](uint32_t binding) {
+      return this->descriptor_set_texture_atlas_entry(binding);
+    });
   }
 
   /* Transfer Buffers */
-  {
-    vertex_buffer = allocator->create_buffer(
-      vertex_buffer_size,
-      VK_BUFFER_USAGE_2_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_2_TRANSFER_DST_BIT_KHR,
-      VMA_MEMORY_USAGE_GPU_ONLY
-    );
+  if (vertex_buffer_size > 0) {
+    upload_buffers(context);
+  }
 
-    index_buffer = allocator->create_buffer(
+  /* Clear host data once uploaded */
+  if (bReleaseHostDataOnUpload) {
+    host_images.clear();
+    host_images.shrink_to_fit();
+    for (auto const& mesh : meshes) {
+      mesh->clear_indices_and_vertices(); //
+    }
+  }
+}
+
+// ----------------------------------------------------------------------------
+
+DescriptorSetWriteEntry Resources::descriptor_set_texture_atlas_entry(uint32_t const binding) const {
+  DescriptorSetWriteEntry texture_atlas_entry{
+    .binding = binding,
+    .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+  };
+
+  if (textures.empty()) {
+    return texture_atlas_entry;
+  }
+  LOG_CHECK( !device_images.empty() );
+
+  for (auto const& texture : textures) {
+    auto const& img = device_images.at(texture->channel_index());
+    texture_atlas_entry.images.push_back({
+      .sampler = texture->sampler,
+      .imageView = img.view,
+      .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+    });
+  }
+
+  return texture_atlas_entry;
+}
+
+// ----------------------------------------------------------------------------
+
+void Resources::update(Camera const& camera, VkExtent2D const& surfaceSize, float elapsedTime) {
+  // Update the shared Frame UBO.
+  FrameData const frame_data{
+    .projectionMatrix = camera.proj(),
+    .viewMatrix = camera.view(),
+    .viewProjMatrix = camera.viewproj(),
+    .cameraPos_Time = vec4(camera.position(), elapsedTime),
+    .resolution = vec2(surfaceSize.width, surfaceSize.height),
+  };
+
+  context_ptr_->transfer_host_to_device(
+    &frame_data, sizeof(frame_data), frame_ubo_
+  );
+
+  ///
+  /// DevNote
+  /// We could improve the overall sorting by using a generic 64bits sorting
+  /// key (pipeline << 32) | (material << 16) | depthBits), using a single buffer.
+  ///
+
+  // Retrieve submeshes associated to each MaterialFx.
+  if constexpr (true) {
+    lookups_ = {};
+    for (auto const& mesh : meshes) {
+      for (auto const& submesh : mesh->submeshes) {
+        if (auto matref = submesh.material_ref; matref) {
+          auto const alpha_mode = matref->states.alpha_mode;
+          auto fx = material_fx_registry_->material_fx(*matref);
+          lookups_[alpha_mode][fx].push_back(&submesh);
+        }
+      }
+    }
+    //reset_scene_lookups = false;
+  }
+
+  /// Preprocess each buffer of submeshes.
+
+  using SortKey = std::pair<float, size_t>; // (depthProxy, index)
+  std::vector<SortKey> sortkeys{};
+  vec3 const camera_dir{camera.direction()};
+  SubMeshBuffer swap_buffer{};
+
+  // Update the submeshes buffer to be sorted.
+  auto sort_submeshes = [&](SubMeshBuffer &submeshes, auto comp) {
+    sortkeys = {};
+    sortkeys.reserve(submeshes.size());
+    for (size_t i = 0; i < submeshes.size(); ++i) {
+      vec3 const pos = lina::to_vec3(submeshes[i]->parent->world_matrix.w);
+      vec3 const v = camera.position() - pos;
+      float const dp = linalg::dot(camera_dir, v);
+      sortkeys.emplace_back(dp, i);
+    }
+    std::ranges::sort(sortkeys, comp, &SortKey::first);
+
+    // final-sort on submeshes by swapping with new buffer.
+    swap_buffer.resize(submeshes.size());
+    for (size_t i = 0; i < submeshes.size(); ++i) {
+      auto [_, submesh_index] = sortkeys[i];
+      swap_buffer[i] = std::move(submeshes[submesh_index]);
+    }
+    submeshes.swap(swap_buffer);
+  };
+
+  // Sort front to back for depth testing.
+  for (auto& [_, submeshes] : lookups_[MaterialStates::AlphaMode::Opaque]) {
+    sort_submeshes(submeshes, std::less{});
+  }
+  for (auto& [fx, submeshes] : lookups_[MaterialStates::AlphaMode::Mask]) {
+    sort_submeshes(submeshes, std::less{});
+  }
+  // Sort back to front for alpha blending.
+  for (auto& [fx, submeshes] : lookups_[MaterialStates::AlphaMode::Blend]) {
+    sort_submeshes(submeshes, std::greater{});
+  }
+}
+
+// ----------------------------------------------------------------------------
+
+void Resources::render(RenderPassEncoder const& pass) {
+  LOG_CHECK( material_fx_registry_ != nullptr );
+  // Render each Fx.
+  uint32_t instance_index = 0u;
+  for (auto& lookup : lookups_) {
+    for (auto& [fx, submeshes] : lookup) {
+      // Bind pipeline & descriptor set.
+      auto const& states = submeshes[0]->material_ref->states;
+      fx->prepareDrawState(pass, states);
+
+      // Draw submeshes.
+      for (auto submesh : submeshes) {
+        auto mesh = submesh->parent;
+
+        // Submesh's pushConstants.
+        fx->setTransformIndex(mesh->transform_index);
+        fx->setMaterialIndex(submesh->material_ref->material_index);
+        fx->setInstanceIndex(instance_index++); //
+        fx->pushConstant(pass);
+
+        pass.set_primitive_topology(mesh->get_vk_primitive_topology());
+        pass.draw(submesh->draw_descriptor, vertex_buffer, index_buffer); //
+      }
+    }
+  }
+}
+
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+
+void Resources::reset_internal_device_resource_info() {
+  /* Calculate the offsets to indivual mesh data inside the shared vertices
+   * and indices buffers. */
+  vertex_buffer_size = 0u;
+  index_buffer_size = 0u;
+
+  uint32_t transform_index = 0u;
+  for (auto const& mesh : meshes) {
+    uint64_t const mesh_vertices_size = mesh->get_vertices().size();
+    uint64_t const mesh_indices_size = mesh->get_indices().size();
+    mesh->set_device_buffer_info({
+      .vertex_offset = vertex_buffer_size,
+      .index_offset = index_buffer_size,
+      .vertex_size = mesh_vertices_size,
+      .index_size = mesh_indices_size,
+    });
+    vertex_buffer_size += mesh_vertices_size;
+    index_buffer_size += mesh_indices_size;
+
+    mesh->transform_index = transform_index++; //
+  }
+
+  for (auto const& host_image : host_images) {
+    total_image_size += host_image->getBytesize();
+  }
+
+#ifndef NDEBUG
+  uint32_t const kMegabyte{ 1024u * 1024u };
+  LOGI("> vertex buffer size %f Mb", vertex_buffer_size / static_cast<float>(kMegabyte));
+  LOGI("> index buffer size %f Mb ", index_buffer_size / static_cast<float>(kMegabyte));
+  LOGI("> total image size %f Mb ", total_image_size / static_cast<float>(kMegabyte));
+#endif
+}
+
+// ----------------------------------------------------------------------------
+
+void Resources::upload_images(Context const& context) {
+  assert(total_image_size > 0);
+  assert(allocator_ != nullptr);
+
+  /* Create a staging buffer. */
+  backend::Buffer staging_buffer{
+    allocator_->create_staging_buffer( total_image_size ) //
+  };
+
+  device_images.reserve(host_images.size()); //
+
+  std::vector<VkBufferImageCopy> copies{};
+  copies.reserve(host_images.size());
+
+  // uint32_t channel_index = 0u;
+  uint64_t staging_offset = 0u;
+  for (auto const& host_image : host_images) {
+    VkExtent3D const extent{
+      .width = static_cast<uint32_t>(host_image->width),
+      .height = static_cast<uint32_t>(host_image->height),
+      .depth = 1u,
+    };
+    device_images.push_back(context.create_image_2d(
+      extent.width,
+      extent.height,
+      VK_FORMAT_R8G8B8A8_UNORM, //
+      VK_IMAGE_USAGE_TRANSFER_DST_BIT
+    ));
+
+    /* Upload image to staging buffer */
+    uint32_t const img_bytesize{ host_image->getBytesize() };
+    allocator_->write_buffer(
+      staging_buffer, staging_offset, host_image->getPixels(), 0u, img_bytesize
+    );
+    copies.push_back({
+      .bufferOffset = staging_offset,
+      .imageSubresource = {
+        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+        .layerCount = 1u,
+      },
+      .imageExtent = extent,
+    });
+    staging_offset += img_bytesize;
+  }
+
+  auto cmd{ context.create_transient_command_encoder(Context::TargetQueue::Transfer) };
+  {
+    VkImageLayout const transfer_layout{ VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL };
+
+    cmd.transition_images_layout(device_images, VK_IMAGE_LAYOUT_UNDEFINED, transfer_layout);
+    for (uint32_t i = 0u; i < device_images.size(); ++i) {
+      vkCmdCopyBufferToImage(cmd.get_handle(), staging_buffer.buffer, device_images[i].image, transfer_layout, 1u, &copies[i]);
+    }
+    cmd.transition_images_layout(device_images, transfer_layout, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+  }
+  context.finish_transient_command_encoder(cmd);
+}
+
+// ----------------------------------------------------------------------------
+
+void Resources::upload_buffers(Context const& context) {
+  LOG_CHECK(vertex_buffer_size > 0);
+  LOG_CHECK(allocator_ != nullptr);
+
+  /* Allocate device buffers for meshes & their transforms. */
+  vertex_buffer = allocator_->create_buffer(
+    vertex_buffer_size,
+    VK_BUFFER_USAGE_2_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_2_TRANSFER_DST_BIT_KHR,
+    VMA_MEMORY_USAGE_GPU_ONLY
+  );
+
+  if (index_buffer_size > 0) {
+    index_buffer = allocator_->create_buffer(
       index_buffer_size,
       VK_BUFFER_USAGE_2_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_2_TRANSFER_DST_BIT_KHR,
       VMA_MEMORY_USAGE_GPU_ONLY
     );
-
-    /* Copy host mesh data to staging buffer */
-    backend::Buffer mesh_staging_buffer{
-      allocator->create_staging_buffer(vertex_buffer_size + index_buffer_size)
-    };
-    {
-      size_t vertex_offset{0u};
-      size_t index_offset{vertex_buffer_size};
-      for (auto const& mesh : meshes) {
-        auto const& vertices = mesh->get_vertices();
-        allocator->write_buffer(mesh_staging_buffer, vertex_offset, vertices.data(), 0u, vertices.size());
-        vertex_offset += vertices.size();
-
-        auto const& indices = mesh->get_indices();
-        allocator->write_buffer(mesh_staging_buffer, index_offset, indices.data(), 0u, indices.size());
-        index_offset += indices.size();
-
-        /* clear host data once uploaded */
-        mesh->clear_indices_and_vertices();
-      }
-    }
-
-    /* Copy device data from staging buffers to their respective buffers. */
-    auto cmd = context.create_transient_command_encoder(Context::TargetQueue::Transfer);
-    {
-      cmd.copy_buffer(mesh_staging_buffer, 0u, vertex_buffer, 0u, vertex_buffer_size);
-      cmd.copy_buffer(mesh_staging_buffer, vertex_buffer_size, index_buffer, 0u, index_buffer_size);
-    }
-    context.finish_transient_command_encoder(cmd);
   }
+
+  // Meshes transforms buffer.
+  size_t const transforms_buffer_size{ meshes.size() * sizeof(mat4) };
+  {
+    // We assume most meshes would be static, so with unfrequent updates.
+    transforms_ssbo_ = allocator_->create_buffer(
+      transforms_buffer_size,
+      VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+      VMA_MEMORY_USAGE_GPU_ONLY
+    );
+    // Update the transform SSBO DescriptorSet entry for all MaterialFx.
+    material_fx_registry_->update_transforms_ssbo(transforms_ssbo_);
+  }
+
+  /* Copy host mesh data to the staging buffer. */
+  backend::Buffer staging_buffer{
+    allocator_->create_staging_buffer(vertex_buffer_size + index_buffer_size + transforms_buffer_size)
+  };
+    {
+    size_t vertex_offset{0u};
+    size_t index_offset{vertex_buffer_size};
+    size_t transform_offset{vertex_buffer_size + index_buffer_size};
+
+    std::byte* device_data{};
+    allocator_->map_memory(staging_buffer, (void**)&device_data);
+    for (auto const& mesh : meshes) {
+      auto const& vertices = mesh->get_vertices();
+      memcpy(device_data + vertex_offset, vertices.data(), vertices.size());
+      vertex_offset += vertices.size();
+
+      if (index_buffer_size > 0) {
+        auto const& indices = mesh->get_indices();
+        memcpy(device_data + index_offset, indices.data(), indices.size());
+        index_offset += indices.size();
+      }
+
+      memcpy(device_data + transform_offset, lina::ptr(mesh->world_matrix), sizeof(mat4));
+      transform_offset += sizeof(mat4);
+    }
+    allocator_->unmap_memory(staging_buffer);
+  }
+
+  /* Copy device data from staging buffers to their respective buffers. */
+  auto cmd = context.create_transient_command_encoder(Context::TargetQueue::Transfer);
+  {
+    size_t src_offset{0};
+
+    src_offset = cmd.copy_buffer(staging_buffer, src_offset, vertex_buffer, 0u, vertex_buffer_size);
+
+    if (index_buffer_size > 0) {
+      src_offset = cmd.copy_buffer(staging_buffer, src_offset, index_buffer, 0u, index_buffer_size);
+    }
+
+    src_offset = cmd.copy_buffer(staging_buffer, src_offset, transforms_ssbo_, 0u, transforms_buffer_size);
+
+    std::vector<VkBufferMemoryBarrier2> barriers{
+      {
+        .srcStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT,
+        .srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
+        .dstStageMask = VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
+        .dstAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT,
+        .buffer = vertex_buffer.buffer,
+        .size = vertex_buffer_size,
+      },
+      {
+        .srcStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT,
+        .srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
+        .dstStageMask = VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, //
+        .dstAccessMask = VK_ACCESS_SHADER_READ_BIT,
+        .buffer = transforms_ssbo_.buffer,
+        .size = transforms_buffer_size,
+      },
+    };
+    if (index_buffer_size > 0) {
+      barriers.emplace_back(VkBufferMemoryBarrier2{
+        .srcStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT,
+        .srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
+        .dstStageMask = VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
+        .dstAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT,
+        .buffer = index_buffer.buffer,
+        .size = index_buffer_size,
+      });
+    }
+    cmd.pipeline_buffer_barriers(barriers);
+  }
+
+  context.finish_transient_command_encoder(cmd);
 }
 
 }  // namespace scene

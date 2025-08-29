@@ -217,7 +217,7 @@ class SampleApp final : public Application {
   void frame() final {
     mat4 const world_matrix(
       linalg::mul(
-        lina::rotation_matrix_y(0.25f * get_frame_time()),
+        lina::rotation_matrix_y(0.25f * frame_time()),
         linalg::scaling_matrix(vec3(4.0f))
       )
     );
@@ -227,7 +227,7 @@ class SampleApp final : public Application {
       cmd.bind_descriptor_set(graphics_.descriptor_set, graphics_.pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT);
 
       graphics_.push_constant.model.worldMatrix = world_matrix;
-      graphics_.push_constant.time = get_frame_time();
+      graphics_.push_constant.time = frame_time();
       cmd.push_constant(graphics_.push_constant, graphics_.pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT);
 
       auto pass = cmd.begin_rendering();

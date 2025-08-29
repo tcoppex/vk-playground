@@ -4,7 +4,7 @@
 
 # :fire: vk-playground :fire:
 
-A c++20 / Vulkan 1.1 rendering framework flavored like 1.4 and inspired by WebGPU.
+A c++20 / Vulkan 1.1 rendering framework flavored like 1.4 and inspired by WebGPU and _vk_minimal_latest_.
 
 Runs on GNU / Linux and Windows 11, compiled with _GCC 11.4_ and _MSVC 19.38_.
 
@@ -28,16 +28,6 @@ cmake --build build --config Release
 ```
 
 </details>
-
-<!-- 
-#### Some Features
-
- * Swapchain management
- * Timeline semaphore
- * Legacy & Dynamic rendering
- * Vulkan Memory Allocator (VMA)
- * GLSL to SPIR-V compilation via CMake
- -->
 
 ### Demos
 
@@ -63,6 +53,7 @@ cmake --build build --config Release
  * Volk 1.4 (_via CPM_)
  * VulkanMemoryAllocator 3.2.0 (_via CPM_)
  * ImGUI (_via CPM_)
+ * MikkTSpace (_via CPM_)
  * linalg v2.2 (_via CPM_)
  * stb_image.h (_included_)
 
@@ -78,12 +69,18 @@ cmake --build build --config Release
 * [VK_KHR_create_renderpass2](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_create_renderpass2.html)
 * [VK_KHR_depth_stencil_resolve](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_depth_stencil_resolve.html)
 * [VK_KHR_dynamic_rendering](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_dynamic_rendering.html)
+* [VK_KHR_index_type_uint8](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_index_type_uint8.html)
 * [VK_KHR_maintenance4](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_maintenance4.html)
 * [VK_KHR_maintenance5](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_maintenance5.html)
 * [VK_KHR_maintenance6](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_maintenance6.html)
 * [VK_KHR_swapchain](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_swapchain.html)
 * [VK_KHR_synchronization2](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_synchronization2.html)
 * [VK_KHR_timeline_semaphore](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_timeline_semaphore.html)
+
+
+### Acknowledgement
+
+This project was inspired by the work of **NVIDIA DesignWorks Samples**, in particular the _[vk_minimal_latest](https://github.com/nvpro-samples/vk_minimal_latest)_ project.
 
 ### License
 

@@ -59,7 +59,7 @@ class Context {
 
   // --- Image ---
 
-  backend::Image create_image_2d(uint32_t width, uint32_t height, uint32_t layer_count, VkFormat const format, VkImageUsageFlags const extra_usage = {}) const;
+  backend::Image create_image_2d(uint32_t width, uint32_t height, VkFormat const format, VkImageUsageFlags const extra_usage = {}) const;
 
   // --- Shader Module ---
 
@@ -69,6 +69,7 @@ class Context {
   std::vector<backend::ShaderModule> create_shader_modules(std::string_view const& directory, std::vector<std::string_view> const& shader_names) const;
   std::vector<backend::ShaderModule> create_shader_modules(std::vector<std::string_view> const& filepaths) const;
 
+  void release_shader_module(backend::ShaderModule const& shader) const;
   void release_shader_modules(std::vector<backend::ShaderModule> const& shaders) const;
 
   // --- Command Encoder ---
@@ -106,6 +107,9 @@ class Context {
     finish_transient_command_encoder(cmd);
   }
 
+  // --- Descriptor set ---
+
+  void update_descriptor_set(VkDescriptorSet const& descriptor_set, std::vector<DescriptorSetWriteEntry> const& entries) const;
 
  private:
   bool has_extension(std::string_view const& name, std::vector<VkExtensionProperties> const& extensions) const {
@@ -161,6 +165,7 @@ class Context {
 
   struct {
     VkPhysicalDeviceFeatures2 base{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
+    VkPhysicalDeviceIndexTypeUint8FeaturesKHR index_type_uint8{};
     VkPhysicalDeviceBufferDeviceAddressFeaturesKHR buffer_device_address{};
     VkPhysicalDeviceDynamicRenderingFeaturesKHR dynamic_rendering{};
     VkPhysicalDeviceMaintenance4FeaturesKHR maintenance4{};

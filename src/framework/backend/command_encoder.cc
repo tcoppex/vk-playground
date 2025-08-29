@@ -72,8 +72,8 @@ void CommandEncoder::copy_buffer(backend::Buffer const& src, backend::Buffer con
 
 // ----------------------------------------------------------------------------
 
-void CommandEncoder::copy_buffer(backend::Buffer const& src, size_t src_offset, backend::Buffer const& dst, size_t dst_offet, size_t size) const {
-  assert(size > 0);
+size_t CommandEncoder::copy_buffer(backend::Buffer const& src, size_t src_offset, backend::Buffer const& dst, size_t dst_offet, size_t size) const {
+  LOG_CHECK(size > 0);
   copy_buffer(src, dst, {
     {
       .srcOffset = static_cast<VkDeviceSize>(src_offset),
@@ -81,11 +81,16 @@ void CommandEncoder::copy_buffer(backend::Buffer const& src, size_t src_offset, 
       .size = static_cast<VkDeviceSize>(size),
     }
   });
+  return src_offset + size;
 }
 
 // ----------------------------------------------------------------------------
 
 void CommandEncoder::transition_images_layout(std::vector<backend::Image> const& images, VkImageLayout const src_layout, VkImageLayout const dst_layout) const {
+  /// [devnote] This is an helper method to transition multiple 2d single layer,
+  //      single level images, using the default VkImageMemoryBarrier2 params
+  //      as defined in 'GenericCommandEncoder::pipeline_image_barriers'.
+
   VkImageMemoryBarrier2 const barrier2{
     .oldLayout = src_layout,
     .newLayout = dst_layout,
@@ -169,7 +174,7 @@ void CommandEncoder::blit_image_2d(backend::Image const& src, VkImageLayout src_
 
 // ----------------------------------------------------------------------------
 
-void CommandEncoder::blit(FxInterface const& fx_src, backend::RTInterface const& rt_dst) const {
+void CommandEncoder::blit(PostFxInterface const& fx_src, backend::RTInterface const& rt_dst) const {
   blit_image_2d(
     fx_src.getImageOutput(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
     rt_dst.get_color_attachment(), VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
@@ -296,7 +301,9 @@ RenderPassEncoder CommandEncoder::begin_rendering(std::shared_ptr<backend::RTInt
 
 RenderPassEncoder CommandEncoder::begin_rendering() {
   assert( default_render_target_ptr_ != nullptr );
-  return begin_rendering( *default_render_target_ptr_ );
+  auto pass = begin_rendering( *default_render_target_ptr_ );
+  pass.set_viewport_scissor(default_render_target_ptr_->get_surface_size()); //
+  return pass;
 }
 
 // ----------------------------------------------------------------------------
@@ -350,7 +357,7 @@ void CommandEncoder::end_render_pass() const {
 
 // ----------------------------------------------------------------------------
 
-void CommandEncoder::draw_ui(backend::RTInterface &render_target) {
+void CommandEncoder::render_ui(backend::RTInterface &render_target) {
   auto const load_op = render_target.get_color_load_op();
   render_target.set_color_load_op(VK_ATTACHMENT_LOAD_OP_LOAD);
 
@@ -405,14 +412,23 @@ void RenderPassEncoder::set_viewport_scissor(VkRect2D const rect, bool flip_y) c
 // ----------------------------------------------------------------------------
 
 void RenderPassEncoder::draw(DrawDescriptor const& desc, backend::Buffer const& vertex_buffer, backend::Buffer const& index_buffer) const {
-  // [TODO] disable when vertex input is not dynamic.
-  set_vertex_input(desc.vertexInput);
+  // Vertex Input.
+  {
+    auto const& vi{desc.vertexInput};
 
-  for (uint32_t i = 0u; i < desc.vertexInput.bindings.size(); ++i) {
-    bind_vertex_buffer(vertex_buffer, desc.vertexInput.bindings[i].binding, desc.vertexInput.vertexBufferOffsets[i]);
+    // (shoud be disabled when vertex input is not dynamic)
+    set_vertex_input(vi);
+
+    for (size_t i = 0; i < vi.bindings.size(); ++i) {
+      bind_vertex_buffer(vertex_buffer, vi.bindings[i].binding, vi.vertexBufferOffsets[i]);
+    }
   }
 
-  if (desc.indexCount > 0) [[likely]] {
+  // Topology.
+  // set_primitive_topology(desc.topology);
+
+  // Draw.
+  if (desc.indexCount > 0u) [[likely]] {
     bind_index_buffer(index_buffer, desc.indexType, desc.indexOffset);
     draw_indexed(desc.indexCount, desc.instanceCount);
   } else {
