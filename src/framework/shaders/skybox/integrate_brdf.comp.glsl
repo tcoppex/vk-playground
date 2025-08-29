@@ -42,14 +42,22 @@ vec2 integrate_brdf(float n_dot_v, float roughness, int numSamples) {
   for (int i = 0; i < numSamples; ++i) {
     const vec2 pt = hammersley2d( i, inv_samples);
 
-    const vec3 H  = importance_sample_GGX( basis_ws, pt, roughness_sqr);
-    const vec3 L  = /*normalize*/(2.0 * dot(V, H) * H - V);
+    const vec3 H  =
+#if 0
+      importance_sample_GGX( basis_ws, pt, roughness)
+#else
+      fast_importance_sample_GGX( basis_ws, pt, roughness_sqr)
+#endif
+    ;
 
-    const float n_dot_l = saturate( L.z );
+    float v_dot_h = dot(V, H);
+    const vec3 L  = /*normalize*/(2.0 * v_dot_h * H - V);
+
+    const float n_dot_l = saturate(L.z);
 
     if (n_dot_l > 0.0) {
-      const float n_dot_h = saturate( H.z );
-      const float v_dot_h = saturate( dot(V, H) );
+      const float n_dot_h = saturate(H.z);
+      v_dot_h = saturate(v_dot_h);
 
       const float G     = gf_SmithGGX( n_dot_v, n_dot_l, roughness_sqr);
       const float G_Vis = G * v_dot_h / (n_dot_h * n_dot_v);
