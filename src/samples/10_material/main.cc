@@ -21,7 +21,7 @@ class SampleApp final : public Application {
 
     renderer_.set_color_clear_value({ 0.72f, 0.28f, 0.30f, 0.0f });
     renderer_.skybox().setup(ASSETS_DIR "textures/"
-      "qwantani_dusk_2_2k.hdr"
+      "rogland_clear_night_2k.hdr"
     );
 
     /* Setup the ArcBall camera. */
@@ -40,9 +40,15 @@ class SampleApp final : public Application {
     }
 
     /* Load a glTF Scene. */
-    future_scene_ = renderer_.async_load_to_device(ASSETS_DIR "models/"
-      "DamagedHelmet.glb"
-    );
+    std::string gtlf_filename{ASSETS_DIR "models/"
+      "AlphaBlendModeTest.glb"
+    };
+
+    if constexpr(true) {
+      future_scene_ = renderer_.async_load_to_device(gtlf_filename);
+    } else {
+      scene_ = renderer_.load_and_upload(gtlf_filename);
+    }
 
     return true;
   }

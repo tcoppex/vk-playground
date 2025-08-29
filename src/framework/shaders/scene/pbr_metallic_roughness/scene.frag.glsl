@@ -81,13 +81,13 @@ vec3 sample_NormalMap(in Material mat) {
 // ----------------------------------------------------------------------------
 
 vec3 calculate_world_space_normal(in vec3 normalWS, in vec4 tangentWS, in vec3 normalTS) {
-#if 0
+#if 1
   vec3 normal = normalize(normalWS);
 
   // TBN basis to transform from tangent-space to world-space.
   // We do not have to normalize this interpolated vectors to get the TBN.
-  vec3 tangent  = normalize(tangentWS.xyz);
-       tangent  = clamp(tangent, vec3(-1), vec3(1)); //
+  vec3 tangent = normalize(tangentWS.xyz);
+       tangent = clamp(tangent, vec3(-1), vec3(1)); //
 
   const vec3 bitangent = cross(normal, tangent) * tangentWS.w;
   const mat3 TBN = mat3(tangent, bitangent, normal);
@@ -213,8 +213,17 @@ void main() {
     mainColor.rgb
   );
 
+  // -------------------------
   vec3 color = colorize_pbr(frag, pbr_data);
+
+  if (gl_FragCoord.x > 0) {
+    // color = vec3(pbr_data.BRDF, 0);
+    // [TODO : explore mipmapping issue on specular !]
+    // color = pbr_data.prefiltered;
+  }
+
   float alpha = mainColor.a;
+  // -------------------------
 
   fragColor = vec4(color, alpha);
 }
