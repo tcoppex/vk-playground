@@ -69,6 +69,7 @@ class Context {
   std::vector<backend::ShaderModule> create_shader_modules(std::string_view const& directory, std::vector<std::string_view> const& shader_names) const;
   std::vector<backend::ShaderModule> create_shader_modules(std::vector<std::string_view> const& filepaths) const;
 
+  void release_shader_module(backend::ShaderModule const& shader) const;
   void release_shader_modules(std::vector<backend::ShaderModule> const& shaders) const;
 
   // --- Command Encoder ---

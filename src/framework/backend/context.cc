@@ -147,6 +147,10 @@ std::vector<backend::ShaderModule> Context::create_shader_modules(std::vector<st
 
 // ----------------------------------------------------------------------------
 
+void Context::release_shader_module(backend::ShaderModule const& shader) const {
+  vkDestroyShaderModule(device_, shader.module, nullptr);
+}
+
 void Context::release_shader_modules(std::vector<backend::ShaderModule> const& shaders) const {
   for (auto const& shader : shaders) {
     vkDestroyShaderModule(device_, shader.module, nullptr);
