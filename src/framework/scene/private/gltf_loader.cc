@@ -20,6 +20,31 @@ static constexpr bool kFrameworkHasDraco{false};
 
 namespace {
 
+std::type_index MaterialTypeIndex(cgltf_material const& mat) {
+  if (mat.unlit) {
+    return fx::scene::UnlitMaterialFx::MaterialTypeIndex();
+  } else if (mat.has_pbr_metallic_roughness) {
+    return fx::scene::PBRMetallicRoughnessFx::MaterialTypeIndex();
+  }
+  return kInvalidTypeIndex;
+}
+
+// ----------------------------------------------------------------------------
+
+scene::MaterialStates GetMaterialStates(cgltf_material const& mat) {
+  scene::MaterialStates states{
+    .alpha_mode = (mat.alpha_mode == cgltf_alpha_mode_opaque) ?
+        scene::MaterialStates::AlphaMode::Opaque
+      : (mat.alpha_mode == cgltf_alpha_mode_blend) ?
+        scene::MaterialStates::AlphaMode::Blend
+      : scene::MaterialStates::AlphaMode::Mask
+      ,
+  };
+  return states;
+}
+
+// ----------------------------------------------------------------------------
+
 //
 // Internal interleaved vertex structure used when bRestructureAttribs is set to true.
 // (Used for main topological attributes, others attributes should reside on different buffers,
@@ -374,6 +399,21 @@ PointerToIndexMap_t ExtractTextures(
 
 // ----------------------------------------------------------------------------
 
+void PreprocessMaterials(
+  cgltf_data const* data,
+  scene::MaterialFxRegistry& material_fx_registry
+) {
+  for (cgltf_size i = 0; i < data->materials_count; ++i) {
+    cgltf_material const& mat = data->materials[i];
+    scene::MaterialStates const states{GetMaterialStates(mat)};
+    std::type_index const type_index{MaterialTypeIndex(mat)};
+
+    if (type_index != kInvalidTypeIndex) {
+      material_fx_registry.register_material_states(type_index, states);
+    }
+  }
+}
+
 PointerToIndexMap_t ExtractMaterials(
   cgltf_data const* data,
   PointerToIndexMap_t const& textures_indices,
@@ -395,33 +435,12 @@ PointerToIndexMap_t ExtractMaterials(
 
   for (cgltf_size material_id = 0; material_id < data->materials_count; ++material_id) {
     cgltf_material const& mat = data->materials[material_id];
+    scene::MaterialStates const states{GetMaterialStates(mat)};
+    std::type_index const typeindex{MaterialTypeIndex(mat)};
 
-    // (no need for shared_ptr)
     std::shared_ptr<scene::MaterialRef> material_ref{}; //
 
-    scene::MaterialStates states{
-      .alpha_mode = (mat.alpha_mode == cgltf_alpha_mode_blend) ?
-          scene::MaterialStates::AlphaMode::Blend
-        : scene::MaterialStates::AlphaMode::OpaqueMask
-        ,
-    };
-
-    // Unlit
-    if (mat.unlit) {
-      auto [ref, material] = material_fx_registry.create_material<fx::scene::UnlitMaterialFx>(states);
-      if (material_ref = std::make_shared<scene::MaterialRef>()) {
-        *material_ref = ref;
-      }
-
-      auto const& pbr_mr = mat.pbr_metallic_roughness;
-      std::copy(
-        std::cbegin(pbr_mr.base_color_factor),
-        std::cend(pbr_mr.base_color_factor),
-        lina::ptr(material->diffuse_factor)
-      );
-    }
-    // PBR MetallicRoughness.
-    else if (mat.has_pbr_metallic_roughness)
+    if (typeindex == fx::scene::PBRMetallicRoughnessFx::MaterialTypeIndex())
     {
       auto const& pbr_mr = mat.pbr_metallic_roughness;
 
@@ -454,15 +473,30 @@ PointerToIndexMap_t ExtractMaterials(
         lina::ptr(material->emissive_factor)
       );
 
-
       material->alpha_cutoff = mat.alpha_cutoff;
       material->double_sided = mat.double_sided;
-    } else {
-      LOGW("[GLTF] Material %03u has unsupported material type.", (uint32_t)material_id);
+    }
+    else if (typeindex == fx::scene::UnlitMaterialFx::MaterialTypeIndex())
+    {
+      auto [ref, material] = material_fx_registry.create_material<fx::scene::UnlitMaterialFx>(states);
+      if (material_ref = std::make_shared<scene::MaterialRef>()) {
+        *material_ref = ref;
+      }
+
+      auto const& pbr_mr = mat.pbr_metallic_roughness;
+      std::copy(
+        std::cbegin(pbr_mr.base_color_factor),
+        std::cend(pbr_mr.base_color_factor),
+        lina::ptr(material->diffuse_factor)
+      );
+    }
+    else
+    {
+      // LOGW("[GLTF] Material %03u has unsupported material type.", (uint32_t)material_id);
       continue;
     }
-    material_ref->index = material_id;
 
+    material_ref->index = material_id;
     materials_indices.try_emplace(&mat, material_id);
     material_refs.push_back( std::move(material_ref) ); //
   }

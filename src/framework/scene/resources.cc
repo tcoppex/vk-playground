@@ -33,6 +33,36 @@ void Resources::release() {
 
 // ----------------------------------------------------------------------------
 
+void Resources::prepare_material_fx(Context const& context, Renderer const& renderer) {
+  material_fx_registry_ = new MaterialFxRegistry();
+  material_fx_registry_->init(context, renderer);
+
+  // Create default 1x1 textures for optionnal bindings.
+  //  -> should it be left to each MaterialFx?
+  {
+    auto const& sampler = renderer.get_default_sampler();
+
+    auto push_default_texture{
+      [&textures = this->textures, &host_images = this->host_images, &sampler]
+      (std::array<uint8_t, 4> const& c) -> uint32_t {
+        uint32_t texture_id = textures.size();
+        textures.push_back( std::make_shared<Texture>(host_images.size(), sampler) );
+        host_images.push_back( std::make_shared<ImageData>(c[0], c[1], c[2], c[3]) );
+        return texture_id;
+      }
+    };
+
+    auto &bindings = optionnal_texture_binding_;
+    bindings.basecolor          = push_default_texture({255, 255, 255, 255});
+    bindings.normal             = push_default_texture({128, 128, 255, 255});
+    bindings.roughness_metallic = push_default_texture({  0, 255,   0, 255});
+    bindings.occlusion          = push_default_texture({255, 255, 255, 255});
+    bindings.emissive           = push_default_texture({  0,   0,   0, 255});
+  }
+}
+
+// ----------------------------------------------------------------------------
+
 bool Resources::load_from_file(std::string_view const& filename, SamplerPool& sampler_pool, bool bRestructureAttribs) {
   LOG_CHECK( material_fx_registry_ != nullptr );
 
@@ -62,6 +92,9 @@ bool Resources::load_from_file(std::string_view const& filename, SamplerPool& sa
   /* Extract data */
   {
     using namespace internal::gltf_loader;
+
+    PreprocessMaterials(data, *material_fx_registry_);
+    material_fx_registry_->setup();
 
 #if 0
 
@@ -177,7 +210,7 @@ bool Resources::load_from_file(std::string_view const& filename, SamplerPool& sa
 // ----------------------------------------------------------------------------
 
 void Resources::initialize_submesh_descriptors(Mesh::AttributeLocationMap const& attribute_to_location) {
-  for (auto& mesh : meshes) {
+  for (auto mesh : meshes) {
     mesh->initialize_submesh_descriptors(attribute_to_location);
   }
 
@@ -186,7 +219,7 @@ void Resources::initialize_submesh_descriptors(Mesh::AttributeLocationMap const&
   //     Resulting indices might be incorrect.
 
   if (attribute_to_location.contains(Geometry::AttributeType::Tangent)) {
-    for (auto& mesh : meshes) { mesh->recalculate_tangents(); } //
+    // for (auto& mesh : meshes) { mesh->recalculate_tangents(); } //
   }
   // --------------------
 }
@@ -264,36 +297,6 @@ DescriptorSetWriteEntry Resources::descriptor_set_texture_atlas_entry(uint32_t c
 
 // ----------------------------------------------------------------------------
 
-void Resources::prepare_material_fx(Context const& context, Renderer const& renderer) {
-  material_fx_registry_ = new MaterialFxRegistry();
-  material_fx_registry_->setup(context, renderer);
-
-  // Create default 1x1 textures for optionnal bindings.
-  //  -> Creation should be left to each MaterialFx
-#if 1
-  auto const& sampler = renderer.get_default_sampler();
-
-  auto push_default_texture{
-    [&textures = this->textures, &host_images = this->host_images, &sampler]
-    (std::array<uint8_t, 4> const& c) -> uint32_t {
-      uint32_t texture_id = textures.size();
-      textures.push_back( std::make_shared<Texture>(host_images.size(), sampler) );
-      host_images.push_back( std::make_shared<ImageData>(c[0], c[1], c[2], c[3]) );
-      return texture_id;
-    }
-  };
-
-  auto &bindings = optionnal_texture_binding_;
-  bindings.basecolor          = push_default_texture({255, 255, 255, 255});
-  bindings.normal             = push_default_texture({128, 128, 255, 255});
-  bindings.roughness_metallic = push_default_texture({  0, 255,   0, 255});
-  bindings.occlusion          = push_default_texture({255, 255, 255, 255});
-  bindings.emissive           = push_default_texture({  0,   0,   0, 255});
-#endif
-}
-
-// ----------------------------------------------------------------------------
-
 void Resources::update(Camera const& camera, VkExtent2D const& surfaceSize, float elapsedTime) {
   // Update the shared Frame UBO.
   FrameData const frame_data{
@@ -307,52 +310,94 @@ void Resources::update(Camera const& camera, VkExtent2D const& surfaceSize, floa
   context_ptr_->transfer_host_to_device(
     &frame_data, sizeof(frame_data), frame_ubo_
   );
+
+  ///
+  /// DevNote
+  /// We could improve the overall sorting by using a generic 64bits sorting
+  /// key (pipeline << 32) | (material << 16) | depthBits), using a single buffer.
+  ///
+
+  // Retrieve submeshes associated to each MaterialFx.
+  if constexpr (true) {
+    lookups_ = {};
+    for (auto const& mesh : meshes) {
+      for (auto const& submesh : mesh->submeshes) {
+        if (auto matref = submesh.material_ref; matref) {
+          auto const alpha_mode = matref->states.alpha_mode;
+          auto fx = material_fx_registry_->material_fx(*matref);
+          lookups_[alpha_mode][fx].push_back(&submesh);
+        }
+      }
+    }
+    //reset_scene_lookups = false;
+  }
+
+  /// Preprocess each buffer of submeshes.
+
+  using SortKey = std::pair<float, size_t>; // (depthProxy, index)
+  std::vector<SortKey> sortkeys{};
+  vec3 const camera_dir{camera.direction()};
+  SubMeshBuffer swap_buffer{};
+
+  // Update the submeshes buffer to be sorted.
+  auto sort_submeshes = [&](SubMeshBuffer &submeshes, auto comp) {
+    sortkeys = {};
+    sortkeys.reserve(submeshes.size());
+    for (size_t i = 0; i < submeshes.size(); ++i) {
+      vec3 const pos = lina::to_vec3(submeshes[i]->parent->world_matrix.w);
+      vec3 const v = camera.position() - pos;
+      float const dp = linalg::dot(camera_dir, v);
+      sortkeys.emplace_back(dp, i);
+    }
+    std::ranges::sort(sortkeys, comp, &SortKey::first);
+
+    // final-sort on submeshes by swapping with new buffer.
+    swap_buffer.resize(submeshes.size());
+    for (size_t i = 0; i < submeshes.size(); ++i) {
+      auto [_, submesh_index] = sortkeys[i];
+      swap_buffer[i] = std::move(submeshes[submesh_index]);
+    }
+    submeshes.swap(swap_buffer);
+  };
+
+  // Sort front to back for depth testing.
+  for (auto& [_, submeshes] : lookups_[MaterialStates::AlphaMode::Opaque]) {
+    sort_submeshes(submeshes, std::less{});
+  }
+  for (auto& [fx, submeshes] : lookups_[MaterialStates::AlphaMode::Mask]) {
+    sort_submeshes(submeshes, std::less{});
+  }
+  // Sort back to front for alpha blending.
+  for (auto& [fx, submeshes] : lookups_[MaterialStates::AlphaMode::Blend]) {
+    sort_submeshes(submeshes, std::greater{});
+  }
 }
 
 // ----------------------------------------------------------------------------
 
 void Resources::render(RenderPassEncoder const& pass) {
   LOG_CHECK( material_fx_registry_ != nullptr );
-
-  // Retrieve submeshes associated to each MaterialFx.
-  using FxToSubmeshesMap = std::map< MaterialFx*, std::vector<Mesh::SubMesh const*> >;
-  FxToSubmeshesMap fx_to_submeshes{};
-  for (auto const& mesh : meshes) {
-    for (auto const& submesh : mesh->submeshes) {
-      if (auto matref = submesh.material_ref; matref) {
-        if (auto fx = material_fx_registry_->material_fx(*matref); fx) {
-          fx_to_submeshes[fx].push_back(&submesh);
-        }
-      }
-    }
-  }
-  if (fx_to_submeshes.empty()) {
-    return;
-  }
-
-  // [TODO] Preprocess each buffer of submeshes
-  //  -> sort per material instance
-  //  -> sort wrt camera
-  // ..
-
   // Render each Fx.
   uint32_t instance_index = 0u;
-  for (auto& [fx, submeshes] : fx_to_submeshes) {
-    // Bind pipeline & descriptor set.
-    fx->prepareDrawState(pass);
+  for (auto& lookup : lookups_) {
+    for (auto& [fx, submeshes] : lookup) {
+      // Bind pipeline & descriptor set.
+      auto const& states = submeshes[0]->material_ref->states;
+      fx->prepareDrawState(pass, states);
 
-    // Draw submeshes.
-    for (auto* submesh : submeshes) {
-      auto mesh = submesh->parent;
+      // Draw submeshes.
+      for (auto submesh : submeshes) {
+        auto mesh = submesh->parent;
 
-      // Submesh's pushConstants.
-      fx->setTransformIndex(mesh->transform_index);
-      fx->setMaterialIndex(submesh->material_ref->material_index);
-      fx->setInstanceIndex(instance_index++); //
-      fx->pushConstant(pass);
+        // Submesh's pushConstants.
+        fx->setTransformIndex(mesh->transform_index);
+        fx->setMaterialIndex(submesh->material_ref->material_index);
+        fx->setInstanceIndex(instance_index++); //
+        fx->pushConstant(pass);
 
-      pass.set_primitive_topology(mesh->get_vk_primitive_topology());
-      pass.draw(submesh->draw_descriptor, vertex_buffer, index_buffer); //
+        pass.set_primitive_topology(mesh->get_vk_primitive_topology());
+        pass.draw(submesh->draw_descriptor, vertex_buffer, index_buffer); //
+      }
     }
   }
 }
@@ -387,10 +432,10 @@ void Resources::reset_internal_device_resource_info() {
   }
 
 #ifndef NDEBUG
-  // uint32_t const kMegabyte{ 1024u * 1024u };
-  // LOGI("> vertex buffer size %f Mb", vertex_buffer_size / static_cast<float>(kMegabyte));
-  // LOGI("> index buffer size %f Mb ", index_buffer_size / static_cast<float>(kMegabyte));
-  // LOGI("> total image size %f Mb ", total_image_size / static_cast<float>(kMegabyte));
+  uint32_t const kMegabyte{ 1024u * 1024u };
+  LOGI("> vertex buffer size %f Mb", vertex_buffer_size / static_cast<float>(kMegabyte));
+  LOGI("> index buffer size %f Mb ", index_buffer_size / static_cast<float>(kMegabyte));
+  LOGI("> total image size %f Mb ", total_image_size / static_cast<float>(kMegabyte));
 #endif
 }
 

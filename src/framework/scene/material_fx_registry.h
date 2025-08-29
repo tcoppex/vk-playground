@@ -2,6 +2,8 @@
 #define HELLO_VK_FRAMEWORK_SCENE_MATERIAL_FX_REGISTRY_H_
 
 #include "framework/common.h"
+#include <set>
+
 #include "framework/scene/material.h"
 #include "framework/backend/types.h" // for DescriptorSetWriteEntry
 
@@ -21,15 +23,23 @@ class MaterialFxRegistry {
  public:
   MaterialFxRegistry() = default;
 
-  void setup(Context const& context, Renderer const& renderer);
+  /* Create the initial material fx LUT. */
+  void init(Context const& context, Renderer const& renderer);
 
+  /* Release all allocated resources. */
   void release();
+
+  /* Register a new MaterialStates for a given type. */
+  void register_material_states(std::type_index const material_type_index, scene::MaterialStates const& states);
+
+  /* Create internal resources for all used MaterialFx. */
+  void setup();
 
   template<typename MaterialFxT>
   requires DerivedFrom<MaterialFxT, MaterialFx>
   std::tuple<MaterialRef, typename MaterialFxT::MaterialType*>
-  create_material(scene::MaterialStates states) {
-    if (auto it = map_.find(type_index<MaterialFxT>()); it != map_.end()) {
+  create_material(scene::MaterialStates const& states) {
+    if (auto it = fx_map_.find(MaterialFxT::MaterialTypeIndex()); it != fx_map_.end()) {
       auto [ref, raw_ptr] = it->second->createMaterial(states);
       return {
         ref,
@@ -56,14 +66,19 @@ class MaterialFxRegistry {
   MaterialFx* material_fx(MaterialRef const& ref) const;
 
  private:
-  using MaterialFxMap = std::unordered_map<std::type_index, MaterialFx*>;
+  // (use std::unique_ptr?)
+  using MaterialFxMap     = std::unordered_map<std::type_index, MaterialFx*>;
+  using MaterialStatesMap = std::unordered_map<std::type_index, std::set<MaterialStates>>;
 
   template<typename MaterialFxT>
   std::type_index type_index() const {
     return MaterialFxT::MaterialTypeIndex();
   }
 
-  MaterialFxMap map_{};
+ private:
+  MaterialFxMap fx_map_{};
+  MaterialStatesMap states_map_{};
+  std::vector<MaterialFx*> active_fx_{};
 };
 
 }  // namespace scene

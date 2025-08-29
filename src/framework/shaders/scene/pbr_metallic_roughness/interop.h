@@ -10,8 +10,10 @@ const uint kDescriptorSetBinding_IBL_Prefiltered    = 2;
 const uint kDescriptorSetBinding_IBL_Irradiance     = 3;
 const uint kDescriptorSetBinding_IBL_SpecularBRDF   = 4;
 
-const uint kDescriptorSetBinding_TextureAtlas       = 5;
-const uint kDescriptorSetBinding_MaterialSSBO       = 6;
+const uint kDescriptorSetBinding_LightSSBO          = 5;
+
+const uint kDescriptorSetBinding_TextureAtlas       = 6;
+const uint kDescriptorSetBinding_MaterialSSBO       = 7;
 
 // ---------------------------------------------------------------------------
 // Fx Materials SSBOs struct.
@@ -29,7 +31,7 @@ struct Material {
   uint occlusion_texture_id;
 
   float alpha_cutoff;
-  uint padding0_[1];
+  bool double_sided;
 };
 
 // ---------------------------------------------------------------------------
@@ -40,8 +42,10 @@ struct PushConstant {
   uint transform_index;
   uint material_index;
   uint instance_index;
-  bool enable_irradiance; // (use a uint flag instead)
+  uint dynamic_states;
 };
+
+const uint kIrradianceBit = 0x1 << 0; //
 
 // ---------------------------------------------------------------------------
 

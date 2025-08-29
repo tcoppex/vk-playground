@@ -20,7 +20,10 @@ class RenderPassEncoder;
 
 namespace scene {
 
-// (might prefer using std::unique_ptr<T>, std::observer_ptr or raw instead here)
+///
+/// DevNote : we might prefer using std::unique_ptr<T>, std::observer_ptr or
+///           raw pointer instead of shared_ptr.
+///
 
 template<typename T>
 using ResourceMap = std::unordered_map<std::string, std::shared_ptr<T>>;
@@ -31,9 +34,7 @@ using ResourceBuffer = std::vector<std::shared_ptr<T>>;
 // ----------------------------------------------------------------------------
 
 ///
-/// [wip]
-/// A Resources struct holds all the host and device data for rendering a scene,
-/// usually loaded from a gltf file.
+/// Holds Host and Device resources for rendering a (glTF) scene.
 ///
 struct Resources {
  public:
@@ -45,20 +46,25 @@ struct Resources {
 
   void release();
 
+  /* Create material fx used for rendering [might be move to Renderer]. */
+  void prepare_material_fx(Context const& context, Renderer const& renderer); //
+
+  /* Load a scene assets from disk to Host memory. */
   bool load_from_file(std::string_view const& filename, SamplerPool& sampler_pool, bool bRestructureAttribs = kRestructureAttribs);
 
   /* Bind mesh attributes to pipeline locations. */
   void initialize_submesh_descriptors(Mesh::AttributeLocationMap const& attribute_to_location);
 
+  /* Upload host resources to Device memory. */
   void upload_to_device(Context const& context, bool const bReleaseHostDataOnUpload = kReleaseHostDataOnUpload);
 
+  /* Construct a texture atlas entry for a descriptor set. */
   DescriptorSetWriteEntry descriptor_set_texture_atlas_entry(uint32_t const binding) const;
 
-  /* Create material fx used for rendering [might be move to Renderer]. */
-  void prepare_material_fx(Context const& context, Renderer const& renderer); //
-
+  /* Update relevant resources before rendering (eg. shared uniform buffers). */
   void update(Camera const& camera, VkExtent2D const& surfaceSize, float elapsedTime);
 
+  /* Render the scene batch per MaterialFx. */
   void render(RenderPassEncoder const& pass);
 
   template<typename TMaterialFx>
@@ -100,12 +106,19 @@ struct Resources {
   Context const* context_ptr_{};
   std::shared_ptr<ResourceAllocator> allocator_{};
 
-  // (shared MaterialFx instances)
   DefaultTextureBinding optionnal_texture_binding_{};
   MaterialFxRegistry *material_fx_registry_{};
 
   backend::Buffer frame_ubo_{};
   backend::Buffer transforms_ssbo_{};
+
+  ///
+  /// Limitations : if a MaterialFx have others states changes than its alphamode
+  ///                 some might be discarded...
+  ///
+  using SubMeshBuffer = std::vector<Mesh::SubMesh const*>;
+  using FxToSubmeshesMap = std::map< MaterialFx*, SubMeshBuffer >;
+  EnumArray<FxToSubmeshesMap, MaterialStates::AlphaMode> lookups_;
 };
 
 }  // namespace scene

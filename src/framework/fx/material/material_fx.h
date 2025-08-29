@@ -24,80 +24,123 @@ class MaterialFx {
     allocator_ = context.get_resource_allocator();
   }
 
-  virtual void setup(VkExtent2D const dimension = {}) {
-    LOG_CHECK(nullptr != context_ptr_);
+  virtual void setup() {
     createPipelineLayout();
-    createPipeline();
-    descriptor_set_ = renderer_ptr_->create_descriptor_set(descriptor_set_layout_); //
+    createDescriptorSets();
   }
 
   virtual void release() {
     if (pipeline_layout_ != VK_NULL_HANDLE) {
-      renderer_ptr_->destroy_pipeline(pipeline_);
+      for (auto [_, pipeline] : pipelines_) {
+        renderer_ptr_->destroy_pipeline(pipeline);
+      }
       renderer_ptr_->destroy_pipeline_layout(pipeline_layout_); //
       renderer_ptr_->destroy_descriptor_set_layout(descriptor_set_layout_);
       pipeline_layout_ = VK_NULL_HANDLE;
     }
   }
 
-  virtual void prepareDrawState(RenderPassEncoder const& pass) {
-    pass.bind_pipeline(pipeline_);
-    pass.bind_descriptor_set(descriptor_set_, pipeline_layout_, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+  virtual void createPipelines(std::vector<scene::MaterialStates> const& states) {
+    auto shaders = createShaderModules();
+
+    // ------------------------------
+    // Retrieve specific descriptors.
+    std::vector<GraphicsPipelineDescriptor_t> descs{};
+    descs.reserve(states.size());
+    for (auto const& s : states) {
+      descs.push_back( getGraphicsPipelineDescriptor(shaders, s) );
+    }
+
+    // Batch create the pipelines.
+    std::vector<Pipeline> pipelines{};
+    pipelines.reserve(states.size());
+    renderer_ptr_->create_graphics_pipelines(pipeline_layout_, descs, &pipelines);
+
+    // Store them into the pipeline map.
+    for (size_t i = 0; i < states.size(); ++i) {
+      pipelines_[states[i]] = pipelines[i];
+    }
+    // ------------------------------
+
+    for (auto const& [_, shader] : shaders) {
+      context_ptr_->release_shader_module(shader);
+    }
+  }
+
+  virtual void prepareDrawState(RenderPassEncoder const& pass, scene::MaterialStates const& states) {
+    LOG_CHECK(pipelines_.contains(states));
+
     pass.set_viewport_scissor(renderer_ptr_->get_surface_size()); //
+
+    pass.bind_pipeline(pipelines_[states]);
+    pass.bind_descriptor_set(descriptor_set_, pipeline_layout_, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
   }
 
   virtual void pushConstant(GenericCommandEncoder const& cmd) = 0;
+
+  /* Check if the MaterialFx has been setup. */
+  bool valid() const {
+    return pipeline_layout_ != VK_NULL_HANDLE; //
+  }
 
  protected:
   virtual std::string getVertexShaderName() const = 0;
 
   virtual std::string getShaderName() const = 0;
 
-  virtual std::vector<VkPushConstantRange> getPushConstantRanges() const {
-    return {};
+  virtual backend::ShaderMap createShaderModules() const {
+    return {
+      { backend::ShaderStage::Vertex, context_ptr_->create_shader_module(getVertexShaderName()) },
+      { backend::ShaderStage::Fragment, context_ptr_->create_shader_module(getShaderName()) },
+    };
   }
 
   virtual std::vector<DescriptorSetLayoutParams> getDescriptorSetLayoutParams() const {
     return {}; //
   }
 
+  virtual std::vector<VkPushConstantRange> getPushConstantRanges() const {
+    return {};
+  }
+
   virtual void createPipelineLayout() {
+    LOG_CHECK(renderer_ptr_);
+
     descriptor_set_layout_ = renderer_ptr_->create_descriptor_set_layout(
       getDescriptorSetLayoutParams()
     );
+
     pipeline_layout_ = renderer_ptr_->create_pipeline_layout({
       .setLayouts = { descriptor_set_layout_ },
       .pushConstantRanges = getPushConstantRanges()
     });
   }
 
-  virtual GraphicsPipelineDescriptor_t getGraphicsPipelineDescriptor(std::vector<backend::ShaderModule> const& shaders) const {
-    return {
+  virtual void createDescriptorSets() {
+    descriptor_set_ = renderer_ptr_->create_descriptor_set(descriptor_set_layout_); //
+  }
+
+ protected:
+  virtual GraphicsPipelineDescriptor_t getGraphicsPipelineDescriptor(backend::ShaderMap const& shaders, scene::MaterialStates const& states) const {
+    LOG_CHECK(shaders.contains(backend::ShaderStage::Vertex));
+    LOG_CHECK(shaders.contains(backend::ShaderStage::Fragment));
+
+    GraphicsPipelineDescriptor_t desc{
       .dynamicStates = {
         VK_DYNAMIC_STATE_VERTEX_INPUT_EXT,
         VK_DYNAMIC_STATE_PRIMITIVE_TOPOLOGY,
       },
       .vertex = {
-        .module = shaders[0u].module,
+        .module = shaders.at(backend::ShaderStage::Vertex).module,
       },
       .fragment = {
-        .module = shaders[1u].module,
+        .module = shaders.at(backend::ShaderStage::Fragment).module,
+        .specializationConstants = {
+          { 0u, VK_FALSE },  // kUseAlphaCutoff
+        },
         .targets = {
           {
             .format = renderer_ptr_->get_color_attachment(0).format,
-            // .blend = {
-            //   .enable = VK_TRUE,
-            //   .color = {
-            //     .operation = VK_BLEND_OP_ADD,
-            //     .srcFactor = VK_BLEND_FACTOR_SRC_ALPHA,
-            //     .dstFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
-            //   },
-            //   .alpha =  {
-            //     .operation = VK_BLEND_OP_ADD,
-            //     .srcFactor = VK_BLEND_FACTOR_ONE,
-            //     .dstFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
-            //   },
-            // }
           },
         },
       },
@@ -110,18 +153,25 @@ class MaterialFx {
         .cullMode = VK_CULL_MODE_BACK_BIT,
       }
     };
-  }
-
-  virtual void createPipeline() {
-    auto shaders{context_ptr_->create_shader_modules({
-      getVertexShaderName(),
-      getShaderName()
-    })};
-    pipeline_ = renderer_ptr_->create_graphics_pipeline(
-      pipeline_layout_,
-      getGraphicsPipelineDescriptor(shaders)
-    );
-    context_ptr_->release_shader_modules(shaders);
+    if (states.alpha_mode == scene::MaterialStates::AlphaMode::Mask) {
+      desc.fragment.specializationConstants[0] = { 0u, VK_TRUE };
+    }
+    if (states.alpha_mode == scene::MaterialStates::AlphaMode::Blend) {
+      desc.fragment.targets[0].blend = {
+        .enable = VK_TRUE,
+        .color = {
+          .operation = VK_BLEND_OP_ADD,
+          .srcFactor = VK_BLEND_FACTOR_SRC_ALPHA,
+          .dstFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+        },
+        .alpha =  {
+          .operation = VK_BLEND_OP_ADD,
+          .srcFactor = VK_BLEND_FACTOR_ONE,
+          .dstFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+        },
+      };
+    }
+    return desc;
   }
 
  public:
@@ -167,20 +217,21 @@ class MaterialFx {
 
   virtual void pushMaterialStorageBuffer() const = 0;
 
-
  protected:
-  backend::Buffer material_storage_buffer_{};
-
-  // --------------------------
   Context const* context_ptr_{};
   Renderer const* renderer_ptr_{};
   std::shared_ptr<ResourceAllocator> allocator_{};
+
   // ----------------
   VkDescriptorSetLayout descriptor_set_layout_{};
   VkDescriptorSet descriptor_set_{}; //
   VkPipelineLayout pipeline_layout_{}; //
   // ----------------
-  Pipeline pipeline_{};
+
+  // Pipeline default_pipeline_{};
+  std::map<scene::MaterialStates, Pipeline> pipelines_{};
+
+  backend::Buffer material_storage_buffer_{};
 };
 
 
@@ -207,8 +258,8 @@ class TMaterialFx : public MaterialFx {
   }
 
  public:
-  void setup(VkExtent2D const dimension) override {
-    MaterialFx::setup(dimension);
+  void setup() override {
+    MaterialFx::setup();
     setupMaterialStorageBuffer();
   }
 
@@ -285,7 +336,6 @@ class TMaterialFx : public MaterialFx {
 
  protected:
   std::vector<MaterialType> materials_{};
-  std::map<scene::MaterialStates, Pipeline> pipelines_{};
 };
 
 /* -------------------------------------------------------------------------- */

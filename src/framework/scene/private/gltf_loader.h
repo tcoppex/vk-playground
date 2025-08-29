@@ -37,6 +37,11 @@ PointerToIndexMap_t ExtractTextures(
   scene::ResourceBuffer<scene::Texture>& textures
 );
 
+void PreprocessMaterials(
+  cgltf_data const* data,
+  scene::MaterialFxRegistry& material_fx_registry
+);
+
 PointerToIndexMap_t ExtractMaterials(
   cgltf_data const* data,
   PointerToIndexMap_t const& textures_indices,

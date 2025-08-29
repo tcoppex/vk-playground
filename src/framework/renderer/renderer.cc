@@ -376,24 +376,37 @@ VkGraphicsPipelineCreateInfo Renderer::get_graphics_pipeline_create_info(
     };
   }
 
+
   /* Shaders stages */
   auto getShaderEntryPoint{[](std::string const& entryPoint) -> char const* {
     return entryPoint.empty() ? kDefaulShaderEntryPoint : entryPoint.c_str();
   }};
+
   data.shader_stages = {
+    // VERTEX
     {
       .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+      .flags = 0,
       .stage = VK_SHADER_STAGE_VERTEX_BIT,
       .module = desc.vertex.module,
       .pName = getShaderEntryPoint(desc.vertex.entryPoint),
     },
+    // FRAGMENT
     {
       .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+      .flags = 0,
       .stage = VK_SHADER_STAGE_FRAGMENT_BIT,
       .module = desc.fragment.module,
       .pName = getShaderEntryPoint(desc.fragment.entryPoint),
     }
   };
+
+  /* Shader specializations */
+  data.specializations.resize(data.shader_stages.size());
+  data.shader_stages[0].pSpecializationInfo =
+    data.specializations[0].info(desc.vertex.specializationConstants);
+  data.shader_stages[1].pSpecializationInfo =
+    data.specializations[1].info(desc.fragment.specializationConstants);
 
   /* Vertex Input */
   {

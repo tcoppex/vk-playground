@@ -20,8 +20,8 @@ class PBRMetallicRoughnessFx final : public TMaterialFx<PBRMetallicRoughnessMate
    static constexpr uint32_t kMaxNumTextures = 128u; //
 
  public:
-  void setup(VkExtent2D const dimension = {}) final {
-    TMaterialFx<PBRMetallicRoughnessMaterial>::setup(dimension);
+  void setup() final {
+    TMaterialFx<PBRMetallicRoughnessMaterial>::setup();
 
     auto const& skybox = renderer_ptr_->skybox();
     auto const& ibl_sampler = skybox.sampler(); // ClampToEdge Linear MipMap
@@ -186,7 +186,13 @@ class PBRMetallicRoughnessFx final : public TMaterialFx<PBRMetallicRoughnessMate
   }
 
   void pushConstant(GenericCommandEncoder const &cmd) final {
-    push_constant_.enable_irradiance = renderer_ptr_->skybox().is_valid(); //
+    // -------------------------
+    if (renderer_ptr_->skybox().is_valid()) {
+      push_constant_.dynamic_states |= pbr_metallic_roughness_shader_interop::kIrradianceBit;
+    } else {
+      push_constant_.dynamic_states &= ~pbr_metallic_roughness_shader_interop::kIrradianceBit;
+    }
+    // -------------------------
     cmd.push_constant(push_constant_, pipeline_layout_, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
   }
 

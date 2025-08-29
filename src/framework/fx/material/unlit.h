@@ -15,8 +15,8 @@ namespace unlit_shader_interop {
 
 class UnlitMaterialFx final : public TMaterialFx<unlit_shader_interop::Material> {
  public:
-    void setup(VkExtent2D const dimension = {}) final {
-    TMaterialFx<unlit_shader_interop::Material>::setup(dimension);
+    void setup() final {
+    TMaterialFx<unlit_shader_interop::Material>::setup();
 
     context_ptr_->update_descriptor_set(descriptor_set_, {
       {

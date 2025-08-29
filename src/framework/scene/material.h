@@ -8,14 +8,15 @@ namespace scene {
 /* -------------------------------------------------------------------------- */
 
 struct MaterialStates {
-  enum class AlphaMode {
-    OpaqueMask,
-    Blend,
-    kCount
-  } alpha_mode{AlphaMode::OpaqueMask};
-
   bool operator==(MaterialStates const& other) const noexcept {
     return alpha_mode == other.alpha_mode;
+  }
+
+  bool operator<(MaterialStates const& other) const noexcept {
+    if (*this != other) {
+      return alpha_mode < other.alpha_mode;
+    }
+    return false;
   }
 
   struct Hasher {
@@ -23,6 +24,13 @@ struct MaterialStates {
       return std::hash<int>()(static_cast<int>(s.alpha_mode));
     }
   };
+
+  enum class AlphaMode {
+    Opaque,
+    Mask,
+    Blend,
+    kCount
+  } alpha_mode{AlphaMode::Opaque};
 };
 
 struct MaterialRef {

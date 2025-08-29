@@ -13,6 +13,8 @@
 
 // ----------------------------------------------------------------------------
 
+layout(constant_id = 0) const bool constant_kUseAlphaCutoff = false;
+
 // -- Frame & Scene --
 
 layout(scalar, set = 0, binding = kDescriptorSetBinding_FrameUBO)
@@ -20,10 +22,7 @@ uniform FrameUBO_ {
   FrameData uFrame;
 };
 
-// -- Material & Textures --
-
-layout(set = 0, binding = kDescriptorSetBinding_TextureAtlas)
-uniform sampler2D[] uTextureChannels;
+// -- Image Based Lighting --
 
 layout(set = 0, binding = kDescriptorSetBinding_IBL_Prefiltered)
 uniform samplerCube uEnvMapPrefilterd;
@@ -33,6 +32,18 @@ uniform samplerCube uEnvMapIrradiance;
 
 layout(set = 0, binding = kDescriptorSetBinding_IBL_SpecularBRDF)
 uniform sampler2D uSpecularBRDF;
+
+// -- Lighting --
+
+// layout(set = 0, binding = kDescriptorSetBinding_LightSSBO)
+// buffer LightSSBO_ {
+//   LightInfo_t lights[];
+// };
+
+// -- Material & Textures --
+
+layout(set = 0, binding = kDescriptorSetBinding_TextureAtlas)
+uniform sampler2D[] uTextureChannels;
 
 layout(scalar, set = 0, binding = kDescriptorSetBinding_MaterialSSBO)
 buffer MaterialSSBO_ {
@@ -125,15 +136,13 @@ PBRMetallicRoughness_Material_t calculate_pbr_material_data(
   data.emissive = texture(TEXTURE_ATLAS(mat.emissive_texture_id), frag.uv).rgb;
   data.emissive *= mat.emissive_factor;
 
+  float flickering = pow(sin(1.4 * uFrame.cameraPos_Time.w), 2) + cos(0.7 * uFrame.cameraPos_Time.w);
+  data.emissive *= abs(flickering);
+
   // Roughness + Metallic.
-#if 1
   const vec3 orm = texture(TEXTURE_ATLAS(mat.orm_texture_id), frag.uv).xyz; //
-  data.roughness = max(orm.y, 1e-3)* 1+0 * mat.roughness_factor;
-  data.metallic = orm.z* 1+0 * mat.metallic_factor;
-#else
-  data.roughness = 1.0;
-  data.metallic = 0.0;
-#endif
+  data.roughness = max(orm.y, 1e-3) * mat.roughness_factor;
+  data.metallic = orm.z * mat.metallic_factor;
 
   // Ambient Occlusion.
   const float ao = texture(TEXTURE_ATLAS(mat.occlusion_texture_id), frag.uv).x;
@@ -143,19 +152,20 @@ PBRMetallicRoughness_Material_t calculate_pbr_material_data(
   {
     // Irradiance.
     vec3 irradiance = vec3(1.0);
-    if (pushConstant.enable_irradiance) {
+    if ((pushConstant.dynamic_states & kIrradianceBit) == kIrradianceBit) //
+    {
       irradiance = texture(uEnvMapIrradiance, frag.N).rgb;
-      irradiance *= 0.5; //
+      // irradiance *= 0.5; //
     }
     data.irradiance = irradiance;
-
-    // --- those map migh be incorrect, maybe due to mipmaps ---
 
     // Roughness based prefiltered specular.
     const float levels = log2(float(textureSize(uEnvMapPrefilterd, 0).x)) + 1.0;
     const float roughness_level = data.roughness * levels;
     data.prefiltered = textureLod( uEnvMapPrefilterd, frag.R, roughness_level).rgb;
     // data.prefiltered *= 0.5; //
+
+    // -- might be incorrect --
 
     // Roughness based BRDF specular values.
     vec2 brdf_uv = vec2(frag.n_dot_v, data.roughness);
@@ -175,8 +185,11 @@ void main() {
   const vec4 mainColor = sample_DiffuseColor(mat);
 
   /* Early Alpha Test. */
-  if (mainColor.a <= mat.alpha_cutoff) {
-    discard;
+  if (constant_kUseAlphaCutoff)
+  {
+    if (mainColor.a <= mat.alpha_cutoff) {
+      discard;
+    }
   }
 
   /* Detailled Normal. */
