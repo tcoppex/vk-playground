@@ -16,8 +16,6 @@
 // ----------------------------------------------------------------------------
 
 #include <skybox/interop.h>
-#include <shared/maths.glsl>        // for importance_sample_GGX
-#include <shared/lighting/pbr.glsl> // for gf_SmithGGX
 
 // ----------------------------------------------------------------------------
 

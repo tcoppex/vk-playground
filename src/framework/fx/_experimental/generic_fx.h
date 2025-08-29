@@ -63,11 +63,13 @@ class GenericFx : public virtual FxInterface {
  protected:
   std::shared_ptr<ResourceAllocator> allocator_{};
 
+  // ----------------
   VkDescriptorSetLayout descriptor_set_layout_{};
+  VkDescriptorSet descriptor_set_{}; //
   VkPipelineLayout pipeline_layout_{}; // (redundant, as also kept in pipeline_ when created)
+  // ----------------
 
   Pipeline pipeline_{};
-  VkDescriptorSet descriptor_set_{}; //
 };
 
 /* -------------------------------------------------------------------------- */

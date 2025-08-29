@@ -22,6 +22,11 @@ class FxInterface {
 
   virtual void release() = 0;
 
+  virtual void setupUI() = 0;
+
+  virtual std::string name() const = 0;
+
+  // -----------------
   virtual void setImageInputs(std::vector<backend::Image> const& inputs) = 0;
 
   virtual void setImageInput(backend::Image const& input) {
@@ -35,10 +40,7 @@ class FxInterface {
   }
 
   virtual void execute(CommandEncoder& cmd) = 0;
-
-  virtual std::string name() const = 0;
-
-  virtual void setupUI() = 0;
+  // -----------------
 
  protected:
   Context const* context_ptr_{};
