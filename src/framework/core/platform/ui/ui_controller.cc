@@ -1,20 +1,20 @@
 /* -------------------------------------------------------------------------- */
 
 #define IMGUI_WRAPPER_IMPL
-#include "framework/platform/ui/ui_controller.h"
+#include "framework/core/platform/ui/ui_controller.h"
 
 #include "framework/renderer/renderer.h"
 #include "framework/backend/context.h"
 
 /* -------------------------------------------------------------------------- */
 
-bool UIController::init(Context const& context, Renderer const& renderer, std::shared_ptr<WMInterface> wm) {
+bool UIController::init(Context const& context, Renderer const& renderer, WMInterface const& wm) {
   IMGUI_CHECKVERSION();
 
   ImGui::CreateContext();
   ImGui::StyleColorsDark();
 
-  if (!ImGui_ImplGlfw_InitForVulkan(reinterpret_cast<GLFWwindow*>(wm->get_handle()), true)) {
+  if (!ImGui_ImplGlfw_InitForVulkan(reinterpret_cast<GLFWwindow*>(wm.get_handle()), true)) {
     return false;
   }
 

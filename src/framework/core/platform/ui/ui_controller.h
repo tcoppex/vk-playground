@@ -1,12 +1,12 @@
-#ifndef VKFRAMEWORK_PLATEFORM_UI_UI_CONTROLLER_H_
-#define VKFRAMEWORK_PLATEFORM_UI_UI_CONTROLLER_H_
+#ifndef VKFRAMEWORK_CORE_PLATEFORM_UI_UI_CONTROLLER_H_
+#define VKFRAMEWORK_CORE_PLATEFORM_UI_UI_CONTROLLER_H_
 
 /* -------------------------------------------------------------------------- */
 
 #include "framework/common.h"
 #include "framework/backend/context.h"
-#include "framework/platform/ui/imgui_wrapper.h"
-#include "framework/platform/window/wm_interface.h"
+#include "framework/core/platform/ui/imgui_wrapper.h"
+#include "framework/core/platform/window/wm_interface.h"
 
 class Context;
 class Renderer;
@@ -18,7 +18,7 @@ class UIController {
   UIController() = default;
   virtual ~UIController() {}
 
-  bool init(Context const& context, Renderer const& renderer, std::shared_ptr<WMInterface> wm);
+  bool init(Context const& context, Renderer const& renderer, WMInterface const& wm);
   void release(Context const& context);
 
   void beginFrame();
@@ -33,4 +33,4 @@ class UIController {
 
 /* -------------------------------------------------------------------------- */
 
-#endif // VKFRAMEWORK_PLATEFORM_UI_UI_CONTROLLER_H_
+#endif // VKFRAMEWORK_CORE_PLATEFORM_UI_UI_CONTROLLER_H_

@@ -4,7 +4,7 @@
 
 #include "framework/backend/context.h"
 #include "framework/renderer/renderer.h"
-#include "framework/scene/camera.h"
+#include "framework/core/camera.h"
 
 #include "framework/renderer/fx/postprocess/compute/compute_fx.h" //
 #include "framework/renderer/fx/postprocess/post_fx_pipeline.h"
@@ -134,16 +134,16 @@ void Skybox::init(Context const& context, Renderer& renderer) {
 // ----------------------------------------------------------------------------
 
 void Skybox::release(Context const& context, Renderer const& renderer) {
-  auto allocator = context.get_resource_allocator();
+  auto allocator = context.allocator();
 
-  allocator->destroy_image(&specular_brdf_lut_);
+  allocator.destroy_image(&specular_brdf_lut_);
 
   renderer.destroy_pipeline(graphics_pipeline_);
   renderer.destroy_pipeline_layout(pipeline_layout_);
   renderer.destroy_descriptor_set_layout(descriptor_set_layout_);
 
-  allocator->destroy_buffer(index_buffer_);
-  allocator->destroy_buffer(vertex_buffer_);
+  allocator.destroy_buffer(index_buffer_);
+  allocator.destroy_buffer(vertex_buffer_);
 
   envmap_.release();
 }

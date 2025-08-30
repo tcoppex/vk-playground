@@ -1,5 +1,5 @@
-#ifndef UTILS_SINGLETON_H
-#define UTILS_SINGLETON_H
+#ifndef VKFRAMEWORK_CORE_SINGLETON_H
+#define VKFRAMEWORK_CORE_SINGLETON_H
 
 #include <cassert>
 #include <utility>
@@ -43,4 +43,4 @@ template<class T> T* Singleton<T>::sInstance = nullptr;
 
 /* -------------------------------------------------------------------------- */
 
-#endif  // UTILS_SINGLETON_H
+#endif  // VKFRAMEWORK_CORE_SINGLETON_H

@@ -1,5 +1,5 @@
-#ifndef VKFRAMEWORK_PLATEFORM_EVENT_CALLBACKS_H
-#define VKFRAMEWORK_PLATEFORM_EVENT_CALLBACKS_H
+#ifndef VKFRAMEWORK_CORE_PLATEFORM_EVENT_CALLBACKS_H
+#define VKFRAMEWORK_CORE_PLATEFORM_EVENT_CALLBACKS_H
 
 #include "framework/common.h"
 
@@ -34,4 +34,4 @@ struct EventCallbacks {
 
 /* -------------------------------------------------------------------------- */
 
-#endif  // VKFRAMEWORK_PLATEFORM_EVENT_CALLBACKS_H
+#endif  // VKFRAMEWORK_CORE_PLATEFORM_EVENT_CALLBACKS_H

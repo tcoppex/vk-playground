@@ -3,18 +3,17 @@
 
 #include "framework/common.h"
 
-#include "framework/utils/geometry.h"
+#include "framework/core/geometry.h"
 #include "framework/backend/types.h"      // for VertexInputDescriptor
 #include "framework/renderer/pipeline.h"  // for PipelineVertexBufferDescriptors
 #include "framework/scene/animation.h"
-#include "framework/scene/material.h" //
 
 namespace scene {
 
+struct MaterialRef;
+
 /* -------------------------------------------------------------------------- */
 
-//
-//  [WIP]
 //
 //  SubMeshes might be kept as shared_ptr with a list of all of them on the
 //  Renderer / Resources instance.
@@ -22,14 +21,12 @@ namespace scene {
 //  For now a 'Mesh' handle shared transform info (world matrix, skeleton),
 //  but technically the rendering are done per materials, so per submeshes.
 //
-//  The submesh material ref should probably be switch to raw value.
-//
 
 struct Mesh : Geometry {
  public:
   struct SubMesh {
     Mesh const* parent{};
-    std::shared_ptr<MaterialRef> material_ref{}; //
+    MaterialRef* material_ref{}; //
     DrawDescriptor draw_descriptor{};
   };
 
@@ -72,7 +69,7 @@ struct Mesh : Geometry {
   // ------------------------
   uint32_t transform_index{}; // Use to reference the transform SSBO.
   mat4f world_matrix{linalg::identity}; //
-  std::shared_ptr<Skeleton> skeleton{};
+  // Skeleton* skeleton{};
   std::vector<SubMesh> submeshes{};
   // ------------------------
 

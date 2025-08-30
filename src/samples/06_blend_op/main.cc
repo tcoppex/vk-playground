@@ -8,7 +8,7 @@
 /* -------------------------------------------------------------------------- */
 
 #include "framework/application.h"
-#include "framework/utils/geometry.h"
+#include "framework/core/geometry.h"
 
 namespace shader_interop {
 #include "shaders/interop.h"
@@ -35,8 +35,6 @@ class SampleApp final : public Application {
     wm_->setTitle("06 - Poussières d'Étoiles");
 
     renderer_.set_color_clear_value({{ 0.02f, 0.03f, 0.12f, 1.0f }});
-
-    allocator_ = context_.get_resource_allocator();
 
     /* Initialize the scene data. */
     host_data_.scene.camera = {
@@ -209,9 +207,10 @@ class SampleApp final : public Application {
     renderer_.destroy_descriptor_set_layout(graphics_.descriptor_set_layout);
     renderer_.destroy_pipeline_layout(graphics_.pipeline_layout);
 
-    allocator_->destroy_buffer(point_grid_.index);
-    allocator_->destroy_buffer(point_grid_.vertex);
-    allocator_->destroy_buffer(uniform_buffer_);
+    auto allocator = context_.allocator();
+    allocator.destroy_buffer(point_grid_.index);
+    allocator.destroy_buffer(point_grid_.vertex);
+    allocator.destroy_buffer(uniform_buffer_);
   }
 
   void frame() final {
@@ -252,8 +251,6 @@ class SampleApp final : public Application {
   }
 
  private:
-  std::shared_ptr<ResourceAllocator> allocator_;
-
   HostData_t host_data_{};
 
   backend::Buffer uniform_buffer_{};

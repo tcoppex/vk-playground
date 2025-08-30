@@ -50,8 +50,6 @@ class SampleApp final : public Application {
 
     renderer_.set_color_clear_value({{ 0.1078f, 0.1079f, 0.1081f, 1.0f }});
 
-    allocator_ = context_.get_resource_allocator();
-
     /* Initialize the scene data. */
     host_data_.scene.camera = {
       .viewMatrix = linalg::lookat_matrix(
@@ -299,13 +297,12 @@ class SampleApp final : public Application {
     renderer_.destroy_descriptor_set_layout(descriptor_set_layout_);
     renderer_.destroy_pipeline_layout(pipeline_layout_);
 
-    allocator_->destroy_buffer(plane_.index);
-    allocator_->destroy_buffer(plane_.vertex);
-
-    allocator_->destroy_buffer(torus_.index);
-    allocator_->destroy_buffer(torus_.vertex);
-
-    allocator_->destroy_buffer(uniform_buffer_);
+    auto allocator = context_.allocator();
+    allocator.destroy_buffer(plane_.index);
+    allocator.destroy_buffer(plane_.vertex);
+    allocator.destroy_buffer(torus_.index);
+    allocator.destroy_buffer(torus_.vertex);
+    allocator.destroy_buffer(uniform_buffer_);
   }
 
   void frame() final {
@@ -365,8 +362,6 @@ class SampleApp final : public Application {
   }
 
  private:
-  std::shared_ptr<ResourceAllocator> allocator_;
-
   HostData_t host_data_{};
   backend::Buffer uniform_buffer_{};
 

@@ -84,7 +84,11 @@ backend::Buffer ResourceAllocator::create_buffer(
 
 // ----------------------------------------------------------------------------
 
-backend::Buffer ResourceAllocator::create_staging_buffer(size_t const bytesize, void const* host_data, size_t host_data_size) {
+backend::Buffer ResourceAllocator::create_staging_buffer(
+  size_t const bytesize,
+  void const* host_data,
+  size_t host_data_size
+) const {
   assert(host_data_size <= bytesize);
 
   // TODO : use a pool to reuse some staging buffer.
@@ -112,7 +116,7 @@ size_t ResourceAllocator::write_buffer(
   void const* host_data,
   size_t const host_offset,
   size_t const bytesize
-) {
+) const {
   assert(host_data != nullptr);
   assert(dst_buffer.buffer != VK_NULL_HANDLE);
   assert(bytesize > 0);

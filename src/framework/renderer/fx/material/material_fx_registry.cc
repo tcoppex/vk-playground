@@ -1,4 +1,4 @@
-#include "framework/scene/material_fx_registry.h"
+#include "framework/renderer/fx/material/material_fx_registry.h"
 
 #include "framework/backend/context.h"
 #include "framework/renderer/renderer.h"
@@ -8,17 +8,15 @@
 
 /* -------------------------------------------------------------------------- */
 
-namespace scene {
-
 void MaterialFxRegistry::init(Context const& context, Renderer const& renderer) {
   fx_map_ = {
     {
-      fx::scene::PBRMetallicRoughnessFx::MaterialTypeIndex(),
-      new fx::scene::PBRMetallicRoughnessFx()
+      fx::material::PBRMetallicRoughnessFx::MaterialTypeIndex(),
+      new fx::material::PBRMetallicRoughnessFx()
     },
     {
-      fx::scene::UnlitMaterialFx::MaterialTypeIndex(),
-      new fx::scene::UnlitMaterialFx()
+      fx::material::UnlitMaterialFx::MaterialTypeIndex(),
+      new fx::material::UnlitMaterialFx()
     },
   };
 
@@ -104,7 +102,7 @@ void MaterialFxRegistry::update_transforms_ssbo(backend::Buffer const& buffer) c
 
 // ----------------------------------------------------------------------------
 
-MaterialFx* MaterialFxRegistry::material_fx(MaterialRef const& ref) const {
+MaterialFx* MaterialFxRegistry::material_fx(scene::MaterialRef const& ref) const {
   if (auto it = fx_map_.find(ref.material_type_index); it != fx_map_.end()) {
     return it->second;
   }
@@ -115,11 +113,9 @@ MaterialFx* MaterialFxRegistry::material_fx(MaterialRef const& ref) const {
 
 // template<typename MaterialFxT>
 // requires DerivedFrom<MaterialFxT, MaterialFx>
-// MaterialFxT::MaterialType const& MaterialFxRegistry::material(MaterialRef const& ref) const {
+// MaterialFxT::MaterialType const& MaterialFxRegistry::material(scene::MaterialRef const& ref) const {
 //   return material_fx<MaterialFxT>(ref)->material(ref.material_index);
 // }
-
-} // namespace scene
 
 /* -------------------------------------------------------------------------- */
 

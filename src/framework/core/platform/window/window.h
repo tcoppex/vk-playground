@@ -1,7 +1,7 @@
-#ifndef VKFRAMEWORK_PLATEFORM_WINDOW_H
-#define VKFRAMEWORK_PLATEFORM_WINDOW_H
+#ifndef VKFRAMEWORK_CORE_PLATEFORM_WINDOW_H
+#define VKFRAMEWORK_CORE_PLATEFORM_WINDOW_H
 
-#include "framework/platform/window/wm_interface.h"
+#include "framework/core/platform/window/wm_interface.h"
 
 #define GLFW_INCLUDE_NONE
 #include "GLFW/glfw3.h"

@@ -1,5 +1,5 @@
-#ifndef VKFRAMEWORK_PLATEFORM_WM_INTERFACE_H
-#define VKFRAMEWORK_PLATEFORM_WM_INTERFACE_H
+#ifndef VKFRAMEWORK_CORE_PLATEFORM_WM_INTERFACE_H
+#define VKFRAMEWORK_CORE_PLATEFORM_WM_INTERFACE_H
 
 #include "framework/common.h"
 #include <vulkan/vulkan.h>
@@ -33,4 +33,4 @@ struct WMInterface {
 
 /* -------------------------------------------------------------------------- */
 
-#endif  // VKFRAMEWORK_PLATEFORM_WM_INTERFACE_H
+#endif  // VKFRAMEWORK_CORE_PLATEFORM_WM_INTERFACE_H

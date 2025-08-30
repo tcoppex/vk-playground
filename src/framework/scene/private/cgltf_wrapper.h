@@ -8,7 +8,7 @@ extern "C" {
 #include <vulkan/vulkan.h>
 }
 
-#include "framework/utils/geometry.h"
+#include "framework/core/geometry.h"
 
 /* -------------------------------------------------------------------------- */
 

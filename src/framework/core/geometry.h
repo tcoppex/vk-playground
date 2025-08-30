@@ -1,5 +1,5 @@
-#ifndef UTILS_GEOMETRY_H
-#define UTILS_GEOMETRY_H
+#ifndef VKFRAMEWORK_CORE_GEOMETRY_H
+#define VKFRAMEWORK_CORE_GEOMETRY_H
 
 /* -------------------------------------------------------------------------- */
 
@@ -221,4 +221,4 @@ class Geometry {
 
 /* -------------------------------------------------------------------------- */
 
-#endif // UTILS_GEOMETRY_H
+#endif // VKFRAMEWORK_CORE_GEOMETRY_H

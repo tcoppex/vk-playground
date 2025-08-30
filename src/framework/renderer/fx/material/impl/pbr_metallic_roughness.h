@@ -5,7 +5,7 @@
 
 /* -------------------------------------------------------------------------- */
 
-namespace fx::scene {
+namespace fx::material {
 
 namespace pbr_metallic_roughness_shader_interop {
 #include "framework/shaders/scene/pbr_metallic_roughness/interop.h"

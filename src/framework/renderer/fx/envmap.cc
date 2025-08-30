@@ -10,9 +10,9 @@
 void Envmap::init(Context const& context, Renderer const& renderer) {
   context_ = &context;
   renderer_ = &renderer;
-  allocator_ = context.get_resource_allocator();
+  allocator_ptr_ = context.allocator_ptr();
 
-  irradiance_matrices_buffer_ = allocator_->create_buffer(
+  irradiance_matrices_buffer_ = allocator_ptr_->create_buffer(
     sizeof(shader_interop::envmap::SHMatrices),
       VK_BUFFER_USAGE_2_STORAGE_BUFFER_BIT
     | VK_BUFFER_USAGE_2_UNIFORM_BUFFER_BIT
@@ -58,16 +58,16 @@ void Envmap::init(Context const& context, Renderer const& renderer) {
     view_info.format = image_info.format;
 
     image_info.extent = { kDiffuseResolution, kDiffuseResolution, 1u };
-    allocator_->create_image_with_view(image_info, view_info, &images_[ImageType::Diffuse]);
+    allocator_ptr_->create_image_with_view(image_info, view_info, &images_[ImageType::Diffuse]);
 
     image_info.extent = { kIrradianceResolution, kIrradianceResolution, 1u };
-    allocator_->create_image_with_view(image_info, view_info, &images_[ImageType::Irradiance]);
+    allocator_ptr_->create_image_with_view(image_info, view_info, &images_[ImageType::Irradiance]);
 
     image_info.extent = { kSpecularResolution, kSpecularResolution, 1u };
     image_info.mipLevels = kSpecularLevelCount;
     // view_info.subresourceRange.baseMipLevel = 2u;
     view_info.subresourceRange.levelCount = image_info.mipLevels;
-    allocator_->create_image_with_view(image_info, view_info, &images_[ImageType::Specular]);
+    allocator_ptr_->create_image_with_view(image_info, view_info, &images_[ImageType::Specular]);
   }
 
   /* Shared descriptor sets */
@@ -180,10 +180,10 @@ void Envmap::init(Context const& context, Renderer const& renderer) {
 // ----------------------------------------------------------------------------
 
 void Envmap::release() {
-  allocator_->destroy_buffer(irradiance_matrices_buffer_);
+  allocator_ptr_->destroy_buffer(irradiance_matrices_buffer_);
   vkDestroySampler(context_->get_device(), sampler_, nullptr); //
   for (auto &image : images_) {
-    allocator_->destroy_image(&image);
+    allocator_ptr_->destroy_image(&image);
   }
   for (auto pipeline : compute_pipelines_) {
     renderer_->destroy_pipeline(pipeline);
@@ -281,7 +281,7 @@ bool Envmap::load_diffuse_envmap(std::string_view hdr_filename) {
   }
   context_->finish_transient_command_encoder(cmd);
 
-  allocator_->destroy_image(&spherical_envmap);
+  allocator_ptr_->destroy_image(&spherical_envmap);
 
   return true;
 }
@@ -299,7 +299,7 @@ void Envmap::compute_irradiance_sh_coeff() {
 
   auto const& diffuse = images_[ImageType::Diffuse];
 
-  backend::Buffer sh_coefficient_buffer{allocator_->create_buffer(
+  backend::Buffer sh_coefficient_buffer{allocator_ptr_->create_buffer(
     bufferSize * sizeof(shader_interop::envmap::SHCoeff),
       VK_BUFFER_USAGE_2_STORAGE_BUFFER_BIT
     | VK_BUFFER_USAGE_2_TRANSFER_SRC_BIT_KHR
@@ -418,7 +418,7 @@ void Envmap::compute_irradiance_sh_coeff() {
   }
   context_->finish_transient_command_encoder(cmd);
 
-  allocator_->destroy_buffer(sh_coefficient_buffer);
+  allocator_ptr_->destroy_buffer(sh_coefficient_buffer);
 }
 
 // ----------------------------------------------------------------------------

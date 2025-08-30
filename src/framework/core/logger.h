@@ -1,5 +1,5 @@
-#ifndef UTILS_LOGGER_H
-#define UTILS_LOGGER_H
+#ifndef VKFRAMEWORK_CORE_LOGGER_H
+#define VKFRAMEWORK_CORE_LOGGER_H
 
 /* -------------------------------------------------------------------------- */
 
@@ -39,4 +39,4 @@ extern "C" {
 
 /* -------------------------------------------------------------------------- */
 
-#endif // UTILS_LOGGER_H
+#endif // VKFRAMEWORK_CORE_LOGGER_H

@@ -8,8 +8,8 @@
 
 #include "framework/application.h"
 
-#include "framework/scene/camera.h"
-#include "framework/scene/arcball_controller.h"
+#include "framework/core/camera.h"
+#include "framework/core/arcball_controller.h"
 
 #include "framework/renderer/fx/postprocess/post_fx_pipeline.h"
 #include "framework/renderer/fx/postprocess/compute/impl/depth_minmax.h"
@@ -37,7 +37,7 @@ class SceneFx final : public RenderTargetFx {
   void setup(VkExtent2D const dimension) final {
     RenderTargetFx::setup(dimension);
 
-    uniform_buffer_ = allocator_->create_buffer(
+    uniform_buffer_ = allocator_ptr_->create_buffer(
       sizeof(host_data_),
         VK_BUFFER_USAGE_2_UNIFORM_BUFFER_BIT
       | VK_BUFFER_USAGE_TRANSFER_DST_BIT
@@ -53,7 +53,7 @@ class SceneFx final : public RenderTargetFx {
   }
 
   void release() final {
-    allocator_->destroy_buffer(uniform_buffer_);
+    allocator_ptr_->destroy_buffer(uniform_buffer_);
     gltf_model_->release(); //
 
     RenderTargetFx::release();
@@ -157,7 +157,7 @@ class SceneFx final : public RenderTargetFx {
 
       for (auto const& submesh : mesh->submeshes) {
         auto const& material_ref = *(submesh.material_ref);
-        if (auto *fx = gltf_model_->material_fx<fx::scene::PBRMetallicRoughnessFx>(material_ref); fx) {
+        if (auto *fx = gltf_model_->material_fx<fx::material::PBRMetallicRoughnessFx>(material_ref); fx) {
           auto pbr_material = fx->material(material_ref.material_index);
           push_constant_.model.albedo_texture_index = pbr_material.diffuse_texture_id;
           push_constant_.model.material_index = material_ref.material_index;

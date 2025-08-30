@@ -5,7 +5,7 @@
 
 void GenericFx::init(Context const& context, Renderer const& renderer) {
   FxInterface::init(context, renderer);
-  allocator_ = context.get_resource_allocator();
+  allocator_ptr_ = context.allocator_ptr();
 }
 
 void GenericFx::setup(VkExtent2D const dimension) {

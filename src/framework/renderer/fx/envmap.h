@@ -81,7 +81,7 @@ class Envmap {
   Context const* context_{};
   Renderer const* renderer_{};
 
-  std::shared_ptr<ResourceAllocator> allocator_{};
+  ResourceAllocator const* allocator_ptr_{};
 
   VkDescriptorSetLayout descriptor_set_layout_{};
   VkDescriptorSet descriptor_set_{};

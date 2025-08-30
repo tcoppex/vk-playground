@@ -21,7 +21,7 @@ struct Texture {
   }
 
   uint32_t host_image_index{UINT32_MAX};
-  VkSampler sampler;
+  VkSampler sampler; //
 };
 
 /* -------------------------------------------------------------------------- */

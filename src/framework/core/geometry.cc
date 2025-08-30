@@ -1,4 +1,4 @@
-#include "framework/utils/geometry.h"
+#include "framework/core/geometry.h"
 
 #include <cmath>
 #include <cassert>

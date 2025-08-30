@@ -1,5 +1,5 @@
-#ifndef UTILS_UTILS_H
-#define UTILS_UTILS_H
+#ifndef VKFRAMEWORK_CORE_UTILS_H
+#define VKFRAMEWORK_CORE_UTILS_H
 
 /* -------------------------------------------------------------------------- */
 //

@@ -1,7 +1,7 @@
 #include "framework/application.h"
 
-#include "framework/platform/window/events.h"
-#include "framework/platform/window/window.h"
+#include "framework/core/platform/window/events.h"
+#include "framework/core/platform/window/window.h"
 
 /* -------------------------------------------------------------------------- */
 
@@ -9,7 +9,7 @@ int Application::run() {
   if (!presetup() || !setup()) {
     return EXIT_FAILURE;
   }
-  context_.get_resource_allocator()->clear_staging_buffers();
+  context_.allocator().clear_staging_buffers();
 
   auto &events{ Events::Get() };
   auto const nextFrame{[this, &events]() {
@@ -58,7 +58,7 @@ bool Application::presetup() {
   }
 
   /* Create the main window surface. */
-  if (wm_ = std::make_shared<Window>(); !wm_ || !wm_->init()) {
+  if (wm_ = std::make_unique<Window>(); !wm_ || !wm_->init()) {
     return false;
   }
 
@@ -73,10 +73,10 @@ bool Application::presetup() {
   }
 
   /* Initialize the default renderer. */
-  renderer_.init(context_, context_.get_resource_allocator(), surface_);
+  renderer_.init(context_, context_.allocator_ptr(), surface_);
 
   /* Initialize User Interface. */
-  if (ui_ = std::make_shared<UIController>(); !ui_ || !ui_->init(context_, renderer_, wm_)) {
+  if (ui_ = std::make_unique<UIController>(); !ui_ || !ui_->init(context_, renderer_, *wm_)) {
     return false;
   }
 

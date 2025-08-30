@@ -6,7 +6,7 @@ extern "C" {
 }
 
 #include "framework/common.h"
-#include "framework/utils/utils.h"
+#include "framework/core/utils.h"
 
 namespace scene {
 

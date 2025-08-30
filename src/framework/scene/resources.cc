@@ -1,10 +1,11 @@
 #include "framework/scene/resources.h"
 
+#include "framework/core/camera.h"
+#include "framework/core/utils.h"
 #include "framework/backend/context.h"
 #include "framework/backend/command_encoder.h"
 #include "framework/renderer/renderer.h" //
 #include "framework/renderer/sampler_pool.h"
-#include "framework/utils/utils.h"
 #include "framework/renderer/fx/material/material_fx.h" //
 
 #include "framework/scene/private/gltf_loader.h"
@@ -15,15 +16,15 @@
 namespace scene {
 
 void Resources::release() {
-  LOG_CHECK(allocator_ != nullptr);
+  LOG_CHECK(allocator_ptr_ != nullptr);
 
   for (auto& img : device_images) {
-    allocator_->destroy_image(&img);
+    allocator_ptr_->destroy_image(&img);
   }
-  allocator_->destroy_buffer(frame_ubo_);
-  allocator_->destroy_buffer(index_buffer);
-  allocator_->destroy_buffer(vertex_buffer);
-  allocator_->destroy_buffer(transforms_ssbo_);
+  allocator_ptr_->destroy_buffer(frame_ubo_);
+  allocator_ptr_->destroy_buffer(index_buffer);
+  allocator_ptr_->destroy_buffer(vertex_buffer);
+  allocator_ptr_->destroy_buffer(transforms_ssbo_);
 
   material_fx_registry_->release();
   delete material_fx_registry_;
@@ -45,9 +46,9 @@ void Resources::prepare_material_fx(Context const& context, Renderer const& rend
     auto push_default_texture{
       [&textures = this->textures, &host_images = this->host_images, &sampler]
       (std::array<uint8_t, 4> const& c) -> uint32_t {
-        uint32_t texture_id = textures.size();
-        textures.push_back( std::make_shared<Texture>(host_images.size(), sampler) );
-        host_images.push_back( std::make_shared<ImageData>(c[0], c[1], c[2], c[3]) );
+        uint32_t const texture_id = textures.size();
+        textures.emplace_back( host_images.size(), sampler );
+        host_images.push_back( std::make_unique<ImageData>(c[0], c[1], c[2], c[3]) );
         return texture_id;
       }
     };
@@ -107,7 +108,7 @@ bool Resources::load_from_file(std::string_view const& filename, SamplerPool& sa
       data, images_indices, samplers_lut, textures
     );
     auto materials_indices  = ExtractMaterials(
-      data, textures_indices, textures, material_refs, *material_fx_registry_, optionnal_texture_binding_
+      data, textures_indices, material_refs, *material_fx_registry_, optionnal_texture_binding_
     );
     ExtractMeshes(
       data, materials_indices, material_refs,
@@ -145,14 +146,13 @@ bool Resources::load_from_file(std::string_view const& filename, SamplerPool& sa
     auto taskMaterials = run_task_ret([
       &taskTextures,
       data,
-      &textures = this->textures,
       &material_refs = this->material_refs,
       &material_fx_registry = *this->material_fx_registry_,
       &default_bindings = this->optionnal_texture_binding_
     ] {
       auto textures_indices = taskTextures.get();
       return ExtractMaterials(
-        data, textures_indices, textures, material_refs, material_fx_registry, default_bindings
+        data, textures_indices, material_refs, material_fx_registry, default_bindings
       );
     });
 
@@ -210,7 +210,7 @@ bool Resources::load_from_file(std::string_view const& filename, SamplerPool& sa
 // ----------------------------------------------------------------------------
 
 void Resources::initialize_submesh_descriptors(Mesh::AttributeLocationMap const& attribute_to_location) {
-  for (auto mesh : meshes) {
+  for (auto& mesh : meshes) {
     mesh->initialize_submesh_descriptors(attribute_to_location);
   }
 
@@ -228,12 +228,12 @@ void Resources::initialize_submesh_descriptors(Mesh::AttributeLocationMap const&
 
 void Resources::upload_to_device(Context const& context, bool const bReleaseHostDataOnUpload) {
   context_ptr_ = &context;
-  if (!allocator_) {
-    allocator_ = context.get_resource_allocator();
+  if (!allocator_ptr_) {
+    allocator_ptr_ = context.allocator_ptr();
   }
 
   /* Create the shared Frame UBO */
-  frame_ubo_ = allocator_->create_buffer(
+  frame_ubo_ = allocator_ptr_->create_buffer(
     sizeof(FrameData),
       VK_BUFFER_USAGE_2_UNIFORM_BUFFER_BIT
     | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
@@ -284,9 +284,9 @@ DescriptorSetWriteEntry Resources::descriptor_set_texture_atlas_entry(uint32_t c
   LOG_CHECK( !device_images.empty() );
 
   for (auto const& texture : textures) {
-    auto const& img = device_images.at(texture->channel_index());
+    auto const& img = device_images.at(texture.channel_index());
     texture_atlas_entry.images.push_back({
-      .sampler = texture->sampler,
+      .sampler = texture.sampler,
       .imageView = img.view,
       .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
     });
@@ -443,11 +443,11 @@ void Resources::reset_internal_device_resource_info() {
 
 void Resources::upload_images(Context const& context) {
   assert(total_image_size > 0);
-  assert(allocator_ != nullptr);
+  assert(allocator_ptr_ != nullptr);
 
   /* Create a staging buffer. */
   backend::Buffer staging_buffer{
-    allocator_->create_staging_buffer( total_image_size ) //
+    allocator_ptr_->create_staging_buffer( total_image_size ) //
   };
 
   device_images.reserve(host_images.size()); //
@@ -472,7 +472,7 @@ void Resources::upload_images(Context const& context) {
 
     /* Upload image to staging buffer */
     uint32_t const img_bytesize{ host_image->getBytesize() };
-    allocator_->write_buffer(
+    allocator_ptr_->write_buffer(
       staging_buffer, staging_offset, host_image->getPixels(), 0u, img_bytesize
     );
     copies.push_back({
@@ -503,17 +503,17 @@ void Resources::upload_images(Context const& context) {
 
 void Resources::upload_buffers(Context const& context) {
   LOG_CHECK(vertex_buffer_size > 0);
-  LOG_CHECK(allocator_ != nullptr);
+  LOG_CHECK(allocator_ptr_ != nullptr);
 
   /* Allocate device buffers for meshes & their transforms. */
-  vertex_buffer = allocator_->create_buffer(
+  vertex_buffer = allocator_ptr_->create_buffer(
     vertex_buffer_size,
     VK_BUFFER_USAGE_2_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_2_TRANSFER_DST_BIT_KHR,
     VMA_MEMORY_USAGE_GPU_ONLY
   );
 
   if (index_buffer_size > 0) {
-    index_buffer = allocator_->create_buffer(
+    index_buffer = allocator_ptr_->create_buffer(
       index_buffer_size,
       VK_BUFFER_USAGE_2_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_2_TRANSFER_DST_BIT_KHR,
       VMA_MEMORY_USAGE_GPU_ONLY
@@ -524,7 +524,7 @@ void Resources::upload_buffers(Context const& context) {
   size_t const transforms_buffer_size{ meshes.size() * sizeof(mat4) };
   {
     // We assume most meshes would be static, so with unfrequent updates.
-    transforms_ssbo_ = allocator_->create_buffer(
+    transforms_ssbo_ = allocator_ptr_->create_buffer(
       transforms_buffer_size,
       VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
       VMA_MEMORY_USAGE_GPU_ONLY
@@ -535,7 +535,7 @@ void Resources::upload_buffers(Context const& context) {
 
   /* Copy host mesh data to the staging buffer. */
   backend::Buffer staging_buffer{
-    allocator_->create_staging_buffer(vertex_buffer_size + index_buffer_size + transforms_buffer_size)
+    allocator_ptr_->create_staging_buffer(vertex_buffer_size + index_buffer_size + transforms_buffer_size)
   };
     {
     size_t vertex_offset{0u};
@@ -543,7 +543,7 @@ void Resources::upload_buffers(Context const& context) {
     size_t transform_offset{vertex_buffer_size + index_buffer_size};
 
     std::byte* device_data{};
-    allocator_->map_memory(staging_buffer, (void**)&device_data);
+    allocator_ptr_->map_memory(staging_buffer, (void**)&device_data);
     for (auto const& mesh : meshes) {
       auto const& vertices = mesh->get_vertices();
       memcpy(device_data + vertex_offset, vertices.data(), vertices.size());
@@ -558,7 +558,7 @@ void Resources::upload_buffers(Context const& context) {
       memcpy(device_data + transform_offset, lina::ptr(mesh->world_matrix), sizeof(mat4));
       transform_offset += sizeof(mat4);
     }
-    allocator_->unmap_memory(staging_buffer);
+    allocator_ptr_->unmap_memory(staging_buffer);
   }
 
   /* Copy device data from staging buffers to their respective buffers. */

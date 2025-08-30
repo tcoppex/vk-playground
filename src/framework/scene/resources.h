@@ -8,13 +8,13 @@
 #include "framework/scene/image_data.h"
 #include "framework/scene/material.h"
 #include "framework/scene/mesh.h"
-#include "framework/scene/camera.h"
-#include "framework/scene/material_fx_registry.h"
+#include "framework/renderer/fx/material/material_fx_registry.h"
 
 class Context;
 class ResourceAllocator;
 class SamplerPool;
 class RenderPassEncoder;
+class Camera;
 
 /* -------------------------------------------------------------------------- */
 
@@ -22,14 +22,14 @@ namespace scene {
 
 ///
 /// DevNote : we might prefer using std::unique_ptr<T>, std::observer_ptr or
-///           raw pointer instead of shared_ptr.
+///           raw pointer instead of shared_ptr (or even better.. direct data).
 ///
 
 template<typename T>
-using ResourceMap = std::unordered_map<std::string, std::shared_ptr<T>>;
+using ResourceBuffer = std::vector<std::unique_ptr<T>>;
 
 template<typename T>
-using ResourceBuffer = std::vector<std::shared_ptr<T>>;
+using ResourceMap = std::unordered_map<std::string, std::unique_ptr<T>>;
 
 // ----------------------------------------------------------------------------
 
@@ -85,7 +85,7 @@ struct Resources {
   /* --- Host Data --- */
 
   ResourceBuffer<ImageData> host_images{};
-  ResourceBuffer<Texture> textures{};
+  std::vector<Texture> textures{};
   ResourceBuffer<MaterialRef> material_refs{};
   ResourceBuffer<Skeleton> skeletons{};
   ResourceBuffer<Mesh> meshes{};
@@ -104,7 +104,7 @@ struct Resources {
 
  private:
   Context const* context_ptr_{};
-  std::shared_ptr<ResourceAllocator> allocator_{};
+  ResourceAllocator const* allocator_ptr_{};
 
   DefaultTextureBinding optionnal_texture_binding_{};
   MaterialFxRegistry *material_fx_registry_{};

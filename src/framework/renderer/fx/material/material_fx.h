@@ -174,7 +174,7 @@ class MaterialFx {
  protected:
   Context const* context_ptr_{};
   Renderer const* renderer_ptr_{};
-  std::shared_ptr<ResourceAllocator> allocator_{};
+  ResourceAllocator const* allocator_ptr_{};
 
   // ----------------
   VkDescriptorSetLayout descriptor_set_layout_{};
@@ -211,7 +211,7 @@ class TMaterialFx : public MaterialFx {
   }
 
   void release() override {
-    allocator_->destroy_buffer(material_storage_buffer_);
+    allocator_ptr_->destroy_buffer(material_storage_buffer_);
     MaterialFx::release();
   }
 
@@ -234,7 +234,7 @@ class TMaterialFx : public MaterialFx {
     }
 
     if constexpr (kEditMode) {
-      allocator_->upload_host_to_device(
+      allocator_ptr_->upload_host_to_device(
         materials_.data(),
         materials_.size() * sizeof(MaterialType),
         material_storage_buffer_
@@ -263,7 +263,7 @@ class TMaterialFx : public MaterialFx {
 
     if constexpr (kEditMode) {
       // Setup the SSBO for frequent host-device mapping (slower).
-      material_storage_buffer_ = allocator_->create_buffer(
+      material_storage_buffer_ = allocator_ptr_->create_buffer(
         buffersize,
         VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
         VMA_MEMORY_USAGE_CPU_TO_GPU,
@@ -272,7 +272,7 @@ class TMaterialFx : public MaterialFx {
       );
     } else {
       // Setup the SSBO for rarer device-to-device transfer.
-      material_storage_buffer_ = allocator_->create_buffer(
+      material_storage_buffer_ = allocator_ptr_->create_buffer(
         buffersize,
         VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
         VK_BUFFER_USAGE_TRANSFER_DST_BIT,

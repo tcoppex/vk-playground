@@ -42,7 +42,7 @@ class Renderer : public backend::RTInterface {
   Renderer() = default;
   ~Renderer() {}
 
-  void init(Context const& context, std::shared_ptr<ResourceAllocator> allocator, VkSurfaceKHR const surface);
+  void init(Context const& context, ResourceAllocator* allocator, VkSurfaceKHR const surface);
 
   void deinit();
 
@@ -236,7 +236,7 @@ class Renderer : public backend::RTInterface {
   /* Copy references for quick access */
   Context const* ctx_ptr_{};
   VkDevice device_{};
-  std::shared_ptr<ResourceAllocator> allocator_{};
+  ResourceAllocator* allocator_ptr_{};
 
   /* Swapchain. */
   Swapchain swapchain_{};

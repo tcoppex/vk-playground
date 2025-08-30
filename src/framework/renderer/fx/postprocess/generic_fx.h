@@ -35,7 +35,7 @@ class GenericFx : public virtual FxInterface {
   virtual void createPipeline() = 0;
 
  protected:
-  std::shared_ptr<ResourceAllocator> allocator_{};
+  ResourceAllocator const* allocator_ptr_{};
 
   // ----------------
   VkDescriptorSetLayout descriptor_set_layout_{};

@@ -1,5 +1,5 @@
-#ifndef VKFRAMEWORK_SCENE_CAMERA_H
-#define VKFRAMEWORK_SCENE_CAMERA_H
+#ifndef VKFRAMEWORK_CORE_CAMERA_H_
+#define VKFRAMEWORK_CORE_CAMERA_H_
 
 #include "framework/common.h"
 
@@ -188,8 +188,6 @@ class Camera {
   bool bUseOrtho_{};
 };
 
-using CameraHandle = std::shared_ptr<Camera>;
-
 /* -------------------------------------------------------------------------- */
 
-#endif // VKFRAMEWORK_SCENE_CAMERA_H
+#endif // VKFRAMEWORK_CORE_CAMERA_H_

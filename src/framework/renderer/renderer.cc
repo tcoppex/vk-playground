@@ -11,10 +11,10 @@ char const* kDefaulShaderEntryPoint{
 
 /* -------------------------------------------------------------------------- */
 
-void Renderer::init(Context const& context, std::shared_ptr<ResourceAllocator> allocator, VkSurfaceKHR const surface) {
+void Renderer::init(Context const& context, ResourceAllocator* allocator, VkSurfaceKHR const surface) {
   ctx_ptr_ = &context;
   device_ = context.get_device();
-  allocator_ = allocator;
+  allocator_ptr_ = allocator;
 
   /* Initialize the swapchain. */
   swapchain_.init(context, surface);
@@ -111,7 +111,7 @@ void Renderer::deinit() {
     vkDestroyCommandPool(device_, frame.command_pool, nullptr);
   }
 
-  allocator_->destroy_image(&depth_stencil_);
+  allocator_ptr_->destroy_image(&depth_stencil_);
   vkDestroyPipelineCache(device_, pipeline_cache_, nullptr);
   swapchain_.deinit();
 
@@ -140,7 +140,7 @@ CommandEncoder Renderer::begin_frame() {
   CHECK_VK( vkResetCommandPool(device_, frame.command_pool, 0u) );
 
   //------------
-  cmd_ = CommandEncoder(frame.command_buffer, (uint32_t)Context::TargetQueue::Main, device_, allocator_);
+  cmd_ = CommandEncoder(frame.command_buffer, (uint32_t)Context::TargetQueue::Main, device_, allocator_ptr_);
   cmd_.default_render_target_ptr_ = this;
   cmd_.begin();
   //------------
@@ -787,7 +787,7 @@ bool Renderer::load_image_2d(CommandEncoder const& cmd, std::string_view const& 
   /* Copy host data to a staging buffer. */
   size_t const comp_bytesize{ (is_hdr ? 4 : 1) * sizeof(std::byte) };
   size_t const bytesize{ kForcedChannelCount * extent.width * extent.height * comp_bytesize };
-  auto staging_buffer = allocator_->create_staging_buffer(bytesize, data); //
+  auto staging_buffer = allocator_ptr_->create_staging_buffer(bytesize, data); //
   stbi_image_free(data);
 
   /* Transfer staging device buffer to image memory. */
@@ -812,11 +812,14 @@ bool Renderer::load_image_2d(std::string_view const& filename, backend::Image &i
 
 // ----------------------------------------------------------------------------
 
-GLTFScene Renderer::load_and_upload(std::string_view gltf_filename, scene::Mesh::AttributeLocationMap const& attribute_to_location) {
+GLTFScene Renderer::load_and_upload(
+  std::string_view gltf_filename,
+  scene::Mesh::AttributeLocationMap const& attribute_to_location
+) {
   GLTFScene scene = std::make_shared<scene::Resources>();
 
   if (scene) {
-    scene->prepare_material_fx(*ctx_ptr_, *this); //
+    scene->prepare_material_fx(*ctx_ptr_, *this);
 
     if (scene->load_from_file(gltf_filename, sampler_pool_)) {
       scene->initialize_submesh_descriptors(attribute_to_location);
@@ -825,7 +828,7 @@ GLTFScene Renderer::load_and_upload(std::string_view gltf_filename, scene::Mesh:
     }
   }
 
-  return nullptr;
+  return {};
 }
 
 // ----------------------------------------------------------------------------

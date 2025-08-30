@@ -127,9 +127,7 @@ class SampleApp final : public Application {
 
   void release() final {
     renderer_.destroy_pipeline(graphics_pipeline_);
-
-    auto allocator = context_.get_resource_allocator();
-    allocator->destroy_buffer(vertex_buffer_);
+    context_.allocator().destroy_buffer(vertex_buffer_);
   }
 
   void frame() final {

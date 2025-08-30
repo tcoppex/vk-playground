@@ -1,23 +1,17 @@
-#ifndef VKFRAMEWORK_SCENE_MATERIAL_FX_REGISTRY_H_
-#define VKFRAMEWORK_SCENE_MATERIAL_FX_REGISTRY_H_
+#ifndef VKFRAMEWORK_RENDERER_FX_MATERIAL_MATERIAL_FX_REGISTRY_H_
+#define VKFRAMEWORK_RENDERER_FX_MATERIAL_MATERIAL_FX_REGISTRY_H_
 
 #include "framework/common.h"
-#include <set>
+#include "framework/backend/types.h"  // for DescriptorSetWriteEntry
+#include "framework/scene/material.h" // for scene::MaterialRef, scene::MaterialStates
 
-#include "framework/scene/material.h"
-#include "framework/backend/types.h" // for DescriptorSetWriteEntry
+#include <set>
 
 class Context;
 class Renderer;
 class MaterialFx;
 
-namespace fx::scene {
-class PBRMetallicRoughnessFx;
-}
-
 /* -------------------------------------------------------------------------- */
-
-namespace scene {
 
 class MaterialFxRegistry {
  public:
@@ -37,7 +31,7 @@ class MaterialFxRegistry {
 
   template<typename MaterialFxT>
   requires DerivedFrom<MaterialFxT, MaterialFx>
-  std::tuple<MaterialRef, typename MaterialFxT::MaterialType*>
+  std::tuple<scene::MaterialRef, typename MaterialFxT::MaterialType*>
   create_material(scene::MaterialStates const& states) {
     if (auto it = fx_map_.find(MaterialFxT::MaterialTypeIndex()); it != fx_map_.end()) {
       auto [ref, raw_ptr] = it->second->createMaterial(states);
@@ -63,12 +57,12 @@ class MaterialFxRegistry {
 
   /* Getters */
 
-  MaterialFx* material_fx(MaterialRef const& ref) const;
+  MaterialFx* material_fx(scene::MaterialRef const& ref) const;
 
  private:
   // (use std::unique_ptr?)
   using MaterialFxMap     = std::unordered_map<std::type_index, MaterialFx*>;
-  using MaterialStatesMap = std::unordered_map<std::type_index, std::set<MaterialStates>>;
+  using MaterialStatesMap = std::unordered_map<std::type_index, std::set<scene::MaterialStates>>;
 
   template<typename MaterialFxT>
   std::type_index type_index() const {
@@ -81,8 +75,6 @@ class MaterialFxRegistry {
   std::vector<MaterialFx*> active_fx_{};
 };
 
-}  // namespace scene
-
 /* -------------------------------------------------------------------------- */
 
-#endif // VKFRAMEWORK_SCENE_MATERIAL_FX_REGISTRY_H_
+#endif // VKFRAMEWORK_RENDERER_FX_MATERIAL_MATERIAL_FX_REGISTRY_H_

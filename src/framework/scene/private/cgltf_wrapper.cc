@@ -1,5 +1,5 @@
 #include "framework/scene/private/cgltf_wrapper.h"
-#include "framework/utils/logger.h"
+#include "framework/core/logger.h"
 #include <cassert>
 
 /* -------------------------------------------------------------------------- */

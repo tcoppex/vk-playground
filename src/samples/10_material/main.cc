@@ -8,8 +8,8 @@
 
 #include "framework/application.h"
 
-#include "framework/scene/camera.h"
-#include "framework/scene/arcball_controller.h"
+#include "framework/core/camera.h"
+#include "framework/core/arcball_controller.h"
 
 /* -------------------------------------------------------------------------- */
 

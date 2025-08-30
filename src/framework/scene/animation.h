@@ -47,7 +47,7 @@ struct Skeleton {
   JointBuffer<mat4f> global_bind_matrices{};
 
   std::unordered_map<std::string, int32_t> index_map{};
-  std::vector<std::shared_ptr<AnimationClip>> clips{};
+  std::vector<AnimationClip*> clips{};
 
   Skeleton() = default;
 
