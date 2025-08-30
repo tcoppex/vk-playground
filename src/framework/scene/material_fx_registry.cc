@@ -3,8 +3,8 @@
 #include "framework/backend/context.h"
 #include "framework/renderer/renderer.h"
 
-#include "framework/renderer/fx/material/pbr_metallic_roughness.h" //
-#include "framework/renderer/fx/material/unlit.h" //
+#include "framework/renderer/fx/material/impl/pbr_metallic_roughness.h" //
+#include "framework/renderer/fx/material/impl/unlit.h" //
 
 /* -------------------------------------------------------------------------- */
 

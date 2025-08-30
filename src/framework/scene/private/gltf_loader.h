@@ -3,7 +3,7 @@
 
 #include "framework/common.h"
 #include "framework/scene/resources.h"
-#include "framework/utils/cgltf_wrapper.h"
+#include "framework/scene/private/cgltf_wrapper.h"
 
 #include "framework/scene/material_fx_registry.h" //
 

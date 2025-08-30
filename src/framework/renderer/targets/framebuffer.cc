@@ -1,8 +1,8 @@
-#include "framework/renderer/legacy/framebuffer.h"
+#include "framework/renderer/targets/framebuffer.h"
 
 #include "framework/backend/context.h"
 #include "framework/backend/swapchain.h"
-#include "framework/renderer/legacy/render_target.h" // (for kDefaultImageUsageFlags)
+#include "framework/renderer/targets/render_target.h" // (for kDefaultImageUsageFlags)
 
 /* -------------------------------------------------------------------------- */
 

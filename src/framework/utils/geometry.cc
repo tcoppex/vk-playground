@@ -2,7 +2,6 @@
 
 #include <cmath>
 #include <cassert>
-#include <cstddef>
 #include <cstring>
 
 #include <algorithm>

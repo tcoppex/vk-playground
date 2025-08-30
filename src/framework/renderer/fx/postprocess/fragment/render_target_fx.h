@@ -1,9 +1,9 @@
-#ifndef VKFRAMEWORK_RENDERER_POST_FX_RENDER_TARGET_H
-#define VKFRAMEWORK_RENDERER_POST_FX_RENDER_TARGET_H
+#ifndef VKFRAMEWORK_RENDERER_FX_POSTPROCESS_FRAGMENT_RENDER_TARGET_FX_H_
+#define VKFRAMEWORK_RENDERER_FX_POSTPROCESS_FRAGMENT_RENDER_TARGET_FX_H_
 
 #include "framework/renderer/fx/postprocess/fragment/fragment_fx.h"
 #include "framework/renderer/fx/postprocess/post_generic_fx.h"
-#include "framework/renderer/legacy/render_target.h"
+#include "framework/renderer/targets/render_target.h"
 
 /* -------------------------------------------------------------------------- */
 
@@ -72,4 +72,4 @@ class RenderTargetFx : public FragmentFx
 
 /* -------------------------------------------------------------------------- */
 
-#endif // VKFRAMEWORK_RENDERER_POST_FX_RENDER_TARGET_H
+#endif // VKFRAMEWORK_RENDERER_FX_POSTPROCESS_FRAGMENT_RENDER_TARGET_FX_H_

@@ -1,5 +1,5 @@
-#ifndef VKPLAYGROUND_FX_SCENE_UNLIT_H_
-#define VKPLAYGROUND_FX_SCENE_UNLIT_H_
+#ifndef VKFRAMEWORK_RENDERER_FX_MATERIAL_IMPL_UNLIT_FX_H_
+#define VKFRAMEWORK_RENDERER_FX_MATERIAL_IMPL_UNLIT_FX_H_
 
 #include "framework/renderer/fx/material/material_fx.h"
 
@@ -116,4 +116,4 @@ class UnlitMaterialFx final : public TMaterialFx<unlit_shader_interop::Material>
 
 /* -------------------------------------------------------------------------- */
 
-#endif // VKPLAYGROUND_FX_SCENE_UNLIT_H_
+#endif // VKFRAMEWORK_RENDERER_FX_MATERIAL_IMPL_UNLIT_FX_H_

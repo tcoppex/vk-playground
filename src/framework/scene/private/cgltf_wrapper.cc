@@ -1,4 +1,4 @@
-#include "framework/utils/cgltf_wrapper.h"
+#include "framework/scene/private/cgltf_wrapper.h"
 #include "framework/utils/logger.h"
 #include <cassert>
 

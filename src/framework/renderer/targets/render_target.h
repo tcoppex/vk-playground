@@ -1,5 +1,5 @@
-#ifndef VKFRAMEWORK_RENDERER_RENDER_TARGET_H
-#define VKFRAMEWORK_RENDERER_RENDER_TARGET_H
+#ifndef VKFRAMEWORK_RENDERER_TARGETS_RENDER_TARGET_H_
+#define VKFRAMEWORK_RENDERER_TARGETS_RENDER_TARGET_H_
 
 /* -------------------------------------------------------------------------- */
 
@@ -114,4 +114,4 @@ class RenderTarget : public backend::RTInterface {
 
 /* -------------------------------------------------------------------------- */
 
-#endif
+#endif // VKFRAMEWORK_RENDERER_TARGETS_RENDER_TARGET_H_

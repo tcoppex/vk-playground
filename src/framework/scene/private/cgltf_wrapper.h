@@ -1,5 +1,5 @@
-#ifndef UTILS_CGLTF_WRAPPER_H_
-#define UTILS_CGLTF_WRAPPER_H_
+#ifndef VKFRAMEWORK_SCENE_PRIVATE_CGLTF_WRAPPER_H_
+#define VKFRAMEWORK_SCENE_PRIVATE_CGLTF_WRAPPER_H_
 
 /* -------------------------------------------------------------------------- */
 
@@ -30,4 +30,4 @@ VkSamplerCreateInfo ConvertSamplerInfo(cgltf_sampler const& sampler);
 
 /* -------------------------------------------------------------------------- */
 
-#endif // UTILS_CGLTF_WRAPPER_H_
+#endif // VKFRAMEWORK_SCENE_PRIVATE_CGLTF_WRAPPER_H_

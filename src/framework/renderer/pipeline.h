@@ -1,5 +1,5 @@
-#ifndef VKFRAMEWORK_RENDERER_PIPELINE_H
-#define VKFRAMEWORK_RENDERER_PIPELINE_H
+#ifndef VKFRAMEWORK_RENDERER_PIPELINE_H_
+#define VKFRAMEWORK_RENDERER_PIPELINE_H_
 
 /* -------------------------------------------------------------------------- */
 
@@ -171,4 +171,4 @@ using PipelineVertexBufferDescriptors = std::vector<PipelineVertexBufferDescript
 
 /* -------------------------------------------------------------------------- */
 
-#endif // VKFRAMEWORK_RENDERER_PIPELINE_H
+#endif // VKFRAMEWORK_RENDERER_PIPELINE_H_

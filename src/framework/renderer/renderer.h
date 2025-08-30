@@ -1,5 +1,5 @@
-#ifndef VKFRAMEWORK_RENDERER_RENDERER_H
-#define VKFRAMEWORK_RENDERER_RENDERER_H
+#ifndef VKFRAMEWORK_RENDERER_RENDERER_H_
+#define VKFRAMEWORK_RENDERER_RENDERER_H_
 
 /* -------------------------------------------------------------------------- */
 
@@ -10,8 +10,8 @@
 
 #include "framework/renderer/pipeline.h"
 #include "framework/renderer/sampler_pool.h"
-#include "framework/renderer/legacy/framebuffer.h"
-#include "framework/renderer/legacy/render_target.h"
+#include "framework/renderer/targets/framebuffer.h"
+#include "framework/renderer/targets/render_target.h"
 
 #include "framework/scene/resources.h" // (for GLTFScene)
 #include "framework/renderer/fx/skybox.h"

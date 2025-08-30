@@ -1,5 +1,5 @@
-#ifndef VKFRAMEWORK_RENDERER_FRAMEBUFFER_H
-#define VKFRAMEWORK_RENDERER_FRAMEBUFFER_H
+#ifndef VKFRAMEWORK_RENDERER_TARGETS_FRAMEBUFFER_H_
+#define VKFRAMEWORK_RENDERER_TARGETS_FRAMEBUFFER_H_
 
 /* -------------------------------------------------------------------------- */
 

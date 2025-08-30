@@ -1,4 +1,4 @@
-#include "framework/renderer/legacy/render_target.h"
+#include "framework/renderer/targets/render_target.h"
 
 #include "framework/backend/context.h"
 #include "framework/backend/allocator.h"

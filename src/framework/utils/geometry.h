@@ -3,8 +3,6 @@
 
 /* -------------------------------------------------------------------------- */
 
-#include <vulkan/vulkan.h>
-
 #include <cstddef>
 #include <cstdint>
 #include <map>
