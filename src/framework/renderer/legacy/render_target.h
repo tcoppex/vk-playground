@@ -1,5 +1,5 @@
-#ifndef VKPLAYGROUND_FRAMEWORK_RENDERER_RENDER_TARGET_H
-#define VKPLAYGROUND_FRAMEWORK_RENDERER_RENDER_TARGET_H
+#ifndef VKFRAMEWORK_RENDERER_RENDER_TARGET_H
+#define VKFRAMEWORK_RENDERER_RENDER_TARGET_H
 
 /* -------------------------------------------------------------------------- */
 

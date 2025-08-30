@@ -10,7 +10,7 @@
 
 #include "framework/scene/camera.h"
 #include "framework/scene/arcball_controller.h"
-#include "framework/fx/material/pbr_metallic_roughness.h"
+#include "framework/renderer/fx/material/pbr_metallic_roughness.h"
 
 namespace shader_interop {
 #include "shaders/interop.h"

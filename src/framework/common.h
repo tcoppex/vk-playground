@@ -1,5 +1,5 @@
-#ifndef VKPLAYGROUND_FRAMEWORK_COMMON_H
-#define VKPLAYGROUND_FRAMEWORK_COMMON_H
+#ifndef VKFRAMEWORK_COMMON_H
+#define VKFRAMEWORK_COMMON_H
 
 /* -------------------------------------------------------------------------- */
 
@@ -68,4 +68,4 @@ static const std::type_index kInvalidTypeIndex{ typeid(NullType) };
 
 /* -------------------------------------------------------------------------- */
 
-#endif // VKPLAYGROUND_FRAMEWORK_COMMON_H
+#endif // VKFRAMEWORK_COMMON_H

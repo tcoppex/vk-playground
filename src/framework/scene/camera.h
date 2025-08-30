@@ -1,5 +1,5 @@
-#ifndef VKPLAYGROUND_FRAMEWORK_SCENE_CAMERA_H
-#define VKPLAYGROUND_FRAMEWORK_SCENE_CAMERA_H
+#ifndef VKFRAMEWORK_SCENE_CAMERA_H
+#define VKFRAMEWORK_SCENE_CAMERA_H
 
 #include "framework/common.h"
 
@@ -192,4 +192,4 @@ using CameraHandle = std::shared_ptr<Camera>;
 
 /* -------------------------------------------------------------------------- */
 
-#endif // VKPLAYGROUND_FRAMEWORK_SCENE_CAMERA_H
+#endif // VKFRAMEWORK_SCENE_CAMERA_H

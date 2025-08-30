@@ -1,8 +1,8 @@
-#ifndef VKPLAYGROUND_FRAMEWORK_SCENE_ARCBALL_CONTROLLER_H
-#define VKPLAYGROUND_FRAMEWORK_SCENE_ARCBALL_CONTROLLER_H
+#ifndef VKFRAMEWORK_SCENE_ARCBALL_CONTROLLER_H
+#define VKFRAMEWORK_SCENE_ARCBALL_CONTROLLER_H
 
 #include "framework/scene/camera.h"
-#include "framework/platform/events.h"
+#include "framework/platform/window/events.h"
 
 #ifndef ABC_USE_CUSTOM_TARGET
 #define ABC_USE_CUSTOM_TARGET   1
@@ -366,4 +366,4 @@ class ArcBallController : public Camera::ViewController {
 
 // ----------------------------------------------------------------------------
 
-#endif // VKPLAYGROUND_FRAMEWORK_SCENE_ARCBALL_CONTROLLER_H
+#endif // VKFRAMEWORK_SCENE_ARCBALL_CONTROLLER_H

@@ -1,5 +1,5 @@
-#ifndef VKPLAYGROUND_FRAMEWORK_RENDERER_FRAMEBUFFER_H
-#define VKPLAYGROUND_FRAMEWORK_RENDERER_FRAMEBUFFER_H
+#ifndef VKFRAMEWORK_RENDERER_FRAMEBUFFER_H
+#define VKFRAMEWORK_RENDERER_FRAMEBUFFER_H
 
 /* -------------------------------------------------------------------------- */
 

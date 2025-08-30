@@ -1,5 +1,5 @@
-#ifndef VKPLAYGROUND_FRAMEWORK_RENDERER_RENDERER_H
-#define VKPLAYGROUND_FRAMEWORK_RENDERER_RENDERER_H
+#ifndef VKFRAMEWORK_RENDERER_RENDERER_H
+#define VKFRAMEWORK_RENDERER_RENDERER_H
 
 /* -------------------------------------------------------------------------- */
 
@@ -14,7 +14,7 @@
 #include "framework/renderer/legacy/render_target.h"
 
 #include "framework/scene/resources.h" // (for GLTFScene)
-#include "framework/fx/skybox.h"
+#include "framework/renderer/fx/skybox.h"
 
 class Context;
 

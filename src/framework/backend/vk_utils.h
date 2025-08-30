@@ -1,5 +1,5 @@
-#ifndef VKPLAYGROUND_FRAMEWORK_BACKEND_VKUTILS_H
-#define VKPLAYGROUND_FRAMEWORK_BACKEND_VKUTILS_H
+#ifndef VKFRAMEWORK_BACKEND_VKUTILS_H
+#define VKFRAMEWORK_BACKEND_VKUTILS_H
 
 /* -------------------------------------------------------------------------- */
 
@@ -44,4 +44,4 @@ void PushNextVKStruct(T* baseStruct, N* nextStruct) {
 
 /* -------------------------------------------------------------------------- */
 
-#endif // VKPLAYGROUND_FRAMEWORK_BACKEND_VKUTILS_H
+#endif // VKFRAMEWORK_BACKEND_VKUTILS_H

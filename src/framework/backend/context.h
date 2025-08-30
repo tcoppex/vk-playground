@@ -1,5 +1,5 @@
-#ifndef VKPLAYGROUND_FRAMEWORK_BACKEND_CONTEXT_H
-#define VKPLAYGROUND_FRAMEWORK_BACKEND_CONTEXT_H
+#ifndef VKFRAMEWORK_BACKEND_CONTEXT_H
+#define VKFRAMEWORK_BACKEND_CONTEXT_H
 
 /* -------------------------------------------------------------------------- */
 

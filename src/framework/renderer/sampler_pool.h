@@ -1,5 +1,5 @@
-#ifndef VKPLAYGROUND_FRAMEWORK_RENDERER_SAMPLER_POOL_H_
-#define VKPLAYGROUND_FRAMEWORK_RENDERER_SAMPLER_POOL_H_
+#ifndef VKFRAMEWORK_RENDERER_SAMPLER_POOL_H_
+#define VKFRAMEWORK_RENDERER_SAMPLER_POOL_H_
 
 #include "framework/common.h"
 
@@ -114,4 +114,4 @@ class SamplerPool {
 
 /* -------------------------------------------------------------------------- */
 
-#endif //  VKPLAYGROUND_FRAMEWORK_RENDERER_SAMPLER_POOL_H_
+#endif //  VKFRAMEWORK_RENDERER_SAMPLER_POOL_H_

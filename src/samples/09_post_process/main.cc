@@ -11,12 +11,12 @@
 #include "framework/scene/camera.h"
 #include "framework/scene/arcball_controller.h"
 
-#include "framework/fx/postprocess/post_fx_pipeline.h"
-#include "framework/fx/postprocess/compute/depth_minmax.h"
-#include "framework/fx/postprocess/fragment/normaldepth_edge.h"
-#include "framework/fx/postprocess/fragment/object_edge.h"
+#include "framework/renderer/fx/postprocess/post_fx_pipeline.h"
+#include "framework/renderer/fx/postprocess/compute/impl/depth_minmax.h"
+#include "framework/renderer/fx/postprocess/fragment/impl/normaldepth_edge.h"
+#include "framework/renderer/fx/postprocess/fragment/impl/object_edge.h"
 
-#include "framework/fx/material/pbr_metallic_roughness.h"
+#include "framework/renderer/fx/material/pbr_metallic_roughness.h"
 
 namespace shader_interop {
 #include "shaders/interop.h"

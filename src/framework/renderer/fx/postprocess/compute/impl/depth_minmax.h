@@ -1,0 +1,37 @@
+#ifndef VKFRAMEWORK_RENDERER_FX_POSTPROCESS_COMPUTE_IMPL_DEPTH_MINMAX_H
+#define VKFRAMEWORK_RENDERER_FX_POSTPROCESS_COMPUTE_IMPL_DEPTH_MINMAX_H
+
+#include "framework/renderer/fx/postprocess/compute/compute_fx.h"
+
+/* -------------------------------------------------------------------------- */
+
+namespace fx::compute {
+
+class DepthMinMax final : public ComputeFx {
+ public:
+  bool resize(VkExtent2D const dimension) final {
+    if (!ComputeFx::resize(dimension)) {
+      return false;
+    }
+
+    // (malformed, should use internal method to update descriptor..)
+    buffers_.push_back( allocator_->create_buffer(
+      2u * sizeof(float),
+        VK_BUFFER_USAGE_2_STORAGE_BUFFER_BIT
+      | VK_BUFFER_USAGE_2_TRANSFER_SRC_BIT_KHR
+    ));
+
+    return true;
+  }
+
+ protected:
+  std::string getShaderName() const final {
+    return FRAMEWORK_COMPILED_SHADERS_DIR "postprocess/depth_minmax.comp.glsl";
+  }
+};
+
+}
+
+/* -------------------------------------------------------------------------- */
+
+#endif // VKFRAMEWORK_RENDERER_FX_POSTPROCESS_COMPUTE_IMPL_DEPTH_MINMAX_H

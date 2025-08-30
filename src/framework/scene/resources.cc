@@ -5,7 +5,7 @@
 #include "framework/renderer/renderer.h" //
 #include "framework/renderer/sampler_pool.h"
 #include "framework/utils/utils.h"
-#include "framework/fx/material/material_fx.h" //
+#include "framework/renderer/fx/material/material_fx.h" //
 
 #include "framework/scene/private/gltf_loader.h"
 #include "framework/shaders/scene/interop.h"

@@ -1,5 +1,5 @@
-#ifndef VKPLAYGROUND_FRAMEWORK_SCENE_IMAGE_DATA_H_
-#define VKPLAYGROUND_FRAMEWORK_SCENE_IMAGE_DATA_H_
+#ifndef VKFRAMEWORK_SCENE_IMAGE_DATA_H_
+#define VKFRAMEWORK_SCENE_IMAGE_DATA_H_
 
 extern "C" {
 #include <stb/stb_image.h>
@@ -113,4 +113,4 @@ struct ImageData {
 
 }  // namespace scene
 
-#endif // VKPLAYGROUND_FRAMEWORK_SCENE_IMAGE_DATA_H_
+#endif // VKFRAMEWORK_SCENE_IMAGE_DATA_H_

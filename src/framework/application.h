@@ -1,5 +1,5 @@
-#ifndef VKPLAYGROUND_FRAMEWORK_APPLICATION_H
-#define VKPLAYGROUND_FRAMEWORK_APPLICATION_H
+#ifndef VKFRAMEWORK_APPLICATION_H
+#define VKFRAMEWORK_APPLICATION_H
 
 /* -------------------------------------------------------------------------- */
 
@@ -7,10 +7,10 @@
 using namespace std::chrono_literals;
 
 #include "framework/common.h"
-#include "framework/backend/context.h"
 #include "framework/renderer/renderer.h"
-#include "framework/platform/event_callbacks.h"
-#include "framework/platform/wm_interface.h"
+#include "framework/backend/context.h"
+#include "framework/platform/window/event_callbacks.h"
+#include "framework/platform/window/wm_interface.h"
 
 #include "framework/platform/ui/ui_controller.h"
 

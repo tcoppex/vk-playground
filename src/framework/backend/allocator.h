@@ -1,5 +1,5 @@
-#ifndef VKPLAYGROUND_FRAMEWORK_BACKEND_ALLOCATOR_H
-#define VKPLAYGROUND_FRAMEWORK_BACKEND_ALLOCATOR_H
+#ifndef VKFRAMEWORK_BACKEND_ALLOCATOR_H
+#define VKFRAMEWORK_BACKEND_ALLOCATOR_H
 
 /* -------------------------------------------------------------------------- */
 

@@ -1,5 +1,5 @@
-#ifndef VKPLAYGROUND_FRAMEWORK_SCENE_MATERIAL_H
-#define VKPLAYGROUND_FRAMEWORK_SCENE_MATERIAL_H
+#ifndef VKFRAMEWORK_SCENE_MATERIAL_H
+#define VKFRAMEWORK_SCENE_MATERIAL_H
 
 #include "framework/common.h"
 
@@ -55,4 +55,4 @@ struct DefaultTextureBinding {
 
 }  // namespace scene
 
-#endif // VKPLAYGROUND_FRAMEWORK_SCENE_MATERIAL_H
+#endif // VKFRAMEWORK_SCENE_MATERIAL_H
