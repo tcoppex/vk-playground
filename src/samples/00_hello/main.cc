@@ -32,7 +32,7 @@ class SampleApp final : public Application {
     /**
      * Dynamic rendering directly to the swapchain.
      *
-     * With no argument specified to 'begin_rendering' (aceppting both a RTInterface or
+     * With no argument specified to 'begin_rendering' (accepting both a RTInterface or
      * a RenderPassDescriptor_t), the command will draw directly to the swapchain.
      *
      * This is similar than specifying 'renderer_' as the RTInterface parameter.

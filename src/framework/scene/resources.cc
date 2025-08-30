@@ -27,7 +27,6 @@ void Resources::release() {
   allocator_ptr_->destroy_buffer(transforms_ssbo_);
 
   material_fx_registry_->release();
-  delete material_fx_registry_;
 
   *this = {};
 }
@@ -35,7 +34,7 @@ void Resources::release() {
 // ----------------------------------------------------------------------------
 
 void Resources::prepare_material_fx(Context const& context, Renderer const& renderer) {
-  material_fx_registry_ = new MaterialFxRegistry();
+  material_fx_registry_ = std::make_unique<MaterialFxRegistry>();
   material_fx_registry_->init(context, renderer);
 
   // Create default 1x1 textures for optionnal bindings.
@@ -147,7 +146,7 @@ bool Resources::load_from_file(std::string_view const& filename, SamplerPool& sa
       &taskTextures,
       data,
       &material_refs = this->material_refs,
-      &material_fx_registry = *this->material_fx_registry_,
+      &material_fx_registry = *(this->material_fx_registry_),
       &default_bindings = this->optionnal_texture_binding_
     ] {
       auto textures_indices = taskTextures.get();

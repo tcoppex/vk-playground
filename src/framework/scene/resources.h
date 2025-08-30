@@ -107,7 +107,7 @@ struct Resources {
   ResourceAllocator const* allocator_ptr_{};
 
   DefaultTextureBinding optionnal_texture_binding_{};
-  MaterialFxRegistry *material_fx_registry_{};
+  std::unique_ptr<MaterialFxRegistry> material_fx_registry_{};
 
   backend::Buffer frame_ubo_{};
   backend::Buffer transforms_ssbo_{};
