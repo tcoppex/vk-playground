@@ -5,8 +5,8 @@
 
 // ----------------------------------------------------------------------------
 
-#include "scene/interop.h"
-#include "scene/pbr_metallic_roughness/interop.h"
+#include <material/interop.h>
+#include <material/pbr_metallic_roughness/interop.h>
 
 // ----------------------------------------------------------------------------
 

@@ -5,8 +5,8 @@
 
 // ----------------------------------------------------------------------------
 
-#include "scene/interop.h"
-#include "scene/unlit/interop.h"
+#include <material/interop.h>
+#include <material/unlit/interop.h>
 
 // ----------------------------------------------------------------------------
 

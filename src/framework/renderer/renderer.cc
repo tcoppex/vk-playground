@@ -1,7 +1,7 @@
 #include "framework/renderer/renderer.h"
 
 #include "framework/backend/context.h"
-#include "framework/shaders/scene/interop.h" // for kAttribLocation_*
+#include "framework/shaders/material/interop.h" // for kAttribLocation_*
 
 /* -------------------------------------------------------------------------- */
 

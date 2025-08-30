@@ -8,8 +8,8 @@
 #include "framework/renderer/sampler_pool.h"
 #include "framework/renderer/fx/material/material_fx.h" //
 
+#include "framework/shaders/material/interop.h" //
 #include "framework/scene/private/gltf_loader.h"
-#include "framework/shaders/scene/interop.h"
 
 /* -------------------------------------------------------------------------- */
 

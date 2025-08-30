@@ -8,7 +8,7 @@
 namespace fx::material {
 
 namespace pbr_metallic_roughness_shader_interop {
-#include "framework/shaders/scene/pbr_metallic_roughness/interop.h"
+#include "framework/shaders/material/pbr_metallic_roughness/interop.h"
 }
 
 using PBRMetallicRoughnessMaterial = pbr_metallic_roughness_shader_interop::Material;

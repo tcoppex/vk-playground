@@ -8,7 +8,7 @@
 namespace fx::material {
 
 namespace unlit_shader_interop {
-#include "framework/shaders/scene/unlit/interop.h"
+#include "framework/shaders/material/unlit/interop.h"
 }
 
 // ----------------------------------------------------------------------------
