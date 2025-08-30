@@ -1,5 +1,5 @@
-#ifndef HELLOVK_FRAMEWORK_BACKEND_ALLOCATOR_H
-#define HELLOVK_FRAMEWORK_BACKEND_ALLOCATOR_H
+#ifndef VKPLAYGROUND_FRAMEWORK_BACKEND_ALLOCATOR_H
+#define VKPLAYGROUND_FRAMEWORK_BACKEND_ALLOCATOR_H
 
 /* -------------------------------------------------------------------------- */
 

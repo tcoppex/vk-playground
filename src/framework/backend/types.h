@@ -1,5 +1,5 @@
-#ifndef HELLOVK_FRAMEWORK_BACKEND_TYPES_H
-#define HELLOVK_FRAMEWORK_BACKEND_TYPES_H
+#ifndef VKPLAYGROUND_FRAMEWORK_BACKEND_TYPES_H
+#define VKPLAYGROUND_FRAMEWORK_BACKEND_TYPES_H
 
 /* -------------------------------------------------------------------------- */
 
@@ -173,7 +173,7 @@ struct RTInterface {
 
   virtual void set_color_load_op(VkAttachmentLoadOp load_op, uint32_t i = 0u) = 0;
 
-  // virtual void resize(VkExtent2D const extent) = 0;
+  // virtual bool resize(VkExtent2D const extent) = 0;
 };
 
 // ----------------------------------------------------------------------------

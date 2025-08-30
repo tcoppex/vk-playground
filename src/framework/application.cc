@@ -1,7 +1,7 @@
 #include "framework/application.h"
 
-#include "framework/wm/events.h"
-#include "framework/wm/window.h"
+#include "framework/platform/events.h"
+#include "framework/platform/window.h"
 
 /* -------------------------------------------------------------------------- */
 

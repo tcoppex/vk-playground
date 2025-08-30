@@ -1,5 +1,5 @@
-#ifndef HELLO_VK_FRAMEWORK_SCENE_RESOURCES_H
-#define HELLO_VK_FRAMEWORK_SCENE_RESOURCES_H
+#ifndef VKPLAYGROUND_FRAMEWORK_SCENE_RESOURCES_H
+#define VKPLAYGROUND_FRAMEWORK_SCENE_RESOURCES_H
 
 #include "framework/common.h"
 
@@ -127,4 +127,4 @@ struct Resources {
 
 using GLTFScene = std::shared_ptr<scene::Resources>;
 
-#endif // HELLO_VK_FRAMEWORK_SCENE_RESOURCES_H
+#endif // VKPLAYGROUND_FRAMEWORK_SCENE_RESOURCES_H

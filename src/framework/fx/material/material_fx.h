@@ -1,8 +1,10 @@
-#ifndef HELLOVK_FRAMEWORK_FX_MATERIAL_FX_H_
-#define HELLOVK_FRAMEWORK_FX_MATERIAL_FX_H_
+#ifndef VKPLAYGROUND_FRAMEWORK_FX_MATERIAL_FX_H_
+#define VKPLAYGROUND_FRAMEWORK_FX_MATERIAL_FX_H_
 
 #include "framework/common.h"
 #include "framework/renderer/renderer.h"
+#include "framework/backend/context.h" //
+
 #include "framework/scene/material.h" //
 
 /* -------------------------------------------------------------------------- */
@@ -18,11 +20,7 @@ class MaterialFx {
   MaterialFx() = default;
   virtual ~MaterialFx() {}
 
-  virtual void init(Context const& context, Renderer const& renderer) {
-    context_ptr_ = &context;
-    renderer_ptr_ = &renderer;
-    allocator_ = context.get_resource_allocator();
-  }
+  virtual void init(Context const& context, Renderer const& renderer);
 
   virtual void setup() {
     createPipelineLayout();
@@ -40,32 +38,7 @@ class MaterialFx {
     }
   }
 
-  virtual void createPipelines(std::vector<scene::MaterialStates> const& states) {
-    auto shaders = createShaderModules();
-
-    // ------------------------------
-    // Retrieve specific descriptors.
-    std::vector<GraphicsPipelineDescriptor_t> descs{};
-    descs.reserve(states.size());
-    for (auto const& s : states) {
-      descs.push_back( getGraphicsPipelineDescriptor(shaders, s) );
-    }
-
-    // Batch create the pipelines.
-    std::vector<Pipeline> pipelines{};
-    pipelines.reserve(states.size());
-    renderer_ptr_->create_graphics_pipelines(pipeline_layout_, descs, &pipelines);
-
-    // Store them into the pipeline map.
-    for (size_t i = 0; i < states.size(); ++i) {
-      pipelines_[states[i]] = pipelines[i];
-    }
-    // ------------------------------
-
-    for (auto const& [_, shader] : shaders) {
-      context_ptr_->release_shader_module(shader);
-    }
-  }
+  virtual void createPipelines(std::vector<scene::MaterialStates> const& states);
 
   virtual void prepareDrawState(RenderPassEncoder const& pass, scene::MaterialStates const& states) {
     LOG_CHECK(pipelines_.contains(states));
@@ -88,12 +61,7 @@ class MaterialFx {
 
   virtual std::string getShaderName() const = 0;
 
-  virtual backend::ShaderMap createShaderModules() const {
-    return {
-      { backend::ShaderStage::Vertex, context_ptr_->create_shader_module(getVertexShaderName()) },
-      { backend::ShaderStage::Fragment, context_ptr_->create_shader_module(getShaderName()) },
-    };
-  }
+  virtual backend::ShaderMap createShaderModules() const;
 
   virtual std::vector<DescriptorSetLayoutParams> getDescriptorSetLayoutParams() const {
     return {}; //
@@ -177,25 +145,11 @@ class MaterialFx {
  public:
   // -- frame-wide resource descriptor --
 
-  void updateDescriptorSetTextureAtlasEntry(DescriptorSetWriteEntry const& entry) const {
-    context_ptr_->update_descriptor_set(descriptor_set_, { entry });
-  }
+  void updateDescriptorSetTextureAtlasEntry(DescriptorSetWriteEntry const& entry) const;
 
-  void updateDescriptorSetFrameUBO(backend::Buffer const& buf) const {
-    context_ptr_->update_descriptor_set(descriptor_set_, {{
-      .binding = getFrameUniformBufferBinding(),
-      .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-      .buffers = { { buf.buffer } },
-    }});
-  }
+  void updateDescriptorSetFrameUBO(backend::Buffer const& buf) const;
 
-  void updateDescriptorSetTransformsSSBO(backend::Buffer const& buf) const {
-    context_ptr_->update_descriptor_set(descriptor_set_, {{
-      .binding = getTransformsStorageBufferBinding(),
-      .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-      .buffers = { { buf.buffer } },
-    }});
-  }
+  void updateDescriptorSetTransformsSSBO(backend::Buffer const& buf) const;
 
   virtual uint32_t getFrameUniformBufferBinding() const = 0;
 
@@ -233,13 +187,6 @@ class MaterialFx {
 
   backend::Buffer material_storage_buffer_{};
 };
-
-
-
-
-
-
-
 
 // ----------------------------------------------------------------------------
 // ----------------------------------------------------------------------------
@@ -340,4 +287,4 @@ class TMaterialFx : public MaterialFx {
 
 /* -------------------------------------------------------------------------- */
 
-#endif // HELLOVK_FRAMEWORK_FX_MATERIAL_FX_H_
+#endif // VKPLAYGROUND_FRAMEWORK_FX_MATERIAL_FX_H_

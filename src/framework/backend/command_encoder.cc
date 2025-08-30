@@ -1,5 +1,5 @@
 #include "framework/backend/command_encoder.h"
-#include "framework/fx/_experimental/fx_interface.h"
+#include "framework/fx/postprocess/fx_interface.h"
 
 #include <backends/imgui_impl_vulkan.h> //
 

@@ -1,21 +1,22 @@
-#ifndef HELLOVK_FRAMEWORK_RENDERER_RENDERER_H
-#define HELLOVK_FRAMEWORK_RENDERER_RENDERER_H
+#ifndef VKPLAYGROUND_FRAMEWORK_RENDERER_RENDERER_H
+#define VKPLAYGROUND_FRAMEWORK_RENDERER_RENDERER_H
 
 /* -------------------------------------------------------------------------- */
 
 #include "framework/common.h"
 
-#include "framework/backend/context.h"
 #include "framework/backend/swapchain.h"
 #include "framework/backend/command_encoder.h"
 
 #include "framework/renderer/pipeline.h"
 #include "framework/renderer/sampler_pool.h"
-#include "framework/renderer/_experimental/framebuffer.h" // (for Framebuffer::Descriptor_t)
-#include "framework/renderer/_experimental/render_target.h" // (for RenderTarget::Descriptor_t)
+#include "framework/renderer/legacy/framebuffer.h"
+#include "framework/renderer/legacy/render_target.h"
 
 #include "framework/scene/resources.h" // (for GLTFScene)
 #include "framework/fx/skybox.h"
+
+class Context;
 
 /* -------------------------------------------------------------------------- */
 
@@ -236,7 +237,6 @@ class Renderer : public backend::RTInterface {
   Context const* ctx_ptr_{};
   VkDevice device_{};
   std::shared_ptr<ResourceAllocator> allocator_{};
-  Context::TargetQueue target_queue_{};
 
   /* Swapchain. */
   Swapchain swapchain_{};

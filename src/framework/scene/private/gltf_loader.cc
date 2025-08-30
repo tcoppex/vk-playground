@@ -3,7 +3,7 @@
 
 #include "framework/scene/private/gltf_loader.h"
 
-#if defined(FRAMEWORK_HAS_DRACO) && FRAMEWORK_HAS_DRACO
+#if defined(FRAMEWORK_HAS_DRACO) && VKPLAYGROUND_HAS_DRACO
 #include <draco/compression/decode.h>
 #include <draco/mesh/mesh.h>
 static constexpr bool kFrameworkHasDraco{true};
@@ -119,7 +119,7 @@ bool DecompressDracoPrimitive(cgltf_primitive const& prim, std::vector<VertexInt
     return false;
   }
 
-#if FRAMEWORK_HAS_DRACO
+#if VKPLAYGROUND_HAS_DRACO
   std::unique_ptr<draco::Mesh> draco_mesh{};
   {
     cgltf_accessor const* pos_accessor = nullptr;

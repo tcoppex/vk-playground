@@ -1,5 +1,5 @@
-#ifndef HELLOVK_FRAMEWORK_APPLICATION_H
-#define HELLOVK_FRAMEWORK_APPLICATION_H
+#ifndef VKPLAYGROUND_FRAMEWORK_APPLICATION_H
+#define VKPLAYGROUND_FRAMEWORK_APPLICATION_H
 
 /* -------------------------------------------------------------------------- */
 
@@ -9,10 +9,10 @@ using namespace std::chrono_literals;
 #include "framework/common.h"
 #include "framework/backend/context.h"
 #include "framework/renderer/renderer.h"
-#include "framework/wm/event_callbacks.h"
-#include "framework/wm/wm_interface.h"
+#include "framework/platform/event_callbacks.h"
+#include "framework/platform/wm_interface.h"
 
-#include "framework/wm/ui/ui_controller.h"
+#include "framework/platform/ui/ui_controller.h"
 
 /* -------------------------------------------------------------------------- */
 

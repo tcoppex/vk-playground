@@ -1,5 +1,5 @@
-#ifndef HELLO_VK_FRAMEWORK_SCENE_MATERIAL_FX_REGISTRY_H_
-#define HELLO_VK_FRAMEWORK_SCENE_MATERIAL_FX_REGISTRY_H_
+#ifndef VKPLAYGROUND_FRAMEWORK_SCENE_MATERIAL_FX_REGISTRY_H_
+#define VKPLAYGROUND_FRAMEWORK_SCENE_MATERIAL_FX_REGISTRY_H_
 
 #include "framework/common.h"
 #include <set>
@@ -85,4 +85,4 @@ class MaterialFxRegistry {
 
 /* -------------------------------------------------------------------------- */
 
-#endif // HELLO_VK_FRAMEWORK_SCENE_MATERIAL_FX_REGISTRY_H_
+#endif // VKPLAYGROUND_FRAMEWORK_SCENE_MATERIAL_FX_REGISTRY_H_

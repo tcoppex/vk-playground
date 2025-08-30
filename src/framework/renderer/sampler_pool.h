@@ -1,5 +1,5 @@
-#ifndef HELLOVK_FRAMEWORK_RENDERER_SAMPLER_POOL_H_
-#define HELLOVK_FRAMEWORK_RENDERER_SAMPLER_POOL_H_
+#ifndef VKPLAYGROUND_FRAMEWORK_RENDERER_SAMPLER_POOL_H_
+#define VKPLAYGROUND_FRAMEWORK_RENDERER_SAMPLER_POOL_H_
 
 #include "framework/common.h"
 
@@ -114,4 +114,4 @@ class SamplerPool {
 
 /* -------------------------------------------------------------------------- */
 
-#endif //  HELLOVK_FRAMEWORK_RENDERER_SAMPLER_POOL_H_
+#endif //  VKPLAYGROUND_FRAMEWORK_RENDERER_SAMPLER_POOL_H_

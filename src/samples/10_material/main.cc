@@ -4,7 +4,6 @@
 //
 //  Where we don't bother and use the internal material & rendering system.
 //
-//
 /* -------------------------------------------------------------------------- */
 
 #include "framework/application.h"

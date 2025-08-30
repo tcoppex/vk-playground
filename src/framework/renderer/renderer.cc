@@ -1,7 +1,6 @@
 #include "framework/renderer/renderer.h"
-#include "framework/backend/context.h"
-#include "framework/renderer/_experimental/render_target.h"
 
+#include "framework/backend/context.h"
 #include "framework/shaders/scene/interop.h" // for kAttribLocation_*
 
 /* -------------------------------------------------------------------------- */
@@ -16,7 +15,6 @@ void Renderer::init(Context const& context, std::shared_ptr<ResourceAllocator> a
   ctx_ptr_ = &context;
   device_ = context.get_device();
   allocator_ = allocator;
-  target_queue_ = Context::TargetQueue::Main; //
 
   /* Initialize the swapchain. */
   swapchain_.init(context, surface);
@@ -44,7 +42,7 @@ void Renderer::init(Context const& context, std::shared_ptr<ResourceAllocator> a
     timeline_.frames.resize(frame_count);
     VkCommandPoolCreateInfo const command_pool_create_info{
       .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-      .queueFamilyIndex = context.get_queue(target_queue_).family_index,
+      .queueFamilyIndex = context.get_queue(Context::TargetQueue::Main).family_index,
     };
     for (uint64_t i = 0u; i < frame_count; ++i) {
       auto& frame = timeline_.frames[i];
@@ -142,7 +140,7 @@ CommandEncoder Renderer::begin_frame() {
   CHECK_VK( vkResetCommandPool(device_, frame.command_pool, 0u) );
 
   //------------
-  cmd_ = CommandEncoder(frame.command_buffer, (uint32_t)target_queue_, device_, allocator_);
+  cmd_ = CommandEncoder(frame.command_buffer, (uint32_t)Context::TargetQueue::Main, device_, allocator_);
   cmd_.default_render_target_ptr_ = this;
   cmd_.begin();
   //------------
@@ -213,7 +211,7 @@ void Renderer::end_frame() {
     .pSignalSemaphoreInfos = signal_semaphores.data(),
   };
 
-  VkQueue const queue{ctx_ptr_->get_queue(target_queue_).queue};
+  VkQueue const queue{ctx_ptr_->get_queue(Context::TargetQueue::Main).queue};
   CHECK_VK( vkQueueSubmit2(queue, 1u, &submit_info_2, nullptr) );
 
   /* Display and swap buffers. */

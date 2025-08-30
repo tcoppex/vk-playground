@@ -1,5 +1,5 @@
-#ifndef HELLO_VK_FRAMEWORK_FX_SKYBOX_H_
-#define HELLO_VK_FRAMEWORK_FX_SKYBOX_H_
+#ifndef VKPLAYGROUND_FRAMEWORK_FX_SKYBOX_H_
+#define VKPLAYGROUND_FRAMEWORK_FX_SKYBOX_H_
 
 #include "framework/common.h"
 
@@ -83,4 +83,4 @@ class Skybox {
 
 /* -------------------------------------------------------------------------- */
 
-#endif // HELLO_VK_FRAMEWORK_FX_SKYBOX_H_
+#endif // VKPLAYGROUND_FRAMEWORK_FX_SKYBOX_H_

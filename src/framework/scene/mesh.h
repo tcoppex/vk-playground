@@ -1,5 +1,5 @@
-#ifndef HELLO_VK_FRAMEWORK_SCENE_MESH_H
-#define HELLO_VK_FRAMEWORK_SCENE_MESH_H
+#ifndef VKPLAYGROUND_FRAMEWORK_SCENE_MESH_H
+#define VKPLAYGROUND_FRAMEWORK_SCENE_MESH_H
 
 #include "framework/common.h"
 
@@ -85,4 +85,4 @@ struct Mesh : Geometry {
 
 }  // namespace scene
 
-#endif // HELLO_VK_FRAMEWORK_SCENE_MESH_H
+#endif // VKPLAYGROUND_FRAMEWORK_SCENE_MESH_H

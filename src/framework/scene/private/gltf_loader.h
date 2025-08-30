@@ -1,5 +1,5 @@
-#ifndef HELLO_VK_FRAMEWORK_SCENE_PRIVATE_GLTF_LOADER_H_
-#define HELLO_VK_FRAMEWORK_SCENE_PRIVATE_GLTF_LOADER_H_
+#ifndef VKPLAYGROUND_FRAMEWORK_SCENE_PRIVATE_GLTF_LOADER_H_
+#define VKPLAYGROUND_FRAMEWORK_SCENE_PRIVATE_GLTF_LOADER_H_
 
 #include "framework/common.h"
 #include "framework/scene/resources.h"
@@ -77,4 +77,4 @@ void ExtractAnimations(
 
 /* -------------------------------------------------------------------------- */
 
-#endif // HELLO_VK_FRAMEWORK_SCENE_PRIVATE_GLTF_LOADER_H_
+#endif // VKPLAYGROUND_FRAMEWORK_SCENE_PRIVATE_GLTF_LOADER_H_

@@ -1,5 +1,5 @@
-#ifndef FRAMEWORK_FX_SCENE_PBR_METALLIC_ROUGHNESS_H_
-#define FRAMEWORK_FX_SCENE_PBR_METALLIC_ROUGHNESS_H_
+#ifndef VKPLAYGROUND_FX_SCENE_PBR_METALLIC_ROUGHNESS_H_
+#define VKPLAYGROUND_FX_SCENE_PBR_METALLIC_ROUGHNESS_H_
 
 #include "framework/fx/material/material_fx.h"
 
@@ -210,4 +210,4 @@ class PBRMetallicRoughnessFx final : public TMaterialFx<PBRMetallicRoughnessMate
 
 /* -------------------------------------------------------------------------- */
 
-#endif // FRAMEWORK_FX_SCENE_PBR_METALLIC_ROUGHNESS_H_
+#endif // VKPLAYGROUND_FX_SCENE_PBR_METALLIC_ROUGHNESS_H_

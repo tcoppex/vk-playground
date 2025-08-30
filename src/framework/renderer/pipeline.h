@@ -1,5 +1,5 @@
-#ifndef HELLOVK_FRAMEWORK_RENDERER_PIPELINE_H
-#define HELLOVK_FRAMEWORK_RENDERER_PIPELINE_H
+#ifndef VKPLAYGROUND_FRAMEWORK_RENDERER_PIPELINE_H
+#define VKPLAYGROUND_FRAMEWORK_RENDERER_PIPELINE_H
 
 /* -------------------------------------------------------------------------- */
 
@@ -171,4 +171,4 @@ using PipelineVertexBufferDescriptors = std::vector<PipelineVertexBufferDescript
 
 /* -------------------------------------------------------------------------- */
 
-#endif // HELLOVK_FRAMEWORK_RENDERER_PIPELINE_H
+#endif // VKPLAYGROUND_FRAMEWORK_RENDERER_PIPELINE_H

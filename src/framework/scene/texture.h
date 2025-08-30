@@ -1,5 +1,5 @@
-#ifndef HELLO_VK_FRAMEWORK_SCENE_TEXTURE_H_
-#define HELLO_VK_FRAMEWORK_SCENE_TEXTURE_H_
+#ifndef VKPLAYGROUND_FRAMEWORK_SCENE_TEXTURE_H_
+#define VKPLAYGROUND_FRAMEWORK_SCENE_TEXTURE_H_
 
 #include <vulkan/vulkan.h> // for VkSampler..
 
@@ -28,4 +28,4 @@ struct Texture {
 
 }  // namespace scene
 
-#endif // HELLO_VK_FRAMEWORK_SCENE_TEXTURE_H_
+#endif // VKPLAYGROUND_FRAMEWORK_SCENE_TEXTURE_H_

@@ -1,5 +1,5 @@
-#ifndef HELLOVK_FRAMEWORK_BACKEND_VKUTILS_H
-#define HELLOVK_FRAMEWORK_BACKEND_VKUTILS_H
+#ifndef VKPLAYGROUND_FRAMEWORK_BACKEND_VKUTILS_H
+#define VKPLAYGROUND_FRAMEWORK_BACKEND_VKUTILS_H
 
 /* -------------------------------------------------------------------------- */
 
@@ -44,4 +44,4 @@ void PushNextVKStruct(T* baseStruct, N* nextStruct) {
 
 /* -------------------------------------------------------------------------- */
 
-#endif // HELLOVK_FRAMEWORK_BACKEND_VKUTILS_H
+#endif // VKPLAYGROUND_FRAMEWORK_BACKEND_VKUTILS_H

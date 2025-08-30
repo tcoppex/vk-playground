@@ -1,5 +1,5 @@
-#ifndef HELLOVK_FRAMEWORK_COMMON_H
-#define HELLOVK_FRAMEWORK_COMMON_H
+#ifndef VKPLAYGROUND_FRAMEWORK_COMMON_H
+#define VKPLAYGROUND_FRAMEWORK_COMMON_H
 
 /* -------------------------------------------------------------------------- */
 
@@ -68,4 +68,4 @@ static const std::type_index kInvalidTypeIndex{ typeid(NullType) };
 
 /* -------------------------------------------------------------------------- */
 
-#endif // HELLOVK_FRAMEWORK_COMMON_H
+#endif // VKPLAYGROUND_FRAMEWORK_COMMON_H

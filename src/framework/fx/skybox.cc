@@ -6,8 +6,8 @@
 #include "framework/renderer/renderer.h"
 #include "framework/scene/camera.h"
 
-#include "framework/fx/_experimental/compute_fx.h" //
-#include "framework/fx/_experimental/post_fx_pipeline.h"
+#include "framework/fx/postprocess/compute_fx.h" //
+#include "framework/fx/postprocess/post_fx_pipeline.h"
 
 /* -------------------------------------------------------------------------- */
 
