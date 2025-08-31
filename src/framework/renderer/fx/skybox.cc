@@ -102,7 +102,7 @@ void Skybox::init(Context const& context, Renderer& renderer) {
       graphics_pipeline_ = renderer.create_graphics_pipeline(pipeline_layout_, {
         .vertex = {
           .module = shaders[0u].module,
-          .buffers = cube_.vk_pipeline_vertex_buffer_descriptors(),
+          .buffers = cube_.pipeline_vertex_buffer_descriptors(),
         },
         .fragment = {
           .module = shaders[1u].module,

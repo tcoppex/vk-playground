@@ -157,7 +157,7 @@ class SampleApp final : public Application {
            *
            * Most Geometry::MakeX functions used the same interleaved layout,
            * so they can be used interchangeably on the same static pipeline.*/
-          .buffers = cube_.vk_pipeline_vertex_buffer_descriptors(),
+          .buffers = cube_.pipeline_vertex_buffer_descriptors(),
         },
         .fragment = {
           .module = shaders[1u].module,

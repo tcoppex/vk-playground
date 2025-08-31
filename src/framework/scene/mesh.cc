@@ -18,7 +18,7 @@ void Mesh::initialize_submesh_descriptors(AttributeLocationMap const& attribute_
 
     submesh.draw_descriptor = {
       .vertexInput = create_vertex_input_descriptors(prim.bufferOffsets, attribute_to_location),
-      .indexOffset = device_buffer_info_.index_offset + prim.indexOffset, //
+      .indexOffset = buffer_info_.index_offset + prim.indexOffset, //
       .indexType = vk_index_type(),
       .indexCount = prim.indexCount,
       .vertexCount = prim.vertexCount,
@@ -29,7 +29,7 @@ void Mesh::initialize_submesh_descriptors(AttributeLocationMap const& attribute_
 
 // ----------------------------------------------------------------------------
 
-PipelineVertexBufferDescriptors Mesh::vk_pipeline_vertex_buffer_descriptors() const {
+PipelineVertexBufferDescriptors Mesh::pipeline_vertex_buffer_descriptors() const {
   assert( !submeshes.empty() );
   auto const& vi{ submeshes[0u].draw_descriptor.vertexInput };
 
@@ -145,7 +145,7 @@ VertexInputDescriptor Mesh::create_vertex_input_descriptors(AttributeOffsetMap c
 
     /* The stride is shared between attributes of the same binding. */
     uint32_t const buffer_stride = get_stride(attrib_types[0u]);
-    uint64_t const buffer_offset = device_buffer_info_.vertex_offset + attrib_offset;
+    uint64_t const buffer_offset = buffer_info_.vertex_offset + attrib_offset;
 
     result.vertexBufferOffsets.push_back(buffer_offset);
 
@@ -176,15 +176,15 @@ VertexInputDescriptor Mesh::create_vertex_input_descriptors(AttributeOffsetMap c
 
 // ----------------------------------------------------------------------------
 
-void Mesh::set_resources_ptr(Resources const* R) {
-  resources_ptr = R;
+void Mesh::set_resources_ptr(HostResources const* R) {
+  resources_ptr_ = R;
 }
 
 // ----------------------------------------------------------------------------
 
 mat4 const& Mesh::world_matrix() const {
-  LOG_CHECK(resources_ptr != nullptr);
-  return resources_ptr->transforms[transform_index];
+  LOG_CHECK(resources_ptr_ != nullptr);
+  return resources_ptr_->transforms[transform_index];
 }
 
 } // namespace "scene"

@@ -456,7 +456,7 @@ void Resources::reset_internal_descriptors() {
     // ---------
     mesh->transform_index = transform_index++; //
     mesh->set_resources_ptr(this); //
-    mesh->set_device_buffer_info({
+    mesh->set_buffer_info({
       .vertex_offset = vertex_buffer_size,
       .index_offset = index_buffer_size,
     });

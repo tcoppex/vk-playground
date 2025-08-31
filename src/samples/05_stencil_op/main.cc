@@ -172,7 +172,7 @@ class SampleApp final : public Application {
       GraphicsPipelineDescriptor_t mask_pipeline_descriptor{
         .vertex = {
           .module = shaders[0u].module,
-          .buffers = plane_.vk_pipeline_vertex_buffer_descriptors(),
+          .buffers = plane_.pipeline_vertex_buffer_descriptors(),
         },
         .fragment = {
           .module = shaders[2u].module,
@@ -212,7 +212,7 @@ class SampleApp final : public Application {
       pipelines_[PipelineID::StencilTest] = renderer_.create_graphics_pipeline(pipeline_layout_, {
         .vertex = {
           .module = shaders[1u].module,
-          .buffers = torus_.vk_pipeline_vertex_buffer_descriptors(),
+          .buffers = torus_.pipeline_vertex_buffer_descriptors(),
         },
         .fragment = {
           .module = shaders[2u].module,
@@ -257,7 +257,7 @@ class SampleApp final : public Application {
       pipelines_[PipelineID::Rendering] = renderer_.create_graphics_pipeline(pipeline_layout_, {
         .vertex = {
           .module = shaders[0u].module,
-          .buffers = torus_.vk_pipeline_vertex_buffer_descriptors(),
+          .buffers = torus_.pipeline_vertex_buffer_descriptors(),
         },
         .fragment = {
           .module = shaders[2u].module,
