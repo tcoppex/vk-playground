@@ -62,13 +62,6 @@ void HostResources::reset_internal_descriptors() {
   for (auto const& host_image : host_images) {
     total_image_size += host_image.getBytesize();
   }
-
-#ifndef NDEBUG
-  uint32_t const kMegabyte{ 1024u * 1024u };
-  LOGI("> vertex buffer size %f Mb", vertex_buffer_size / static_cast<float>(kMegabyte));
-  LOGI("> index buffer size %f Mb ", index_buffer_size / static_cast<float>(kMegabyte));
-  LOGI("> total image size %f Mb ", total_image_size / static_cast<float>(kMegabyte));
-#endif
 }
 
 }  // namespace scene

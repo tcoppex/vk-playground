@@ -1,15 +1,13 @@
 #include "framework/scene/resources.h"
 
 #include "framework/core/camera.h"
-#include "framework/core/utils.h"
-#include "framework/backend/context.h"
-#include "framework/backend/command_encoder.h"
-#include "framework/renderer/renderer.h" //
-#include "framework/renderer/sampler_pool.h"
-#include "framework/renderer/fx/material/material_fx.h" //
+#include "framework/renderer/renderer.h"
+#include "framework/renderer/fx/material/material_fx.h"
 
 #include "framework/shaders/material/interop.h" //
-#include "framework/scene/private/gltf_loader.h"
+#include "framework/scene/private/gltf_loader.h" //
+
+static constexpr bool kUseAsyncLoad{true};
 
 /* -------------------------------------------------------------------------- */
 
@@ -19,6 +17,8 @@ Resources::Resources(Renderer const& renderer)
   : renderer_ptr_(&renderer)
   , context_ptr_(&renderer.context())
 {}
+
+// ----------------------------------------------------------------------------
 
 Resources::~Resources() {
   if (allocator_ptr_ != nullptr) {
@@ -47,8 +47,6 @@ void Resources::setup() {
 // ----------------------------------------------------------------------------
 
 bool Resources::load_file(std::string_view filename) {
-  LOG_CHECK( material_fx_registry_ != nullptr );
-
   std::string const basename{ utils::ExtractBasename(filename) };
 
   cgltf_options options{};
@@ -88,118 +86,123 @@ bool Resources::load_file(std::string_view filename) {
 
     // (device specific, to separate from this)
     //--------------------
+    LOG_CHECK( material_fx_registry_ != nullptr );
     PreprocessMaterials(data, *material_fx_registry_);
     material_fx_registry_->setup();
     //--------------------
 
-#if 0
+    if constexpr (kUseAsyncLoad)
+    {
+      /* --- Async tasks version --- */
 
-    /* --- Serialized version --- */
+      auto run_task = utils::RunTaskGeneric<void>;
+      auto run_task_ret = utils::RunTaskGeneric<PointerToIndexMap_t>;
+      auto run_task_sampler = utils::RunTaskGeneric<PointerToSamplerMap_t>;
 
-    auto samplers_lut       = ExtractSamplers(data, samplers);
-    auto skeletons_indices  = ExtractSkeletons(data, skeletons);
-    auto images_indices     = ExtractImages(data, host_images);
-    auto textures_indices   = ExtractTextures(
-      data, images_indices, samplers_lut, textures
-    );
-    auto materials_indices  = ExtractMaterials(
-      data, textures_indices, material_refs, *material_fx_registry_, default_bindings_
-    );
-    ExtractMeshes(
-      data, materials_indices, material_refs, skeletons_indices,
-      skeletons, meshes, transforms, kRestructureAttribs
-    );
+      auto taskSamplers = run_task_sampler([data, &samplers = this->samplers] {
+        return ExtractSamplers(data, samplers);
+      });
 
-#else
+      auto taskSkeletons = run_task_ret([data, &skeletons = this->skeletons] {
+        return ExtractSkeletons(data, skeletons);
+      });
 
-    /* --- Async tasks version --- */
+      // [real bottleneck, internally images are loaded asynchronously and must be waited for at the end]
+      auto taskImageData = run_task_ret([data, &host_images = this->host_images] {
+        return ExtractImages(data, host_images);
+      });
 
-    auto run_task = utils::RunTaskGeneric<void>;
-    auto run_task_ret = utils::RunTaskGeneric<PointerToIndexMap_t>;
-    auto run_task_sampler = utils::RunTaskGeneric<PointerToSamplerMap_t>;
+      auto taskTextures = run_task_ret(
+        [&taskImageData, &taskSamplers, data, &textures = this->textures] {
+        auto images_indices = taskImageData.get();
+        auto samplers_lut = taskSamplers.get();
+        return ExtractTextures(data, images_indices, samplers_lut, textures);
+      });
 
-    auto taskSamplers = run_task_sampler([data, &samplers = this->samplers] {
-      return ExtractSamplers(data, samplers);
-    });
+      auto taskMaterials = run_task_ret([
+        &taskTextures,
+        data,
+        &material_refs = this->material_refs,
+        &material_fx_registry = *(this->material_fx_registry_),
+        &default_bindings = this->default_bindings_
+      ] {
+        auto textures_indices = taskTextures.get();
+        return ExtractMaterials(
+          data, textures_indices, material_refs, material_fx_registry, default_bindings
+        );
+      });
 
-    auto taskSkeletons = run_task_ret([data, &skeletons = this->skeletons] {
-      return ExtractSkeletons(data, skeletons);
-    });
+      auto skeletons_indices = taskSkeletons.get();
 
-    // [real bottleneck, internally images are loaded asynchronously and must be waited for at the end]
-    auto taskImageData = run_task_ret([data, &host_images = this->host_images] {
-      return ExtractImages(data, host_images);
-    });
+      auto taskAnimations = run_task([data, &skeletons_indices, &skeletons = this->skeletons] {
+        // ExtractAnimations(data, basename, skeletons_indices, skeletons, animations_map);
+      });
 
-    auto taskTextures = run_task_ret(
-      [&taskImageData, &taskSamplers, data, &textures = this->textures] {
-      auto images_indices = taskImageData.get();
-      auto samplers_lut = taskSamplers.get();
-      return ExtractTextures(data, images_indices, samplers_lut, textures);
-    });
+      auto taskMeshes = run_task([
+        &taskMaterials,
+        data,
+        &skeletons_indices,
+        &material_refs = this->material_refs,
+        &skeletons = this->skeletons,
+        &meshes = this->meshes,
+        &transforms = this->transforms
+      ] {
+        auto materials_indices = taskMaterials.get();
+        ExtractMeshes(
+          data, materials_indices, material_refs, skeletons_indices,
+          skeletons, meshes, transforms, kRestructureAttribs
+        );
+      });
 
-    auto taskMaterials = run_task_ret([
-      &taskTextures,
-      data,
-      &material_refs = this->material_refs,
-      &material_fx_registry = *(this->material_fx_registry_),
-      &default_bindings = this->default_bindings_
-    ] {
-      auto textures_indices = taskTextures.get();
-      return ExtractMaterials(
-        data, textures_indices, material_refs, material_fx_registry, default_bindings
+      taskAnimations.get();
+      taskMeshes.get();
+    }
+    else
+    {
+      /* --- Serialized version --- */
+
+      auto samplers_lut       = ExtractSamplers(data, samplers);
+      auto skeletons_indices  = ExtractSkeletons(data, skeletons);
+      auto images_indices     = ExtractImages(data, host_images);
+      auto textures_indices   = ExtractTextures(
+        data, images_indices, samplers_lut, textures
       );
-    });
-
-    auto skeletons_indices = taskSkeletons.get();
-
-    auto taskAnimations = run_task([data, &skeletons_indices, &skeletons = this->skeletons] {
-      // ExtractAnimations(data, basename, skeletons_indices, skeletons, animations_map);
-    });
-
-    auto taskMeshes = run_task([
-      &taskMaterials,
-      data,
-      &skeletons_indices,
-      &material_refs = this->material_refs,
-      &skeletons = this->skeletons,
-      &meshes = this->meshes,
-      &transforms = this->transforms
-    ] {
-      auto materials_indices = taskMaterials.get();
+      auto materials_indices  = ExtractMaterials(
+        data, textures_indices, material_refs, *material_fx_registry_, default_bindings_
+      );
       ExtractMeshes(
         data, materials_indices, material_refs, skeletons_indices,
         skeletons, meshes, transforms, kRestructureAttribs
       );
-    });
-
-    taskAnimations.get();
-    taskMeshes.get();
-
-#endif
+    }
 
     /* Wait for the host images to finish loading before using them. */
     for (auto & host_image : host_images) {
       host_image.getLoadAsyncResult();
     }
-
-    reset_internal_descriptors();
   }
 
   /* Be sure to have finished loading all images before freeing gltf data */
   cgltf_free(data);
 
+  reset_internal_descriptors();
+
 #ifndef NDEBUG
-    // This will also display the extra data procedurally created.
-    std::cout << basename << " loaded." << std::endl;
-    std::cout << "┌────────────┬─────────── " << std::endl;
-    std::cout << "│ Images     │ " << host_images.size() << std::endl;
-    std::cout << "│ Textures   │ " << textures.size() << std::endl;
-    std::cout << "│ Materials  │ " << material_refs.size() << std::endl;
-    std::cout << "│ Skeletons  │ " << skeletons.size() << std::endl;
-    std::cout << "│ Animations │ " << animations_map.size() << std::endl;
-    std::cout << "│ Meshes     │ " << meshes.size() << std::endl;
-    std::cerr << "└────────────┴───────────" << std::endl;
+  // This will also display the extra data procedurally created.
+  std::cout << basename << " loaded." << std::endl;
+  std::cout << "┌────────────┬─────────── " << std::endl;
+  std::cout << "│ Images     │ " << host_images.size() << std::endl;
+  std::cout << "│ Textures   │ " << textures.size() << std::endl;
+  std::cout << "│ Materials  │ " << material_refs.size() << std::endl;
+  std::cout << "│ Skeletons  │ " << skeletons.size() << std::endl;
+  std::cout << "│ Animations │ " << animations_map.size() << std::endl;
+  std::cout << "│ Meshes     │ " << meshes.size() << std::endl;
+  std::cerr << "└────────────┴───────────" << std::endl;
+
+  // uint32_t const kMegabyte{ 1024u * 1024u };
+  // LOGI("> vertex buffer size %f Mb", vertex_buffer_size / static_cast<float>(kMegabyte));
+  // LOGI("> index buffer size %f Mb ", index_buffer_size / static_cast<float>(kMegabyte));
+  // LOGI("> total image size %f Mb ", total_image_size / static_cast<float>(kMegabyte));
 #endif
 
   return true;
@@ -215,7 +218,6 @@ void Resources::initialize_submesh_descriptors(Mesh::AttributeLocationMap const&
   // --------------------
   // [~] When we expect Tangent we force recalculate them.
   //     Resulting indices might be incorrect.
-
   if (attribute_to_location.contains(Geometry::AttributeType::Tangent)) {
     // for (auto& mesh : meshes) { mesh->recalculate_tangents(); } //
   }
@@ -310,11 +312,11 @@ void Resources::update(Camera const& camera, VkExtent2D const& surfaceSize, floa
     &frame_data, sizeof(frame_data), frame_ubo_
   );
 
-  ///
+  /// ---------------------------------------
   /// DevNote
   /// We could improve the overall sorting by using a generic 64bits sorting
   /// key (pipeline << 32) | (material << 16) | depthBits), using a single buffer.
-  ///
+  /// ---------------------------------------
 
   // Retrieve submeshes associated to each MaterialFx.
   if constexpr (true) {
@@ -331,14 +333,13 @@ void Resources::update(Camera const& camera, VkExtent2D const& surfaceSize, floa
     //reset_scene_lookups = false;
   }
 
-  /// Preprocess each buffer of submeshes.
+  // Sort each buffer of submeshes.
 
   using SortKey = std::pair<float, size_t>; // (depthProxy, index)
   std::vector<SortKey> sortkeys{};
   vec3 const camera_dir{camera.direction()};
   SubMeshBuffer swap_buffer{};
 
-  // Update the submeshes buffer to be sorted.
   auto sort_submeshes = [&](SubMeshBuffer &submeshes, auto comp) {
     sortkeys = {};
     sortkeys.reserve(submeshes.size());
