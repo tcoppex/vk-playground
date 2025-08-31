@@ -19,7 +19,7 @@ void Mesh::initialize_submesh_descriptors(AttributeLocationMap const& attribute_
     submesh.draw_descriptor = {
       .vertexInput = create_vertex_input_descriptors(prim.bufferOffsets, attribute_to_location),
       .indexOffset = device_buffer_info_.index_offset + prim.indexOffset, //
-      .indexType = get_vk_index_type(),
+      .indexType = vk_index_type(),
       .indexCount = prim.indexCount,
       .vertexCount = prim.vertexCount,
       .instanceCount = 1u, //
@@ -29,7 +29,7 @@ void Mesh::initialize_submesh_descriptors(AttributeLocationMap const& attribute_
 
 // ----------------------------------------------------------------------------
 
-PipelineVertexBufferDescriptors Mesh::get_vk_pipeline_vertex_buffer_descriptors() const {
+PipelineVertexBufferDescriptors Mesh::vk_pipeline_vertex_buffer_descriptors() const {
   assert( !submeshes.empty() );
   auto const& vi{ submeshes[0u].draw_descriptor.vertexInput };
 
@@ -64,7 +64,7 @@ PipelineVertexBufferDescriptors Mesh::get_vk_pipeline_vertex_buffer_descriptors(
 
 // ----------------------------------------------------------------------------
 
-VkPrimitiveTopology Mesh::get_vk_primitive_topology() const {
+VkPrimitiveTopology Mesh::vk_primitive_topology() const {
   switch (get_topology()) {
     case Topology::TriangleStrip:
       return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
@@ -80,7 +80,7 @@ VkPrimitiveTopology Mesh::get_vk_primitive_topology() const {
 
 // ----------------------------------------------------------------------------
 
-VkIndexType Mesh::get_vk_index_type() const {
+VkIndexType Mesh::vk_index_type() const {
   auto format = get_index_format();
   switch (format) {
 
@@ -102,7 +102,7 @@ VkIndexType Mesh::get_vk_index_type() const {
 
 // ----------------------------------------------------------------------------
 
-VkFormat Mesh::get_vk_format(AttributeType const attrib_type) const {
+VkFormat Mesh::vk_format(AttributeType const attrib_type) const {
   switch (get_format(attrib_type)) {
     case AttributeFormat::RG_F32:
       return VK_FORMAT_R32G32_SFLOAT;
@@ -163,7 +163,7 @@ VertexInputDescriptor Mesh::create_vertex_input_descriptors(AttributeOffsetMap c
           .sType = VK_STRUCTURE_TYPE_VERTEX_INPUT_ATTRIBUTE_DESCRIPTION_2_EXT,
           .location = it->second,
           .binding = buffer_binding,
-          .format = get_vk_format(type),
+          .format = vk_format(type),
           .offset = get_offset(type),
         });
       }

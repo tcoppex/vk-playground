@@ -102,7 +102,7 @@ void Skybox::init(Context const& context, Renderer& renderer) {
       graphics_pipeline_ = renderer.create_graphics_pipeline(pipeline_layout_, {
         .vertex = {
           .module = shaders[0u].module,
-          .buffers = cube_.get_vk_pipeline_vertex_buffer_descriptors(),
+          .buffers = cube_.vk_pipeline_vertex_buffer_descriptors(),
         },
         .fragment = {
           .module = shaders[1u].module,
@@ -121,7 +121,7 @@ void Skybox::init(Context const& context, Renderer& renderer) {
           .depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL,
         },
         .primitive = {
-          .topology = cube_.get_vk_primitive_topology(),
+          .topology = cube_.vk_primitive_topology(),
           .cullMode = VK_CULL_MODE_NONE,
         }
       });
@@ -171,7 +171,7 @@ void Skybox::render(RenderPassEncoder & pass, Camera const& camera) const {
     pass.push_constant(push_constant, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
 
     pass.bind_vertex_buffer(vertex_buffer_);
-    pass.bind_index_buffer(index_buffer_, cube_.get_vk_index_type());
+    pass.bind_index_buffer(index_buffer_, cube_.vk_index_type());
     pass.draw_indexed(cube_.get_index_count());
   }
 }

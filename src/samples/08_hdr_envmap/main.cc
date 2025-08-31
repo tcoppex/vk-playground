@@ -210,7 +210,7 @@ class SampleApp final : public Application {
 
   void draw_model(RenderPassEncoder const& pass, mat4 const& world_matrix) {
     for (auto const& mesh : scene_->meshes) {
-      pass.set_primitive_topology(mesh->get_vk_primitive_topology());
+      pass.set_primitive_topology(mesh->vk_primitive_topology());
       push_constant_.model.worldMatrix = linalg::mul(
         world_matrix,
         mesh->world_matrix()

@@ -27,7 +27,7 @@ class SampleApp final : public Application {
 
     void draw(RenderPassEncoder const& pass, uint32_t instance_count = 1u) const {
       pass.bind_vertex_buffer(vertex);
-      pass.bind_index_buffer(index, get_vk_index_type());
+      pass.bind_index_buffer(index, vk_index_type());
       pass.draw_indexed(get_index_count(), instance_count);
     }
   };
@@ -172,7 +172,7 @@ class SampleApp final : public Application {
       GraphicsPipelineDescriptor_t mask_pipeline_descriptor{
         .vertex = {
           .module = shaders[0u].module,
-          .buffers = plane_.get_vk_pipeline_vertex_buffer_descriptors(),
+          .buffers = plane_.vk_pipeline_vertex_buffer_descriptors(),
         },
         .fragment = {
           .module = shaders[2u].module,
@@ -200,7 +200,7 @@ class SampleApp final : public Application {
           },
         },
         .primitive = {
-          .topology = plane_.get_vk_primitive_topology(),
+          .topology = plane_.vk_primitive_topology(),
           .cullMode = VK_CULL_MODE_BACK_BIT,
         }
       };
@@ -212,7 +212,7 @@ class SampleApp final : public Application {
       pipelines_[PipelineID::StencilTest] = renderer_.create_graphics_pipeline(pipeline_layout_, {
         .vertex = {
           .module = shaders[1u].module,
-          .buffers = torus_.get_vk_pipeline_vertex_buffer_descriptors(),
+          .buffers = torus_.vk_pipeline_vertex_buffer_descriptors(),
         },
         .fragment = {
           .module = shaders[2u].module,
@@ -244,7 +244,7 @@ class SampleApp final : public Application {
           },
         },
         .primitive = {
-          .topology = torus_.get_vk_primitive_topology(),
+          .topology = torus_.vk_primitive_topology(),
           .cullMode = VK_CULL_MODE_BACK_BIT,
         }
       });
@@ -257,7 +257,7 @@ class SampleApp final : public Application {
       pipelines_[PipelineID::Rendering] = renderer_.create_graphics_pipeline(pipeline_layout_, {
         .vertex = {
           .module = shaders[0u].module,
-          .buffers = torus_.get_vk_pipeline_vertex_buffer_descriptors(),
+          .buffers = torus_.vk_pipeline_vertex_buffer_descriptors(),
         },
         .fragment = {
           .module = shaders[2u].module,
@@ -279,7 +279,7 @@ class SampleApp final : public Application {
           .depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL,
         },
         .primitive = {
-          .topology = torus_.get_vk_primitive_topology(),
+          .topology = torus_.vk_primitive_topology(),
           .cullMode = VK_CULL_MODE_BACK_BIT,
         }
       });

@@ -147,7 +147,7 @@ class SceneFx final : public RenderTargetFx {
   void draw(RenderPassEncoder const& pass) final {
     uint32_t instance_index = 0u;
     for (auto const& mesh : gltf_model_->meshes) {
-      pass.set_primitive_topology(mesh->get_vk_primitive_topology());
+      pass.set_primitive_topology(mesh->vk_primitive_topology());
 
       push_constant_.model.worldMatrix = linalg::mul(
         world_matrix_,

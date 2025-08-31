@@ -435,7 +435,7 @@ void Resources::render(RenderPassEncoder const& pass) {
         fx->setInstanceIndex(instance_index++); //
         fx->pushConstant(pass);
 
-        pass.set_primitive_topology(mesh->get_vk_primitive_topology());
+        pass.set_primitive_topology(mesh->vk_primitive_topology());
         pass.draw(submesh->draw_descriptor, vertex_buffer, index_buffer); //
       }
     }
