@@ -68,26 +68,21 @@ struct Resources : HostResources {
   backend::Buffer vertex_buffer{};
   backend::Buffer index_buffer{};
 
- private:
-  Renderer const* renderer_ptr_{};
-  Context const* context_ptr_{};
-  ResourceAllocator const* allocator_ptr_{};
-
+ protected:
   std::unique_ptr<MaterialFxRegistry> material_fx_registry_{};
 
   backend::Buffer frame_ubo_{};
   backend::Buffer transforms_ssbo_{};
 
-  /// --------------------------
-  /// (warning)
-  /// If a MaterialFx have others states changes than its alphamode
-  /// some might be discarded...
-  ///
   using SubMeshBuffer = std::vector<Mesh::SubMesh const*>;
-  using FxToSubmeshesMap = std::map< MaterialFx*, SubMeshBuffer >;
-  /// --------------------------
+  using FxHashPair = std::pair< MaterialFx*, MaterialStates >;
+  using FxHashPairToSubmeshesMap = std::map< FxHashPair, SubMeshBuffer >;
+  EnumArray<FxHashPairToSubmeshesMap, MaterialStates::AlphaMode> lookups_{};
 
-  EnumArray<FxToSubmeshesMap, MaterialStates::AlphaMode> lookups_{};
+ private:
+  Renderer const* renderer_ptr_{};
+  Context const* context_ptr_{};
+  ResourceAllocator const* allocator_ptr_{};
 };
 
 } // namespace scene

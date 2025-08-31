@@ -326,7 +326,8 @@ void Resources::update(Camera const& camera, VkExtent2D const& surfaceSize, floa
         if (auto matref = submesh.material_ref; matref) {
           auto const alpha_mode = matref->states.alpha_mode;
           auto fx = material_fx_registry_->material_fx(*matref);
-          lookups_[alpha_mode][fx].push_back(&submesh);
+          auto hashpair = std::make_pair(fx, matref->states);
+          lookups_[alpha_mode][hashpair].emplace_back(&submesh);
         }
       }
     }
@@ -365,11 +366,11 @@ void Resources::update(Camera const& camera, VkExtent2D const& surfaceSize, floa
   for (auto& [_, submeshes] : lookups_[MaterialStates::AlphaMode::Opaque]) {
     sort_submeshes(submeshes, std::less{});
   }
-  for (auto& [fx, submeshes] : lookups_[MaterialStates::AlphaMode::Mask]) {
+  for (auto& [_, submeshes] : lookups_[MaterialStates::AlphaMode::Mask]) {
     sort_submeshes(submeshes, std::less{});
   }
   // Sort back to front for alpha blending.
-  for (auto& [fx, submeshes] : lookups_[MaterialStates::AlphaMode::Blend]) {
+  for (auto& [_, submeshes] : lookups_[MaterialStates::AlphaMode::Blend]) {
     sort_submeshes(submeshes, std::greater{});
   }
 }
@@ -381,9 +382,11 @@ void Resources::render(RenderPassEncoder const& pass) {
   // Render each Fx.
   uint32_t instance_index = 0u;
   for (auto& lookup : lookups_) {
-    for (auto& [fx, submeshes] : lookup) {
+    for (auto& [ hashpair, submeshes] : lookup) {
+      auto [fx, states] = hashpair;
+
       // Bind pipeline & descriptor set.
-      auto const& states = submeshes[0]->material_ref->states;
+      // auto const& states = submeshes[0]->material_ref->states;
       fx->prepareDrawState(pass, states);
 
       // Draw submeshes.
