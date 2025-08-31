@@ -1,32 +1,11 @@
 #ifndef VKFRAMEWORK_SCENE_TEXTURE_H_
 #define VKFRAMEWORK_SCENE_TEXTURE_H_
 
-#include <vulkan/vulkan.h> // for VkSamplerCreateInfo..
+#include "framework/scene/sampler.h"
 
 namespace scene {
 
 /* -------------------------------------------------------------------------- */
-
-struct Sampler {
-  Sampler() = default;
-
-  Sampler(VkSamplerCreateInfo _info)
-    : info(_info)
-    , set_(true)
-  {}
-
-  bool use_default() const {
-    return !set_;
-  }
-
-  // (should be changed to not use Vulkan)
-  VkSamplerCreateInfo info{}; //
-
- private:
-  bool set_{};
-};
-
-// ----------------------------------------------------------------------------
 
 struct Texture {
  public:
@@ -46,7 +25,7 @@ struct Texture {
   }
 
   uint32_t host_image_index{UINT32_MAX};
-  Sampler sampler{};
+  Sampler sampler{}; // (or sampler_index ?)
 };
 
 /* -------------------------------------------------------------------------- */

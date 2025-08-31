@@ -2,7 +2,7 @@
 #define VKFRAMEWORK_RENDERER_SAMPLER_POOL_H_
 
 #include "framework/common.h"
-#include "framework/scene/texture.h"
+#include "framework/scene/sampler.h"
 
 /* -------------------------------------------------------------------------- */
 
