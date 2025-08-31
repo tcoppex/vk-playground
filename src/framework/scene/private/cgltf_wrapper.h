@@ -5,7 +5,7 @@
 
 extern "C" {
 #include <cgltf.h>
-#include <vulkan/vulkan.h>
+#include <vulkan/vulkan.h> //
 }
 
 #include "framework/core/geometry.h"

@@ -16,6 +16,30 @@
 namespace scene {
 
 void HostResources::setup() {
+  // Create default 1x1 textures for optionnal bindings.
+  //  -> should it be left to each MaterialFx?
+  {
+    constexpr uint32_t kDefaultResourceSize = 32u;
+    host_images.reserve(kDefaultResourceSize);
+    textures.reserve(kDefaultResourceSize);
+
+    auto push_default_texture{
+      [&textures = this->textures, &host_images = this->host_images]
+      (std::array<uint8_t, 4> const& c) -> uint32_t {
+        uint32_t const texture_id = textures.size();
+        textures.emplace_back( host_images.size() );
+        host_images.emplace_back( c[0], c[1], c[2], c[3] );
+        return texture_id;
+      }
+    };
+
+    auto &bindings = default_bindings_;
+    bindings.basecolor          = push_default_texture({255, 255, 255, 255});
+    bindings.normal             = push_default_texture({128, 128, 255, 255});
+    bindings.roughness_metallic = push_default_texture({  0, 255,   0, 255});
+    bindings.occlusion          = push_default_texture({255, 255, 255, 255});
+    bindings.emissive           = push_default_texture({  0,   0,   0, 255});
+  }
 }
 
 bool HostResources::load_file(std::string_view filename) {
@@ -54,33 +78,6 @@ Resources::~Resources() {
 void Resources::setup() {
   HostResources::setup();
 
-  // Create default 1x1 textures for optionnal bindings.
-  //  -> should it be left to each MaterialFx?
-  {
-    constexpr uint32_t kDefaultResourceSize = 32u;
-    host_images.reserve(kDefaultResourceSize);
-    textures.reserve(kDefaultResourceSize);
-
-    auto const& sampler = renderer_ptr_->get_default_sampler();
-
-    auto push_default_texture{
-      [&textures = this->textures, &host_images = this->host_images, &sampler]
-      (std::array<uint8_t, 4> const& c) -> uint32_t {
-        uint32_t const texture_id = textures.size();
-        textures.emplace_back( host_images.size(), sampler );
-        host_images.emplace_back( c[0], c[1], c[2], c[3] );
-        return texture_id;
-      }
-    };
-
-    auto &bindings = default_bindings_;
-    bindings.basecolor          = push_default_texture({255, 255, 255, 255});
-    bindings.normal             = push_default_texture({128, 128, 255, 255});
-    bindings.roughness_metallic = push_default_texture({  0, 255,   0, 255});
-    bindings.occlusion          = push_default_texture({255, 255, 255, 255});
-    bindings.emissive           = push_default_texture({  0,   0,   0, 255});
-  }
-
   material_fx_registry_ = std::make_unique<MaterialFxRegistry>();
   material_fx_registry_->init(*renderer_ptr_);
 }
@@ -118,6 +115,7 @@ bool Resources::load_file(std::string_view filename) {
     using namespace internal::gltf_loader;
 
     // Reserve data.
+    samplers.reserve(data->samplers_count + samplers.size());
     host_images.reserve(data->images_count + host_images.size());
     textures.reserve(data->textures_count + textures.size());
     material_refs.reserve(data->materials_count + material_refs.size());
@@ -130,15 +128,13 @@ bool Resources::load_file(std::string_view filename) {
     //--------------------
     PreprocessMaterials(data, *material_fx_registry_);
     material_fx_registry_->setup();
-
-    SamplerPool const& sampler_pool = renderer_ptr_->sampler_pool();
     //--------------------
 
 #if 0
 
     /* --- Serialized version --- */
 
-    auto samplers_lut       = ExtractSamplers(data, sampler_pool);
+    auto samplers_lut       = ExtractSamplers(data, samplers);
     auto skeletons_indices  = ExtractSkeletons(data, skeletons);
     auto images_indices     = ExtractImages(data, host_images);
     auto textures_indices   = ExtractTextures(
@@ -160,8 +156,8 @@ bool Resources::load_file(std::string_view filename) {
     auto run_task_ret = utils::RunTaskGeneric<PointerToIndexMap_t>;
     auto run_task_sampler = utils::RunTaskGeneric<PointerToSamplerMap_t>;
 
-    auto taskSamplers = run_task_sampler([data, &sampler_pool] {
-      return ExtractSamplers(data, sampler_pool);
+    auto taskSamplers = run_task_sampler([data, &samplers = this->samplers] {
+      return ExtractSamplers(data, samplers);
     });
 
     auto taskSkeletons = run_task_ret([data, &skeletons = this->skeletons] {
@@ -322,10 +318,12 @@ DescriptorSetWriteEntry Resources::descriptor_set_texture_atlas_entry(uint32_t c
   }
   LOG_CHECK( !device_images.empty() );
 
+  auto const& sampler_pool = renderer_ptr_->sampler_pool();
+
   for (auto const& texture : textures) {
     auto const& img = device_images.at(texture.channel_index());
     texture_atlas_entry.images.push_back({
-      .sampler = texture.sampler,
+      .sampler = sampler_pool.convert(texture.sampler),
       .imageView = img.view,
       .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
     });

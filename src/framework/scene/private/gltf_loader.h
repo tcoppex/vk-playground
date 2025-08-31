@@ -7,22 +7,21 @@
 #include "framework/scene/resources.h"
 #include "framework/scene/private/cgltf_wrapper.h"
 
-
 /* -------------------------------------------------------------------------- */
 
 namespace internal::gltf_loader {
 
-using PointerToIndexMap_t = std::unordered_map<void const*, uint32_t>;
-using PointerToSamplerMap_t = std::unordered_map<void const*, VkSampler>;
+template<typename T>
+using PointerMap_t = std::unordered_map<void const*, T>;
 
-// template<typename T>
-// using PointerToResourceMap_t = std::unordered_map<void const*, std::unique_ptr<T>>;
+using PointerToIndexMap_t = PointerMap_t<uint32_t>;
+using PointerToSamplerMap_t = PointerMap_t<scene::Sampler>;
 
 /* -------------------------------------------------------------------------- */
 
 PointerToSamplerMap_t ExtractSamplers(
   cgltf_data const* data,
-  SamplerPool const& sampler_pool
+  std::vector<scene::Sampler>& samplers
 );
 
 PointerToIndexMap_t ExtractImages(

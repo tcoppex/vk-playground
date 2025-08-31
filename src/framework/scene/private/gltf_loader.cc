@@ -11,8 +11,6 @@ static constexpr bool kFrameworkHasDraco{true};
 static constexpr bool kFrameworkHasDraco{false};
 #endif
 
-#include "framework/renderer/sampler_pool.h"
-
 #include "framework/renderer/fx/material/impl/pbr_metallic_roughness.h" //
 #include "framework/renderer/fx/material/impl/unlit.h" //
 
@@ -307,22 +305,18 @@ namespace internal::gltf_loader {
 
 PointerToSamplerMap_t ExtractSamplers(
   cgltf_data const* data,
-  SamplerPool const& sampler_pool
+  std::vector<scene::Sampler>& samplers
 ) {
-  PointerToSamplerMap_t samplers_lut{};
-
-  // The glTF spec allow for unspecified sampler on texture, so we define
-  // one by default as fallback.
-  samplers_lut[nullptr] = sampler_pool.default_sampler();
+  PointerToSamplerMap_t samplers_lut{
+    // The glTF spec allow for unspecified sampler on texture, so we define
+    // one by default as fallback.
+    {nullptr, {}}
+  };
 
   for (cgltf_size sampler_id = 0; sampler_id < data->samplers_count; ++sampler_id) {
-    cgltf_sampler const& sampler = data->samplers[sampler_id];
-    if (!samplers_lut.contains(&sampler)) {
-      samplers_lut.try_emplace(
-        &sampler,
-        sampler_pool.get(ConvertSamplerInfo(sampler))
-      );
-    }
+    cgltf_sampler const& gl_sampler = data->samplers[sampler_id];
+    samplers.emplace_back(ConvertSamplerInfo(gl_sampler));
+    samplers_lut.try_emplace( &gl_sampler, samplers.back() );
   }
 
   return samplers_lut;

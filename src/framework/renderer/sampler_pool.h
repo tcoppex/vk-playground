@@ -2,6 +2,7 @@
 #define VKFRAMEWORK_RENDERER_SAMPLER_POOL_H_
 
 #include "framework/common.h"
+#include "framework/scene/texture.h"
 
 /* -------------------------------------------------------------------------- */
 
@@ -49,6 +50,12 @@ class SamplerPool {
     VkSampler sampler = createSampler(info);
     map_[info] = sampler;
     return sampler;
+  }
+
+  VkSampler convert(scene::Sampler const& scene_sampler) const {
+    return scene_sampler.use_default() ? default_sampler_
+                                       : get(scene_sampler.info)
+                                       ;
   }
 
   void destroy(VkSampler sampler) {

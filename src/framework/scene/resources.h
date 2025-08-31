@@ -40,6 +40,7 @@ struct HostResources {
 
   /* --- Host Data --- */
 
+  std::vector<scene::Sampler> samplers{};
   std::vector<ImageData> host_images{};
   std::vector<Texture> textures{}; //
 
