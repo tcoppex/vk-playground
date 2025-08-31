@@ -152,7 +152,7 @@ class SceneFx final : public RenderTargetFx {
 
       push_constant_.model.worldMatrix = linalg::mul(
         world_matrix_,
-        mesh->world_matrix
+        mesh->world_matrix()
       );
 
       for (auto const& submesh : mesh->submeshes) {

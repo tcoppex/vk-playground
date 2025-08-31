@@ -27,7 +27,7 @@ PointerToSamplerMap_t ExtractSamplers(
 
 PointerToIndexMap_t ExtractImages(
   cgltf_data const* data,
-  scene::ResourceBuffer<scene::ImageData>& images
+  std::vector<scene::ImageData>& images
 );
 
 PointerToIndexMap_t ExtractTextures(
@@ -62,6 +62,7 @@ void ExtractMeshes(
   PointerToIndexMap_t const& skeleton_indices,
   scene::ResourceBuffer<scene::Skeleton>const& skeletons,
   scene::ResourceBuffer<scene::Mesh>& meshes,
+  std::vector<mat4f>& transforms,
   bool const bRestructureAttribs
 );
 

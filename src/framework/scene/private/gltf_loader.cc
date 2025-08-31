@@ -332,12 +332,12 @@ PointerToSamplerMap_t ExtractSamplers(
 
 PointerToIndexMap_t ExtractImages(
   cgltf_data const* data,
-  scene::ResourceBuffer<scene::ImageData>& images
+  std::vector<scene::ImageData>& images
 ) {
   PointerToIndexMap_t image_indices{};
 
   uint32_t const index_offset = static_cast<uint32_t>(images.size());
-  images.reserve(images.size() + data->images_count);
+  // images.reserve(images.size() + data->images_count);
 
   stbi_set_flip_vertically_on_load(false); //
   for (cgltf_size image_id = 0; image_id < data->images_count; ++image_id) {
@@ -352,13 +352,11 @@ PointerToIndexMap_t ExtractImages(
       reinterpret_cast<stbi_uc const*>(buffer_view->buffer->data) + buffer_view->offset
     };
 
-    auto image = std::make_unique<scene::ImageData>();
-
     /* Image tasks should be retrieved outside this function via 'image->getLoadAsyncResult()' */
-    image->loadAsync(buffer_data, buffer_view->size);
+    images.emplace_back();
+    images.back().loadAsync(buffer_data, buffer_view->size);
 
     image_indices.try_emplace(&gl_image, index_offset + image_id);
-    images.push_back( std::move(image) );
   }
 
   return image_indices;
@@ -375,7 +373,7 @@ PointerToIndexMap_t ExtractTextures(
   PointerToIndexMap_t textures_indices{};
 
   uint32_t const index_offset = static_cast<uint32_t>(textures.size());
-  textures.reserve(index_offset + data->textures_count);
+  // textures.reserve(index_offset + data->textures_count);
 
   for (cgltf_size texture_id = 0; texture_id < data->textures_count; ++texture_id) {
     cgltf_texture const& gl_texture = data->textures[texture_id];
@@ -422,8 +420,7 @@ PointerToIndexMap_t ExtractMaterials(
   scene::DefaultTextureBinding const &bindings
 ) {
   PointerToIndexMap_t materials_indices{};
-
-  material_refs.reserve(data->materials_count);
+  // material_refs.reserve(data->materials_count);
 
   auto get_texture = [&textures_indices]
     (cgltf_texture_view const& view, uint32_t _default_binding) {
@@ -524,6 +521,7 @@ void ExtractMeshes(
   PointerToIndexMap_t const& skeleton_indices,
   scene::ResourceBuffer<scene::Skeleton>const& skeletons,
   scene::ResourceBuffer<scene::Mesh>& meshes,
+  std::vector<mat4f>& meshes_transforms,
   bool const bRestructureAttribs
 ) {
   /**
@@ -544,7 +542,7 @@ void ExtractMeshes(
       }
     }
   }
-  meshes.reserve(meshNodeIndices.size());
+  // meshes.reserve(meshNodeIndices.size());
 
   // Parse each mesh nodes (for primitives & skeleton).
   for (auto i : meshNodeIndices) {
@@ -599,7 +597,8 @@ void ExtractMeshes(
     // B. Create a new mesh.
     auto mesh = std::make_unique<scene::Mesh>();
     {
-      cgltf_node_transform_world(&node, lina::ptr(mesh->world_matrix));
+      meshes_transforms.emplace_back(linalg::identity);
+      cgltf_node_transform_world(&node, lina::ptr(meshes_transforms.back()));
       mesh->submeshes.resize(valid_prim_indices.size(), {.parent = mesh.get()});
     }
 
@@ -885,7 +884,7 @@ void ExtractAnimations(
   // --------
 
   std::vector<float> inputs, outputs;
-  animations_map.reserve(data->animations_count);
+  // animations_map.reserve(data->animations_count);
 
   // Retrieve Animations.
   for (cgltf_size i = 0; i < data->animations_count; ++i) {

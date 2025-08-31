@@ -84,11 +84,12 @@ struct Resources {
  public:
   /* --- Host Data --- */
 
-  ResourceBuffer<ImageData> host_images{};
+  std::vector<ImageData> host_images{};
   std::vector<Texture> textures{};
   ResourceBuffer<MaterialRef> material_refs{};
   ResourceBuffer<Skeleton> skeletons{};
   ResourceBuffer<Mesh> meshes{};
+  std::vector<mat4f> transforms{};
 
   ResourceMap<AnimationClip> animations_map{};
 

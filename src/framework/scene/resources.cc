@@ -34,8 +34,9 @@ void Resources::release() {
 // ----------------------------------------------------------------------------
 
 void Resources::setup(Context const& context, Renderer const& renderer) {
-  material_fx_registry_ = std::make_unique<MaterialFxRegistry>();
-  material_fx_registry_->init(context, renderer);
+  constexpr uint32_t kDefaultResourceSize = 32u;
+  host_images.reserve(kDefaultResourceSize);
+  textures.reserve(kDefaultResourceSize);
 
   // Create default 1x1 textures for optionnal bindings.
   //  -> should it be left to each MaterialFx?
@@ -47,7 +48,7 @@ void Resources::setup(Context const& context, Renderer const& renderer) {
       (std::array<uint8_t, 4> const& c) -> uint32_t {
         uint32_t const texture_id = textures.size();
         textures.emplace_back( host_images.size(), sampler );
-        host_images.push_back( std::make_unique<ImageData>(c[0], c[1], c[2], c[3]) );
+        host_images.emplace_back( c[0], c[1], c[2], c[3] );
         return texture_id;
       }
     };
@@ -59,6 +60,9 @@ void Resources::setup(Context const& context, Renderer const& renderer) {
     bindings.occlusion          = push_default_texture({255, 255, 255, 255});
     bindings.emissive           = push_default_texture({  0,   0,   0, 255});
   }
+
+  material_fx_registry_ = std::make_unique<MaterialFxRegistry>();
+  material_fx_registry_->init(context, renderer);
 }
 
 // ----------------------------------------------------------------------------
@@ -96,6 +100,15 @@ bool Resources::load_from_file(std::string_view const& filename, SamplerPool& sa
     PreprocessMaterials(data, *material_fx_registry_);
     material_fx_registry_->setup();
 
+    // Reserve data.
+    host_images.reserve(data->images_count + host_images.size());
+    textures.reserve(data->textures_count + textures.size());
+    material_refs.reserve(data->materials_count + material_refs.size());
+    skeletons.reserve(data->skins_count + skeletons.size());
+    meshes.reserve(data->meshes_count + meshes.size());
+    transforms.reserve(data->meshes_count + transforms.size());
+    animations_map.reserve(data->animations_count);
+
 #if 0
 
     /* --- Serialized version --- */
@@ -110,8 +123,8 @@ bool Resources::load_from_file(std::string_view const& filename, SamplerPool& sa
       data, textures_indices, material_refs, *material_fx_registry_, optionnal_texture_binding_
     );
     ExtractMeshes(
-      data, materials_indices, material_refs,
-      skeletons_indices, skeletons, meshes, bRestructureAttribs
+      data, materials_indices, material_refs, skeletons_indices,
+      skeletons, meshes, transforms, bRestructureAttribs
     );
 
 #else
@@ -168,10 +181,14 @@ bool Resources::load_from_file(std::string_view const& filename, SamplerPool& sa
       &skeletons_indices,
       &material_refs = this->material_refs,
       &skeletons = this->skeletons,
-      &meshes = this->meshes
+      &meshes = this->meshes,
+      &transforms = this->transforms
     ] {
       auto materials_indices = taskMaterials.get();
-      ExtractMeshes(data, materials_indices, material_refs, skeletons_indices, skeletons, meshes, bRestructureAttribs);
+      ExtractMeshes(
+        data, materials_indices, material_refs, skeletons_indices,
+        skeletons, meshes, transforms, bRestructureAttribs
+      );
     });
 
     taskAnimations.get();
@@ -180,8 +197,8 @@ bool Resources::load_from_file(std::string_view const& filename, SamplerPool& sa
 #endif
 
     /* Wait for the host images to finish loading before using them. */
-    for (auto const& host_image : host_images) {
-      host_image->getLoadAsyncResult();
+    for (auto & host_image : host_images) {
+      host_image.getLoadAsyncResult();
     }
 
     reset_internal_device_resource_info();
@@ -343,7 +360,8 @@ void Resources::update(Camera const& camera, VkExtent2D const& surfaceSize, floa
     sortkeys = {};
     sortkeys.reserve(submeshes.size());
     for (size_t i = 0; i < submeshes.size(); ++i) {
-      vec3 const pos = lina::to_vec3(submeshes[i]->parent->world_matrix.w);
+      mat4 const& world = submeshes[i]->parent->world_matrix();
+      vec3 const pos = lina::to_vec3(world.w);
       vec3 const v = camera.position() - pos;
       float const dp = linalg::dot(camera_dir, v);
       sortkeys.emplace_back(dp, i);
@@ -424,10 +442,11 @@ void Resources::reset_internal_device_resource_info() {
     index_buffer_size += mesh_indices_size;
 
     mesh->transform_index = transform_index++; //
+    mesh->set_resources_ptr(this); //
   }
 
   for (auto const& host_image : host_images) {
-    total_image_size += host_image->getBytesize();
+    total_image_size += host_image.getBytesize();
   }
 
 #ifndef NDEBUG
@@ -458,8 +477,8 @@ void Resources::upload_images(Context const& context) {
   uint64_t staging_offset = 0u;
   for (auto const& host_image : host_images) {
     VkExtent3D const extent{
-      .width = static_cast<uint32_t>(host_image->width),
-      .height = static_cast<uint32_t>(host_image->height),
+      .width = static_cast<uint32_t>(host_image.width),
+      .height = static_cast<uint32_t>(host_image.height),
       .depth = 1u,
     };
     device_images.push_back(context.create_image_2d(
@@ -470,9 +489,9 @@ void Resources::upload_images(Context const& context) {
     ));
 
     /* Upload image to staging buffer */
-    uint32_t const img_bytesize{ host_image->getBytesize() };
+    uint32_t const img_bytesize{ host_image.getBytesize() };
     allocator_ptr_->write_buffer(
-      staging_buffer, staging_offset, host_image->getPixels(), 0u, img_bytesize
+      staging_buffer, staging_offset, host_image.getPixels(), 0u, img_bytesize
     );
     copies.push_back({
       .bufferOffset = staging_offset,
@@ -520,7 +539,7 @@ void Resources::upload_buffers(Context const& context) {
   }
 
   // Meshes transforms buffer.
-  size_t const transforms_buffer_size{ meshes.size() * sizeof(mat4) };
+  size_t const transforms_buffer_size{ transforms.size() * sizeof(transforms[0]) };
   {
     // We assume most meshes would be static, so with unfrequent updates.
     transforms_ssbo_ = allocator_ptr_->create_buffer(
@@ -536,11 +555,11 @@ void Resources::upload_buffers(Context const& context) {
   backend::Buffer staging_buffer{
     allocator_ptr_->create_staging_buffer(vertex_buffer_size + index_buffer_size + transforms_buffer_size)
   };
-    {
+  {
     size_t vertex_offset{0u};
     size_t index_offset{vertex_buffer_size};
-    size_t transform_offset{vertex_buffer_size + index_buffer_size};
 
+    // Transfer the attributes & indices by ranges.
     std::byte* device_data{};
     allocator_ptr_->map_memory(staging_buffer, (void**)&device_data);
     for (auto const& mesh : meshes) {
@@ -553,10 +572,15 @@ void Resources::upload_buffers(Context const& context) {
         memcpy(device_data + index_offset, indices.data(), indices.size());
         index_offset += indices.size();
       }
-
-      memcpy(device_data + transform_offset, lina::ptr(mesh->world_matrix), sizeof(mat4));
-      transform_offset += sizeof(mat4);
     }
+
+    // Transfer the transforms buffer in one go.
+    memcpy(
+      device_data + vertex_buffer_size + index_buffer_size,
+      transforms.data(),
+      transforms_buffer_size
+    );
+
     allocator_ptr_->unmap_memory(staging_buffer);
   }
 

@@ -1,4 +1,5 @@
 #include "framework/scene/mesh.h"
+#include "framework/scene/resources.h" //
 
 /* -------------------------------------------------------------------------- */
 
@@ -171,6 +172,19 @@ VertexInputDescriptor Mesh::create_vertex_input_descriptors(AttributeOffsetMap c
   }
 
   return result;
+}
+
+// ----------------------------------------------------------------------------
+
+void Mesh::set_resources_ptr(Resources const* R) {
+  resources_ptr = R;
+}
+
+// ----------------------------------------------------------------------------
+
+mat4 const& Mesh::world_matrix() const {
+  LOG_CHECK(resources_ptr != nullptr);
+  return resources_ptr->transforms[transform_index];
 }
 
 } // namespace "scene"

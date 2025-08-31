@@ -10,6 +10,7 @@
 
 namespace scene {
 
+struct Resources; //
 struct MaterialRef;
 
 /* -------------------------------------------------------------------------- */
@@ -57,6 +58,10 @@ struct Mesh : Geometry {
     device_buffer_info_ = device_buffer_info;
   }
 
+  void set_resources_ptr(Resources const* R);
+
+  mat4 const& world_matrix() const;
+
  private:
   VkFormat get_vk_format(AttributeType const attrib_type) const;
 
@@ -67,10 +72,11 @@ struct Mesh : Geometry {
 
  public:
   // ------------------------
-  uint32_t transform_index{}; // Use to reference the transform SSBO.
-  mat4f world_matrix{linalg::identity}; //
-  // Skeleton* skeleton{};
+  uint32_t transform_index{};
   std::vector<SubMesh> submeshes{};
+  Resources const* resources_ptr{};
+  // mat4f world_matrix{linalg::identity};
+  // Skeleton* skeleton{};
   // ------------------------
 
  protected:

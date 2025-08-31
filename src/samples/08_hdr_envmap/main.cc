@@ -215,7 +215,7 @@ class SampleApp final : public Application {
       pass.set_primitive_topology(mesh->get_vk_primitive_topology());
       push_constant_.model.worldMatrix = linalg::mul(
         world_matrix,
-        mesh->world_matrix
+        mesh->world_matrix()
       );
       for (auto const& submesh : mesh->submeshes) {
         auto const& material_ref = *(submesh.material_ref);
