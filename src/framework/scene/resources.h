@@ -45,13 +45,11 @@ struct Resources {
   Resources() = default;
   ~Resources();
 
-  void release();
-
   /* Create material fx used for rendering [might be move to Renderer]. */
-  void setup(Context const& context, Renderer const& renderer); //
+  void setup(Renderer const& renderer); //
 
   /* Load a scene assets from disk to Host memory. */
-  bool load_from_file(std::string_view const& filename, SamplerPool& sampler_pool, bool bRestructureAttribs = kRestructureAttribs);
+  bool load_from_file(std::string_view const& filename, SamplerPool const& sampler_pool, bool bRestructureAttribs = kRestructureAttribs);
 
   /* Bind mesh attributes to pipeline locations. */
   void initialize_submesh_descriptors(Mesh::AttributeLocationMap const& attribute_to_location);

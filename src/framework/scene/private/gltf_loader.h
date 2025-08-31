@@ -22,7 +22,7 @@ using PointerToSamplerMap_t = std::unordered_map<void const*, VkSampler>;
 
 PointerToSamplerMap_t ExtractSamplers(
   cgltf_data const* data,
-  SamplerPool& sampler_pool
+  SamplerPool const& sampler_pool
 );
 
 PointerToIndexMap_t ExtractImages(

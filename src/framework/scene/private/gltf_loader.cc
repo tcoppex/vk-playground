@@ -307,7 +307,7 @@ namespace internal::gltf_loader {
 
 PointerToSamplerMap_t ExtractSamplers(
   cgltf_data const* data,
-  SamplerPool& sampler_pool
+  SamplerPool const& sampler_pool
 ) {
   PointerToSamplerMap_t samplers_lut{};
 

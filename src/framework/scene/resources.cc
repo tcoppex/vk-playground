@@ -61,12 +61,16 @@ void Resources::setup(Renderer const& renderer) {
   }
 
   material_fx_registry_ = std::make_unique<MaterialFxRegistry>();
-  material_fx_registry_->init(context, renderer);
+  material_fx_registry_->init(renderer);
 }
 
 // ----------------------------------------------------------------------------
 
-bool Resources::load_from_file(std::string_view const& filename, SamplerPool& sampler_pool, bool bRestructureAttribs) {
+bool Resources::load_from_file(
+  std::string_view const& filename,
+  SamplerPool const& sampler_pool,
+  bool bRestructureAttribs
+) {
   LOG_CHECK( material_fx_registry_ != nullptr );
 
   std::string const basename{ utils::ExtractBasename(filename) };

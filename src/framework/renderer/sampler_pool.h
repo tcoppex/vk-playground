@@ -10,7 +10,7 @@ class SamplerPool {
   SamplerPool() = default;
 
   ~SamplerPool() {
-    assert( device_ == VK_NULL_HANDLE );
+    LOG_CHECK( device_ == VK_NULL_HANDLE );
   }
 
   void init(VkDevice device) {
@@ -41,7 +41,7 @@ class SamplerPool {
     return default_sampler_;
   }
 
-  VkSampler get(VkSamplerCreateInfo info) {
+  VkSampler get(VkSamplerCreateInfo info) const {
     info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
     if (auto it = map_.find(info); it != map_.end()) {
       return it->second;
@@ -49,12 +49,6 @@ class SamplerPool {
     VkSampler sampler = createSampler(info);
     map_[info] = sampler;
     return sampler;
-  }
-
-  VkSampler get(VkSamplerCreateInfo const& info) const {
-    LOG_CHECK(info.sType == VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO);
-    LOG_CHECK(map_.contains(info));
-    return map_.find(info)->second;
   }
 
   void destroy(VkSampler sampler) {
@@ -109,7 +103,7 @@ class SamplerPool {
   VkDevice device_{};
   VkSampler default_sampler_{};
 
-  std::unordered_map<VkSamplerCreateInfo, VkSampler, InfoHash, InfoKeyEqual> map_{};
+  mutable std::unordered_map<VkSamplerCreateInfo, VkSampler, InfoHash, InfoKeyEqual> map_{};
 };
 
 /* -------------------------------------------------------------------------- */
