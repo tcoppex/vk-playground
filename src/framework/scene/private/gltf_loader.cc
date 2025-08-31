@@ -492,7 +492,7 @@ PointerToIndexMap_t ExtractMaterials(
       continue;
     }
 
-    material_ref->index = material_id;
+    // material_ref->index = material_id;
     materials_indices.try_emplace(&mat, material_id);
     material_refs.push_back( std::move(material_ref) ); //
   }

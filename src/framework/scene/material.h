@@ -33,14 +33,23 @@ struct MaterialStates {
   } alpha_mode{AlphaMode::Opaque};
 };
 
-struct MaterialRef {
-  uint32_t index{ kInvalidIndexU32 };
+// ----------------------------------------------------------------------------
 
+struct MaterialRef {
+  // Global index in the Resources buffer.
+  // uint32_t index{ kInvalidIndexU32 };
+
+  // TypeIndex of the internal Fx material type.
   std::type_index material_type_index{ kInvalidTypeIndex }; //
+
+  // Index in the Fx intrnal buffer.
   uint32_t material_index{ kInvalidIndexU32 };
 
+  // Static pipeline states.
   MaterialStates states{};
 };
+
+// ----------------------------------------------------------------------------
 
 // (tmp) Default texture binding when none availables.
 struct DefaultTextureBinding {

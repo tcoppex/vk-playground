@@ -218,7 +218,7 @@ class TMaterialFx : public MaterialFx {
   CreatedMaterial createMaterial(scene::MaterialStates states) override {
     auto& mat = materials_.emplace_back(defaultMaterial());
     scene::MaterialRef ref = {
-      .index = kInvalidIndexU32,
+      // .index = kInvalidIndexU32,
       .material_type_index = MaterialTypeIndex(),
       .material_index = static_cast<uint32_t>(materials_.size() - 1u),
       .states = states,
