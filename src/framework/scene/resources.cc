@@ -15,20 +15,19 @@
 
 namespace scene {
 
-void Resources::release() {
-  LOG_CHECK(allocator_ptr_ != nullptr);
-
-  for (auto& img : device_images) {
-    allocator_ptr_->destroy_image(&img);
+Resources::~Resources() {
+  if (allocator_ptr_ != nullptr) {
+    for (auto& img : device_images) {
+      allocator_ptr_->destroy_image(&img);
+    }
+    allocator_ptr_->destroy_buffer(transforms_ssbo_);
+    allocator_ptr_->destroy_buffer(frame_ubo_);
+    allocator_ptr_->destroy_buffer(index_buffer);
+    allocator_ptr_->destroy_buffer(vertex_buffer);
   }
-  allocator_ptr_->destroy_buffer(frame_ubo_);
-  allocator_ptr_->destroy_buffer(index_buffer);
-  allocator_ptr_->destroy_buffer(vertex_buffer);
-  allocator_ptr_->destroy_buffer(transforms_ssbo_);
-
-  material_fx_registry_->release();
-
-  *this = {};
+  if (material_fx_registry_) {
+    material_fx_registry_->release();
+  }
 }
 
 // ----------------------------------------------------------------------------

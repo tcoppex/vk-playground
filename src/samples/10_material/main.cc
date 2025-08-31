@@ -62,9 +62,7 @@ class SampleApp final : public Application {
   }
 
   void release() final {
-    if (scene_) {
-      scene_->release();
-    }
+    scene_.reset();
   }
 
   void update(float const dt) final {

@@ -199,10 +199,8 @@ class SampleApp final : public Application {
     renderer_.destroy_descriptor_set_layout(descriptor_set_layout_);
     renderer_.destroy_pipeline_layout(graphics_pipeline_.get_layout());
     renderer_.destroy_pipeline(graphics_pipeline_);
-
     allocator_ptr_->destroy_buffer(uniform_buffer_);
-
-    scene_->release(); //
+    scene_.reset();
   }
 
   void update_frame(float const delta_time) {

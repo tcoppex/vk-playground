@@ -43,6 +43,7 @@ struct Resources {
 
  public:
   Resources() = default;
+  ~Resources();
 
   void release();
 

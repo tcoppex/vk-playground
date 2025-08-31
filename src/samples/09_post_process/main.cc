@@ -54,8 +54,7 @@ class SceneFx final : public RenderTargetFx {
 
   void release() final {
     allocator_ptr_->destroy_buffer(uniform_buffer_);
-    gltf_model_->release(); //
-
+    gltf_model_.reset();
     RenderTargetFx::release();
   }
 
