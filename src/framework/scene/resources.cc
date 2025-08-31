@@ -15,6 +15,25 @@
 
 namespace scene {
 
+void HostResources::setup() {
+}
+
+bool HostResources::load_file(std::string_view filename) {
+  return true;
+}
+
+}
+
+/* -------------------------------------------------------------------------- */
+/* -------------------------------------------------------------------------- */
+
+namespace scene {
+
+Resources::Resources(Renderer const& renderer)
+  : renderer_ptr_(&renderer)
+  , context_ptr_(&renderer.context())
+{}
+
 Resources::~Resources() {
   if (allocator_ptr_ != nullptr) {
     for (auto& img : device_images) {
@@ -32,15 +51,17 @@ Resources::~Resources() {
 
 // ----------------------------------------------------------------------------
 
-void Resources::setup(Renderer const& renderer) {
-  constexpr uint32_t kDefaultResourceSize = 32u;
-  host_images.reserve(kDefaultResourceSize);
-  textures.reserve(kDefaultResourceSize);
+void Resources::setup() {
+  HostResources::setup();
 
   // Create default 1x1 textures for optionnal bindings.
   //  -> should it be left to each MaterialFx?
   {
-    auto const& sampler = renderer.get_default_sampler();
+    constexpr uint32_t kDefaultResourceSize = 32u;
+    host_images.reserve(kDefaultResourceSize);
+    textures.reserve(kDefaultResourceSize);
+
+    auto const& sampler = renderer_ptr_->get_default_sampler();
 
     auto push_default_texture{
       [&textures = this->textures, &host_images = this->host_images, &sampler]
@@ -52,7 +73,7 @@ void Resources::setup(Renderer const& renderer) {
       }
     };
 
-    auto &bindings = optionnal_texture_binding_;
+    auto &bindings = default_bindings_;
     bindings.basecolor          = push_default_texture({255, 255, 255, 255});
     bindings.normal             = push_default_texture({128, 128, 255, 255});
     bindings.roughness_metallic = push_default_texture({  0, 255,   0, 255});
@@ -61,16 +82,12 @@ void Resources::setup(Renderer const& renderer) {
   }
 
   material_fx_registry_ = std::make_unique<MaterialFxRegistry>();
-  material_fx_registry_->init(renderer);
+  material_fx_registry_->init(*renderer_ptr_);
 }
 
 // ----------------------------------------------------------------------------
 
-bool Resources::load_from_file(
-  std::string_view const& filename,
-  SamplerPool const& sampler_pool,
-  bool bRestructureAttribs
-) {
+bool Resources::load_file(std::string_view filename) {
   LOG_CHECK( material_fx_registry_ != nullptr );
 
   std::string const basename{ utils::ExtractBasename(filename) };
@@ -100,9 +117,6 @@ bool Resources::load_from_file(
   {
     using namespace internal::gltf_loader;
 
-    PreprocessMaterials(data, *material_fx_registry_);
-    material_fx_registry_->setup();
-
     // Reserve data.
     host_images.reserve(data->images_count + host_images.size());
     textures.reserve(data->textures_count + textures.size());
@@ -111,6 +125,14 @@ bool Resources::load_from_file(
     meshes.reserve(data->meshes_count + meshes.size());
     transforms.reserve(data->meshes_count + transforms.size());
     animations_map.reserve(data->animations_count);
+
+    // (device specific, to separate from this)
+    //--------------------
+    PreprocessMaterials(data, *material_fx_registry_);
+    material_fx_registry_->setup();
+
+    SamplerPool const& sampler_pool = renderer_ptr_->sampler_pool();
+    //--------------------
 
 #if 0
 
@@ -123,11 +145,11 @@ bool Resources::load_from_file(
       data, images_indices, samplers_lut, textures
     );
     auto materials_indices  = ExtractMaterials(
-      data, textures_indices, material_refs, *material_fx_registry_, optionnal_texture_binding_
+      data, textures_indices, material_refs, *material_fx_registry_, default_bindings_
     );
     ExtractMeshes(
       data, materials_indices, material_refs, skeletons_indices,
-      skeletons, meshes, transforms, bRestructureAttribs
+      skeletons, meshes, transforms, kRestructureAttribs
     );
 
 #else
@@ -163,7 +185,7 @@ bool Resources::load_from_file(
       data,
       &material_refs = this->material_refs,
       &material_fx_registry = *(this->material_fx_registry_),
-      &default_bindings = this->optionnal_texture_binding_
+      &default_bindings = this->default_bindings_
     ] {
       auto textures_indices = taskTextures.get();
       return ExtractMaterials(
@@ -180,7 +202,6 @@ bool Resources::load_from_file(
     auto taskMeshes = run_task([
       &taskMaterials,
       data,
-      bRestructureAttribs,
       &skeletons_indices,
       &material_refs = this->material_refs,
       &skeletons = this->skeletons,
@@ -190,7 +211,7 @@ bool Resources::load_from_file(
       auto materials_indices = taskMaterials.get();
       ExtractMeshes(
         data, materials_indices, material_refs, skeletons_indices,
-        skeletons, meshes, transforms, bRestructureAttribs
+        skeletons, meshes, transforms, kRestructureAttribs
       );
     });
 
@@ -204,7 +225,7 @@ bool Resources::load_from_file(
       host_image.getLoadAsyncResult();
     }
 
-    reset_internal_device_resource_info();
+    reset_internal_descriptors();
   }
 
   /* Be sure to have finished loading all images before freeing gltf data */
@@ -245,10 +266,9 @@ void Resources::initialize_submesh_descriptors(Mesh::AttributeLocationMap const&
 
 // ----------------------------------------------------------------------------
 
-void Resources::upload_to_device(Context const& context, bool const bReleaseHostDataOnUpload) {
-  context_ptr_ = &context;
+void Resources::upload_to_device(bool const bReleaseHostDataOnUpload) {
   if (!allocator_ptr_) {
-    allocator_ptr_ = context.allocator_ptr();
+    allocator_ptr_ = context_ptr_->allocator_ptr();
   }
 
   /* Create the shared Frame UBO */
@@ -267,7 +287,7 @@ void Resources::upload_to_device(Context const& context, bool const bReleaseHost
 
   /* Transfer Textures */
   if (total_image_size > 0) {
-    upload_images(context);
+    upload_images(*context_ptr_);
 
     material_fx_registry_->update_texture_atlas([this](uint32_t binding) {
       return this->descriptor_set_texture_atlas_entry(binding);
@@ -276,7 +296,7 @@ void Resources::upload_to_device(Context const& context, bool const bReleaseHost
 
   /* Transfer Buffers */
   if (vertex_buffer_size > 0) {
-    upload_buffers(context);
+    upload_buffers(*context_ptr_);
   }
 
   /* Clear host data once uploaded */
@@ -425,27 +445,24 @@ void Resources::render(RenderPassEncoder const& pass) {
 // ----------------------------------------------------------------------------
 // ----------------------------------------------------------------------------
 
-void Resources::reset_internal_device_resource_info() {
+void Resources::reset_internal_descriptors() {
   /* Calculate the offsets to indivual mesh data inside the shared vertices
    * and indices buffers. */
+  uint32_t transform_index = 0u;
   vertex_buffer_size = 0u;
   index_buffer_size = 0u;
 
-  uint32_t transform_index = 0u;
   for (auto const& mesh : meshes) {
-    uint64_t const mesh_vertices_size = mesh->get_vertices().size();
-    uint64_t const mesh_indices_size = mesh->get_indices().size();
+    // ---------
+    mesh->transform_index = transform_index++; //
+    mesh->set_resources_ptr(this); //
     mesh->set_device_buffer_info({
       .vertex_offset = vertex_buffer_size,
       .index_offset = index_buffer_size,
-      .vertex_size = mesh_vertices_size,
-      .index_size = mesh_indices_size,
     });
-    vertex_buffer_size += mesh_vertices_size;
-    index_buffer_size += mesh_indices_size;
-
-    mesh->transform_index = transform_index++; //
-    mesh->set_resources_ptr(this); //
+    // ---------
+    vertex_buffer_size += mesh->get_vertices().size();
+    index_buffer_size += mesh->get_indices().size();
   }
 
   for (auto const& host_image : host_images) {

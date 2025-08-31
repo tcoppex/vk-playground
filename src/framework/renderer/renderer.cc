@@ -816,13 +816,11 @@ GLTFScene Renderer::load_and_upload(
   std::string_view gltf_filename,
   scene::Mesh::AttributeLocationMap const& attribute_to_location
 ) {
-  GLTFScene scene = std::make_shared<scene::Resources>();
-
-  if (scene) {
-    scene->setup(*this); //
-    if (scene->load_from_file(gltf_filename, sampler_pool_)) {
+  if (GLTFScene scene = std::make_shared<scene::Resources>(*this); scene) {
+    scene->setup();
+    if (scene->load_file(gltf_filename)) {
       scene->initialize_submesh_descriptors(attribute_to_location);
-      scene->upload_to_device(context()); //
+      scene->upload_to_device();
       return scene;
     }
   }

@@ -20,11 +20,6 @@ class Camera;
 
 namespace scene {
 
-///
-/// DevNote : we might prefer using std::unique_ptr<T>, std::observer_ptr or
-///           raw pointer instead of shared_ptr (or even better.. direct data).
-///
-
 template<typename T>
 using ResourceBuffer = std::vector<std::unique_ptr<T>>;
 
@@ -32,30 +27,62 @@ template<typename T>
 using ResourceMap = std::unordered_map<std::string, std::unique_ptr<T>>;
 
 // ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+
+struct HostResources {
+  HostResources() = default;
+
+  virtual ~HostResources() = default;
+
+  virtual void setup();
+
+  virtual bool load_file(std::string_view filename);
+
+  /* --- Host Data --- */
+
+  std::vector<ImageData> host_images{};
+  std::vector<Texture> textures{}; //
+
+  ResourceBuffer<MaterialRef> material_refs{}; //
+
+  ResourceBuffer<Mesh> meshes{}; //
+  std::vector<mat4f> transforms{};
+
+  ResourceBuffer<Skeleton> skeletons{};
+  ResourceMap<AnimationClip> animations_map{};
+
+ protected:
+  DefaultTextureBinding default_bindings_{};
+};
+
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
 
 ///
 /// Holds Host and Device resources for rendering a (glTF) scene.
 ///
-struct Resources {
+struct Resources : HostResources {
  public:
   static bool constexpr kRestructureAttribs = true;
   static bool constexpr kReleaseHostDataOnUpload = true;
 
  public:
-  Resources() = default;
-  ~Resources();
+  Resources(Renderer const& renderer);
+
+  virtual ~Resources();
 
   /* Create material fx used for rendering [might be move to Renderer]. */
-  void setup(Renderer const& renderer); //
+  void setup() override;
 
   /* Load a scene assets from disk to Host memory. */
-  bool load_from_file(std::string_view const& filename, SamplerPool const& sampler_pool, bool bRestructureAttribs = kRestructureAttribs);
+  bool load_file(std::string_view filename) override;
 
+ public:
   /* Bind mesh attributes to pipeline locations. */
   void initialize_submesh_descriptors(Mesh::AttributeLocationMap const& attribute_to_location);
 
   /* Upload host resources to Device memory. */
-  void upload_to_device(Context const& context, bool const bReleaseHostDataOnUpload = kReleaseHostDataOnUpload);
+  void upload_to_device(bool const bReleaseHostDataOnUpload = kReleaseHostDataOnUpload);
 
   /* Construct a texture atlas entry for a descriptor set. */
   DescriptorSetWriteEntry descriptor_set_texture_atlas_entry(uint32_t const binding) const;
@@ -74,23 +101,23 @@ struct Resources {
   }
 
  private:
-  void reset_internal_device_resource_info();
+  void reset_internal_descriptors();
 
   void upload_images(Context const& context);
 
   void upload_buffers(Context const& context);
 
  public:
-  /* --- Host Data --- */
+  // /* --- Host Data --- */
 
-  std::vector<ImageData> host_images{};
-  std::vector<Texture> textures{};
-  ResourceBuffer<MaterialRef> material_refs{};
-  ResourceBuffer<Skeleton> skeletons{};
-  ResourceBuffer<Mesh> meshes{};
-  std::vector<mat4f> transforms{};
+  // std::vector<ImageData> host_images{};
+  // std::vector<Texture> textures{};
+  // ResourceBuffer<MaterialRef> material_refs{};
+  // ResourceBuffer<Skeleton> skeletons{};
+  // ResourceBuffer<Mesh> meshes{};
+  // std::vector<mat4f> transforms{};
 
-  ResourceMap<AnimationClip> animations_map{};
+  // ResourceMap<AnimationClip> animations_map{};
 
   /* --- Device Data --- */
 
@@ -103,10 +130,10 @@ struct Resources {
   uint32_t total_image_size{0u};
 
  private:
+  Renderer const* renderer_ptr_{};
   Context const* context_ptr_{};
   ResourceAllocator const* allocator_ptr_{};
 
-  DefaultTextureBinding optionnal_texture_binding_{};
   std::unique_ptr<MaterialFxRegistry> material_fx_registry_{};
 
   backend::Buffer frame_ubo_{};
@@ -118,6 +145,7 @@ struct Resources {
   ///
   using SubMeshBuffer = std::vector<Mesh::SubMesh const*>;
   using FxToSubmeshesMap = std::map< MaterialFx*, SubMeshBuffer >;
+
   EnumArray<FxToSubmeshesMap, MaterialStates::AlphaMode> lookups_;
 };
 
