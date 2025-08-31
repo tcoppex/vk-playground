@@ -8,7 +8,7 @@
 
 /* -------------------------------------------------------------------------- */
 
-void MaterialFxRegistry::init(Context const& context, Renderer const& renderer) {
+void MaterialFxRegistry::init(Renderer const& renderer) {
   fx_map_ = {
     {
       fx::material::PBRMetallicRoughnessFx::MaterialTypeIndex(),
@@ -21,7 +21,7 @@ void MaterialFxRegistry::init(Context const& context, Renderer const& renderer) 
   };
 
   for (auto [_, fx] : fx_map_) {
-    fx->init(context, renderer);
+    fx->init(renderer);
   }
 }
 

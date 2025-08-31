@@ -54,6 +54,10 @@ class Renderer : public backend::RTInterface {
     return swapchain_;
   }
 
+  Context const& context() const {
+    return *ctx_ptr_;
+  }
+
   Skybox& skybox() {
     return skybox_;
   }

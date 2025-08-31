@@ -32,7 +32,7 @@ Resources::~Resources() {
 
 // ----------------------------------------------------------------------------
 
-void Resources::setup(Context const& context, Renderer const& renderer) {
+void Resources::setup(Renderer const& renderer) {
   constexpr uint32_t kDefaultResourceSize = 32u;
   host_images.reserve(kDefaultResourceSize);
   textures.reserve(kDefaultResourceSize);

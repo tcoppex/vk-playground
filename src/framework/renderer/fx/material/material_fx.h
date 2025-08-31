@@ -20,7 +20,7 @@ class MaterialFx {
   MaterialFx() = default;
   virtual ~MaterialFx() {}
 
-  virtual void init(Context const& context, Renderer const& renderer);
+  virtual void init(Renderer const& renderer);
 
   virtual void setup() {
     createPipelineLayout();

@@ -819,11 +819,10 @@ GLTFScene Renderer::load_and_upload(
   GLTFScene scene = std::make_shared<scene::Resources>();
 
   if (scene) {
-    scene->setup(*ctx_ptr_, *this);
-
+    scene->setup(*this); //
     if (scene->load_from_file(gltf_filename, sampler_pool_)) {
       scene->initialize_submesh_descriptors(attribute_to_location);
-      scene->upload_to_device(*ctx_ptr_);
+      scene->upload_to_device(context()); //
       return scene;
     }
   }

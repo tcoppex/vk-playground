@@ -18,7 +18,7 @@ class MaterialFxRegistry {
   MaterialFxRegistry() = default;
 
   /* Create the initial material fx LUT. */
-  void init(Context const& context, Renderer const& renderer);
+  void init(Renderer const& renderer);
 
   /* Release all allocated resources. */
   void release();

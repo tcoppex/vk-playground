@@ -3,10 +3,10 @@
 
 /* -------------------------------------------------------------------------- */
 
-void MaterialFx::init(Context const& context, Renderer const& renderer) {
-  context_ptr_ = &context;
+void MaterialFx::init(Renderer const& renderer) {
+  context_ptr_ = &renderer.context(); //
   renderer_ptr_ = &renderer;
-  allocator_ptr_ = context.allocator_ptr();
+  allocator_ptr_ = renderer.context().allocator_ptr();
 }
 
 // ----------------------------------------------------------------------------
