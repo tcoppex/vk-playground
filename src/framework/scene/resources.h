@@ -47,7 +47,7 @@ struct Resources {
   void release();
 
   /* Create material fx used for rendering [might be move to Renderer]. */
-  void prepare_material_fx(Context const& context, Renderer const& renderer); //
+  void setup(Context const& context, Renderer const& renderer); //
 
   /* Load a scene assets from disk to Host memory. */
   bool load_from_file(std::string_view const& filename, SamplerPool& sampler_pool, bool bRestructureAttribs = kRestructureAttribs);

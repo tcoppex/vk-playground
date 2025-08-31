@@ -33,7 +33,7 @@ void Resources::release() {
 
 // ----------------------------------------------------------------------------
 
-void Resources::prepare_material_fx(Context const& context, Renderer const& renderer) {
+void Resources::setup(Context const& context, Renderer const& renderer) {
   material_fx_registry_ = std::make_unique<MaterialFxRegistry>();
   material_fx_registry_->init(context, renderer);
 
