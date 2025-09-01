@@ -40,6 +40,7 @@ void RaytracingScene::build(
     }
   }
 
+  build_tlas();
 }
 
 // ----------------------------------------------------------------------------
@@ -130,55 +131,10 @@ void RaytracingScene::build_blas(scene::Mesh::SubMesh const& submesh) {
 
   // C - Build the BLAS.
 
-  // ------------------------
-  // ------------------------
-  scratch_buffer_ = allocator.create_buffer(
-    blas.build_sizes_info.accelerationStructureSize,
-      VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
-    | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT
-  );
-  blas.build_geometry_info.dstAccelerationStructure = blas.handle;
-  blas.build_geometry_info.scratchData.deviceAddress = scratch_buffer_.address;
-
-  auto cmd = context_ptr_->create_transient_command_encoder(Context::TargetQueue::Transfer);
-  {
-    std::vector<VkAccelerationStructureBuildRangeInfoKHR *> build_range_infos{
-      &blas.build_range_info
-    };
-    vkCmdBuildAccelerationStructuresKHR(
-      cmd.get_handle(),
-      1,
-      &blas.build_geometry_info,
-      build_range_infos.data()
-    );
-
-    VkMemoryBarrier2 barrier{
-      .sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2,
-      .srcStageMask  = VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_BUILD_BIT_KHR,
-      .srcAccessMask = VK_ACCESS_2_ACCELERATION_STRUCTURE_WRITE_BIT_KHR,
-      .dstStageMask  = VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_BUILD_BIT_KHR,
-      .dstAccessMask = VK_ACCESS_2_ACCELERATION_STRUCTURE_READ_BIT_KHR
-    };
-    VkDependencyInfo depInfo{
-      .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-      .memoryBarrierCount = 1,
-      .pMemoryBarriers = &barrier
-    };
-    vkCmdPipelineBarrier2(cmd.get_handle(), &depInfo);
-  }
-  context_ptr_->finish_transient_command_encoder(cmd);
-
-  allocator.destroy_buffer(scratch_buffer_); //
-  // ------------------------
-  // ------------------------
-
-  VkAccelerationStructureDeviceAddressInfoKHR addrInfo{
-    .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR,
-    .accelerationStructure = blas.handle
-  };
-  blas.buffer.address = vkGetAccelerationStructureDeviceAddressKHR(
-    context_ptr_->get_device(),
-    &addrInfo
+  build_acceleration_structure(
+    &blas,
+    VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_BUILD_BIT_KHR,
+    blas.build_range_info
   );
 
   blas_.push_back(blas);
@@ -187,74 +143,87 @@ void RaytracingScene::build_blas(scene::Mesh::SubMesh const& submesh) {
 // ----------------------------------------------------------------------------
 
 void RaytracingScene::build_tlas() {
+  auto const& allocator = context_ptr_->allocator();
+
 #if 0
-  VkDeviceAddress instAddr = get_buffer_address(dev, tlas_.instances.vk);
-
-  VkAccelerationStructureGeometryInstancesDataKHR instData{
-    .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR,
-    .arrayOfPointers = VK_FALSE,
-    .data = { .deviceAddress = instAddr }
+  backend::Buffer instances_buffer = context_ptr_->create_buffer_and_upload(
+    tlas_.instances,
+      VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR
+    | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT
+  );
+#else
+  size_t const instances_bytesize{
+    tlas_.instances.size() * sizeof(tlas_.instances[0])
   };
+  backend::Buffer instances_buffer = allocator.create_buffer(
+    instances_bytesize,
+      VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR
+    | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT
+    , VMA_MEMORY_USAGE_CPU_TO_GPU
+  );
+  allocator.upload_host_to_device(
+    tlas_.instances.data(), instances_bytesize,
+    instances_buffer
+  );
+#endif
 
-  VkAccelerationStructureGeometryKHR geom{
+  VkAccelerationStructureGeometryKHR const acceleration_structure_geometry{
     .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR,
     .geometryType = VK_GEOMETRY_TYPE_INSTANCES_KHR,
-    .geometry = { .instances = instData }
+    .geometry = {
+      .instances = {
+        .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR,
+        .arrayOfPointers = VK_FALSE,
+        .data = { .deviceAddress = instances_buffer.address }
+      }
+    },
   };
 
-  VkAccelerationStructureBuildGeometryInfoKHR buildInfo{
+  tlas_.build_geometry_info = {
     .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR,
     .type  = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR,
     .flags = tlas_.flags,
     .mode  = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR,
     .geometryCount = 1,
-    .pGeometries   = &geom
+    .pGeometries = &acceleration_structure_geometry
   };
 
-  uint32_t primCount = tlas_.count; // = instances.size()
-  VkAccelerationStructureBuildSizesInfoKHR sizes{ .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR };
-  vkGetAccelerationStructureBuildSizesKHR(dev, VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR, &buildInfo, &primCount, &sizes);
+  tlas_.build_sizes_info = {
+    .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR,
+  };
 
-  tlas_.as.buffer = allocator_ptr_->create_buffer({
-    .size  = sizes.accelerationStructureSize,
-    .usage = VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-    .memory = MemoryUsage::DeviceLocal
-  });
-  tlas_.as.size = sizes.accelerationStructureSize;
+  uint32_t const primitiveCount{ static_cast<uint32_t>(tlas_.instances.size()) };
+  vkGetAccelerationStructureBuildSizesKHR(
+    context_ptr_->get_device(),
+    VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
+    &tlas_.build_geometry_info,
+    &primitiveCount,
+    &tlas_.build_sizes_info
+  );
+
+  tlas_.buffer = allocator.create_buffer(
+    tlas_.build_sizes_info.accelerationStructureSize,
+    VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR,
+    VMA_MEMORY_USAGE_GPU_ONLY
+  );
 
   VkAccelerationStructureCreateInfoKHR asInfo{
     .sType  = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR,
-    .buffer = tlas_.as.buffer.vk,
-    .size   = sizes.accelerationStructureSize,
+    .buffer = tlas_.buffer.buffer,
+    .size   = tlas_.build_sizes_info.accelerationStructureSize,
     .type   = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR
   };
-  CHECK_VK(vkCreateAccelerationStructureKHR(dev, &asInfo, nullptr, &tlas_.as.handle));
-#endif
+  CHECK_VK(vkCreateAccelerationStructureKHR(
+    context_ptr_->get_device(), &asInfo, nullptr, &tlas_.handle
+  ));
 
-#if 0
-  reserve_or_resize_scratch(sizes.buildScratchSize);
+  build_acceleration_structure(
+    &tlas_,
+    VK_PIPELINE_STAGE_2_RAY_TRACING_SHADER_BIT_KHR,
+    { .primitiveCount = primitiveCount }
+  );
 
-  buildInfo.dstAccelerationStructure = tlas_.as.handle;
-  buildInfo.scratchData.deviceAddress = get_buffer_address(dev, scratch_.vk);
-
-  VkAccelerationStructureBuildRangeInfoKHR range{ .primitiveCount = primCount };
-  const VkAccelerationStructureBuildRangeInfoKHR* pRange = &range;
-
-  vkCmdBuildAccelerationStructuresKHR(cmd, 1, &buildInfo, &pRange);
-
-  // barrière post-build vers SHADER_READ pour usage en RT
-  VkMemoryBarrier2 barrier{
-    .sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2,
-    .srcStageMask  = VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_BUILD_BIT_KHR,
-    .srcAccessMask = VK_ACCESS_2_ACCELERATION_STRUCTURE_WRITE_BIT_KHR,
-    .dstStageMask  = VK_PIPELINE_STAGE_2_RAY_TRACING_SHADER_BIT_KHR,
-    .dstAccessMask = VK_ACCESS_2_ACCELERATION_STRUCTURE_READ_BIT_KHR
-  };
-  VkDependencyInfo dep{ .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO, .memoryBarrierCount = 1, .pMemoryBarriers = &barrier };
-  vkCmdPipelineBarrier2(cmd, &dep);
-
-  tlas_.as.deviceAddress = get_as_address(dev, tlas_.as.handle);
-#endif
+  allocator.destroy_buffer(instances_buffer);
 }
 
 // ----------------------------------------------------------------------------
@@ -268,6 +237,67 @@ void RaytracingScene::release() {
     vkDestroyAccelerationStructureKHR(context_ptr_->get_device(), blas.handle, nullptr);
     allocator.destroy_buffer(blas.buffer);
   }
+}
+
+
+// ----------------------------------------------------------------------------
+
+void RaytracingScene::build_acceleration_structure(
+  backend::AccelerationStructure* as,
+  VkPipelineStageFlags2 dstStageMask,
+  VkAccelerationStructureBuildRangeInfoKHR buildRangeInfo
+) {
+  auto const& allocator = context_ptr_->allocator();
+
+  scratch_buffer_ = allocator.create_buffer(
+    as->build_sizes_info.buildScratchSize,
+      VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
+    | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+    VMA_MEMORY_USAGE_AUTO,
+    VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT
+  );
+  as->build_geometry_info.dstAccelerationStructure = as->handle;
+  as->build_geometry_info.scratchData.deviceAddress = scratch_buffer_.address;
+
+  auto cmd = context_ptr_->create_transient_command_encoder(Context::TargetQueue::Transfer);
+  {
+    std::vector<VkAccelerationStructureBuildRangeInfoKHR *> build_range_infos{
+      &buildRangeInfo
+    };
+    vkCmdBuildAccelerationStructuresKHR(
+      cmd.get_handle(),
+      1,
+      &as->build_geometry_info,
+      build_range_infos.data()
+    );
+
+    // ACCELLERATION_STRUCTURE_BUILD WRITE -> RAY_TRACING_SHADER READ
+    VkMemoryBarrier2 barrier{
+      .sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2,
+      .srcStageMask  = VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_BUILD_BIT_KHR,
+      .srcAccessMask = VK_ACCESS_2_ACCELERATION_STRUCTURE_WRITE_BIT_KHR,
+      .dstStageMask  = dstStageMask,
+      .dstAccessMask = VK_ACCESS_2_ACCELERATION_STRUCTURE_READ_BIT_KHR
+    };
+    VkDependencyInfo depInfo{
+      .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+      .memoryBarrierCount = 1,
+      .pMemoryBarriers = &barrier
+    };
+    vkCmdPipelineBarrier2(cmd.get_handle(), &depInfo);
+  }
+  context_ptr_->finish_transient_command_encoder(cmd);
+
+  allocator.destroy_buffer(scratch_buffer_); //
+
+  VkAccelerationStructureDeviceAddressInfoKHR addrInfo{
+    .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR,
+    .accelerationStructure = as->handle
+  };
+  as->buffer.address = vkGetAccelerationStructureDeviceAddressKHR(
+    context_ptr_->get_device(),
+    &addrInfo
+  );
 }
 
 /* -------------------------------------------------------------------------- */

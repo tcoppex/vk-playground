@@ -31,6 +31,13 @@ class RaytracingScene {
   void release();
 
  private:
+  void build_acceleration_structure(
+    backend::AccelerationStructure* as,
+    VkPipelineStageFlags2 dstStageMask,
+    VkAccelerationStructureBuildRangeInfoKHR buildRangeInfo
+  );
+
+ private:
   Context const* context_ptr_{};
   VkDeviceAddress vertex_address_{};
   VkDeviceAddress index_address_{};
