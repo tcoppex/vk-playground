@@ -173,8 +173,7 @@ class Renderer : public backend::RTInterface {
   }
 
   std::vector<backend::Image> const& get_color_attachments() const final {
-    // (special behavior, just used here, updating it elsewhere is non practical)
-    const_cast<Renderer*>(this)->proxy_swap_attachment_ = { get_color_attachment() };
+    proxy_swap_attachment_ = { get_color_attachment() };
     return proxy_swap_attachment_;
   }
 
@@ -242,7 +241,7 @@ class Renderer : public backend::RTInterface {
 
   /* Swapchain. */
   Swapchain swapchain_{};
-  std::vector<backend::Image> proxy_swap_attachment_{};
+  mutable std::vector<backend::Image> proxy_swap_attachment_{};
 
   /* Pipeline Cache */
   VkPipelineCache pipeline_cache_;
