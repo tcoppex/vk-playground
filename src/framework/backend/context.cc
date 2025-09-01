@@ -449,6 +449,18 @@ bool Context::init_device() {
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_VIEW_MIN_LOD_FEATURES_EXT
     );
 
+    add_device_feature(
+      VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
+      feature_.acceleration_structure,
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR
+    );
+
+    add_device_feature(
+      VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
+      feature_.ray_tracing_pipeline,
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR
+    );
+
     vkGetPhysicalDeviceFeatures2(gpu_, &feature_.base);
   }
   LOG_CHECK(feature_.dynamic_rendering.dynamicRendering);
@@ -458,6 +470,8 @@ bool Context::init_device() {
   LOG_CHECK(feature_.descriptor_indexing.runtimeDescriptorArray);
   LOG_CHECK(feature_.descriptor_indexing.shaderSampledImageArrayNonUniformIndexing);
   LOG_CHECK(feature_.vertex_input_dynamic_state.vertexInputDynamicState);
+  LOG_CHECK(feature_.acceleration_structure.accelerationStructure);
+  LOG_CHECK(feature_.ray_tracing_pipeline.rayTracingPipeline);
 
   // --------------------
 

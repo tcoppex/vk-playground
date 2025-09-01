@@ -1,4 +1,4 @@
-//  lina.h - v0.3.0
+//  lina.h - v0.3.1
 //
 //  Public domain linear algebra header, wrapping sgorsten/linalg.h
 //  <http://unlicense.org/>
@@ -77,6 +77,7 @@ using vec4u = vec4_t<uint32_t>;
 
 using mat3f = linalg::mat<LINA_FP, 3, 3>;
 using mat4f = linalg::mat<LINA_FP, 4, 4>;
+using mat3x4f = linalg::mat<LINA_FP, 3, 4>;
 // using mat3x3f = mat3f;
 // using mat4x4f = mat4f;
 
@@ -96,6 +97,7 @@ using ivec4 = vec4i;
 using mat3 = mat3f;
 using mat4 = mat4f;
 using mat3x3 = mat3;
+using mat3x4 = mat3x4f;
 using mat4x4 = mat4;
 
 } // namespace "aliases"
@@ -128,6 +130,7 @@ template<class T> constexpr linalg::vec<T, 2> to_vec2(linalg::vec<T, 3> const& v
 template<class T> constexpr linalg::vec<T, 3> to_vec3(linalg::vec<T, 4> const& v) { return {v.x,v.y,v.z}; }
 
 template<class T> constexpr linalg::mat<T, 3, 3> to_mat3(linalg::mat<T, 4, 4> const& v) { return {to_vec3(v.x),to_vec3(v.y),to_vec3(v.z)}; }
+template<class T> constexpr linalg::mat<T, 3, 4> to_mat3x4(linalg::mat<T, 4, 4> const& v) { return {to_vec3(v.x),to_vec3(v.y),to_vec3(v.z), to_vec3(v.w)}; }
 
 template<class T> constexpr linalg::vec<T, 4> qidentity() { return {0,0,0,1}; }
 

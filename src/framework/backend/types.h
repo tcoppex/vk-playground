@@ -235,9 +235,10 @@ struct DrawDescriptor {
   VertexInputDescriptor vertexInput{};
 
   //VkPrimitiveTopology topology{};
+  VkIndexType indexType{};
 
   uint64_t indexOffset{};
-  VkIndexType indexType{};
+  uint64_t vertexOffset{};
 
   uint32_t indexCount{};
   uint32_t vertexCount{};
