@@ -3,19 +3,13 @@
 
 #include "framework/common.h"
 #include "framework/renderer/renderer.h"
-#include "framework/backend/context.h" //
+#include "framework/backend/context.h"
 
-#include "framework/scene/material.h" //
+#include "framework/scene/material.h"
 
 /* -------------------------------------------------------------------------- */
 
 class MaterialFx {
- public:
-  struct CreatedMaterial {
-    ::scene::MaterialRef ref;
-    void* raw_ptr{};
-  };
-
  public:
   MaterialFx() = default;
   virtual ~MaterialFx() {}
@@ -167,7 +161,7 @@ class MaterialFx {
 
   // -- material utils --
 
-  virtual CreatedMaterial createMaterial(scene::MaterialStates sates) = 0;
+  virtual uint32_t createMaterial(scene::MaterialProxy const& material_proxy) = 0;
 
   virtual void pushMaterialStorageBuffer() const = 0;
 
@@ -182,7 +176,6 @@ class MaterialFx {
   VkPipelineLayout pipeline_layout_{}; //
   // ----------------
 
-  // Pipeline default_pipeline_{};
   std::map<scene::MaterialStates, Pipeline> pipelines_{};
 
   backend::Buffer material_storage_buffer_{};
@@ -194,15 +187,10 @@ class MaterialFx {
 template<typename MaterialT>
 class TMaterialFx : public MaterialFx {
  public:
-  using MaterialType = MaterialT;
+  using ShaderMaterial = MaterialT;
 
   static constexpr uint32_t kDefaultMaterialCount{ 1024u }; //
   static constexpr bool kEditMode{ false };
-
-  static
-  std::type_index MaterialTypeIndex() {
-    return std::type_index(typeid(MaterialType));
-  }
 
  public:
   void setup() override {
@@ -215,15 +203,9 @@ class TMaterialFx : public MaterialFx {
     MaterialFx::release();
   }
 
-  CreatedMaterial createMaterial(scene::MaterialStates states) override {
-    auto& mat = materials_.emplace_back(defaultMaterial());
-    scene::MaterialRef ref = {
-      // .index = kInvalidIndexU32,
-      .material_type_index = MaterialTypeIndex(),
-      .material_index = static_cast<uint32_t>(materials_.size() - 1u),
-      .states = states,
-    };
-    return { ref, &mat };
+  uint32_t createMaterial(scene::MaterialProxy const& material_proxy) final {
+    materials_.emplace_back( convertMaterialProxy(material_proxy) );
+    return  static_cast<uint32_t>(materials_.size() - 1u);
   }
 
   void pushMaterialStorageBuffer() const override {
@@ -236,29 +218,27 @@ class TMaterialFx : public MaterialFx {
     if constexpr (kEditMode) {
       allocator_ptr_->upload_host_to_device(
         materials_.data(),
-        materials_.size() * sizeof(MaterialType),
+        materials_.size() * sizeof(ShaderMaterial),
         material_storage_buffer_
       );
     } else {
       context_ptr_->transfer_host_to_device(
         materials_.data(),
-        materials_.size() * sizeof(MaterialType),
+        materials_.size() * sizeof(ShaderMaterial),
         material_storage_buffer_
       );
     }
   }
 
-  MaterialType const& material(uint32_t index) const {
+  ShaderMaterial const& material(uint32_t index) const {
     return materials_[index];
   }
 
  private:
-  virtual MaterialType defaultMaterial() const {
-   return {};
-  }
+  virtual ShaderMaterial convertMaterialProxy(scene::MaterialProxy const& proxy) const = 0;
 
   void setupMaterialStorageBuffer() {
-    size_t const buffersize = kDefaultMaterialCount * sizeof(MaterialType);
+    size_t const buffersize = kDefaultMaterialCount * sizeof(ShaderMaterial);
     materials_.reserve(kDefaultMaterialCount);
 
     if constexpr (kEditMode) {
@@ -282,7 +262,7 @@ class TMaterialFx : public MaterialFx {
   }
 
  protected:
-  std::vector<MaterialType> materials_{};
+  std::vector<ShaderMaterial> materials_{};
 };
 
 /* -------------------------------------------------------------------------- */

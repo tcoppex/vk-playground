@@ -11,11 +11,11 @@
 void MaterialFxRegistry::init(Renderer const& renderer) {
   fx_map_ = {
     {
-      fx::material::PBRMetallicRoughnessFx::MaterialTypeIndex(),
+      scene::MaterialModel::PBRMetallicRoughness,
       new fx::material::PBRMetallicRoughnessFx()
     },
     {
-      fx::material::UnlitMaterialFx::MaterialTypeIndex(),
+      scene::MaterialModel::Unlit,
       new fx::material::UnlitMaterialFx()
     },
   };
@@ -37,32 +37,39 @@ void MaterialFxRegistry::release() {
 
 // ----------------------------------------------------------------------------
 
-void MaterialFxRegistry::register_material_states(
-  std::type_index const material_type_index,
-  scene::MaterialStates const& states
+void MaterialFxRegistry::setup(
+  std::vector<scene::MaterialProxy> const& material_proxies,
+  std::vector<std::unique_ptr<scene::MaterialRef>>& material_refs
 ) {
-  LOG_CHECK( fx_map_.contains(material_type_index) );
-  states_map_[material_type_index].insert(states);
-}
+  LOG_CHECK(material_proxies.size() == material_refs.size());
 
-// ----------------------------------------------------------------------------
+  // Register the needed MaterialFx+MaterialStates for every material proxies.
+  for (auto const& material_ref : material_refs) {
+    states_map_[material_ref->model].insert(material_ref->states);
+  }
 
-void MaterialFxRegistry::setup() {
-  for (auto const& [material_type_index, states_set] : states_map_) {
-    MaterialFx *fx = fx_map_.at(material_type_index);
+  // ----------------------
+
+  // Create associated pipelines and internal buffers for each active MaterialFx.
+  active_fx_.clear();
+  for (auto const& [model, states_set] : states_map_) {
+    MaterialFx *fx = fx_map_.at(model);
     if (!fx->valid()) {
       fx->setup();
     }
     fx->createPipelines({states_set.cbegin(), states_set.cend()});
+    active_fx_.emplace_back(fx);
   }
+  // Clear the states for possible future setup.
   states_map_.clear();
 
-  // Keep a simple buffer of active fx.
-  active_fx_.clear();
-  for (auto const& [_, fx] : fx_map_) {
-    if (fx->valid()) {
-      active_fx_.emplace_back(fx);
-    }
+  // ----------------------
+
+  // Create internal material for each MaterialFx.
+  for (size_t i = 0; i < material_proxies.size(); ++i) {
+    auto &matref = *material_refs[i];
+    MaterialFx* fx = fx_map_.at(matref.model);
+    matref.material_index = fx->createMaterial(material_proxies[i]);
   }
 }
 
@@ -103,19 +110,11 @@ void MaterialFxRegistry::update_transforms_ssbo(backend::Buffer const& buffer) c
 // ----------------------------------------------------------------------------
 
 MaterialFx* MaterialFxRegistry::material_fx(scene::MaterialRef const& ref) const {
-  if (auto it = fx_map_.find(ref.material_type_index); it != fx_map_.end()) {
+  if (auto it = fx_map_.find(ref.model); it != fx_map_.end()) {
     return it->second;
   }
   return nullptr;
 }
-
-// ----------------------------------------------------------------------------
-
-// template<typename MaterialFxT>
-// requires DerivedFrom<MaterialFxT, MaterialFx>
-// MaterialFxT::MaterialType const& MaterialFxRegistry::material(scene::MaterialRef const& ref) const {
-//   return material_fx<MaterialFxT>(ref)->material(ref.material_index);
-// }
 
 /* -------------------------------------------------------------------------- */
 

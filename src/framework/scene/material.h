@@ -7,6 +7,7 @@ namespace scene {
 
 /* -------------------------------------------------------------------------- */
 
+/* Static pipeline states of a material. */
 struct MaterialStates {
   bool operator==(MaterialStates const& other) const noexcept {
     return alpha_mode == other.alpha_mode;
@@ -35,29 +36,51 @@ struct MaterialStates {
 
 // ----------------------------------------------------------------------------
 
-struct MaterialRef {
-  // Global index in the Resources buffer.
-  // uint32_t index{ kInvalidIndexU32 };
-
-  // TypeIndex of the internal Fx material type.
-  std::type_index material_type_index{ kInvalidTypeIndex }; //
-
-  // Index in the Fx intrnal buffer.
-  uint32_t material_index{ kInvalidIndexU32 };
-
-  // Static pipeline states.
-  MaterialStates states{};
+enum class MaterialModel {
+  Unknown,
+  PBRMetallicRoughness,
+  Unlit,
+  kCount,
 };
 
 // ----------------------------------------------------------------------------
 
-// (tmp) Default texture binding when none availables.
-struct DefaultTextureBinding {
-  uint32_t basecolor;
-  uint32_t normal;
-  uint32_t roughness_metallic;
-  uint32_t occlusion;
-  uint32_t emissive;
+/* Lazy host-side material proxy to be translated by the renderer. */
+struct MaterialProxy {
+  struct TextureBinding {
+    uint32_t basecolor{kInvalidIndexU32};
+    uint32_t normal{kInvalidIndexU32};
+    uint32_t occlusion{kInvalidIndexU32};
+    uint32_t emissive{kInvalidIndexU32};
+    uint32_t roughness_metallic{kInvalidIndexU32};
+  } bindings{};
+
+  vec3 emissive_factor{};
+  float alpha_cutoff{0.5f};
+  bool double_sided{};
+
+  struct {
+    vec4 basecolor_factor{};
+    float metallic_factor{};
+    float roughness_factor{};
+  } pbr_mr;
+};
+
+// ----------------------------------------------------------------------------
+
+/* Link a material to its MaterialFx. */
+struct MaterialRef {
+  // Built-in model id for the material.
+  MaterialModel model{}; //
+
+  // Static pipeline states.
+  MaterialStates states{};
+
+  // Index to the global resources proxy material.
+  uint32_t proxy_index{}; //
+
+  // Index of the material in the MaterialFx internal buffer.
+  uint32_t material_index{ kInvalidIndexU32 };
 };
 
 /* -------------------------------------------------------------------------- */

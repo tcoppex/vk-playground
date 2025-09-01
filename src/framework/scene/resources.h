@@ -20,19 +20,15 @@ namespace scene {
 ///
 struct Resources : HostResources {
  public:
-  static bool constexpr kRestructureAttribs = true;
   static bool constexpr kReleaseHostDataOnUpload = true;
 
  public:
   Resources(Renderer const& renderer);
 
-  virtual ~Resources();
-
-  /* Create material fx used for rendering [might be move to Renderer]. */
-  void setup() override;
+  ~Resources();
 
   /* Load a scene assets from disk to Host memory. */
-  bool load_file(std::string_view filename) override;
+  bool load_file(std::string_view filename);
 
  public:
   /* Bind mesh attributes to pipeline locations. */
@@ -50,13 +46,6 @@ struct Resources : HostResources {
   /* Render the scene batch per MaterialFx. */
   void render(RenderPassEncoder const& pass);
 
-  template<typename TMaterialFx>
-  requires DerivedFrom<TMaterialFx, MaterialFx>
-  TMaterialFx* material_fx(MaterialRef const& ref) {
-    MaterialFx *fx = material_fx_registry_->material_fx(ref);
-    return static_cast<TMaterialFx*>(fx);
-  }
-
  private:
   void upload_images(Context const& context);
   void upload_buffers(Context const& context);
@@ -69,10 +58,13 @@ struct Resources : HostResources {
   backend::Buffer index_buffer{};
 
  protected:
-  std::unique_ptr<MaterialFxRegistry> material_fx_registry_{};
-
   backend::Buffer frame_ubo_{};
   backend::Buffer transforms_ssbo_{};
+
+ protected:
+  std::unique_ptr<MaterialFxRegistry> material_fx_registry_{};
+
+  // ResourceBuffer<MaterialRef> material_refs_{}; //
 
   using SubMeshBuffer = std::vector<Mesh::SubMesh const*>;
   using FxHashPair = std::pair< MaterialFx*, MaterialStates >;

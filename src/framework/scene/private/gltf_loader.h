@@ -3,8 +3,7 @@
 
 #include "framework/common.h"
 
-#include "framework/renderer/fx/material/material_fx_registry.h" //
-#include "framework/scene/resources.h"
+#include "framework/scene/host_resources.h"
 #include "framework/scene/private/cgltf_wrapper.h"
 
 /* -------------------------------------------------------------------------- */
@@ -36,17 +35,12 @@ PointerToIndexMap_t ExtractTextures(
   std::vector<scene::Texture>& textures
 );
 
-void PreprocessMaterials(
-  cgltf_data const* data,
-  MaterialFxRegistry& material_fx_registry
-);
-
 PointerToIndexMap_t ExtractMaterials(
   cgltf_data const* data,
   PointerToIndexMap_t const& textures_indices,
+  std::vector<scene::MaterialProxy>& material_proxies,
   scene::ResourceBuffer<scene::MaterialRef>& material_refs,
-  MaterialFxRegistry& material_fx_registry,
-  scene::DefaultTextureBinding const& bindings
+  scene::MaterialProxy::TextureBinding const& bindings
 );
 
 PointerToIndexMap_t ExtractSkeletons(
@@ -57,7 +51,7 @@ PointerToIndexMap_t ExtractSkeletons(
 void ExtractMeshes(
   cgltf_data const* data,
   PointerToIndexMap_t const& materials_indices,
-  scene::ResourceBuffer<scene::MaterialRef> const& material_refs,
+  scene::ResourceBuffer<scene::MaterialRef>const& material_refs,
   PointerToIndexMap_t const& skeleton_indices,
   scene::ResourceBuffer<scene::Skeleton>const& skeletons,
   scene::ResourceBuffer<scene::Mesh>& meshes,

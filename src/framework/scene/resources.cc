@@ -5,9 +5,6 @@
 #include "framework/renderer/fx/material/material_fx.h"
 
 #include "framework/shaders/material/interop.h" //
-#include "framework/scene/private/gltf_loader.h" //
-
-static constexpr bool kUseAsyncLoad{true};
 
 /* -------------------------------------------------------------------------- */
 
@@ -37,173 +34,14 @@ Resources::~Resources() {
 
 // ----------------------------------------------------------------------------
 
-void Resources::setup() {
-  HostResources::setup();
+bool Resources::load_file(std::string_view filename) {
+  if (!HostResources::load_file(filename)) {
+    return false;
+  }
 
   material_fx_registry_ = std::make_unique<MaterialFxRegistry>();
   material_fx_registry_->init(*renderer_ptr_);
-}
-
-// ----------------------------------------------------------------------------
-
-bool Resources::load_file(std::string_view filename) {
-  std::string const basename{ utils::ExtractBasename(filename) };
-
-  cgltf_options options{};
-  cgltf_result result{};
-  cgltf_data* data{};
-
-  utils::FileReader file{};
-  if (!file.read(filename)) {
-    LOGE("GLTF: failed to read the file.");
-    return false;
-  }
-
-  if (result = cgltf_parse(&options, file.buffer.data(), file.buffer.size(), &data); cgltf_result_success != result) {
-    LOGE("GLTF: failed to parse file \"%s\" %d.\n", basename.c_str(), result);
-    return false;
-  }
-
-  if (result = cgltf_load_buffers(&options, data, filename.data()); cgltf_result_success != result) {
-    LOGE("GLTF: failed to load buffers in \"%s\" %d.\n", basename.c_str(), result);
-    cgltf_free(data);
-    return false;
-  }
-
-  /* Extract data */
-  {
-    using namespace internal::gltf_loader;
-
-    // Reserve data.
-    samplers.reserve(data->samplers_count + samplers.size());
-    host_images.reserve(data->images_count + host_images.size());
-    textures.reserve(data->textures_count + textures.size());
-    material_refs.reserve(data->materials_count + material_refs.size());
-    skeletons.reserve(data->skins_count + skeletons.size());
-    meshes.reserve(data->meshes_count + meshes.size());
-    transforms.reserve(data->meshes_count + transforms.size());
-    animations_map.reserve(data->animations_count);
-
-    // (device specific, to separate from this)
-    //--------------------
-    LOG_CHECK( material_fx_registry_ != nullptr );
-    PreprocessMaterials(data, *material_fx_registry_);
-    material_fx_registry_->setup();
-    //--------------------
-
-    if constexpr (kUseAsyncLoad)
-    {
-      /* --- Async tasks version --- */
-
-      auto run_task = utils::RunTaskGeneric<void>;
-      auto run_task_ret = utils::RunTaskGeneric<PointerToIndexMap_t>;
-      auto run_task_sampler = utils::RunTaskGeneric<PointerToSamplerMap_t>;
-
-      auto taskSamplers = run_task_sampler([data, &samplers = this->samplers] {
-        return ExtractSamplers(data, samplers);
-      });
-
-      auto taskSkeletons = run_task_ret([data, &skeletons = this->skeletons] {
-        return ExtractSkeletons(data, skeletons);
-      });
-
-      // [real bottleneck, internally images are loaded asynchronously and must be waited for at the end]
-      auto taskImageData = run_task_ret([data, &host_images = this->host_images] {
-        return ExtractImages(data, host_images);
-      });
-
-      auto taskTextures = run_task_ret(
-        [&taskImageData, &taskSamplers, data, &textures = this->textures] {
-        auto images_indices = taskImageData.get();
-        auto samplers_lut = taskSamplers.get();
-        return ExtractTextures(data, images_indices, samplers_lut, textures);
-      });
-
-      auto taskMaterials = run_task_ret([
-        &taskTextures,
-        data,
-        &material_refs = this->material_refs,
-        &material_fx_registry = *(this->material_fx_registry_),
-        &default_bindings = this->default_bindings_
-      ] {
-        auto textures_indices = taskTextures.get();
-        return ExtractMaterials(
-          data, textures_indices, material_refs, material_fx_registry, default_bindings
-        );
-      });
-
-      auto skeletons_indices = taskSkeletons.get();
-
-      auto taskAnimations = run_task([data, &skeletons_indices, &skeletons = this->skeletons] {
-        // ExtractAnimations(data, basename, skeletons_indices, skeletons, animations_map);
-      });
-
-      auto taskMeshes = run_task([
-        &taskMaterials,
-        data,
-        &skeletons_indices,
-        &material_refs = this->material_refs,
-        &skeletons = this->skeletons,
-        &meshes = this->meshes,
-        &transforms = this->transforms
-      ] {
-        auto materials_indices = taskMaterials.get();
-        ExtractMeshes(
-          data, materials_indices, material_refs, skeletons_indices,
-          skeletons, meshes, transforms, kRestructureAttribs
-        );
-      });
-
-      taskAnimations.get();
-      taskMeshes.get();
-    }
-    else
-    {
-      /* --- Serialized version --- */
-
-      auto samplers_lut       = ExtractSamplers(data, samplers);
-      auto skeletons_indices  = ExtractSkeletons(data, skeletons);
-      auto images_indices     = ExtractImages(data, host_images);
-      auto textures_indices   = ExtractTextures(
-        data, images_indices, samplers_lut, textures
-      );
-      auto materials_indices  = ExtractMaterials(
-        data, textures_indices, material_refs, *material_fx_registry_, default_bindings_
-      );
-      ExtractMeshes(
-        data, materials_indices, material_refs, skeletons_indices,
-        skeletons, meshes, transforms, kRestructureAttribs
-      );
-    }
-
-    /* Wait for the host images to finish loading before using them. */
-    for (auto & host_image : host_images) {
-      host_image.getLoadAsyncResult();
-    }
-  }
-
-  /* Be sure to have finished loading all images before freeing gltf data */
-  cgltf_free(data);
-
-  reset_internal_descriptors();
-
-#ifndef NDEBUG
-  // This will also display the extra data procedurally created.
-  std::cout << basename << " loaded." << std::endl;
-  std::cout << "┌────────────┬─────────── " << std::endl;
-  std::cout << "│ Images     │ " << host_images.size() << std::endl;
-  std::cout << "│ Textures   │ " << textures.size() << std::endl;
-  std::cout << "│ Materials  │ " << material_refs.size() << std::endl;
-  std::cout << "│ Skeletons  │ " << skeletons.size() << std::endl;
-  std::cout << "│ Animations │ " << animations_map.size() << std::endl;
-  std::cout << "│ Meshes     │ " << meshes.size() << std::endl;
-  std::cerr << "└────────────┴───────────" << std::endl;
-
-  // uint32_t const kMegabyte{ 1024u * 1024u };
-  // LOGI("> vertex buffer size %f Mb", vertex_buffer_size / static_cast<float>(kMegabyte));
-  // LOGI("> index buffer size %f Mb ", index_buffer_size / static_cast<float>(kMegabyte));
-  // LOGI("> total image size %f Mb ", total_image_size / static_cast<float>(kMegabyte));
-#endif
+  material_fx_registry_->setup(material_proxies, material_refs);
 
   return true;
 }
@@ -283,7 +121,6 @@ DescriptorSetWriteEntry Resources::descriptor_set_texture_atlas_entry(uint32_t c
   LOG_CHECK( !device_images.empty() );
 
   auto const& sampler_pool = renderer_ptr_->sampler_pool();
-
   for (auto const& texture : textures) {
     auto const& img = device_images.at(texture.channel_index());
     texture_atlas_entry.images.push_back({
@@ -313,9 +150,21 @@ void Resources::update(Camera const& camera, VkExtent2D const& surfaceSize, floa
   );
 
   /// ---------------------------------------
-  /// DevNote
+  ///
+  /// + DevNotes +
+  ///
   /// We could improve the overall sorting by using a generic 64bits sorting
   /// key (pipeline << 32) | (material << 16) | depthBits), using a single buffer.
+  ///
+  /// The lookups_ are bins sorted by AlphaMode, to avoid collisions on possible
+  /// future MaterialStates we hash the map on <MaterialFx*, MaterialStates> pairs
+  /// instead of the sole MaterialFx*, however the resulting key not being sort
+  /// it would possible to rebind a pipeline multiple time for a given lookup bins,
+  /// which is okay for alphablend materials but could affect performance on
+  /// Opaque / AlphaMask renders.
+  /// However using std::map with MaterialFx* as the first key of the pair should
+  /// give ordered result.
+  ///
   /// ---------------------------------------
 
   // Retrieve submeshes associated to each MaterialFx.
@@ -406,7 +255,6 @@ void Resources::render(RenderPassEncoder const& pass) {
   }
 }
 
-// ----------------------------------------------------------------------------
 // ----------------------------------------------------------------------------
 
 void Resources::upload_images(Context const& context) {

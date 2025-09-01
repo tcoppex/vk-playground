@@ -22,21 +22,31 @@ using ResourceMap = std::unordered_map<std::string, std::unique_ptr<T>>;
 // ----------------------------------------------------------------------------
 
 struct HostResources {
+ public:
+  static bool constexpr kRestructureAttribs{true};
+  static bool constexpr kUseAsyncLoad{true};
+
+ public:
   HostResources() = default;
 
-  virtual ~HostResources() = default;
+  ~HostResources() = default;
 
-  virtual void setup();
+  void setup(); //
 
-  virtual bool load_file(std::string_view filename);
+  bool load_file(std::string_view filename);
+
+  MaterialProxy const& material(MaterialRef const& ref) const {
+    return material_proxies[ref.proxy_index];
+  }
 
   /* --- Host Data --- */
 
-  std::vector<scene::Sampler> samplers{};
+  std::vector<Sampler> samplers{};
   std::vector<ImageData> host_images{};
   std::vector<Texture> textures{};
 
-  ResourceBuffer<MaterialRef> material_refs{}; //
+  std::vector<MaterialProxy> material_proxies{};
+  ResourceBuffer<scene::MaterialRef> material_refs{};
 
   ResourceBuffer<Mesh> meshes{}; //
   std::vector<mat4f> transforms{};
@@ -49,9 +59,9 @@ struct HostResources {
   uint32_t total_image_size{0u};
 
  protected:
-  virtual void reset_internal_descriptors();
+  void reset_internal_descriptors();
 
-  DefaultTextureBinding default_bindings_{};
+  MaterialProxy::TextureBinding default_texture_binding_{};
 };
 
 } // namespace scene

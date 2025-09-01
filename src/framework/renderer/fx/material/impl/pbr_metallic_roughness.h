@@ -196,9 +196,20 @@ class PBRMetallicRoughnessFx final : public TMaterialFx<PBRMetallicRoughnessMate
     cmd.push_constant(push_constant_, pipeline_layout_, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
   }
 
-  MaterialType defaultMaterial() const final {
+ private:
+  ShaderMaterial convertMaterialProxy(scene::MaterialProxy const& proxy) const final {
     return {
-      .alpha_cutoff = 0.5f,
+      .emissive_factor = proxy.emissive_factor,
+      .emissive_texture_id = proxy.bindings.emissive,
+      .diffuse_factor = proxy.pbr_mr.basecolor_factor,
+      .diffuse_texture_id = proxy.bindings.basecolor,
+      .orm_texture_id = proxy.bindings.roughness_metallic,
+      .metallic_factor = proxy.pbr_mr.metallic_factor,
+      .roughness_factor = proxy.pbr_mr.roughness_factor,
+      .normal_texture_id = proxy.bindings.normal,
+      .occlusion_texture_id = proxy.bindings.occlusion,
+      .alpha_cutoff = proxy.alpha_cutoff,
+      .double_sided = proxy.double_sided,
     };
   }
 

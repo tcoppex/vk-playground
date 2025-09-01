@@ -19,8 +19,8 @@ struct Mesh : Geometry {
  public:
   struct SubMesh {
     Mesh const* parent{};
-    MaterialRef* material_ref{}; //
-    DrawDescriptor draw_descriptor{}; //
+    DrawDescriptor draw_descriptor{};
+    MaterialRef const* material_ref{};
   };
 
   struct BufferInfo {

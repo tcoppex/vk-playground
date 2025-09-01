@@ -109,6 +109,13 @@ class UnlitMaterialFx final : public TMaterialFx<unlit_shader_interop::Material>
   }
 
  private:
+  ShaderMaterial convertMaterialProxy(scene::MaterialProxy const& proxy) const final {
+    return {
+      .diffuse_factor = proxy.pbr_mr.basecolor_factor,
+    };
+  }
+
+ private:
   unlit_shader_interop::PushConstant push_constant_{};
 };
 

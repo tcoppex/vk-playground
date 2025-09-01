@@ -3,7 +3,7 @@
 
 #include "framework/common.h"
 #include "framework/backend/types.h"  // for DescriptorSetWriteEntry
-#include "framework/scene/material.h" // for scene::MaterialRef, scene::MaterialStates
+#include "framework/scene/material.h" // for scene::MaterialRef, scene::MaterialProxy
 
 #include <set>
 
@@ -23,36 +23,18 @@ class MaterialFxRegistry {
   /* Release all allocated resources. */
   void release();
 
-  /* Register a new MaterialStates for a given type. */
-  void register_material_states(std::type_index const material_type_index, scene::MaterialStates const& states);
-
   /* Create internal resources for all used MaterialFx. */
-  void setup();
-
-  template<typename MaterialFxT>
-  requires DerivedFrom<MaterialFxT, MaterialFx>
-  std::tuple<scene::MaterialRef, typename MaterialFxT::MaterialType*>
-  create_material(scene::MaterialStates const& states) {
-    if (auto it = fx_map_.find(MaterialFxT::MaterialTypeIndex()); it != fx_map_.end()) {
-      auto [ref, raw_ptr] = it->second->createMaterial(states);
-      return {
-        ref,
-        static_cast<MaterialFxT::MaterialType*>(raw_ptr)
-      };
-    }
-    return {};
-  }
+  void setup(
+    std::vector<scene::MaterialProxy> const& material_proxies,
+    std::vector<std::unique_ptr<scene::MaterialRef>>& material_refs
+  );
 
   /* Update DescriptorSet Entries for all MaterialFx. */
-
   void update_texture_atlas(std::function<DescriptorSetWriteEntry(uint32_t)> update_fn);
-
   void update_frame_ubo(backend::Buffer const& buffer) const;
-
   void update_transforms_ssbo(backend::Buffer const& buffer) const;
 
   /* Push updated for all MaterialFx. */
-
   void push_material_storage_buffers() const;
 
   /* Getters */
@@ -60,14 +42,10 @@ class MaterialFxRegistry {
   MaterialFx* material_fx(scene::MaterialRef const& ref) const;
 
  private:
-  // (use std::unique_ptr?)
-  using MaterialFxMap     = std::unordered_map<std::type_index, MaterialFx*>;
-  using MaterialStatesMap = std::unordered_map<std::type_index, std::set<scene::MaterialStates>>;
+  using MaterialModel = scene::MaterialModel; // std::type_index
 
-  template<typename MaterialFxT>
-  std::type_index type_index() const {
-    return MaterialFxT::MaterialTypeIndex();
-  }
+  using MaterialFxMap     = std::unordered_map<MaterialModel, MaterialFx*>;
+  using MaterialStatesMap = std::unordered_map<MaterialModel, std::set<scene::MaterialStates>>;
 
  private:
   MaterialFxMap fx_map_{};

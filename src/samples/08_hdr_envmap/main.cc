@@ -10,7 +10,6 @@
 
 #include "framework/core/camera.h"
 #include "framework/core/arcball_controller.h"
-#include "framework/renderer/fx/material/impl/pbr_metallic_roughness.h"
 
 namespace shader_interop {
 #include "shaders/interop.h"
@@ -216,11 +215,8 @@ class SampleApp final : public Application {
         mesh->world_matrix()
       );
       for (auto const& submesh : mesh->submeshes) {
-        auto const& material_ref = *(submesh.material_ref);
-        if (auto *fx = scene_->material_fx<fx::material::PBRMetallicRoughnessFx>(material_ref); fx) {
-          auto pbr_material = fx->material(material_ref.material_index);
-          push_constant_.model.albedo_texture_index = pbr_material.diffuse_texture_id;
-        }
+        auto material = scene_->material(*submesh.material_ref);
+        push_constant_.model.albedo_texture_index = material.bindings.basecolor;
         pass.push_constant(push_constant_, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT); //
         pass.draw(submesh.draw_descriptor, scene_->vertex_buffer, scene_->index_buffer);
       }

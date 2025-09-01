@@ -16,8 +16,6 @@
 #include "framework/renderer/fx/postprocess/fragment/impl/normaldepth_edge.h"
 #include "framework/renderer/fx/postprocess/fragment/impl/object_edge.h"
 
-#include "framework/renderer/fx/material/impl/pbr_metallic_roughness.h"
-
 namespace shader_interop {
 #include "shaders/interop.h"
 }
@@ -155,12 +153,9 @@ class SceneFx final : public RenderTargetFx {
       );
 
       for (auto const& submesh : mesh->submeshes) {
-        auto const& material_ref = *(submesh.material_ref);
-        if (auto *fx = gltf_model_->material_fx<fx::material::PBRMetallicRoughnessFx>(material_ref); fx) {
-          auto pbr_material = fx->material(material_ref.material_index);
-          push_constant_.model.albedo_texture_index = pbr_material.diffuse_texture_id;
-          push_constant_.model.material_index = material_ref.material_index;
-        }
+        auto material = gltf_model_->material(*submesh.material_ref);
+        push_constant_.model.albedo_texture_index = material.bindings.basecolor;
+        push_constant_.model.material_index = submesh.material_ref->material_index;
         push_constant_.model.instance_index = instance_index++;
         pushConstant(pass);
         pass.draw(submesh.draw_descriptor, gltf_model_->vertex_buffer, gltf_model_->index_buffer);
