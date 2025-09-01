@@ -2,9 +2,8 @@
 #define VKFRAMEWORK_RENDERER_FX_MATERIAL_MATERIAL_FX_H_
 
 #include "framework/core/common.h"
-#include "framework/renderer/renderer.h"
 #include "framework/backend/context.h"
-
+#include "framework/renderer/renderer.h"
 #include "framework/scene/material.h"
 
 /* -------------------------------------------------------------------------- */
@@ -36,11 +35,12 @@ class MaterialFx {
 
   virtual void prepareDrawState(RenderPassEncoder const& pass, scene::MaterialStates const& states) {
     LOG_CHECK(pipelines_.contains(states));
-
-    pass.set_viewport_scissor(renderer_ptr_->get_surface_size()); //
-
     pass.bind_pipeline(pipelines_[states]);
-    pass.bind_descriptor_set(descriptor_set_, pipeline_layout_, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+    pass.bind_descriptor_set(
+      descriptor_set_,
+      pipeline_layout_,
+      VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT
+    );
   }
 
   virtual void pushConstant(GenericCommandEncoder const& cmd) = 0;
