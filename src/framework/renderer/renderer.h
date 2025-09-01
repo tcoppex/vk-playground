@@ -3,17 +3,15 @@
 
 /* -------------------------------------------------------------------------- */
 
-#include "framework/common.h"
+#include "framework/core/common.h"
 
 #include "framework/backend/swapchain.h"
 #include "framework/backend/command_encoder.h"
-
 #include "framework/renderer/pipeline.h"
 #include "framework/renderer/sampler_pool.h"
 #include "framework/renderer/targets/framebuffer.h"
 #include "framework/renderer/targets/render_target.h"
-
-#include "framework/scene/resources.h" // (for GLTFScene)
+#include "framework/renderer/gpu_resources.h" // (for GLTFScene)
 #include "framework/renderer/fx/skybox.h"
 
 class Context;
@@ -150,7 +148,7 @@ class Renderer : public backend::RTInterface {
     return sampler_pool_;
   }
 
-  // --- Resources gltf objects ---
+  // --- GPUResources gltf objects ---
 
   GLTFScene load_and_upload(std::string_view gltf_filename, scene::Mesh::AttributeLocationMap const& attribute_to_location);
 

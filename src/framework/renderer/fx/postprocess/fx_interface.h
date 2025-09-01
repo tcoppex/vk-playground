@@ -1,7 +1,7 @@
 #ifndef VKFRAMEWORK_RENDERER_FX_FX_INTERFACE_H_
 #define VKFRAMEWORK_RENDERER_FX_FX_INTERFACE_H_
 
-#include "framework/common.h"
+#include "framework/core/common.h"
 #include "framework/renderer/renderer.h"
 class CommandEncoder;
 

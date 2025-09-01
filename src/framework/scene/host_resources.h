@@ -1,7 +1,7 @@
 #ifndef VKFRAMEWORK_SCENE_HOST_RESOURCES_H
 #define VKFRAMEWORK_SCENE_HOST_RESOURCES_H
 
-#include "framework/common.h"
+#include "framework/core/common.h"
 
 #include "framework/scene/animation.h"
 #include "framework/scene/texture.h"
@@ -31,7 +31,7 @@ struct HostResources {
 
   ~HostResources() = default;
 
-  void setup(); //
+  void setup();
 
   bool load_file(std::string_view filename);
 
@@ -46,7 +46,7 @@ struct HostResources {
   std::vector<Texture> textures{};
 
   std::vector<MaterialProxy> material_proxies{};
-  ResourceBuffer<scene::MaterialRef> material_refs{};
+  ResourceBuffer<MaterialRef> material_refs{};
 
   ResourceBuffer<Mesh> meshes{}; //
   std::vector<mat4f> transforms{};

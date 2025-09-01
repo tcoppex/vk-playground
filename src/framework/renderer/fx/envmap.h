@@ -1,7 +1,8 @@
 #ifndef VKFRAMEWORK_RENDERER_FX_ENVMAP_H_
 #define VKFRAMEWORK_RENDERER_FX_ENVMAP_H_
 
-#include "framework/common.h"
+#include "framework/core/common.h"
+#include "framework/core/utils.h"
 
 #include "framework/backend/command_encoder.h"
 #include "framework/renderer/pipeline.h"

@@ -1,8 +1,7 @@
-#ifndef VKFRAMEWORK_SCENE_RESOURCES_H
-#define VKFRAMEWORK_SCENE_RESOURCES_H
+#ifndef VKFRAMEWORK_RENDERER_GPU_RESOURCES_H
+#define VKFRAMEWORK_RENDERER_GPU_RESOURCES_H
 
 #include "framework/scene/host_resources.h"
-
 #include "framework/renderer/fx/material/material_fx_registry.h"
 
 class Context;
@@ -13,26 +12,20 @@ class Camera;
 
 /* -------------------------------------------------------------------------- */
 
-namespace scene {
-
-///
-/// Holds Host and Device resources for rendering a (glTF) scene.
-///
-struct Resources : HostResources {
+struct GPUResources : scene::HostResources {
  public:
   static bool constexpr kReleaseHostDataOnUpload = true;
 
  public:
-  Resources(Renderer const& renderer);
+  GPUResources(Renderer const& renderer);
 
-  ~Resources();
+  ~GPUResources();
 
   /* Load a scene assets from disk to Host memory. */
   bool load_file(std::string_view filename);
 
- public:
   /* Bind mesh attributes to pipeline locations. */
-  void initialize_submesh_descriptors(Mesh::AttributeLocationMap const& attribute_to_location);
+  void initialize_submesh_descriptors(scene::Mesh::AttributeLocationMap const& attribute_to_location);
 
   /* Upload host resources to Device memory. */
   void upload_to_device(bool const bReleaseHostDataOnUpload = kReleaseHostDataOnUpload);
@@ -64,12 +57,10 @@ struct Resources : HostResources {
  protected:
   std::unique_ptr<MaterialFxRegistry> material_fx_registry_{};
 
-  // ResourceBuffer<MaterialRef> material_refs_{}; //
-
-  using SubMeshBuffer = std::vector<Mesh::SubMesh const*>;
-  using FxHashPair = std::pair< MaterialFx*, MaterialStates >;
+  using SubMeshBuffer = std::vector<scene::Mesh::SubMesh const*>;
+  using FxHashPair = std::pair< MaterialFx*, scene::MaterialStates >;
   using FxHashPairToSubmeshesMap = std::map< FxHashPair, SubMeshBuffer >;
-  EnumArray<FxHashPairToSubmeshesMap, MaterialStates::AlphaMode> lookups_{};
+  EnumArray<FxHashPairToSubmeshesMap, scene::MaterialStates::AlphaMode> lookups_{};
 
  private:
   Renderer const* renderer_ptr_{};
@@ -77,10 +68,8 @@ struct Resources : HostResources {
   ResourceAllocator const* allocator_ptr_{};
 };
 
-} // namespace scene
-
 /* -------------------------------------------------------------------------- */
 
-using GLTFScene = std::shared_ptr<scene::Resources>;
+using GLTFScene = std::shared_ptr<GPUResources>;
 
-#endif // VKFRAMEWORK_SCENE_RESOURCES_H
+#endif // VKFRAMEWORK_RENDERER_GPU_RESOURCES_H

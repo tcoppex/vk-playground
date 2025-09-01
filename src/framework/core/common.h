@@ -1,11 +1,10 @@
-#ifndef VKFRAMEWORK_COMMON_H
-#define VKFRAMEWORK_COMMON_H
+#ifndef VKFRAMEWORK_CORE_COMMON_H_
+#define VKFRAMEWORK_CORE_COMMON_H_
 
 /* -------------------------------------------------------------------------- */
 
 #include <cassert>
 #include <cmath>
-#include <cstdio> //
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
@@ -13,23 +12,16 @@
 
 #include <algorithm>
 #include <array>
-#include <concepts>
-#include <filesystem> //
-#include <iostream> //
-#include <iterator> // For std::back_inserter
-#include <memory>
-#include <span>
-#include <string_view>
-#include <thread>
-#include <type_traits>
-#include <typeindex> //
 #include <vector>
+#include <span>
+#include <concepts>
+#include <memory>
+#include <string_view>
 
 #include "lina/lina.h"
 using namespace lina::aliases;
 using uint = uint32_t; //
 
-#include "framework/core/utils.h"
 #include "framework/core/logger.h"
 
 /* -------------------------------------------------------------------------- */
@@ -41,6 +33,8 @@ concept DerivedFrom = std::is_base_of_v<U, T>;
 
 template<typename T>
 concept SpanConvertible = requires(T t) { std::span(t); };
+
+/* -- custom type -- */
 
 // Wrap an array to accept enum class as indexer.
 // Original code from Daniel P. Wright.
@@ -63,9 +57,10 @@ class EnumArray : public std::array<T, static_cast<size_t>(Indexer::kCount)> {
 
 struct NullType {};
 
+/* -- constants -- */
+
 static constexpr uint32_t kInvalidIndexU32{ std::numeric_limits<uint32_t>::max() };
-static const std::type_index kInvalidTypeIndex{ typeid(NullType) };
 
 /* -------------------------------------------------------------------------- */
 
-#endif // VKFRAMEWORK_COMMON_H
+#endif // VKFRAMEWORK_CORE_COMMON_H_

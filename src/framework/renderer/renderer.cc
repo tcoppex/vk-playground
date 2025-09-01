@@ -271,7 +271,7 @@ void Renderer::destroy_pipeline_layout(VkPipelineLayout layout) const {
 VkPipelineLayout Renderer::create_pipeline_layout(PipelineLayoutDescriptor_t const& params) const {
   for (size_t i = 1u; i < params.pushConstantRanges.size(); ++i) {
     if (params.pushConstantRanges[i].offset == 0u) {
-      std::cerr << "[Warning] 'create_pipeline_layout' has constant ranges with no offsets." << std::endl << std::endl;
+      LOGW("[Warning] 'create_pipeline_layout' has constant ranges with no offsets.");
       break;
     }
   }
@@ -816,7 +816,7 @@ GLTFScene Renderer::load_and_upload(
   std::string_view gltf_filename,
   scene::Mesh::AttributeLocationMap const& attribute_to_location
 ) {
-  if (GLTFScene scene = std::make_shared<scene::Resources>(*this); scene) {
+  if (GLTFScene scene = std::make_shared<GPUResources>(*this); scene) {
     scene->setup();
     if (scene->load_file(gltf_filename)) {
       scene->initialize_submesh_descriptors(attribute_to_location);

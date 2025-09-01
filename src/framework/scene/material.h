@@ -1,7 +1,7 @@
 #ifndef VKFRAMEWORK_SCENE_MATERIAL_H
 #define VKFRAMEWORK_SCENE_MATERIAL_H
 
-#include "framework/common.h"
+#include "framework/core/common.h"
 
 namespace scene {
 

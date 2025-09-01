@@ -1,4 +1,4 @@
-#include "framework/scene/resources.h"
+#include "framework/renderer/gpu_resources.h"
 
 #include "framework/core/camera.h"
 #include "framework/renderer/renderer.h"
@@ -6,18 +6,18 @@
 
 #include "framework/shaders/material/interop.h" //
 
+using namespace scene;
+
 /* -------------------------------------------------------------------------- */
 
-namespace scene {
-
-Resources::Resources(Renderer const& renderer)
+GPUResources::GPUResources(Renderer const& renderer)
   : renderer_ptr_(&renderer)
   , context_ptr_(&renderer.context())
 {}
 
 // ----------------------------------------------------------------------------
 
-Resources::~Resources() {
+GPUResources::~GPUResources() {
   if (allocator_ptr_ != nullptr) {
     for (auto& img : device_images) {
       allocator_ptr_->destroy_image(&img);
@@ -34,7 +34,7 @@ Resources::~Resources() {
 
 // ----------------------------------------------------------------------------
 
-bool Resources::load_file(std::string_view filename) {
+bool GPUResources::load_file(std::string_view filename) {
   if (!HostResources::load_file(filename)) {
     return false;
   }
@@ -48,7 +48,7 @@ bool Resources::load_file(std::string_view filename) {
 
 // ----------------------------------------------------------------------------
 
-void Resources::initialize_submesh_descriptors(Mesh::AttributeLocationMap const& attribute_to_location) {
+void GPUResources::initialize_submesh_descriptors(Mesh::AttributeLocationMap const& attribute_to_location) {
   for (auto& mesh : meshes) {
     mesh->initialize_submesh_descriptors(attribute_to_location);
   }
@@ -64,7 +64,7 @@ void Resources::initialize_submesh_descriptors(Mesh::AttributeLocationMap const&
 
 // ----------------------------------------------------------------------------
 
-void Resources::upload_to_device(bool const bReleaseHostDataOnUpload) {
+void GPUResources::upload_to_device(bool const bReleaseHostDataOnUpload) {
   if (!allocator_ptr_) {
     allocator_ptr_ = context_ptr_->allocator_ptr();
   }
@@ -109,7 +109,7 @@ void Resources::upload_to_device(bool const bReleaseHostDataOnUpload) {
 
 // ----------------------------------------------------------------------------
 
-DescriptorSetWriteEntry Resources::descriptor_set_texture_atlas_entry(uint32_t const binding) const {
+DescriptorSetWriteEntry GPUResources::descriptor_set_texture_atlas_entry(uint32_t const binding) const {
   DescriptorSetWriteEntry texture_atlas_entry{
     .binding = binding,
     .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
@@ -135,7 +135,7 @@ DescriptorSetWriteEntry Resources::descriptor_set_texture_atlas_entry(uint32_t c
 
 // ----------------------------------------------------------------------------
 
-void Resources::update(Camera const& camera, VkExtent2D const& surfaceSize, float elapsedTime) {
+void GPUResources::update(Camera const& camera, VkExtent2D const& surfaceSize, float elapsedTime) {
   // Update the shared Frame UBO.
   FrameData const frame_data{
     .projectionMatrix = camera.proj(),
@@ -226,7 +226,7 @@ void Resources::update(Camera const& camera, VkExtent2D const& surfaceSize, floa
 
 // ----------------------------------------------------------------------------
 
-void Resources::render(RenderPassEncoder const& pass) {
+void GPUResources::render(RenderPassEncoder const& pass) {
   LOG_CHECK( material_fx_registry_ != nullptr );
   // Render each Fx.
   uint32_t instance_index = 0u;
@@ -257,7 +257,7 @@ void Resources::render(RenderPassEncoder const& pass) {
 
 // ----------------------------------------------------------------------------
 
-void Resources::upload_images(Context const& context) {
+void GPUResources::upload_images(Context const& context) {
   assert(total_image_size > 0);
   assert(allocator_ptr_ != nullptr);
 
@@ -317,7 +317,7 @@ void Resources::upload_images(Context const& context) {
 
 // ----------------------------------------------------------------------------
 
-void Resources::upload_buffers(Context const& context) {
+void GPUResources::upload_buffers(Context const& context) {
   LOG_CHECK(vertex_buffer_size > 0);
   LOG_CHECK(allocator_ptr_ != nullptr);
 
@@ -428,7 +428,5 @@ void Resources::upload_buffers(Context const& context) {
 
   context.finish_transient_command_encoder(cmd);
 }
-
-}  // namespace scene
 
 /* -------------------------------------------------------------------------- */

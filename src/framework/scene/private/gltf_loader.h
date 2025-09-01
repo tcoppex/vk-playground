@@ -1,7 +1,7 @@
 #ifndef VKFRAMEWORK_SCENE_PRIVATE_GLTF_LOADER_H_
 #define VKFRAMEWORK_SCENE_PRIVATE_GLTF_LOADER_H_
 
-#include "framework/common.h"
+#include "framework/core/common.h"
 
 #include "framework/scene/host_resources.h"
 #include "framework/scene/private/cgltf_wrapper.h"

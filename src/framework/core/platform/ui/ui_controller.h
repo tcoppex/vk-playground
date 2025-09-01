@@ -3,7 +3,7 @@
 
 /* -------------------------------------------------------------------------- */
 
-#include "framework/common.h"
+#include "framework/core/common.h"
 #include "framework/backend/context.h"
 #include "framework/core/platform/ui/imgui_wrapper.h"
 #include "framework/core/platform/window/wm_interface.h"

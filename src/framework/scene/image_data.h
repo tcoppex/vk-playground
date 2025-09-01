@@ -5,7 +5,7 @@ extern "C" {
 #include <stb/stb_image.h>
 }
 
-#include "framework/common.h"
+#include "framework/core/common.h"
 #include "framework/core/utils.h"
 
 namespace scene {

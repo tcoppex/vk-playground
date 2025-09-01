@@ -1,5 +1,6 @@
 #include "framework/renderer/fx/postprocess/generic_fx.h"
 #include "framework/backend/context.h"
+#include <filesystem> 
 
 /* -------------------------------------------------------------------------- */
 

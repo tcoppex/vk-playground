@@ -1,7 +1,7 @@
 #ifndef VKFRAMEWORK_SCENE_MESH_H
 #define VKFRAMEWORK_SCENE_MESH_H
 
-#include "framework/common.h"
+#include "framework/core/common.h"
 
 #include "framework/core/geometry.h"
 #include "framework/backend/types.h"      // for VertexInputDescriptor

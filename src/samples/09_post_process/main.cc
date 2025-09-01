@@ -52,7 +52,7 @@ class SceneFx final : public RenderTargetFx {
 
   void release() final {
     allocator_ptr_->destroy_buffer(uniform_buffer_);
-    gltf_model_.reset();
+    scene_.reset();
     RenderTargetFx::release();
   }
 
@@ -144,7 +144,7 @@ class SceneFx final : public RenderTargetFx {
 
   void draw(RenderPassEncoder const& pass) final {
     uint32_t instance_index = 0u;
-    for (auto const& mesh : gltf_model_->meshes) {
+    for (auto const& mesh : scene_->meshes) {
       pass.set_primitive_topology(mesh->vk_primitive_topology());
 
       push_constant_.model.worldMatrix = linalg::mul(
@@ -153,12 +153,12 @@ class SceneFx final : public RenderTargetFx {
       );
 
       for (auto const& submesh : mesh->submeshes) {
-        auto material = gltf_model_->material(*submesh.material_ref);
+        auto material = scene_->material(*submesh.material_ref);
         push_constant_.model.albedo_texture_index = material.bindings.basecolor;
         push_constant_.model.material_index = submesh.material_ref->material_index;
         push_constant_.model.instance_index = instance_index++;
         pushConstant(pass);
-        pass.draw(submesh.draw_descriptor, gltf_model_->vertex_buffer, gltf_model_->index_buffer);
+        pass.draw(submesh.draw_descriptor, scene_->vertex_buffer, scene_->index_buffer);
       }
     }
   }
@@ -167,11 +167,11 @@ class SceneFx final : public RenderTargetFx {
   void setModel(GLTFScene model) {
     LOG_CHECK(model->device_images.size() <= kMaxNumTextures); //
 
-    gltf_model_ = model;
+    scene_ = model;
 
     /* Update the Sampler Atlas descriptor with the currently loaded textures. */
     context_ptr_->update_descriptor_set(descriptor_set_, {
-      gltf_model_->descriptor_set_texture_atlas_entry( shader_interop::kDescriptorSetBinding_Sampler )
+      scene_->descriptor_set_texture_atlas_entry( shader_interop::kDescriptorSetBinding_Sampler )
     });
   }
 
@@ -203,7 +203,7 @@ class SceneFx final : public RenderTargetFx {
   shader_interop::UniformData host_data_{};
   backend::Buffer uniform_buffer_{};
 
-  GLTFScene gltf_model_{};
+  GLTFScene scene_{};
   mat4 world_matrix_{};
 };
 

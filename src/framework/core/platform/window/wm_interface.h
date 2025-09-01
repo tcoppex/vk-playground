@@ -1,7 +1,7 @@
 #ifndef VKFRAMEWORK_CORE_PLATEFORM_WM_INTERFACE_H
 #define VKFRAMEWORK_CORE_PLATEFORM_WM_INTERFACE_H
 
-#include "framework/common.h"
+#include "framework/core/common.h"
 #include <vulkan/vulkan.h>
 
 /* -------------------------------------------------------------------------- */

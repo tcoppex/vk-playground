@@ -1,5 +1,6 @@
 #include "framework/scene/host_resources.h"
 
+#include <iostream>
 #include "framework/scene/private/gltf_loader.h"
 
 /* -------------------------------------------------------------------------- */

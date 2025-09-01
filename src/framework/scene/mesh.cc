@@ -1,5 +1,5 @@
 #include "framework/scene/mesh.h"
-#include "framework/scene/resources.h" //
+#include "framework/renderer/gpu_resources.h" //
 
 /* -------------------------------------------------------------------------- */
 

@@ -1,7 +1,7 @@
 #ifndef VKFRAMEWORK_CORE_CAMERA_H_
 #define VKFRAMEWORK_CORE_CAMERA_H_
 
-#include "framework/common.h"
+#include "framework/core/common.h"
 
 /* -------------------------------------------------------------------------- */
 

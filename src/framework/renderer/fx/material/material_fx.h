@@ -1,7 +1,7 @@
 #ifndef VKFRAMEWORK_RENDERER_FX_MATERIAL_MATERIAL_FX_H_
 #define VKFRAMEWORK_RENDERER_FX_MATERIAL_MATERIAL_FX_H_
 
-#include "framework/common.h"
+#include "framework/core/common.h"
 #include "framework/renderer/renderer.h"
 #include "framework/backend/context.h"
 

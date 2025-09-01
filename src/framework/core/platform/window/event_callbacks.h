@@ -1,7 +1,7 @@
 #ifndef VKFRAMEWORK_CORE_PLATEFORM_EVENT_CALLBACKS_H
 #define VKFRAMEWORK_CORE_PLATEFORM_EVENT_CALLBACKS_H
 
-#include "framework/common.h"
+#include "framework/core/common.h"
 
 /* -------------------------------------------------------------------------- */
 

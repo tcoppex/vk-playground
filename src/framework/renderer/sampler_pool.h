@@ -1,7 +1,8 @@
 #ifndef VKFRAMEWORK_RENDERER_SAMPLER_POOL_H_
 #define VKFRAMEWORK_RENDERER_SAMPLER_POOL_H_
 
-#include "framework/common.h"
+#include "framework/core/common.h"
+#include "framework/core/utils.h"
 #include "framework/scene/sampler.h"
 
 /* -------------------------------------------------------------------------- */
@@ -99,7 +100,7 @@ class SamplerPool {
   };
 
   VkSampler createSampler(VkSamplerCreateInfo info) const {
-    assert( device_ != VK_NULL_HANDLE );
+    LOG_CHECK( device_ != VK_NULL_HANDLE );
     VkSampler sampler{};
     info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
     CHECK_VK( vkCreateSampler(device_, &info, nullptr, &sampler) );

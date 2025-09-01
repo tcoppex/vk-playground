@@ -1,7 +1,7 @@
 #ifndef VKFRAMEWORK_SCENE_ANIMATION_H
 #define VKFRAMEWORK_SCENE_ANIMATION_H
 
-#include "framework/common.h"
+#include "framework/core/common.h"
 
 namespace scene {
 

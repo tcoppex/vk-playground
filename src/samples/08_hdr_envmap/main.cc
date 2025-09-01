@@ -65,7 +65,7 @@ class SampleApp final : public Application {
     auto &skybox = renderer_.skybox();
     skybox.setup(ASSETS_DIR "textures/qwantani_dusk_2_2k.hdr");
 
-    /* Load glTF Scene / Resources. */
+    /* Load glTF Scene / Scene. */
     {
       std::string const gltf_filename{ASSETS_DIR "models/"
         "suzanne.glb"
