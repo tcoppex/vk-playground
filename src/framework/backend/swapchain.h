@@ -1,5 +1,5 @@
-#ifndef HELLOVK_FRAMEWORK_BACKEND_SWAPCHAIN_H
-#define HELLOVK_FRAMEWORK_BACKEND_SWAPCHAIN_H
+#ifndef VKFRAMEWORK_BACKEND_SWAPCHAIN_H
+#define VKFRAMEWORK_BACKEND_SWAPCHAIN_H
 
 /* -------------------------------------------------------------------------- */
 

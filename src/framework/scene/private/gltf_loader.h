@@ -1,54 +1,46 @@
-#ifndef HELLO_VK_FRAMEWORK_SCENE_PRIVATE_GLTF_LOADER_H_
-#define HELLO_VK_FRAMEWORK_SCENE_PRIVATE_GLTF_LOADER_H_
+#ifndef VKFRAMEWORK_SCENE_PRIVATE_GLTF_LOADER_H_
+#define VKFRAMEWORK_SCENE_PRIVATE_GLTF_LOADER_H_
 
-#include "framework/common.h"
-#include "framework/scene/resources.h"
-#include "framework/utils/cgltf_wrapper.h"
+#include "framework/core/common.h"
 
-#include "framework/scene/material_fx_registry.h" //
+#include "framework/scene/host_resources.h"
+#include "framework/scene/private/cgltf_wrapper.h"
 
 /* -------------------------------------------------------------------------- */
 
 namespace internal::gltf_loader {
 
-using PointerToIndexMap_t = std::unordered_map<void const*, uint32_t>;
-using PointerToSamplerMap_t = std::unordered_map<void const*, VkSampler>;
-
-// [probably better to use rather than PointerToIndexMap_t]
 template<typename T>
-using PointerToResourceMap_t = std::unordered_map<void const*, std::shared_ptr<T>>;
+using PointerMap_t = std::unordered_map<void const*, T>;
+
+using PointerToIndexMap_t = PointerMap_t<uint32_t>;
+using PointerToSamplerMap_t = PointerMap_t<scene::Sampler>;
 
 /* -------------------------------------------------------------------------- */
 
 PointerToSamplerMap_t ExtractSamplers(
   cgltf_data const* data,
-  SamplerPool& sampler_pool
+  std::vector<scene::Sampler>& samplers
 );
 
 PointerToIndexMap_t ExtractImages(
   cgltf_data const* data,
-  scene::ResourceBuffer<scene::ImageData>& images
+  std::vector<scene::ImageData>& images
 );
 
 PointerToIndexMap_t ExtractTextures(
   cgltf_data const* data,
   PointerToIndexMap_t const& image_indices,
   PointerToSamplerMap_t const& samplers_lut, //
-  scene::ResourceBuffer<scene::Texture>& textures
-);
-
-void PreprocessMaterials(
-  cgltf_data const* data,
-  scene::MaterialFxRegistry& material_fx_registry
+  std::vector<scene::Texture>& textures
 );
 
 PointerToIndexMap_t ExtractMaterials(
   cgltf_data const* data,
   PointerToIndexMap_t const& textures_indices,
-  scene::ResourceBuffer<scene::Texture> const& textures,
+  std::vector<scene::MaterialProxy>& material_proxies,
   scene::ResourceBuffer<scene::MaterialRef>& material_refs,
-  scene::MaterialFxRegistry& material_fx_registry,
-  scene::DefaultTextureBinding const& bindings
+  scene::MaterialProxy::TextureBinding const& bindings
 );
 
 PointerToIndexMap_t ExtractSkeletons(
@@ -59,10 +51,11 @@ PointerToIndexMap_t ExtractSkeletons(
 void ExtractMeshes(
   cgltf_data const* data,
   PointerToIndexMap_t const& materials_indices,
-  scene::ResourceBuffer<scene::MaterialRef> const& material_refs,
+  scene::ResourceBuffer<scene::MaterialRef>const& material_refs,
   PointerToIndexMap_t const& skeleton_indices,
   scene::ResourceBuffer<scene::Skeleton>const& skeletons,
   scene::ResourceBuffer<scene::Mesh>& meshes,
+  std::vector<mat4f>& transforms,
   bool const bRestructureAttribs
 );
 
@@ -77,4 +70,4 @@ void ExtractAnimations(
 
 /* -------------------------------------------------------------------------- */
 
-#endif // HELLO_VK_FRAMEWORK_SCENE_PRIVATE_GLTF_LOADER_H_
+#endif // VKFRAMEWORK_SCENE_PRIVATE_GLTF_LOADER_H_

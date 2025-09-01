@@ -1,4 +1,5 @@
 #include "framework/scene/mesh.h"
+#include "framework/renderer/gpu_resources.h" //
 
 /* -------------------------------------------------------------------------- */
 
@@ -17,8 +18,8 @@ void Mesh::initialize_submesh_descriptors(AttributeLocationMap const& attribute_
 
     submesh.draw_descriptor = {
       .vertexInput = create_vertex_input_descriptors(prim.bufferOffsets, attribute_to_location),
-      .indexOffset = device_buffer_info_.index_offset + prim.indexOffset, //
-      .indexType = get_vk_index_type(),
+      .indexOffset = buffer_info_.index_offset + prim.indexOffset, //
+      .indexType = vk_index_type(),
       .indexCount = prim.indexCount,
       .vertexCount = prim.vertexCount,
       .instanceCount = 1u, //
@@ -28,7 +29,7 @@ void Mesh::initialize_submesh_descriptors(AttributeLocationMap const& attribute_
 
 // ----------------------------------------------------------------------------
 
-PipelineVertexBufferDescriptors Mesh::get_vk_pipeline_vertex_buffer_descriptors() const {
+PipelineVertexBufferDescriptors Mesh::pipeline_vertex_buffer_descriptors() const {
   assert( !submeshes.empty() );
   auto const& vi{ submeshes[0u].draw_descriptor.vertexInput };
 
@@ -63,7 +64,7 @@ PipelineVertexBufferDescriptors Mesh::get_vk_pipeline_vertex_buffer_descriptors(
 
 // ----------------------------------------------------------------------------
 
-VkPrimitiveTopology Mesh::get_vk_primitive_topology() const {
+VkPrimitiveTopology Mesh::vk_primitive_topology() const {
   switch (get_topology()) {
     case Topology::TriangleStrip:
       return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
@@ -79,7 +80,7 @@ VkPrimitiveTopology Mesh::get_vk_primitive_topology() const {
 
 // ----------------------------------------------------------------------------
 
-VkIndexType Mesh::get_vk_index_type() const {
+VkIndexType Mesh::vk_index_type() const {
   auto format = get_index_format();
   switch (format) {
 
@@ -101,7 +102,7 @@ VkIndexType Mesh::get_vk_index_type() const {
 
 // ----------------------------------------------------------------------------
 
-VkFormat Mesh::get_vk_format(AttributeType const attrib_type) const {
+VkFormat Mesh::vk_format(AttributeType const attrib_type) const {
   switch (get_format(attrib_type)) {
     case AttributeFormat::RG_F32:
       return VK_FORMAT_R32G32_SFLOAT;
@@ -144,7 +145,7 @@ VertexInputDescriptor Mesh::create_vertex_input_descriptors(AttributeOffsetMap c
 
     /* The stride is shared between attributes of the same binding. */
     uint32_t const buffer_stride = get_stride(attrib_types[0u]);
-    uint64_t const buffer_offset = device_buffer_info_.vertex_offset + attrib_offset;
+    uint64_t const buffer_offset = buffer_info_.vertex_offset + attrib_offset;
 
     result.vertexBufferOffsets.push_back(buffer_offset);
 
@@ -162,7 +163,7 @@ VertexInputDescriptor Mesh::create_vertex_input_descriptors(AttributeOffsetMap c
           .sType = VK_STRUCTURE_TYPE_VERTEX_INPUT_ATTRIBUTE_DESCRIPTION_2_EXT,
           .location = it->second,
           .binding = buffer_binding,
-          .format = get_vk_format(type),
+          .format = vk_format(type),
           .offset = get_offset(type),
         });
       }
@@ -171,6 +172,19 @@ VertexInputDescriptor Mesh::create_vertex_input_descriptors(AttributeOffsetMap c
   }
 
   return result;
+}
+
+// ----------------------------------------------------------------------------
+
+void Mesh::set_resources_ptr(HostResources const* R) {
+  resources_ptr_ = R;
+}
+
+// ----------------------------------------------------------------------------
+
+mat4 const& Mesh::world_matrix() const {
+  LOG_CHECK(resources_ptr_ != nullptr);
+  return resources_ptr_->transforms[transform_index];
 }
 
 } // namespace "scene"

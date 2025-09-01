@@ -1,12 +1,13 @@
-#ifndef HELLO_VK_FRAMEWORK_SCENE_MATERIAL_H
-#define HELLO_VK_FRAMEWORK_SCENE_MATERIAL_H
+#ifndef VKFRAMEWORK_SCENE_MATERIAL_H
+#define VKFRAMEWORK_SCENE_MATERIAL_H
 
-#include "framework/common.h"
+#include "framework/core/common.h"
 
 namespace scene {
 
 /* -------------------------------------------------------------------------- */
 
+/* Static pipeline states of a material. */
 struct MaterialStates {
   bool operator==(MaterialStates const& other) const noexcept {
     return alpha_mode == other.alpha_mode;
@@ -33,26 +34,57 @@ struct MaterialStates {
   } alpha_mode{AlphaMode::Opaque};
 };
 
-struct MaterialRef {
-  uint32_t index{ kInvalidIndexU32 };
+// ----------------------------------------------------------------------------
 
-  std::type_index material_type_index{ kInvalidTypeIndex }; //
-  uint32_t material_index{ kInvalidIndexU32 };
-
-  MaterialStates states{};
+enum class MaterialModel {
+  Unknown,
+  PBRMetallicRoughness,
+  Unlit,
+  kCount,
 };
 
-// (tmp) Default texture binding when none availables.
-struct DefaultTextureBinding {
-  uint32_t basecolor;
-  uint32_t normal;
-  uint32_t roughness_metallic;
-  uint32_t occlusion;
-  uint32_t emissive;
+// ----------------------------------------------------------------------------
+
+/* Lazy host-side material proxy to be translated by the renderer. */
+struct MaterialProxy {
+  struct TextureBinding {
+    uint32_t basecolor{kInvalidIndexU32};
+    uint32_t normal{kInvalidIndexU32};
+    uint32_t occlusion{kInvalidIndexU32};
+    uint32_t emissive{kInvalidIndexU32};
+    uint32_t roughness_metallic{kInvalidIndexU32};
+  } bindings{};
+
+  vec3 emissive_factor{};
+  float alpha_cutoff{0.5f};
+  bool double_sided{};
+
+  struct {
+    vec4 basecolor_factor{};
+    float metallic_factor{};
+    float roughness_factor{};
+  } pbr_mr;
+};
+
+// ----------------------------------------------------------------------------
+
+/* Link a material to its MaterialFx. */
+struct MaterialRef {
+  // Built-in model id for the material.
+  MaterialModel model{}; //
+
+  // Static pipeline states.
+  MaterialStates states{};
+
+  // Index to the global resources proxy material.
+  uint32_t proxy_index{}; //
+
+  // Index of the material in the MaterialFx internal buffer.
+  uint32_t material_index{ kInvalidIndexU32 };
 };
 
 /* -------------------------------------------------------------------------- */
 
 }  // namespace scene
 
-#endif // HELLO_VK_FRAMEWORK_SCENE_MATERIAL_H
+#endif // VKFRAMEWORK_SCENE_MATERIAL_H

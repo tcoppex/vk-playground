@@ -1,9 +1,9 @@
-#ifndef HELLOVK_FRAMEWORK_BACKEND_ALLOCATOR_H
-#define HELLOVK_FRAMEWORK_BACKEND_ALLOCATOR_H
+#ifndef VKFRAMEWORK_BACKEND_ALLOCATOR_H
+#define VKFRAMEWORK_BACKEND_ALLOCATOR_H
 
 /* -------------------------------------------------------------------------- */
 
-#include "framework/common.h"
+#include "framework/core/common.h"
 #include "framework/backend/types.h"
 
 /* -------------------------------------------------------------------------- */
@@ -31,10 +31,14 @@ class ResourceAllocator {
     VmaAllocationCreateFlags const flags = {}
   ) const;
 
-  backend::Buffer create_staging_buffer(size_t const bytesize = kDefaultStagingBufferSize, void const* host_data = nullptr, size_t host_data_size = 0u);
+  backend::Buffer create_staging_buffer(
+    size_t const bytesize = kDefaultStagingBufferSize,
+    void const* host_data = nullptr,
+    size_t host_data_size = 0u
+  ) const;
 
   template<typename T>
-  backend::Buffer create_staging_buffer(std::span<T> const& host_data) {
+  backend::Buffer create_staging_buffer(std::span<T> const& host_data) const {
     return create_staging_buffer(sizeof(T) * host_data.size(), host_data.data());
   }
 
@@ -51,9 +55,9 @@ class ResourceAllocator {
   size_t write_buffer(
     backend::Buffer const& dst_buffer, size_t const dst_offset,
     void const* host_data, size_t const host_offset, size_t const bytesize
-  );
+  ) const;
 
-  void upload_host_to_device(void const* host_data, size_t const bytesize, backend::Buffer const& dst_buffer) {
+  void upload_host_to_device(void const* host_data, size_t const bytesize, backend::Buffer const& dst_buffer) const {
     write_buffer(dst_buffer, 0u, host_data, 0u, bytesize);
   }
   // ------------------------
@@ -76,7 +80,7 @@ class ResourceAllocator {
  private:
   VkDevice device_{};
   VmaAllocator allocator_{};
-  std::vector<backend::Buffer> staging_buffers_{};
+  mutable std::vector<backend::Buffer> staging_buffers_{};
 };
 
 /* -------------------------------------------------------------------------- */

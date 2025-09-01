@@ -1,12 +1,12 @@
-#ifndef HELLO_VK_FRAMEWORK_SCENE_IMAGE_DATA_H_
-#define HELLO_VK_FRAMEWORK_SCENE_IMAGE_DATA_H_
+#ifndef VKFRAMEWORK_SCENE_IMAGE_DATA_H_
+#define VKFRAMEWORK_SCENE_IMAGE_DATA_H_
 
 extern "C" {
 #include <stb/stb_image.h>
 }
 
-#include "framework/common.h"
-#include "framework/utils/utils.h"
+#include "framework/core/common.h"
+#include "framework/core/utils.h"
 
 namespace scene {
 
@@ -113,4 +113,4 @@ struct ImageData {
 
 }  // namespace scene
 
-#endif // HELLO_VK_FRAMEWORK_SCENE_IMAGE_DATA_H_
+#endif // VKFRAMEWORK_SCENE_IMAGE_DATA_H_

@@ -1,7 +1,7 @@
-#ifndef HELLO_VK_FRAMEWORK_SCENE_ANIMATION_H
-#define HELLO_VK_FRAMEWORK_SCENE_ANIMATION_H
+#ifndef VKFRAMEWORK_SCENE_ANIMATION_H
+#define VKFRAMEWORK_SCENE_ANIMATION_H
 
-#include "framework/common.h"
+#include "framework/core/common.h"
 
 namespace scene {
 
@@ -47,7 +47,7 @@ struct Skeleton {
   JointBuffer<mat4f> global_bind_matrices{};
 
   std::unordered_map<std::string, int32_t> index_map{};
-  std::vector<std::shared_ptr<AnimationClip>> clips{};
+  std::vector<AnimationClip*> clips{};
 
   Skeleton() = default;
 
@@ -79,4 +79,4 @@ struct Skeleton {
 
 }  // namespace scene
 
-#endif // HELLO_VK_FRAMEWORK_SCENE_ANIMATION_H
+#endif // VKFRAMEWORK_SCENE_ANIMATION_H

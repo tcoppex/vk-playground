@@ -8,9 +8,8 @@
 
 #include "framework/application.h"
 
-#include "framework/scene/camera.h"
-#include "framework/scene/arcball_controller.h"
-#include "framework/fx/material/pbr_metallic_roughness.h"
+#include "framework/core/camera.h"
+#include "framework/core/arcball_controller.h"
 
 namespace shader_interop {
 #include "shaders/interop.h"
@@ -66,7 +65,7 @@ class SampleApp final : public Application {
     auto &skybox = renderer_.skybox();
     skybox.setup(ASSETS_DIR "textures/qwantani_dusk_2_2k.hdr");
 
-    /* Load glTF Scene / Resources. */
+    /* Load glTF Scene / Scene. */
     {
       std::string const gltf_filename{ASSETS_DIR "models/"
         "suzanne.glb"
@@ -74,18 +73,18 @@ class SampleApp final : public Application {
 
       /* Load the model directly on device, as we do not change the model's internal data
        * layout we need to specify how to map its attributes to the shader used. */
-      R = renderer_.load_and_upload(gltf_filename, {
+      scene_ = renderer_.load_and_upload(gltf_filename, {
         { Geometry::AttributeType::Position,  shader_interop::kAttribLocation_Position },
         { Geometry::AttributeType::Texcoord,  shader_interop::kAttribLocation_Texcoord },
         { Geometry::AttributeType::Normal,    shader_interop::kAttribLocation_Normal   },
       });
 
-      LOG_CHECK(R->device_images.size() <= kMaxNumTextures); //
+      LOG_CHECK(scene_->device_images.size() <= kMaxNumTextures); //
     }
 
     /* Release the temporary staging buffers. */
-    allocator_ = context_.get_resource_allocator();
-    allocator_->clear_staging_buffers();
+    allocator_ptr_ = context_.allocator_ptr();
+    allocator_ptr_->clear_staging_buffers();
 
     /* Descriptor set. */
     {
@@ -137,7 +136,7 @@ class SampleApp final : public Application {
 
     /* Update the Sampler Atlas descriptor with the currently loaded textures. */
     context_.update_descriptor_set(descriptor_set_, {
-      R->descriptor_set_texture_atlas_entry( shader_interop::kDescriptorSetBinding_Sampler )
+      scene_->descriptor_set_texture_atlas_entry( shader_interop::kDescriptorSetBinding_Sampler )
     });
 
     auto shaders{context_.create_shader_modules(COMPILED_SHADERS_DIR, {
@@ -199,10 +198,8 @@ class SampleApp final : public Application {
     renderer_.destroy_descriptor_set_layout(descriptor_set_layout_);
     renderer_.destroy_pipeline_layout(graphics_pipeline_.get_layout());
     renderer_.destroy_pipeline(graphics_pipeline_);
-
-    allocator_->destroy_buffer(uniform_buffer_);
-
-    R->release(); //
+    allocator_ptr_->destroy_buffer(uniform_buffer_);
+    scene_.reset();
   }
 
   void update_frame(float const delta_time) {
@@ -211,20 +208,17 @@ class SampleApp final : public Application {
   }
 
   void draw_model(RenderPassEncoder const& pass, mat4 const& world_matrix) {
-    for (auto const& mesh : R->meshes) {
-      pass.set_primitive_topology(mesh->get_vk_primitive_topology());
+    for (auto const& mesh : scene_->meshes) {
+      pass.set_primitive_topology(mesh->vk_primitive_topology());
       push_constant_.model.worldMatrix = linalg::mul(
         world_matrix,
-        mesh->world_matrix
+        mesh->world_matrix()
       );
       for (auto const& submesh : mesh->submeshes) {
-        auto const& material_ref = *(submesh.material_ref);
-        if (auto *fx = R->material_fx<fx::scene::PBRMetallicRoughnessFx>(material_ref); fx) {
-          auto pbr_material = fx->material(material_ref.material_index);
-          push_constant_.model.albedo_texture_index = pbr_material.diffuse_texture_id;
-        }
+        auto material = scene_->material(*submesh.material_ref);
+        push_constant_.model.albedo_texture_index = material.bindings.basecolor;
         pass.push_constant(push_constant_, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT); //
-        pass.draw(submesh.draw_descriptor, R->vertex_buffer, R->index_buffer);
+        pass.draw(submesh.draw_descriptor, scene_->vertex_buffer, scene_->index_buffer);
       }
     }
   }
@@ -262,7 +256,7 @@ class SampleApp final : public Application {
   }
 
  private:
-  std::shared_ptr<ResourceAllocator> allocator_{};
+  ResourceAllocator* allocator_ptr_{};
 
   HostData_t host_data_{};
   backend::Buffer uniform_buffer_{};
@@ -278,7 +272,7 @@ class SampleApp final : public Application {
   Camera camera_{};
   ArcBallController arcball_controller_{};
 
-  std::shared_ptr<scene::Resources> R; //
+  GLTFScene scene_{};
 };
 
 // ----------------------------------------------------------------------------

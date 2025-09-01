@@ -28,7 +28,7 @@ bool Context::init(std::vector<char const*> const& instance_extensions) {
     }
   }
 
-  resource_allocator_ = std::make_shared<ResourceAllocator>();
+  resource_allocator_ = std::make_unique<ResourceAllocator>();
   resource_allocator_->init({
     .physicalDevice = gpu_,
     .device = device_,
@@ -137,7 +137,7 @@ std::vector<backend::ShaderModule> Context::create_shader_modules(std::string_vi
       return create_shader_module(directory, name);
     }
   );
-  // (return shared_ptr, with auto release instead ?)
+
   return shaders;
 }
 
@@ -170,8 +170,7 @@ CommandEncoder Context::create_transient_command_encoder(Context::TargetQueue co
   };
   CHECK_VK(vkAllocateCommandBuffers(device_, &alloc_info, &cmd));
 
-  auto encoder{ CommandEncoder(cmd, static_cast<uint32_t>(target_queue), device_, resource_allocator_) };
-
+  auto encoder{ CommandEncoder(cmd, static_cast<uint32_t>(target_queue), device_, resource_allocator_.get()) };
   encoder.begin();
 
   return encoder;

@@ -54,7 +54,7 @@ class SampleApp final : public Application {
 
     renderer_.set_color_clear_value({.float32 = {0.125f, 0.125f, 0.125f, 1.0f}});
 
-    allocator_ = context_.get_resource_allocator();
+    allocator_ptr_ = context_.allocator_ptr();
 
     /* Initialize the scene data on the host, here just the camera matrices. */
     host_data_.scene.camera = {
@@ -209,9 +209,9 @@ class SampleApp final : public Application {
 
     renderer_.destroy_pipeline(graphics_pipeline_);
 
-    allocator_->destroy_buffer(index_buffer_);
-    allocator_->destroy_buffer(vertex_buffer_);
-    allocator_->destroy_buffer(uniform_buffer_);
+    allocator_ptr_->destroy_buffer(index_buffer_);
+    allocator_ptr_->destroy_buffer(vertex_buffer_);
+    allocator_ptr_->destroy_buffer(uniform_buffer_);
   }
 
   void frame() final {
@@ -261,7 +261,7 @@ class SampleApp final : public Application {
   }
 
  private:
-  std::shared_ptr<ResourceAllocator> allocator_{};
+  ResourceAllocator* allocator_ptr_{};
 
   HostData_t host_data_{};
   backend::Buffer uniform_buffer_{};

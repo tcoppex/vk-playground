@@ -27,7 +27,7 @@ class SampleApp final : public Application {
 
     void draw(RenderPassEncoder const& pass, uint32_t instance_count = 1u) const {
       pass.bind_vertex_buffer(vertex);
-      pass.bind_index_buffer(index, get_vk_index_type());
+      pass.bind_index_buffer(index, vk_index_type());
       pass.draw_indexed(get_index_count(), instance_count);
     }
   };
@@ -49,8 +49,6 @@ class SampleApp final : public Application {
     wm_->setTitle("05 - přemýšlet s portály");
 
     renderer_.set_color_clear_value({{ 0.1078f, 0.1079f, 0.1081f, 1.0f }});
-
-    allocator_ = context_.get_resource_allocator();
 
     /* Initialize the scene data. */
     host_data_.scene.camera = {
@@ -174,7 +172,7 @@ class SampleApp final : public Application {
       GraphicsPipelineDescriptor_t mask_pipeline_descriptor{
         .vertex = {
           .module = shaders[0u].module,
-          .buffers = plane_.get_vk_pipeline_vertex_buffer_descriptors(),
+          .buffers = plane_.pipeline_vertex_buffer_descriptors(),
         },
         .fragment = {
           .module = shaders[2u].module,
@@ -202,7 +200,7 @@ class SampleApp final : public Application {
           },
         },
         .primitive = {
-          .topology = plane_.get_vk_primitive_topology(),
+          .topology = plane_.vk_primitive_topology(),
           .cullMode = VK_CULL_MODE_BACK_BIT,
         }
       };
@@ -214,7 +212,7 @@ class SampleApp final : public Application {
       pipelines_[PipelineID::StencilTest] = renderer_.create_graphics_pipeline(pipeline_layout_, {
         .vertex = {
           .module = shaders[1u].module,
-          .buffers = torus_.get_vk_pipeline_vertex_buffer_descriptors(),
+          .buffers = torus_.pipeline_vertex_buffer_descriptors(),
         },
         .fragment = {
           .module = shaders[2u].module,
@@ -246,7 +244,7 @@ class SampleApp final : public Application {
           },
         },
         .primitive = {
-          .topology = torus_.get_vk_primitive_topology(),
+          .topology = torus_.vk_primitive_topology(),
           .cullMode = VK_CULL_MODE_BACK_BIT,
         }
       });
@@ -259,7 +257,7 @@ class SampleApp final : public Application {
       pipelines_[PipelineID::Rendering] = renderer_.create_graphics_pipeline(pipeline_layout_, {
         .vertex = {
           .module = shaders[0u].module,
-          .buffers = torus_.get_vk_pipeline_vertex_buffer_descriptors(),
+          .buffers = torus_.pipeline_vertex_buffer_descriptors(),
         },
         .fragment = {
           .module = shaders[2u].module,
@@ -281,7 +279,7 @@ class SampleApp final : public Application {
           .depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL,
         },
         .primitive = {
-          .topology = torus_.get_vk_primitive_topology(),
+          .topology = torus_.vk_primitive_topology(),
           .cullMode = VK_CULL_MODE_BACK_BIT,
         }
       });
@@ -299,13 +297,12 @@ class SampleApp final : public Application {
     renderer_.destroy_descriptor_set_layout(descriptor_set_layout_);
     renderer_.destroy_pipeline_layout(pipeline_layout_);
 
-    allocator_->destroy_buffer(plane_.index);
-    allocator_->destroy_buffer(plane_.vertex);
-
-    allocator_->destroy_buffer(torus_.index);
-    allocator_->destroy_buffer(torus_.vertex);
-
-    allocator_->destroy_buffer(uniform_buffer_);
+    auto allocator = context_.allocator();
+    allocator.destroy_buffer(plane_.index);
+    allocator.destroy_buffer(plane_.vertex);
+    allocator.destroy_buffer(torus_.index);
+    allocator.destroy_buffer(torus_.vertex);
+    allocator.destroy_buffer(uniform_buffer_);
   }
 
   void frame() final {
@@ -365,8 +362,6 @@ class SampleApp final : public Application {
   }
 
  private:
-  std::shared_ptr<ResourceAllocator> allocator_;
-
   HostData_t host_data_{};
   backend::Buffer uniform_buffer_{};
 

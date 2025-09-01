@@ -1,13 +1,11 @@
-#ifndef HELLOVK_FRAMEWORK_RENDERER_PIPELINE_H
-#define HELLOVK_FRAMEWORK_RENDERER_PIPELINE_H
-
-/* -------------------------------------------------------------------------- */
+#ifndef VKFRAMEWORK_RENDERER_PIPELINE_H_
+#define VKFRAMEWORK_RENDERER_PIPELINE_H_
 
 #include "framework/backend/types.h"
 
 class Renderer;
 
-// ----------------------------------------------------------------------------
+/* -------------------------------------------------------------------------- */
 
 class Pipeline : public backend::PipelineInterface {
  public:
@@ -171,4 +169,4 @@ using PipelineVertexBufferDescriptors = std::vector<PipelineVertexBufferDescript
 
 /* -------------------------------------------------------------------------- */
 
-#endif // HELLOVK_FRAMEWORK_RENDERER_PIPELINE_H
+#endif // VKFRAMEWORK_RENDERER_PIPELINE_H_

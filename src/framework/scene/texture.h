@@ -1,7 +1,7 @@
-#ifndef HELLO_VK_FRAMEWORK_SCENE_TEXTURE_H_
-#define HELLO_VK_FRAMEWORK_SCENE_TEXTURE_H_
+#ifndef VKFRAMEWORK_SCENE_TEXTURE_H_
+#define VKFRAMEWORK_SCENE_TEXTURE_H_
 
-#include <vulkan/vulkan.h> // for VkSampler..
+#include "framework/scene/sampler.h"
 
 namespace scene {
 
@@ -11,7 +11,11 @@ struct Texture {
  public:
   Texture() = default;
 
-  Texture(uint32_t _host_image_index, VkSampler _sampler)
+  Texture(uint32_t _host_image_index)
+    : host_image_index(_host_image_index)
+  {}
+
+  Texture(uint32_t _host_image_index, Sampler _sampler)
     : host_image_index(_host_image_index)
     , sampler(_sampler)
   {}
@@ -21,11 +25,11 @@ struct Texture {
   }
 
   uint32_t host_image_index{UINT32_MAX};
-  VkSampler sampler;
+  Sampler sampler{}; // (or sampler_index ?)
 };
 
 /* -------------------------------------------------------------------------- */
 
 }  // namespace scene
 
-#endif // HELLO_VK_FRAMEWORK_SCENE_TEXTURE_H_
+#endif // VKFRAMEWORK_SCENE_TEXTURE_H_

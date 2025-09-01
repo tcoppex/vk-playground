@@ -1,9 +1,9 @@
-#ifndef HELLOVK_FRAMEWORK_BACKEND_VKUTILS_H
-#define HELLOVK_FRAMEWORK_BACKEND_VKUTILS_H
+#ifndef VKFRAMEWORK_BACKEND_VKUTILS_H
+#define VKFRAMEWORK_BACKEND_VKUTILS_H
 
 /* -------------------------------------------------------------------------- */
 
-#include "framework/common.h"
+#include "framework/core/common.h"
 #include "volk.h"
 
 /* -------------------------------------------------------------------------- */
@@ -44,4 +44,4 @@ void PushNextVKStruct(T* baseStruct, N* nextStruct) {
 
 /* -------------------------------------------------------------------------- */
 
-#endif // HELLOVK_FRAMEWORK_BACKEND_VKUTILS_H
+#endif // VKFRAMEWORK_BACKEND_VKUTILS_H

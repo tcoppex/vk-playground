@@ -29,7 +29,7 @@ class SampleApp final : public Application {
 
     renderer_.set_color_clear_value({{ 0.94f, 0.93f, 0.94f, 1.0f }});
 
-    allocator_ = context_.get_resource_allocator();
+    allocator_ptr_ = context_.allocator_ptr();
 
     /* Initialize the scene data. */
     host_data_.scene.camera = {
@@ -157,7 +157,7 @@ class SampleApp final : public Application {
            *
            * Most Geometry::MakeX functions used the same interleaved layout,
            * so they can be used interchangeably on the same static pipeline.*/
-          .buffers = cube_.get_vk_pipeline_vertex_buffer_descriptors(),
+          .buffers = cube_.pipeline_vertex_buffer_descriptors(),
         },
         .fragment = {
           .module = shaders[1u].module,
@@ -179,7 +179,7 @@ class SampleApp final : public Application {
           .depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL,
         },
         .primitive = {
-          .topology = cube_.get_vk_primitive_topology(),
+          .topology = cube_.vk_primitive_topology(),
           .cullMode = VK_CULL_MODE_BACK_BIT,
         }
       });
@@ -195,11 +195,11 @@ class SampleApp final : public Application {
     renderer_.destroy_pipeline_layout(graphics_pipeline_.get_layout());
     renderer_.destroy_pipeline(graphics_pipeline_);
 
-    allocator_->destroy_image(&image_);
+    allocator_ptr_->destroy_image(&image_);
 
-    allocator_->destroy_buffer(index_buffer_);
-    allocator_->destroy_buffer(vertex_buffer_);
-    allocator_->destroy_buffer(uniform_buffer_);
+    allocator_ptr_->destroy_buffer(index_buffer_);
+    allocator_ptr_->destroy_buffer(vertex_buffer_);
+    allocator_ptr_->destroy_buffer(uniform_buffer_);
   }
 
   void frame() final {
@@ -225,7 +225,7 @@ class SampleApp final : public Application {
           pass.push_constant(push_constant_, VK_SHADER_STAGE_VERTEX_BIT);
 
           pass.bind_vertex_buffer(vertex_buffer_);
-          pass.bind_index_buffer(index_buffer_, cube_.get_vk_index_type());
+          pass.bind_index_buffer(index_buffer_, cube_.vk_index_type());
           pass.draw_indexed(cube_.get_index_count());
 
           // pass.draw(cube_.get_draw_descriptor(), vertex_buffer_, index_buffer_);
@@ -237,7 +237,7 @@ class SampleApp final : public Application {
   }
 
  private:
-  std::shared_ptr<ResourceAllocator> allocator_{};
+  ResourceAllocator* allocator_ptr_{};
 
   HostData_t host_data_{};
   backend::Buffer uniform_buffer_{};

@@ -1,21 +1,20 @@
-#ifndef HELLOVK_FRAMEWORK_RENDERER_RENDERER_H
-#define HELLOVK_FRAMEWORK_RENDERER_RENDERER_H
+#ifndef VKFRAMEWORK_RENDERER_RENDERER_H_
+#define VKFRAMEWORK_RENDERER_RENDERER_H_
 
 /* -------------------------------------------------------------------------- */
 
-#include "framework/common.h"
+#include "framework/core/common.h"
 
-#include "framework/backend/context.h"
 #include "framework/backend/swapchain.h"
 #include "framework/backend/command_encoder.h"
-
 #include "framework/renderer/pipeline.h"
 #include "framework/renderer/sampler_pool.h"
-#include "framework/renderer/_experimental/framebuffer.h" // (for Framebuffer::Descriptor_t)
-#include "framework/renderer/_experimental/render_target.h" // (for RenderTarget::Descriptor_t)
+#include "framework/renderer/targets/framebuffer.h"
+#include "framework/renderer/targets/render_target.h"
+#include "framework/renderer/gpu_resources.h" // (for GLTFScene)
+#include "framework/renderer/fx/skybox.h"
 
-#include "framework/scene/resources.h" // (for GLTFScene)
-#include "framework/fx/skybox.h"
+class Context;
 
 /* -------------------------------------------------------------------------- */
 
@@ -41,7 +40,7 @@ class Renderer : public backend::RTInterface {
   Renderer() = default;
   ~Renderer() {}
 
-  void init(Context const& context, std::shared_ptr<ResourceAllocator> allocator, VkSurfaceKHR const surface);
+  void init(Context const& context, ResourceAllocator* allocator, VkSurfaceKHR const surface);
 
   void deinit();
 
@@ -51,6 +50,10 @@ class Renderer : public backend::RTInterface {
 
   Swapchain const& get_swapchain() const {
     return swapchain_;
+  }
+
+  Context const& context() const {
+    return *ctx_ptr_;
   }
 
   Skybox& skybox() {
@@ -145,7 +148,7 @@ class Renderer : public backend::RTInterface {
     return sampler_pool_;
   }
 
-  // --- Resources gltf objects ---
+  // --- GPUResources gltf objects ---
 
   GLTFScene load_and_upload(std::string_view gltf_filename, scene::Mesh::AttributeLocationMap const& attribute_to_location);
 
@@ -235,8 +238,7 @@ class Renderer : public backend::RTInterface {
   /* Copy references for quick access */
   Context const* ctx_ptr_{};
   VkDevice device_{};
-  std::shared_ptr<ResourceAllocator> allocator_{};
-  Context::TargetQueue target_queue_{};
+  ResourceAllocator* allocator_ptr_{};
 
   /* Swapchain. */
   Swapchain swapchain_{};

@@ -4,13 +4,11 @@
 //
 //  Where we don't bother and use the internal material & rendering system.
 //
-//
 /* -------------------------------------------------------------------------- */
 
 #include "framework/application.h"
-
-#include "framework/scene/camera.h"
-#include "framework/scene/arcball_controller.h"
+#include "framework/core/camera.h"
+#include "framework/core/arcball_controller.h"
 
 /* -------------------------------------------------------------------------- */
 
@@ -63,9 +61,7 @@ class SampleApp final : public Application {
   }
 
   void release() final {
-    if (scene_) {
-      scene_->release();
-    }
+    scene_.reset();
   }
 
   void update(float const dt) final {

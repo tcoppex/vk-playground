@@ -8,7 +8,7 @@
 /* -------------------------------------------------------------------------- */
 
 #include "framework/application.h"
-#include "framework/utils/geometry.h"
+#include "framework/core/geometry.h"
 
 namespace shader_interop {
 #include "shaders/interop.h"
@@ -48,8 +48,6 @@ class SampleApp final : public Application {
     wm_->setTitle("07 - Nouvelles Vagues");
 
     renderer_.set_color_clear_value({{ 0.95f, 0.85f, 0.83f, 1.0f }});
-
-    allocator_ = context_.get_resource_allocator();
 
     /* Initialize the scene data. */
     host_data_.scene.camera = {
@@ -106,7 +104,7 @@ class SampleApp final : public Application {
       context_.finish_transient_command_encoder(cmd);
 
       /* Buffer used to store the dot product of particles toward the view direction. */
-      dot_product_buffer_ = allocator_->create_buffer(
+      dot_product_buffer_ = context_.allocator().create_buffer(
         point_grid_.geo.get_vertex_count() * sizeof(float),
         VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
         VMA_MEMORY_USAGE_GPU_ONLY
@@ -274,10 +272,11 @@ class SampleApp final : public Application {
     renderer_.destroy_pipeline_layout(pipeline_layout_);
     renderer_.destroy_descriptor_set_layout(descriptor_set_layout_);
 
-    allocator_->destroy_buffer(dot_product_buffer_);
-    allocator_->destroy_buffer(point_grid_.index);
-    allocator_->destroy_buffer(point_grid_.vertex);
-    allocator_->destroy_buffer(uniform_buffer_);
+    auto allocator = context_.allocator();
+    allocator.destroy_buffer(dot_product_buffer_);
+    allocator.destroy_buffer(point_grid_.index);
+    allocator.destroy_buffer(point_grid_.vertex);
+    allocator.destroy_buffer(uniform_buffer_);
   }
 
   void frame() final {
@@ -445,8 +444,6 @@ class SampleApp final : public Application {
   }
 
  private:
-  std::shared_ptr<ResourceAllocator> allocator_;
-
   HostData_t host_data_{};
 
   Mesh_t point_grid_{};

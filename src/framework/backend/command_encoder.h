@@ -1,5 +1,5 @@
-#ifndef HELLOVK_FRAMEWORK_BACKEND_COMMAND_ENCODER_H
-#define HELLOVK_FRAMEWORK_BACKEND_COMMAND_ENCODER_H
+#ifndef VKFRAMEWORK_BACKEND_COMMAND_ENCODER_H
+#define VKFRAMEWORK_BACKEND_COMMAND_ENCODER_H
 
 #include "framework/backend/allocator.h"
 #include "framework/backend/types.h"
@@ -202,10 +202,14 @@ class CommandEncoder : public GenericCommandEncoder {
   CommandEncoder() = default;
 
  private:
-  CommandEncoder(VkCommandBuffer const command_buffer, uint32_t target_queue_index, VkDevice const device, std::shared_ptr<ResourceAllocator> allocator)
-    : GenericCommandEncoder(command_buffer, target_queue_index)
+  CommandEncoder(
+    VkCommandBuffer const command_buffer,
+    uint32_t const target_queue_index,
+    VkDevice const device,
+    ResourceAllocator *allocator_ptr
+  ) : GenericCommandEncoder(command_buffer, target_queue_index)
     , device_{device}
-    , allocator_{allocator}
+    , allocator_ptr_{allocator_ptr}
   {}
 
   void begin() const {
@@ -222,7 +226,8 @@ class CommandEncoder : public GenericCommandEncoder {
 
  protected:
   VkDevice device_{};
-  std::shared_ptr<ResourceAllocator> allocator_{};
+  // ResourceAllocator const* allocator_ptr_{};
+  ResourceAllocator* allocator_ptr_{};
 
   /* Link the default backend::RTInterface when one is available. */
   backend::RTInterface const* default_render_target_ptr_{};

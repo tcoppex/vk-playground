@@ -1,5 +1,5 @@
-#ifndef HELLOVK_FRAMEWORK_BACKEND_CONTEXT_H
-#define HELLOVK_FRAMEWORK_BACKEND_CONTEXT_H
+#ifndef VKFRAMEWORK_BACKEND_CONTEXT_H
+#define VKFRAMEWORK_BACKEND_CONTEXT_H
 
 /* -------------------------------------------------------------------------- */
 
@@ -49,8 +49,20 @@ class Context {
     return properties_;
   }
 
-  std::shared_ptr<ResourceAllocator> get_resource_allocator() const {
-    return resource_allocator_;
+  ResourceAllocator* allocator_ptr() {
+    return resource_allocator_.get();
+  }
+
+  ResourceAllocator const* allocator_ptr() const {
+    return resource_allocator_.get();
+  }
+
+  ResourceAllocator& allocator() {
+    return *resource_allocator_;
+  }
+
+  ResourceAllocator const& allocator() const {
+    return *resource_allocator_;
   }
 
   void wait_device_idle() const {
@@ -190,7 +202,7 @@ class Context {
 
   backend::GPUProperties properties_{};
 
-  std::shared_ptr<ResourceAllocator> resource_allocator_{};
+  std::unique_ptr<ResourceAllocator> resource_allocator_{};
 };
 
 /* -------------------------------------------------------------------------- */

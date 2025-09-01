@@ -1,7 +1,9 @@
-#ifndef HELLOVK_FRAMEWORK_RENDERER_SAMPLER_POOL_H_
-#define HELLOVK_FRAMEWORK_RENDERER_SAMPLER_POOL_H_
+#ifndef VKFRAMEWORK_RENDERER_SAMPLER_POOL_H_
+#define VKFRAMEWORK_RENDERER_SAMPLER_POOL_H_
 
-#include "framework/common.h"
+#include "framework/core/common.h"
+#include "framework/core/utils.h"
+#include "framework/scene/sampler.h"
 
 /* -------------------------------------------------------------------------- */
 
@@ -10,7 +12,7 @@ class SamplerPool {
   SamplerPool() = default;
 
   ~SamplerPool() {
-    assert( device_ == VK_NULL_HANDLE );
+    LOG_CHECK( device_ == VK_NULL_HANDLE );
   }
 
   void init(VkDevice device) {
@@ -41,7 +43,7 @@ class SamplerPool {
     return default_sampler_;
   }
 
-  VkSampler get(VkSamplerCreateInfo info) {
+  VkSampler get(VkSamplerCreateInfo info) const {
     info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
     if (auto it = map_.find(info); it != map_.end()) {
       return it->second;
@@ -51,10 +53,10 @@ class SamplerPool {
     return sampler;
   }
 
-  VkSampler get(VkSamplerCreateInfo const& info) const {
-    LOG_CHECK(info.sType == VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO);
-    LOG_CHECK(map_.contains(info));
-    return map_.find(info)->second;
+  VkSampler convert(scene::Sampler const& scene_sampler) const {
+    return scene_sampler.use_default() ? default_sampler_
+                                       : get(scene_sampler.info)
+                                       ;
   }
 
   void destroy(VkSampler sampler) {
@@ -98,7 +100,7 @@ class SamplerPool {
   };
 
   VkSampler createSampler(VkSamplerCreateInfo info) const {
-    assert( device_ != VK_NULL_HANDLE );
+    LOG_CHECK( device_ != VK_NULL_HANDLE );
     VkSampler sampler{};
     info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
     CHECK_VK( vkCreateSampler(device_, &info, nullptr, &sampler) );
@@ -109,9 +111,9 @@ class SamplerPool {
   VkDevice device_{};
   VkSampler default_sampler_{};
 
-  std::unordered_map<VkSamplerCreateInfo, VkSampler, InfoHash, InfoKeyEqual> map_{};
+  mutable std::unordered_map<VkSamplerCreateInfo, VkSampler, InfoHash, InfoKeyEqual> map_{};
 };
 
 /* -------------------------------------------------------------------------- */
 
-#endif //  HELLOVK_FRAMEWORK_RENDERER_SAMPLER_POOL_H_
+#endif //  VKFRAMEWORK_RENDERER_SAMPLER_POOL_H_

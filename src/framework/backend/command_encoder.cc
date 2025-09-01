@@ -1,5 +1,5 @@
 #include "framework/backend/command_encoder.h"
-#include "framework/fx/_experimental/fx_interface.h"
+#include "framework/renderer/fx/postprocess/post_fx_interface.h"
 
 #include <backends/imgui_impl_vulkan.h> //
 
@@ -191,7 +191,7 @@ void CommandEncoder::transfer_host_to_device(void const* host_data, size_t const
   // ----------------
   // [TODO] Staging buffers need cleaning / garbage collection !
   auto staging_buffer{
-    allocator_->create_staging_buffer(host_data_size, host_data)   //
+    allocator_ptr_->create_staging_buffer(host_data_size, host_data)   //
   };
   // ----------------
 
@@ -207,7 +207,7 @@ backend::Buffer CommandEncoder::create_buffer_and_upload(void const* host_data, 
   size_t const buffer_bytesize = (device_buffer_size > 0) ? device_buffer_size : host_data_size;
   assert(host_data_size <= buffer_bytesize);
 
-  auto device_buffer{allocator_->create_buffer(
+  auto device_buffer{allocator_ptr_->create_buffer(
     static_cast<VkDeviceSize>(buffer_bytesize),
     usage | VK_BUFFER_USAGE_2_TRANSFER_DST_BIT_KHR,
     VMA_MEMORY_USAGE_GPU_ONLY
@@ -362,7 +362,9 @@ void CommandEncoder::render_ui(backend::RTInterface &render_target) {
   render_target.set_color_load_op(VK_ATTACHMENT_LOAD_OP_LOAD);
 
   begin_rendering(render_target);
-  ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), command_buffer_);
+  // ----------------------------------------
+  ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), command_buffer_); // XXX
+  // ----------------------------------------
   end_rendering();
 
   render_target.set_color_load_op(load_op);
