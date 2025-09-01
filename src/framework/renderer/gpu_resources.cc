@@ -13,12 +13,21 @@ using namespace scene;
 GPUResources::GPUResources(Renderer const& renderer)
   : renderer_ptr_(&renderer)
   , context_ptr_(&renderer.context())
-{}
+{
+  rt_scene_.init(*context_ptr_); //
+}
 
 // ----------------------------------------------------------------------------
 
 GPUResources::~GPUResources() {
+  context_ptr_->wait_device_idle();
+
+  if (material_fx_registry_) {
+    material_fx_registry_->release();
+  }
   if (allocator_ptr_ != nullptr) {
+    rt_scene_.release();
+
     for (auto& img : device_images) {
       allocator_ptr_->destroy_image(&img);
     }
@@ -26,9 +35,6 @@ GPUResources::~GPUResources() {
     allocator_ptr_->destroy_buffer(frame_ubo_);
     allocator_ptr_->destroy_buffer(index_buffer);
     allocator_ptr_->destroy_buffer(vertex_buffer);
-  }
-  if (material_fx_registry_) {
-    material_fx_registry_->release();
   }
 }
 
@@ -95,7 +101,11 @@ void GPUResources::upload_to_device(bool const bReleaseHostDataOnUpload) {
   /* Transfer Buffers */
   if (vertex_buffer_size > 0) {
     upload_buffers(*context_ptr_);
+
+    /* Build the Raytracing acceleration structures. */
+    rt_scene_.build(meshes, vertex_buffer, index_buffer);
   }
+
 
   /* Clear host data once uploaded */
   if (bReleaseHostDataOnUpload) {
@@ -324,14 +334,20 @@ void GPUResources::upload_buffers(Context const& context) {
   /* Allocate device buffers for meshes & their transforms. */
   vertex_buffer = allocator_ptr_->create_buffer(
     vertex_buffer_size,
-    VK_BUFFER_USAGE_2_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_2_TRANSFER_DST_BIT_KHR,
+      VK_BUFFER_USAGE_2_VERTEX_BUFFER_BIT
+    | VK_BUFFER_USAGE_2_TRANSFER_DST_BIT_KHR
+    | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR //
+    ,
     VMA_MEMORY_USAGE_GPU_ONLY
   );
 
   if (index_buffer_size > 0) {
     index_buffer = allocator_ptr_->create_buffer(
       index_buffer_size,
-      VK_BUFFER_USAGE_2_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_2_TRANSFER_DST_BIT_KHR,
+        VK_BUFFER_USAGE_2_INDEX_BUFFER_BIT
+      | VK_BUFFER_USAGE_2_TRANSFER_DST_BIT_KHR
+      | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR //
+      ,
       VMA_MEMORY_USAGE_GPU_ONLY
     );
   }
