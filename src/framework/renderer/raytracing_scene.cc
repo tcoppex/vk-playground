@@ -1,14 +1,14 @@
-#include "framework/renderer/raytracing.h"
+#include "framework/renderer/raytracing_scene.h"
 
 /* -------------------------------------------------------------------------- */
 
-void Raytracer::init(Context const& ctx) {
+void RaytracingScene::init(Context const& ctx) {
   context_ptr_ = &ctx;
 }
 
 // ----------------------------------------------------------------------------
 
-void Raytracer::build(
+void RaytracingScene::build(
   scene::ResourceBuffer<scene::Mesh> const& meshes,
   backend::Buffer const& vertex_buffer,
   backend::Buffer const& index_buffer
@@ -21,8 +21,9 @@ void Raytracer::build(
 
   // Build a BLAS for each submeshes.
   for (auto const& mesh : meshes) {
-
-    mat3x4 transform = lina::to_mat3x4(mesh->world_matrix());
+    mat3x4 transform{
+      lina::to_mat3x4(mesh->world_matrix())
+    };
 
     for (auto const& submesh : mesh->submeshes) {
       build_blas(submesh);
@@ -43,7 +44,8 @@ void Raytracer::build(
 
 // ----------------------------------------------------------------------------
 
-void Raytracer::build_blas(scene::Mesh::SubMesh const& submesh) {
+void RaytracingScene::build_blas(scene::Mesh::SubMesh const& submesh) {
+  auto const& allocator = context_ptr_->allocator();
 
   // A - Setup the BLAS Geometry info.
 
@@ -110,7 +112,7 @@ void Raytracer::build_blas(scene::Mesh::SubMesh const& submesh) {
     &primitiveCount,
     &blas.build_sizes_info
   );
-  blas.buffer = context_ptr_->allocator().create_buffer(
+  blas.buffer = allocator.create_buffer(
     blas.build_sizes_info.accelerationStructureSize,
       VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR
     | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT
@@ -128,44 +130,63 @@ void Raytracer::build_blas(scene::Mesh::SubMesh const& submesh) {
 
   // C - Build the BLAS.
 
-#if 0
-  transient_buffer_ = reserve_transient_buffer(sizes.buildScratchSize);
+  // ------------------------
+  // ------------------------
+  scratch_buffer_ = allocator.create_buffer(
+    blas.build_sizes_info.accelerationStructureSize,
+      VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
+    | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT
+  );
+  blas.build_geometry_info.dstAccelerationStructure = blas.handle;
+  blas.build_geometry_info.scratchData.deviceAddress = scratch_buffer_.address;
 
-  buildInfo.dstAccelerationStructure = blas.handle;
-  buildInfo.scratchData.deviceAddress = transient_buffer_.deviceAddress;
+  auto cmd = context_ptr_->create_transient_command_encoder(Context::TargetQueue::Transfer);
+  {
+    std::vector<VkAccelerationStructureBuildRangeInfoKHR *> build_range_infos{
+      &blas.build_range_info
+    };
+    vkCmdBuildAccelerationStructuresKHR(
+      cmd.get_handle(),
+      1,
+      &blas.build_geometry_info,
+      build_range_infos.data()
+    );
 
-  vkCmdBuildAccelerationStructuresKHR(cmd, 1, &buildInfo, &pRange);
+    VkMemoryBarrier2 barrier{
+      .sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2,
+      .srcStageMask  = VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_BUILD_BIT_KHR,
+      .srcAccessMask = VK_ACCESS_2_ACCELERATION_STRUCTURE_WRITE_BIT_KHR,
+      .dstStageMask  = VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_BUILD_BIT_KHR,
+      .dstAccessMask = VK_ACCESS_2_ACCELERATION_STRUCTURE_READ_BIT_KHR
+    };
+    VkDependencyInfo depInfo{
+      .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+      .memoryBarrierCount = 1,
+      .pMemoryBarriers = &barrier
+    };
+    vkCmdPipelineBarrier2(cmd.get_handle(), &depInfo);
+  }
+  context_ptr_->finish_transient_command_encoder(cmd);
 
-  VkMemoryBarrier2 barrier{
-    .sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2,
-    .srcStageMask  = VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_BUILD_BIT_KHR,
-    .srcAccessMask = VK_ACCESS_2_ACCELERATION_STRUCTURE_WRITE_BIT_KHR,
-    .dstStageMask  = VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_BUILD_BIT_KHR,
-    .dstAccessMask = VK_ACCESS_2_ACCELERATION_STRUCTURE_READ_BIT_KHR
-  };
-  VkDependencyInfo depInfo{
-    .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-    .memoryBarrierCount = 1,
-    .pMemoryBarriers = &barrier
-  };
-  vkCmdPipelineBarrier2(cmd, &depInfo);
+  allocator.destroy_buffer(scratch_buffer_); //
+  // ------------------------
+  // ------------------------
 
   VkAccelerationStructureDeviceAddressInfoKHR addrInfo{
     .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR,
     .accelerationStructure = blas.handle
   };
-  blas.buffer.deviceAddress = vkGetAccelerationStructureDeviceAddressKHR(
+  blas.buffer.address = vkGetAccelerationStructureDeviceAddressKHR(
     context_ptr_->get_device(),
     &addrInfo
   );
-#endif
 
   blas_.push_back(blas);
 }
 
 // ----------------------------------------------------------------------------
 
-void Raytracer::build_tlas(bool allow_update) {
+void RaytracingScene::build_tlas() {
 #if 0
   VkDeviceAddress instAddr = get_buffer_address(dev, tlas_.instances.vk);
 
@@ -238,8 +259,15 @@ void Raytracer::build_tlas(bool allow_update) {
 
 // ----------------------------------------------------------------------------
 
-void Raytracer::release() {
+void RaytracingScene::release() {
+  auto const& allocator = context_ptr_->allocator();
 
+  vkDestroyAccelerationStructureKHR(context_ptr_->get_device(), tlas_.handle, nullptr);
+  allocator.destroy_buffer(tlas_.buffer);
+  for (auto &blas : blas_) {
+    vkDestroyAccelerationStructureKHR(context_ptr_->get_device(), blas.handle, nullptr);
+    allocator.destroy_buffer(blas.buffer);
+  }
 }
 
 /* -------------------------------------------------------------------------- */

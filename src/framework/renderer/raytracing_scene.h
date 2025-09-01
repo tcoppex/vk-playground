@@ -1,5 +1,5 @@
-#ifndef VKFRAMEWORK_RENDERER_RAYTRACER_H_
-#define VKFRAMEWORK_RENDERER_RAYTRACER_H_
+#ifndef VKFRAMEWORK_RENDERER_RAYTRACING_SCENE_H_
+#define VKFRAMEWORK_RENDERER_RAYTRACING_SCENE_H_
 
 #include "framework/backend/context.h"
 #include "framework/backend/accel_struct.h"
@@ -8,8 +8,14 @@
 
 /* -------------------------------------------------------------------------- */
 
-class Raytracer {
+///
+/// Acceleration Structure for a basic raytracer.
+///
+class RaytracingScene {
  public:
+  RaytracingScene() = default;
+  ~RaytracingScene() = default;
+
   void init(Context const& ctx);
 
   void build(
@@ -20,7 +26,7 @@ class Raytracer {
 
   void build_blas(scene::Mesh::SubMesh const& submesh);
 
-  void build_tlas(bool allow_update = false);
+  void build_tlas();
 
   void release();
 
@@ -32,7 +38,7 @@ class Raytracer {
   std::vector<backend::BLAS> blas_{}; // one per submesh
   backend::TLAS tlas_{};
 
-  backend::Buffer transient_buffer_{};
+  backend::Buffer scratch_buffer_{};
 };
 
 /* -------------------------------------------------------------------------- */
