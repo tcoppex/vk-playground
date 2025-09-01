@@ -6,7 +6,6 @@
 #include "framework/core/geometry.h"
 #include "framework/backend/types.h"      // for VertexInputDescriptor
 #include "framework/renderer/pipeline.h"  // for PipelineVertexBufferDescriptors
-#include "framework/scene/animation.h"
 
 namespace scene {
 
@@ -24,7 +23,7 @@ struct Mesh : Geometry {
   };
 
   struct BufferInfo {
-    uint64_t vertex_offset{}; // (should probably be an array of binding count size)
+    uint64_t vertex_offset{}; // (switch to array of binding_count size?)
     uint64_t index_offset{};
     uint64_t vertex_size{};
     uint64_t index_size{};
@@ -53,8 +52,8 @@ struct Mesh : Geometry {
   mat4 const& world_matrix() const; //
 
  public:
-  uint32_t transform_index{};
   std::vector<SubMesh> submeshes{};
+  uint32_t transform_index{};
 
  private:
   HostResources const* resources_ptr_{};

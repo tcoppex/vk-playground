@@ -1,5 +1,4 @@
 #include "framework/renderer/fx/postprocess/fragment/render_target_fx.h"
-
 #include "framework/backend/command_encoder.h"
 
 /* -------------------------------------------------------------------------- */

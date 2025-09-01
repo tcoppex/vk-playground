@@ -1,13 +1,11 @@
 #ifndef VKFRAMEWORK_RENDERER_PIPELINE_H_
 #define VKFRAMEWORK_RENDERER_PIPELINE_H_
 
-/* -------------------------------------------------------------------------- */
-
 #include "framework/backend/types.h"
 
 class Renderer;
 
-// ----------------------------------------------------------------------------
+/* -------------------------------------------------------------------------- */
 
 class Pipeline : public backend::PipelineInterface {
  public:

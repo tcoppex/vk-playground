@@ -7,7 +7,6 @@
 /* -------------------------------------------------------------------------- */
 
 #include "framework/application.h"
-
 #include "framework/core/camera.h"
 #include "framework/core/arcball_controller.h"
 

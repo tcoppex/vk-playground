@@ -7,10 +7,8 @@
 /* -------------------------------------------------------------------------- */
 
 #include "framework/application.h"
-
 #include "framework/core/camera.h"
 #include "framework/core/arcball_controller.h"
-
 #include "framework/renderer/fx/postprocess/post_fx_pipeline.h"
 #include "framework/renderer/fx/postprocess/compute/impl/depth_minmax.h"
 #include "framework/renderer/fx/postprocess/fragment/impl/normaldepth_edge.h"
