@@ -1,8 +1,8 @@
 #ifndef VKFRAMEWORK_BACKEND_ACCEL_STRUCT_H_
 #define VKFRAMEWORK_BACKEND_ACCEL_STRUCT_H_
 
-#include "framework/backend/types.h"
 #include <vector>
+#include "framework/backend/types.h"
 
 /* -------------------------------------------------------------------------- */
 
@@ -18,7 +18,7 @@ struct AccelerationStructure {
 struct BLAS : AccelerationStructure {
   VkBuildAccelerationStructureFlagsKHR flags{
     VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR
-  | VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_COMPACTION_BIT_KHR
+  // | VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_COMPACTION_BIT_KHR
   };
   VkAccelerationStructureGeometryKHR geometry{};
   VkAccelerationStructureBuildRangeInfoKHR build_range_info{};

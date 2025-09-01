@@ -98,13 +98,24 @@ class Context {
   }
 
   template<typename T> requires (SpanConvertible<T>)
-  backend::Buffer create_buffer_and_upload(T const& host_data, VkBufferUsageFlags2KHR const usage, size_t device_buffer_offset = 0u, size_t const device_buffer_size = 0u) const {
+  backend::Buffer create_buffer_and_upload(
+    T const& host_data,
+    VkBufferUsageFlags2KHR const usage,
+    size_t const device_buffer_offset = 0u,
+    size_t const device_buffer_size = 0u
+  ) const {
     auto const host_span{ std::span(host_data) };
     size_t const bytesize{ sizeof(typename decltype(host_span)::element_type) * host_span.size() };
     return create_buffer_and_upload(host_span.data(), bytesize, usage, device_buffer_offset, device_buffer_size);
   }
 
-  backend::Buffer create_buffer_and_upload(void const* host_data, size_t const host_data_size, VkBufferUsageFlags2KHR const usage, size_t device_buffer_offset = 0u, size_t const device_buffer_size = 0u) const {
+  backend::Buffer create_buffer_and_upload(
+    void const* host_data,
+    size_t const host_data_size,
+    VkBufferUsageFlags2KHR const usage,
+    size_t device_buffer_offset = 0u,
+    size_t const device_buffer_size = 0u
+  ) const {
     auto cmd{ create_transient_command_encoder(TargetQueue::Transfer) };
     backend::Buffer buffer{
       cmd.create_buffer_and_upload(host_data, host_data_size, usage, device_buffer_offset, device_buffer_size)
