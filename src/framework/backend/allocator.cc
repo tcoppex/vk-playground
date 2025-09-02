@@ -135,7 +135,7 @@ size_t ResourceAllocator::write_buffer(
 
 // ----------------------------------------------------------------------------
 
-void ResourceAllocator::clear_staging_buffers() {
+void ResourceAllocator::clear_staging_buffers() const {
   for (auto const& staging_buffer : staging_buffers_) {
     destroy_buffer(staging_buffer);
   }
