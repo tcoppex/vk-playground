@@ -17,11 +17,7 @@ class GenericFx : public virtual FxInterface {
 
   void setupUI() override {}
 
-  std::string name() const override; //
-
  protected:
-  // [deprecated]
-  virtual std::string getShaderName() const = 0; //
   // virtual backend::ShadersMap createShaderModules() const = 0;
 
   virtual DescriptorSetLayoutParamsBuffer getDescriptorSetLayoutParams() const = 0;

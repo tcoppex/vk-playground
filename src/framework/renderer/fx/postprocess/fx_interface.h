@@ -24,8 +24,6 @@ class FxInterface {
 
   virtual void setupUI() = 0;
 
-  virtual std::string name() const = 0;
-
   // -----------------
   virtual void setImageInputs(std::vector<backend::Image> const& inputs) = 0;
 

@@ -119,10 +119,6 @@ class PostFxPipeline : public PostFxInterface {
     }
   }
 
-  std::string name() const override {
-    return "PostFxPipeline::NoName";
-  }
-
  protected:
   static
   PostFxDependencies GetOutputDependencies(std::shared_ptr<PostFxPipeline> fx) {
@@ -235,10 +231,6 @@ class PassDataNoFx final : public PostFxInterface {
 
   std::vector<backend::Buffer> const& getBufferOutputs() const final {
     return buffers_;
-  }
-
-  std::string name() const override {
-    return "PassDataNoFX";
   }
 
  private:

@@ -28,7 +28,6 @@ class ComputeFx : public PostGenericFx {
       return false;
     }
     dimension_ = dimension;
-
     return true;
   }
 
@@ -68,6 +67,9 @@ class ComputeFx : public PostGenericFx {
 
  protected:
   virtual void releaseImagesAndBuffers();
+  
+  // [deprecated]
+  virtual std::string getShaderName() const = 0; //
 
   DescriptorSetLayoutParamsBuffer getDescriptorSetLayoutParams() const override {
     return {

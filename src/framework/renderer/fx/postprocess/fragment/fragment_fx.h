@@ -21,6 +21,9 @@ class FragmentFx : public virtual GenericFx {
   void execute(CommandEncoder& cmd) override; //
 
  protected:
+  // [deprecated]
+  virtual std::string getShaderName() const = 0; //
+
   void createPipeline() override;
 
   DescriptorSetLayoutParamsBuffer getDescriptorSetLayoutParams() const override {

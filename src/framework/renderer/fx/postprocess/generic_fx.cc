@@ -1,6 +1,6 @@
 #include "framework/renderer/fx/postprocess/generic_fx.h"
 #include "framework/backend/context.h"
-#include <filesystem> 
+// #include <filesystem> 
 
 /* -------------------------------------------------------------------------- */
 
@@ -25,10 +25,10 @@ void GenericFx::release() {
   }
 }
 
-std::string GenericFx::name() const {
-  std::filesystem::path fn(getShaderName());
-  return fn.stem().string();
-}
+// std::string GenericFx::name() const {
+//   std::filesystem::path fn(getShaderName());
+//   return fn.stem().string();
+// }
 
 void GenericFx::createPipelineLayout() {
   descriptor_set_layout_ = renderer_ptr_->create_descriptor_set_layout(

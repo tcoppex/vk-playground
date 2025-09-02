@@ -220,10 +220,6 @@ class ToonFxPipeline final : public TPostFxPipeline<SceneFx> {
   };
 
  public:
-  std::string name() const final {
-    return "ToonFxPipeline";
-  }
-
   void init(Renderer const& renderer) final {
     auto entry_fx = getEntryFx();
 
