@@ -943,7 +943,10 @@ void Renderer::init_descriptor_pool() {
     { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 100 },         // compute data or large resource buffers
     { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 50 },  // dynamic uniform buffers (per-frame, per-object)
     { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 50 },  // dynamic storage buffers
-    { VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 50 }         // subpass inputs
+    { VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 50 },        // subpass inputs
+    // ---------------------------------------
+    { VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 50 },
+    // ---------------------------------------
   };
 
   VkDescriptorPoolCreateInfo const descriptor_pool_info{
