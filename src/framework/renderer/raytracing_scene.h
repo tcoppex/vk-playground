@@ -22,7 +22,7 @@ class RayTracingSceneInterface {
     backend::Buffer const& index_buffer
   ) = 0;
 
-  // TODO : build the DescriptorSetAccelerationStructure
+  virtual backend::TLAS const& tlas() const = 0;
 
  protected:
   virtual bool build_blas(scene::Mesh::SubMesh const& submesh) = 0;
@@ -52,6 +52,11 @@ class RayTracingScene : public RayTracingSceneInterface {
     backend::Buffer const& vertex_buffer,
     backend::Buffer const& index_buffer
   ) final;
+
+
+  backend::TLAS const& tlas() const {
+    return tlas_;
+  }
 
  protected:
   bool build_blas(scene::Mesh::SubMesh const& submesh) final;

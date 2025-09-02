@@ -40,6 +40,12 @@ struct GPUResources : scene::HostResources {
   /* Render the scene batch per MaterialFx. */
   void render(RenderPassEncoder const& pass);
 
+  // -------------------------------
+  RayTracingSceneInterface const* ray_tracing_scene() const {
+    return rt_scene_.get();
+  }
+  // -------------------------------
+
  private:
   void upload_images(Context const& context);
   void upload_buffers(Context const& context);
