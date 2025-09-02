@@ -3,28 +3,28 @@
 
 // COMPILE with glslc --target-spv=spv1.4 test.rgen 
 
-layout(set = 0, binding = 0, rgba8) uniform image2D imageOutput;
-layout(set = 0, binding = 1) uniform accelerationStructureEXT topLevelAS;
+// layout(set = 0, binding = 0, rgba8) uniform image2D imageOutput;
+// layout(set = 0, binding = 1) uniform accelerationStructureEXT topLevelAS;
 
 layout(location = 0) rayPayloadEXT vec4 payload;
 
 void main() {
-    const vec2 pixelCenter = vec2(gl_LaunchIDEXT.xy) + vec2(0.5);
-    const vec2 uv = pixelCenter / vec2(gl_LaunchSizeEXT.xy);
+  const vec2 pixelCenter = vec2(gl_LaunchIDEXT.xy) + vec2(0.5);
+  const vec2 uv = pixelCenter / vec2(gl_LaunchSizeEXT.xy);
 
-    payload = vec4(uv, 0.0, 1.0);
+  payload = vec4(uv, 0.0, 1.0);
 
-    traceRayEXT(
-        topLevelAS,
-        gl_RayFlagsOpaqueEXT,
-        0xFF,
-        0, 0, 0,
-        vec3(0.0, 0.0, -1.0),
-        0.0,
-        vec3(0.0, 0.0, 1.0),
-        10000.0,
-        0
-    );
+  // traceRayEXT(
+  //   topLevelAS,
+  //   gl_RayFlagsOpaqueEXT,
+  //   0xFF,
+  //   0, 0, 0,
+  //   vec3(0.0, 0.0, -1.0),
+  //   0.0,
+  //   vec3(0.0, 0.0, 1.0),
+  //   10000.0,
+  //   0
+  // );
 
-    imageStore(imageOutput, ivec2(gl_LaunchIDEXT.xy), payload);
+  // imageStore(imageOutput, ivec2(gl_LaunchIDEXT.xy), payload);
 }

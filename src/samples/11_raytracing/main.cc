@@ -10,8 +10,6 @@
 #include "framework/core/camera.h"
 #include "framework/core/arcball_controller.h"
 
-#include "framework/renderer/raytracing.h"
-
 /* -------------------------------------------------------------------------- */
 
 class SampleApp final : public Application {
@@ -39,9 +37,45 @@ class SampleApp final : public Application {
       arcball_controller_.setDolly(4.0f, false);
     }
 
+    // -------------------------------
+    auto shaders{context_.create_shader_modules(COMPILED_SHADERS_DIR, {
+      "raygen.rgen",
+      "closesthit.rchit",
+      "miss.rmiss",
+    })};
+
+    pipeline_layout_  = renderer_.create_pipeline_layout({});
+
+    pipeline_ = renderer_.create_raytracing_pipeline(pipeline_layout_, {
+      .raygens = { {.module = shaders[0].module} },
+      .closestHits = { {.module = shaders[1].module} },
+      .misses = { {.module = shaders[2].module} },
+      .shaderGroups = {
+        // Raygen Group
+        {
+          .type             = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR,
+          .generalShader    = 0,
+        },
+        // Hit Group
+        {
+          .type             = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR,
+          .closestHitShader = 1,
+        },
+        // Miss Group
+        {
+          .type             = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR,
+          .generalShader    = 2,
+        },
+      }
+    });
+
+    context_.release_shader_modules(shaders);
+
+    // -------------------------------
+
     /* Load a glTF Scene. */
     std::string gtlf_filename{ASSETS_DIR "models/"
-      "Duck.glb"
+      "sponza.glb"
     };
 
     if constexpr(true) {
@@ -53,17 +87,10 @@ class SampleApp final : public Application {
     return true;
   }
 
-  void build_ui() final {
-    ImGui::Begin("Settings");
-    {
-      ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
-      ImGui::Separator();
-    }
-    ImGui::End();
-  }
-
   void release() final {
     scene_.reset();
+    renderer_.destroy_pipeline(pipeline_);
+    renderer_.destroy_pipeline_layout(pipeline_layout_);
   }
 
   void update(float const dt) final {
@@ -104,6 +131,9 @@ class SampleApp final : public Application {
  private:
   Camera camera_{};
   ArcBallController arcball_controller_{};
+
+  VkPipelineLayout pipeline_layout_{};
+  Pipeline pipeline_{};
 
   std::future<GLTFScene> future_scene_{};
   GLTFScene scene_{};
