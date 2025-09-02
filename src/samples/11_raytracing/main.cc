@@ -10,6 +10,79 @@
 #include "framework/core/camera.h"
 #include "framework/core/arcball_controller.h"
 
+#include "framework/renderer/fx/postprocess/ray_tracing/ray_tracing_fx.h"
+
+/* -------------------------------------------------------------------------- */
+
+class BasicRayTracingFx : public RayTracingFx {
+ public:
+  virtual ~BasicRayTracingFx() {
+    release();
+  }
+
+ protected:
+  backend::ShadersMap createShaderModules() const final {
+    auto create_modules{[&](std::vector<std::string_view> const& filenames) {
+      return context_ptr_->create_shader_modules(
+        COMPILED_SHADERS_DIR,
+        filenames
+      );
+    }};
+    return {
+      {
+        backend::ShaderStage::Raygen,
+        create_modules({ "raygen.rgen" })
+      },
+      {
+        backend::ShaderStage::ClosestHit,
+        create_modules({ "closesthit.rchit" })
+      },
+      {
+        backend::ShaderStage::Miss,
+        create_modules({ "miss.rmiss" })
+      },
+    };
+  }
+
+  RayTracingPipelineDescriptor_t pipelineDescriptor(backend::ShadersMap const& shaders_map) final {
+    auto shader_index{[&](std::string_view shader_name) -> uint32_t {
+      uint32_t index = 0;
+      for (auto const& [stage, shaders] : shaders_map) {
+        for (auto const& shader : shaders) {
+          if (shader.basename == shader_name) {
+            // LOGI("%s %d", shader_name.data(), index);
+            return index;
+          }
+          ++index;
+        }
+      }
+      return kInvalidIndexU32;
+    }};
+    return {
+      .raygens      = shaders_map.at(backend::ShaderStage::Raygen),
+      .closestHits  = shaders_map.at(backend::ShaderStage::ClosestHit),
+      .misses       = shaders_map.at(backend::ShaderStage::Miss),
+      .shaderGroups = {
+        // Raygen Group
+        {
+          .type             = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR,
+          .generalShader    = shader_index("raygen.rgen"),
+        },
+        // Hit Group
+        {
+          .type             = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR,
+          .closestHitShader = shader_index("closesthit.rchit"),
+        },
+        // Miss Group
+        {
+          .type             = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR,
+          .generalShader    = shader_index("miss.rmiss"),
+        },
+      }
+    };
+  }
+};
+
 /* -------------------------------------------------------------------------- */
 
 class SampleApp final : public Application {
@@ -38,38 +111,11 @@ class SampleApp final : public Application {
     }
 
     // -------------------------------
-    auto shaders{context_.create_shader_modules(COMPILED_SHADERS_DIR, {
-      "raygen.rgen",
-      "closesthit.rchit",
-      "miss.rmiss",
-    })};
 
-    pipeline_layout_  = renderer_.create_pipeline_layout({});
+    raytracing_.init(context_, renderer_);
+    raytracing_.setup({});
 
-    pipeline_ = renderer_.create_raytracing_pipeline(pipeline_layout_, {
-      .raygens = { {.module = shaders[0].module} },
-      .closestHits = { {.module = shaders[1].module} },
-      .misses = { {.module = shaders[2].module} },
-      .shaderGroups = {
-        // Raygen Group
-        {
-          .type             = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR,
-          .generalShader    = 0,
-        },
-        // Hit Group
-        {
-          .type             = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR,
-          .closestHitShader = 1,
-        },
-        // Miss Group
-        {
-          .type             = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR,
-          .generalShader    = 2,
-        },
-      }
-    });
-
-    context_.release_shader_modules(shaders);
+    raytracing_.release();
 
     // -------------------------------
 
@@ -132,8 +178,7 @@ class SampleApp final : public Application {
   Camera camera_{};
   ArcBallController arcball_controller_{};
 
-  VkPipelineLayout pipeline_layout_{};
-  Pipeline pipeline_{};
+  BasicRayTracingFx raytracing_{};
 
   std::future<GLTFScene> future_scene_{};
   GLTFScene scene_{};
