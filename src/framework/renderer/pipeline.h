@@ -166,6 +166,36 @@ struct GraphicsPipelineDescriptor_t {
   VkRenderPass renderPass{};
 };
 
+// ----------------------------------------------------------------------------
+
+struct RayTracingPipelineDescriptor_t {
+  struct ShaderStageDesc {
+    VkShaderModule module{};
+    std::string entryPoint{};
+    // SpecializationConstants specializationConstants{};
+  };
+
+  std::vector<ShaderStageDesc> raygens{};
+  std::vector<ShaderStageDesc> anyHits{};
+  std::vector<ShaderStageDesc> closestHits{};
+  std::vector<ShaderStageDesc> misses{};
+  std::vector<ShaderStageDesc> intersections{};
+  std::vector<ShaderStageDesc> callables{};
+
+  struct ShaderGroup {
+    VkRayTracingShaderGroupTypeKHR type{};
+    uint32_t generalShader{VK_SHADER_UNUSED_KHR};
+    uint32_t closestHitShader{VK_SHADER_UNUSED_KHR};
+    uint32_t anyHitShader{VK_SHADER_UNUSED_KHR};
+    uint32_t intersectionShader{VK_SHADER_UNUSED_KHR};
+  };
+  std::vector<ShaderGroup> shaderGroups{};
+  
+  uint32_t maxPipelineRayRecursionDepth{1};
+};
+
+// ----------------------------------------------------------------------------
+
 using PipelineVertexBufferDescriptor = GraphicsPipelineDescriptor_t::Vertex::Buffer;
 using PipelineVertexBufferDescriptors = std::vector<PipelineVertexBufferDescriptor>;
 
