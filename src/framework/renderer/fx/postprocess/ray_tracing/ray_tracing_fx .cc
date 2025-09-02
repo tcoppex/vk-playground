@@ -3,7 +3,7 @@
 
 /* -------------------------------------------------------------------------- */
 
-void RayTracingFx::setTLAS(backend::TLAS const& tlas) {
+void RayTracingFx::updateTLAS(backend::TLAS const& tlas) {
   context_ptr_->update_descriptor_set(descriptor_set_, {
     {
       .binding = 0, //
@@ -11,6 +11,121 @@ void RayTracingFx::setTLAS(backend::TLAS const& tlas) {
       .accelerationStructures = { tlas.handle },
     },
   });
+}
+
+// ----------------------------------------------------------------------------
+
+bool RayTracingFx::resize(VkExtent2D const dimension) {
+  LOG_CHECK((dimension.width > 0) && (dimension.height > 0));
+
+  bool const has_resized = (dimension.width != dimension_.width)
+                        || (dimension.height != dimension_.height);
+  bool const has_outputs = !out_images_.empty() || !out_images_.empty();
+
+  if (!has_resized && has_outputs) {
+    return false;
+  }
+
+  dimension_ = dimension;
+
+  // --------------------------------------
+  // BAD, but heh..
+  //
+  releaseOutputImagesAndBuffers(); //
+  out_images_ = {
+    context_ptr_->create_image_2d(
+      dimension_.width, dimension_.height,
+      VK_FORMAT_R8G8B8A8_UNORM,
+        VK_IMAGE_USAGE_STORAGE_BIT
+      | VK_IMAGE_USAGE_TRANSFER_SRC_BIT // (to allow blitting)
+    )
+  };
+  // --------------------------------------
+  resetMemoryBarriers();
+
+  return true;
+}
+
+
+// ----------------------------------------------------------------------------
+
+void RayTracingFx::resetMemoryBarriers() {
+  if (!out_images_.empty()) {
+    barriers_.images_start.resize(out_images_.size(), {
+      .srcStageMask  = VK_PIPELINE_STAGE_2_NONE,
+      .srcAccessMask = 0,
+      .dstStageMask  = VK_PIPELINE_STAGE_2_RAY_TRACING_SHADER_BIT_KHR,
+      .dstAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT,
+      .oldLayout     = VK_IMAGE_LAYOUT_UNDEFINED, //VK_IMAGE_LAYOUT_GENERAL,
+      .newLayout     = VK_IMAGE_LAYOUT_GENERAL,
+      .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+      .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+      .subresourceRange = {
+          .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+          .baseMipLevel   = 0,
+          .levelCount     = 1,
+          .baseArrayLayer = 0,
+          .layerCount     = 1,
+      }
+    });
+
+    barriers_.images_end.resize(out_images_.size(), {
+      .srcStageMask  = VK_PIPELINE_STAGE_2_RAY_TRACING_SHADER_BIT_KHR,
+      .srcAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT,
+      .dstStageMask  = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT
+                     | VK_PIPELINE_STAGE_2_TRANSFER_BIT
+                     ,
+      .dstAccessMask = VK_ACCESS_2_SHADER_SAMPLED_READ_BIT
+                     | VK_ACCESS_2_TRANSFER_READ_BIT
+                     ,
+      .oldLayout = VK_IMAGE_LAYOUT_GENERAL,
+      .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+      .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+      .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+      .subresourceRange = {
+          .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+          .baseMipLevel   = 0,
+          .levelCount     = 1,
+          .baseArrayLayer = 0,
+          .layerCount     = 1,
+      }
+    });
+
+    for (size_t i = 0u; i < out_images_.size(); ++i) {
+      auto const& img = out_images_[i].image;
+      barriers_.images_start[i].image = img;
+      barriers_.images_end[i].image   = img;
+    }
+  }
+
+}
+
+// ----------------------------------------------------------------------------
+
+void RayTracingFx::execute(CommandEncoder& cmd) {
+  cmd.pipeline_image_barriers(barriers_.images_start);
+  // cmd.pipeline_image_barriers(barriers_.buffers_start);
+
+  // ---------------------------------------
+  cmd.bind_pipeline(pipeline_);
+  cmd.bind_descriptor_set(descriptor_set_, pipeline_layout_,
+      VK_SHADER_STAGE_RAYGEN_BIT_KHR
+    | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR
+  );
+  pushConstant(cmd);
+
+  vkCmdTraceRaysKHR(
+    cmd.get_handle(),
+    &region_.raygen,
+    &region_.miss,
+    &region_.hit,
+    &region_.callable,
+    dimension_.width, dimension_.height, 1
+  );
+  // ---------------------------------------
+
+  cmd.pipeline_image_barriers(barriers_.images_end);
+  // cmd.pipeline_image_barriers(barriers_.buffers_end);
 }
 
 // ----------------------------------------------------------------------------
@@ -31,24 +146,6 @@ void RayTracingFx::createPipeline() {
   }
 
   buildShaderBindingTable(pipeline_desc);
-}
-
-// ----------------------------------------------------------------------------
-
-void RayTracingFx::execute(CommandEncoder& cmd) {
-  // (buffer & images barriers in)
-  // cmd.bind_pipeline(pipeline_);
-  // // cmd.bind_descriptor_set(descriptor_set_, pipeline_layout_, VK_SHADER_STAGE_COMPUTE_BIT);
-  // pushConstant(cmd);
-  // vkCmdTraceRaysKHR(
-  //   cmd.get_handle(),
-  //   &region_.raygen,
-  //   &region_.miss,
-  //   &region_.hit,
-  //   &region_.callable,
-  //   32, 32, 1 //width, height, 1
-  // );
-  // (buffer & images barriers out)
 }
 
 // ----------------------------------------------------------------------------
