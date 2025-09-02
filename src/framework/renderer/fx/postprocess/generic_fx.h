@@ -7,9 +7,7 @@
 
 class GenericFx : public virtual FxInterface {
  public:
-  virtual ~GenericFx() {
-    release();
-  }
+  virtual ~GenericFx() = default;
 
   void init(Renderer const& renderer) override;
 

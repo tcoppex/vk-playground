@@ -17,7 +17,7 @@
 class BasicRayTracingFx : public RayTracingFx {
  public:
   virtual ~BasicRayTracingFx() {
-    release();
+    // release();
   }
 
  protected:
@@ -63,20 +63,22 @@ class BasicRayTracingFx : public RayTracingFx {
       .closestHits  = shaders_map.at(backend::ShaderStage::ClosestHit),
       .misses       = shaders_map.at(backend::ShaderStage::Miss),
       .shaderGroups = {
-        // Raygen Group
+        // Raygen Group (unique)
         {
-          .type             = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR,
-          .generalShader    = shader_index("raygen.rgen"),
+          .type               = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR,
+          .generalShader      = shader_index("raygen.rgen"),
         },
-        // Hit Group
+        // Hit Group (1 per material type)
         {
-          .type             = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR,
-          .closestHitShader = shader_index("closesthit.rchit"),
+          .type               = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR,
+          .closestHitShader   = shader_index("closesthit.rchit"),
+          .anyHitShader       = VK_SHADER_UNUSED_KHR,
+          .intersectionShader = VK_SHADER_UNUSED_KHR,
         },
-        // Miss Group
+        // Miss Group (any numbers)
         {
-          .type             = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR,
-          .generalShader    = shader_index("miss.rmiss"),
+          .type               = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR,
+          .generalShader      = shader_index("miss.rmiss"),
         },
       }
     };
@@ -121,7 +123,8 @@ class SampleApp final : public Application {
 
     /* Load a glTF Scene. */
     std::string gtlf_filename{ASSETS_DIR "models/"
-      "sponza.glb"
+      // "sponza.glb"
+      "DamagedHelmet.glb"
     };
 
     if constexpr(true) {

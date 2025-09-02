@@ -176,13 +176,6 @@ struct RayTracingPipelineDescriptor_t {
   // };
   using ShaderStageDesc = backend::ShaderModule; //
 
-  std::vector<ShaderStageDesc> raygens{};
-  std::vector<ShaderStageDesc> anyHits{};
-  std::vector<ShaderStageDesc> closestHits{};
-  std::vector<ShaderStageDesc> misses{};
-  std::vector<ShaderStageDesc> intersections{};
-  std::vector<ShaderStageDesc> callables{};
-
   struct ShaderGroup {
     VkRayTracingShaderGroupTypeKHR type{};
     uint32_t generalShader{VK_SHADER_UNUSED_KHR};
@@ -190,7 +183,16 @@ struct RayTracingPipelineDescriptor_t {
     uint32_t anyHitShader{VK_SHADER_UNUSED_KHR};
     uint32_t intersectionShader{VK_SHADER_UNUSED_KHR};
   };
-  std::vector<ShaderGroup> shaderGroups{};
+  using ShaderGroups = std::vector<ShaderGroup>;
+
+  std::vector<ShaderStageDesc> raygens{};
+  std::vector<ShaderStageDesc> anyHits{};
+  std::vector<ShaderStageDesc> closestHits{};
+  std::vector<ShaderStageDesc> misses{};
+  std::vector<ShaderStageDesc> intersections{};
+  std::vector<ShaderStageDesc> callables{};
+
+  ShaderGroups shaderGroups{};
   
   uint32_t maxPipelineRayRecursionDepth{1};
 };

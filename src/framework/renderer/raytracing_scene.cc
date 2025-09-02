@@ -69,6 +69,8 @@ void RayTracingScene::build(
   }
 
   build_tlas();
+
+  context_ptr_->allocator().clear_staging_buffers();
 }
 
 // ----------------------------------------------------------------------------
