@@ -1,4 +1,5 @@
 #include "framework/backend/context.h"
+#include "framework/core/utils.h" // for ExtractBasename
 
 /* -------------------------------------------------------------------------- */
 
@@ -117,6 +118,7 @@ backend::Image Context::create_image_2d(uint32_t width, uint32_t height, VkForma
 backend::ShaderModule Context::create_shader_module(std::string_view const& directory, std::string_view const& shader_name) const {
   return {
     .module = vkutils::CreateShaderModule(device_, directory.data(), shader_name.data()),
+    .basename = utils::ExtractBasename(shader_name, true),
   };
 }
 

@@ -91,19 +91,32 @@ struct Queue {
   uint32_t queue_index{UINT32_MAX};
 };
 
+// ----------------------------------------------------------------------------
+
+// Shader
+
 struct ShaderModule {
-  VkShaderModule module;
+  VkShaderModule module{};
+  std::string basename{};
 };
 
 enum class ShaderStage {
-  None = 0,
-  Vertex = VK_SHADER_STAGE_VERTEX_BIT,
-  Fragment = VK_SHADER_STAGE_FRAGMENT_BIT,
-  Compute = VK_SHADER_STAGE_COMPUTE_BIT,
+  Vertex        = VK_SHADER_STAGE_VERTEX_BIT,
+  Fragment      = VK_SHADER_STAGE_FRAGMENT_BIT,
+  Compute       = VK_SHADER_STAGE_COMPUTE_BIT,
+  // ---------------------------------------
+  Raygen        = VK_SHADER_STAGE_RAYGEN_BIT_KHR,
+  AnyHit        = VK_SHADER_STAGE_ANY_HIT_BIT_KHR,
+  ClosestHit    = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR,
+  Miss          = VK_SHADER_STAGE_MISS_BIT_KHR,
+  Intersection  = VK_SHADER_STAGE_INTERSECTION_BIT_KHR,
+  Callable      = VK_SHADER_STAGE_CALLABLE_BIT_KHR,
+  // ---------------------------------------
   kCount,
 };
 
 using ShaderMap = std::map<ShaderStage, ShaderModule>;
+using ShadersMap = std::map<ShaderStage, std::vector<ShaderModule>>;
 
 // ----------------------------------------------------------------------------
 
