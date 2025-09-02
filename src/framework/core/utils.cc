@@ -83,7 +83,7 @@ std::string ExtractExtension(std::string_view filename) {
 // ----------------------------------------------------------------------------
 
 size_t AlignTo(size_t const byteLength, size_t const byteAlignment) {
-  return (byteLength + byteAlignment - 1) / byteAlignment * byteAlignment;
+  return (byteLength + byteAlignment - 1) & ~(byteAlignment - 1);
 }
 
 size_t AlignTo256(size_t const byteLength) {
