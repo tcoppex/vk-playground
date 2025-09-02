@@ -430,7 +430,7 @@ void GPUResources::upload_buffers(Context const& context) {
       },
     };
     if (index_buffer_size > 0) {
-      barriers.emplace_back(VkBufferMemoryBarrier2{
+      barriers.push_back({
         .srcStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT,
         .srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
         .dstStageMask = VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
