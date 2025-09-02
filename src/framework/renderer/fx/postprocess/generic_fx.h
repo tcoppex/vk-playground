@@ -7,9 +7,11 @@
 
 class GenericFx : public virtual FxInterface {
  public:
-  virtual ~GenericFx() {}
+  virtual ~GenericFx() {
+    release();
+  }
 
-  void init(Context const& context, Renderer const& renderer) override;
+  void init(Renderer const& renderer) override;
 
   void setup(VkExtent2D const dimension) override;
 
@@ -17,10 +19,12 @@ class GenericFx : public virtual FxInterface {
 
   void setupUI() override {}
 
-  std::string name() const override;
+  std::string name() const override; //
 
  protected:
-  virtual std::string getShaderName() const = 0;
+  // [deprecated]
+  virtual std::string getShaderName() const = 0; //
+  // virtual backend::ShadersMap createShaderModules() const = 0;
 
   virtual std::vector<DescriptorSetLayoutParams> getDescriptorSetLayoutParams() const = 0;
 

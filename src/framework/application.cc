@@ -76,7 +76,7 @@ bool Application::presetup() {
   renderer_.init(context_, context_.allocator_ptr(), surface_);
 
   /* Initialize User Interface. */
-  if (ui_ = std::make_unique<UIController>(); !ui_ || !ui_->init(context_, renderer_, *wm_)) {
+  if (ui_ = std::make_unique<UIController>(); !ui_ || !ui_->init(renderer_, *wm_)) {
     return false;
   }
 

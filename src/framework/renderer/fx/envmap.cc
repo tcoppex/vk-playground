@@ -1,16 +1,14 @@
 /* -------------------------------------------------------------------------- */
 
 #include "framework/renderer/fx/envmap.h"
-
-#include "framework/backend/context.h"
 #include "framework/renderer/renderer.h"
 
 /* -------------------------------------------------------------------------- */
 
-void Envmap::init(Context const& context, Renderer const& renderer) {
-  context_ = &context;
+void Envmap::init(Renderer const& renderer) {
+  context_ = &renderer.context();
   renderer_ = &renderer;
-  allocator_ptr_ = context.allocator_ptr();
+  allocator_ptr_ = context_->allocator_ptr();
 
   irradiance_matrices_buffer_ = allocator_ptr_->create_buffer(
     sizeof(shader_interop::envmap::SHMatrices),
@@ -148,7 +146,7 @@ void Envmap::init(Context const& context, Renderer const& renderer) {
 
   /* Create the compute pipelines. */
   {
-    auto shaders{context.create_shader_modules(FRAMEWORK_COMPILED_SHADERS_DIR "envmap", {
+    auto shaders{context_->create_shader_modules(FRAMEWORK_COMPILED_SHADERS_DIR "envmap", {
       "spherical_to_cubemap.comp.glsl",
       "irradiance_calculate_coeff.comp.glsl",
       "irradiance_reduce_step.comp.glsl",
@@ -157,7 +155,7 @@ void Envmap::init(Context const& context, Renderer const& renderer) {
       "specular_convolution.comp.glsl",
     })};
     renderer.create_compute_pipelines(pipeline_layout_, shaders, compute_pipelines_.data());
-    context.release_shader_modules(shaders);
+    context_->release_shader_modules(shaders);
   }
 
   /* internal sampler */
@@ -173,7 +171,7 @@ void Envmap::init(Context const& context, Renderer const& renderer) {
       .anisotropyEnable = VK_FALSE,
       .maxLod = 0,
     };
-    CHECK_VK( vkCreateSampler(context.device(), &sampler_create_info, nullptr, &sampler_) );
+    CHECK_VK( vkCreateSampler(context_->device(), &sampler_create_info, nullptr, &sampler_) );
   }
 }
 

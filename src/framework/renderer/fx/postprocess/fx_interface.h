@@ -13,8 +13,8 @@ class FxInterface {
 
   virtual ~FxInterface() {}
 
-  virtual void init(Context const& context, Renderer const& renderer) {
-    context_ptr_ = &context;
+  virtual void init(Renderer const& renderer) {
+    context_ptr_ = &renderer.context();
     renderer_ptr_ = &renderer;
   }
 

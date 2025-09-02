@@ -92,7 +92,7 @@ void Renderer::init(Context const& context, ResourceAllocator* allocator, VkSurf
   // });
 
   /* Renderer internal helpers. */
-  skybox_.init(context, *this);
+  skybox_.init(*this);
 }
 
 // ----------------------------------------------------------------------------
@@ -100,7 +100,7 @@ void Renderer::init(Context const& context, ResourceAllocator* allocator, VkSurf
 void Renderer::deinit() {
   assert(device_ != VK_NULL_HANDLE);
 
-  skybox_.release(*ctx_ptr_, *this);
+  skybox_.release(*this);
 
   sampler_pool_.deinit();
 

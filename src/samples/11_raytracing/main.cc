@@ -112,7 +112,7 @@ class SampleApp final : public Application {
 
     // -------------------------------
 
-    raytracing_.init(context_, renderer_);
+    raytracing_.init(renderer_);
     raytracing_.setup({});
 
     raytracing_.release();
@@ -135,8 +135,6 @@ class SampleApp final : public Application {
 
   void release() final {
     scene_.reset();
-    renderer_.destroy_pipeline(pipeline_);
-    renderer_.destroy_pipeline_layout(pipeline_layout_);
   }
 
   void update(float const dt) final {

@@ -8,7 +8,7 @@
 
 /* -------------------------------------------------------------------------- */
 
-bool UIController::init(Context const& context, Renderer const& renderer, WMInterface const& wm) {
+bool UIController::init(Renderer const& renderer, WMInterface const& wm) {
   IMGUI_CHECKVERSION();
 
   ImGui::CreateContext();
@@ -17,6 +17,8 @@ bool UIController::init(Context const& context, Renderer const& renderer, WMInte
   if (!ImGui_ImplGlfw_InitForVulkan(reinterpret_cast<GLFWwindow*>(wm.get_handle()), true)) {
     return false;
   }
+
+  auto const& context = renderer.context();
 
   VkDescriptorPoolSize const pool_sizes[]{
     { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 512u },

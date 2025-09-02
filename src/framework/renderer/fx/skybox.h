@@ -25,9 +25,9 @@ class Skybox {
  public:
   Skybox() = default;
 
-  void init(Context const& context, Renderer& renderer);
+  void init(Renderer& renderer);
 
-  void release(Context const& context, Renderer const& renderer);
+  void release(Renderer const& renderer);
 
   bool setup(std::string_view hdr_filename); //
 
@@ -58,7 +58,7 @@ class Skybox {
   }
 
  private:
-  void compute_specular_brdf_lut(Context const& context, Renderer const& renderer);
+  void compute_specular_brdf_lut(Renderer const& renderer);
 
  private:
   using PushConstant_t = shader_interop::skybox::PushConstant;

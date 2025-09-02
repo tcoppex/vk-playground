@@ -49,11 +49,11 @@ class PostFxPipeline : public PostFxInterface {
   virtual void setupDependencies();
 
  public:
-  void init(Context const& context, Renderer const& renderer) override {
+  void init(Renderer const& renderer) override {
     LOG_CHECK(!effects_.empty());
-    PostFxInterface::init(context, renderer);
+    PostFxInterface::init(renderer);
     for (auto fx : effects_) {
-      fx->init(context, renderer);
+      fx->init(renderer);
     }
   }
 
