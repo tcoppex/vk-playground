@@ -668,9 +668,10 @@ Pipeline Renderer::create_raytracing_pipeline(
   );
 
   auto entry_point{[](auto const& stage) {
-    return stage.entryPoint.empty() ? kDefaulShaderEntryPoint
-                                    : stage.entryPoint.c_str()
-                                    ;
+    return kDefaulShaderEntryPoint;
+    // return stage.entryPoint.empty() ? kDefaulShaderEntryPoint
+    //                                 : stage.entryPoint.c_str()
+    //                                 ;
   }};
 
   auto insert_shaders{[&](auto const& stages, VkShaderStageFlagBits flag) {

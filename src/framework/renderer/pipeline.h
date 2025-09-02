@@ -169,11 +169,12 @@ struct GraphicsPipelineDescriptor_t {
 // ----------------------------------------------------------------------------
 
 struct RayTracingPipelineDescriptor_t {
-  struct ShaderStageDesc {
-    VkShaderModule module{};
-    std::string entryPoint{};
-    // SpecializationConstants specializationConstants{};
-  };
+  // struct ShaderStageDesc {
+  //   VkShaderModule module{};
+  //   std::string entryPoint{};
+  //   // SpecializationConstants specializationConstants{};
+  // };
+  using ShaderStageDesc = backend::ShaderModule; //
 
   std::vector<ShaderStageDesc> raygens{};
   std::vector<ShaderStageDesc> anyHits{};
