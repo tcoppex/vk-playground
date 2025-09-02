@@ -25,7 +25,7 @@ class RayTracingSceneInterface {
   // TODO : build the DescriptorSetAccelerationStructure
 
  protected:
-  virtual void build_blas(scene::Mesh::SubMesh const& submesh) = 0;
+  virtual bool build_blas(scene::Mesh::SubMesh const& submesh) = 0;
 
   virtual void build_tlas() = 0;
 };
@@ -54,7 +54,7 @@ class RayTracingScene : public RayTracingSceneInterface {
   ) final;
 
  protected:
-  void build_blas(scene::Mesh::SubMesh const& submesh) final;
+  bool build_blas(scene::Mesh::SubMesh const& submesh) final;
 
   void build_tlas() final;
 

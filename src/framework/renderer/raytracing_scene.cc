@@ -26,6 +26,21 @@ void RayTracingScene::build(
   backend::Buffer const& vertex_buffer,
   backend::Buffer const& index_buffer
 ) {
+  // Refuse the whole scene if no mesh has a proper index format.
+  bool hasAnyValidIndexFormat = false;
+  for (auto const& mesh : meshes) {
+    for (auto const& submesh : mesh->submeshes) {
+      auto const indexType = submesh.draw_descriptor.indexType;
+      hasAnyValidIndexFormat |= (indexType == VK_INDEX_TYPE_UINT16)
+                             || (indexType == VK_INDEX_TYPE_UINT32)
+                             ;
+    }
+  }
+  if (!hasAnyValidIndexFormat) {
+    LOGW("Index type not supported by VkAccelerationStructureGeometryTrianglesDataKHR.");
+    return;
+  }
+
   vertex_address_ = vertex_buffer.address;
   index_address_ = index_buffer.address;
 
@@ -39,17 +54,17 @@ void RayTracingScene::build(
     };
 
     for (auto const& submesh : mesh->submeshes) {
-      build_blas(submesh);
-
-      // (simply instanciate the blas we just built)
-      tlas_.instances.emplace_back(VkAccelerationStructureInstanceKHR{
-        .transform = *static_cast<float*>(lina::ptr(transform)), //
-        .instanceCustomIndex = submesh.material_ref->proxy_index, //
-        .mask = 0xFF,
-        .instanceShaderBindingTableRecordOffset = 0,
-        .flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR, //
-        .accelerationStructureReference = blas_.back().buffer.address,
-      });
+      if (build_blas(submesh)) {
+        // (simply instanciate the BLAS we just built)
+        tlas_.instances.emplace_back(VkAccelerationStructureInstanceKHR{
+          .transform = *static_cast<float*>(lina::ptr(transform)), //
+          .instanceCustomIndex = submesh.material_ref->proxy_index, //
+          .mask = 0xFF,
+          .instanceShaderBindingTableRecordOffset = 0,
+          .flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR, //
+          .accelerationStructureReference = blas_.back().buffer.address,
+        });
+      }
     }
   }
 
@@ -58,14 +73,17 @@ void RayTracingScene::build(
 
 // ----------------------------------------------------------------------------
 
-void RayTracingScene::build_blas(scene::Mesh::SubMesh const& submesh) {
-  auto const& allocator = context_ptr_->allocator();
+bool RayTracingScene::build_blas(scene::Mesh::SubMesh const& submesh) {
+  DrawDescriptor const& desc{ submesh.draw_descriptor };
+
+  if ((desc.indexType != VK_INDEX_TYPE_UINT16)
+   && (desc.indexType != VK_INDEX_TYPE_UINT32)) {
+    return false;
+  }
 
   // A - Setup the BLAS Geometry info.
 
   scene::Mesh const& mesh{ *submesh.parent };
-  DrawDescriptor const& desc{ submesh.draw_descriptor };
-
   bool const is_opaque{
     submesh.material_ref->states.alpha_mode != scene::MaterialStates::AlphaMode::Blend
   };
@@ -126,7 +144,8 @@ void RayTracingScene::build_blas(scene::Mesh::SubMesh const& submesh) {
     &primitiveCount,
     &blas.build_sizes_info
   );
-  blas.buffer = allocator.create_buffer(
+
+  blas.buffer = context_ptr_->allocator().create_buffer(
     blas.build_sizes_info.accelerationStructureSize,
       VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR
     | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT
@@ -151,12 +170,18 @@ void RayTracingScene::build_blas(scene::Mesh::SubMesh const& submesh) {
   );
 
   blas_.push_back(blas);
+
+  return true;
 }
 
 // ----------------------------------------------------------------------------
 
 void RayTracingScene::build_tlas() {
   auto const& allocator = context_ptr_->allocator();
+
+  if (blas_.empty()) {
+    return;
+  }
 
 #if 0
   backend::Buffer instances_buffer = context_ptr_->create_buffer_and_upload(
