@@ -87,7 +87,11 @@ class Renderer : public backend::RTInterface {
 
   void destroy_pipeline_layout(VkPipelineLayout layout) const;
 
-  // --- Pipeline ---
+  // --- Pipelines ---
+
+  void destroy_pipeline(Pipeline const& pipeline) const;
+
+  // --- Graphics Pipelines ---
 
   VkGraphicsPipelineCreateInfo get_graphics_pipeline_create_info(
     GraphicsPipelineCreateInfoData_t &data,
@@ -101,18 +105,39 @@ class Renderer : public backend::RTInterface {
     std::vector<Pipeline> *out_pipelines
   ) const;
 
-  Pipeline create_graphics_pipeline(VkPipelineLayout pipeline_layout, GraphicsPipelineDescriptor_t const& desc) const;
+  Pipeline create_graphics_pipeline(
+    VkPipelineLayout pipeline_layout,
+    GraphicsPipelineDescriptor_t const& desc
+  ) const;
 
-  // Specialized version that create the layout internally.
-  Pipeline create_graphics_pipeline(PipelineLayoutDescriptor_t const& layout_desc, GraphicsPipelineDescriptor_t const& desc) const;
+  Pipeline create_graphics_pipeline(
+    PipelineLayoutDescriptor_t const& layout_desc,
+    GraphicsPipelineDescriptor_t const& desc
+  ) const;
 
-  Pipeline create_graphics_pipeline(GraphicsPipelineDescriptor_t const& desc) const;
+  Pipeline create_graphics_pipeline(
+    GraphicsPipelineDescriptor_t const& desc
+  ) const;
 
-  void create_compute_pipelines(VkPipelineLayout pipeline_layout, std::vector<backend::ShaderModule> const& modules, Pipeline *pipelines) const;
+  // --- Compute Pipelines ---
 
-  Pipeline create_compute_pipeline(VkPipelineLayout pipeline_layout, backend::ShaderModule const& module) const;
+  void create_compute_pipelines(
+    VkPipelineLayout pipeline_layout,
+    std::vector<backend::ShaderModule> const& modules,
+    Pipeline *pipelines
+  ) const;
 
-  void destroy_pipeline(Pipeline const& pipeline) const;
+  Pipeline create_compute_pipeline(
+    VkPipelineLayout pipeline_layout,
+    backend::ShaderModule const& module
+  ) const;
+
+  // --- Ray Tracing Pipelines ---
+
+  Pipeline create_raytracing_pipeline(
+    VkPipelineLayout pipeline_layout,
+    RayTracingPipelineDescriptor_t const& desc
+  ) const;
 
   // --- Descriptor Set Layout ---
 

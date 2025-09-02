@@ -657,6 +657,83 @@ Pipeline Renderer::create_compute_pipeline(VkPipelineLayout pipeline_layout, bac
 
 // ----------------------------------------------------------------------------
 
+Pipeline Renderer::create_raytracing_pipeline(
+  VkPipelineLayout pipeline_layout,
+  RayTracingPipelineDescriptor_t const& desc
+) const {
+  std::vector<VkPipelineShaderStageCreateInfo> stage_infos{};
+  stage_infos.reserve(
+    desc.raygens.size() + desc.misses.size()        + desc.closestHits.size() +
+    desc.anyHits.size() + desc.intersections.size() + desc.callables.size()
+  );
+
+  auto entry_point{[](auto const& stage) {
+    return stage.entryPoint.empty() ? kDefaulShaderEntryPoint
+                                    : stage.entryPoint.c_str()
+                                    ;
+  }};
+
+  auto insert_shaders{[&](auto const& stages, VkShaderStageFlagBits flag) {
+    for (auto const& stage : stages) {
+      stage_infos.push_back({
+        .sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+        .stage  = flag,
+        .module = stage.module,
+        .pName  = entry_point(stage),
+      });
+    }
+  }};
+
+  insert_shaders(desc.raygens,        VK_SHADER_STAGE_RAYGEN_BIT_KHR);
+  insert_shaders(desc.anyHits,        VK_SHADER_STAGE_ANY_HIT_BIT_KHR);
+  insert_shaders(desc.closestHits,    VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR);
+  insert_shaders(desc.misses,         VK_SHADER_STAGE_MISS_BIT_KHR);
+  insert_shaders(desc.intersections,  VK_SHADER_STAGE_INTERSECTION_BIT_KHR);
+  insert_shaders(desc.callables,      VK_SHADER_STAGE_CALLABLE_BIT_KHR);
+
+  std::vector<VkRayTracingShaderGroupCreateInfoKHR> shaderGroups;
+  shaderGroups.reserve(desc.shaderGroups.size());
+
+  for (size_t i = 0; i < desc.shaderGroups.size(); ++i) {
+    auto const& src = desc.shaderGroups[i];
+    shaderGroups.push_back({
+      .sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR,
+      .type = src.type,
+      .generalShader = src.generalShader,
+      .closestHitShader = src.closestHitShader,
+      .anyHitShader = src.anyHitShader,
+      .intersectionShader = src.intersectionShader,
+    });
+  }
+
+  VkRayTracingPipelineCreateInfoKHR const raytracing_pipeline_create_info{
+    .sType = VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_KHR,
+    .flags = 0,
+    .stageCount = static_cast<uint32_t>(stage_infos.size()),
+    .pStages = stage_infos.data(),
+    .groupCount = static_cast<uint32_t>(shaderGroups.size()),
+    .pGroups = shaderGroups.data(),
+    .maxPipelineRayRecursionDepth = desc.maxPipelineRayRecursionDepth,
+    .pLibraryInfo = nullptr,
+    .pLibraryInterface = nullptr,
+    .pDynamicState = nullptr,
+    .layout = pipeline_layout,
+    .basePipelineHandle = VK_NULL_HANDLE,
+    .basePipelineIndex = -1,
+  };
+
+  VkDeferredOperationKHR deferredOperation{VK_NULL_HANDLE}; //
+
+  VkPipeline pipeline;
+  CHECK_VK(vkCreateRayTracingPipelinesKHR(
+    device_, deferredOperation, pipeline_cache_, 1, &raytracing_pipeline_create_info, nullptr, &pipeline
+  ));
+
+  return Pipeline(pipeline_layout, pipeline, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR);
+}
+
+// ----------------------------------------------------------------------------
+
 void Renderer::destroy_pipeline(Pipeline const& pipeline) const {
   vkDestroyPipeline(device_, pipeline.get_handle(), nullptr);
   if (pipeline.use_internal_layout_) {
