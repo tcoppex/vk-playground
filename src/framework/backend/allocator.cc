@@ -74,8 +74,8 @@ backend::Buffer ResourceAllocator::create_buffer(
   );
 
   // Get its GPU address.
-  VkBufferDeviceAddressInfo const buffer_device_addr_info{
-    .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
+  VkBufferDeviceAddressInfoKHR const buffer_device_addr_info{
+    .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO_KHR,
     .buffer = buffer.buffer,
   };
   buffer.address = vkGetBufferDeviceAddressKHR(device_, &buffer_device_addr_info);
