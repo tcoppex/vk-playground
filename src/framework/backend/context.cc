@@ -213,6 +213,60 @@ void Context::finish_transient_command_encoder(CommandEncoder const& encoder) co
 
 // ----------------------------------------------------------------------------
 
+void Context::transition_images_layout(
+  std::vector<backend::Image> const& images,
+  VkImageLayout const src_layout,
+  VkImageLayout const dst_layout
+) const {
+  auto cmd{ create_transient_command_encoder(TargetQueue::Transfer) };
+  cmd.transition_images_layout(images, src_layout, dst_layout);
+  finish_transient_command_encoder(cmd);
+}
+
+// ----------------------------------------------------------------------------
+
+backend::Buffer Context::create_buffer_and_upload(
+  void const* host_data,
+  size_t const host_data_size,
+  VkBufferUsageFlags2KHR const usage,
+  size_t device_buffer_offset,
+  size_t const device_buffer_size
+) const {
+  auto cmd{ create_transient_command_encoder(TargetQueue::Transfer) };
+  backend::Buffer buffer{
+    cmd.create_buffer_and_upload(host_data, host_data_size, usage, device_buffer_offset, device_buffer_size)
+  };
+  finish_transient_command_encoder(cmd);
+  return buffer;
+}
+
+// ----------------------------------------------------------------------------
+
+void Context::transfer_host_to_device(
+  void const* host_data,
+  size_t const host_data_size,
+  backend::Buffer const& device_buffer,
+  size_t const device_buffer_offset
+) const {
+  auto cmd{ create_transient_command_encoder(TargetQueue::Transfer) };
+  cmd.transfer_host_to_device(host_data, host_data_size, device_buffer, device_buffer_offset);
+  finish_transient_command_encoder(cmd);
+}
+
+// ----------------------------------------------------------------------------
+
+void Context::copy_buffer(
+  backend::Buffer const& src,
+  backend::Buffer const& dst,
+  size_t const buffersize
+) const {
+  auto cmd{ create_transient_command_encoder(Context::TargetQueue::Transfer) };
+  cmd.copy_buffer(src, dst, buffersize);
+  finish_transient_command_encoder(cmd);
+}
+
+// ----------------------------------------------------------------------------
+
 void Context::update_descriptor_set(VkDescriptorSet const& descriptor_set, std::vector<DescriptorSetWriteEntry> const& entries) const {
   if (entries.empty()) {
     return;

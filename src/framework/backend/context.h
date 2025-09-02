@@ -91,12 +91,13 @@ class Context {
 
   void finish_transient_command_encoder(CommandEncoder const& encoder) const;
 
-  /* Shortcut to transition image layouts. */
-  void transition_images_layout(std::vector<backend::Image> const& images, VkImageLayout const src_layout, VkImageLayout const dst_layout) const {
-    auto cmd{ create_transient_command_encoder(TargetQueue::Transfer) };
-    cmd.transition_images_layout(images, src_layout, dst_layout);
-    finish_transient_command_encoder(cmd);
-  }
+  // --- Transient Command Encoder Wrappers ---
+
+  void transition_images_layout(
+    std::vector<backend::Image> const& images,
+    VkImageLayout const src_layout,
+    VkImageLayout const dst_layout
+  ) const;
 
   template<typename T> requires (SpanConvertible<T>)
   backend::Buffer create_buffer_and_upload(
@@ -116,20 +117,20 @@ class Context {
     VkBufferUsageFlags2KHR const usage,
     size_t device_buffer_offset = 0u,
     size_t const device_buffer_size = 0u
-  ) const {
-    auto cmd{ create_transient_command_encoder(TargetQueue::Transfer) };
-    backend::Buffer buffer{
-      cmd.create_buffer_and_upload(host_data, host_data_size, usage, device_buffer_offset, device_buffer_size)
-    };
-    finish_transient_command_encoder(cmd);
-    return buffer;
-  }
+  ) const;
 
-  void transfer_host_to_device(void const* host_data, size_t const host_data_size, backend::Buffer const& device_buffer, size_t const device_buffer_offset = 0u) const {
-    auto cmd{ create_transient_command_encoder(TargetQueue::Transfer) };
-    cmd.transfer_host_to_device(host_data, host_data_size, device_buffer, device_buffer_offset);
-    finish_transient_command_encoder(cmd);
-  }
+  void transfer_host_to_device(
+    void const* host_data,
+    size_t const host_data_size,
+    backend::Buffer const& device_buffer,
+    size_t const device_buffer_offset = 0u
+  ) const;
+
+  void copy_buffer(
+    backend::Buffer const& src,
+    backend::Buffer const& dst,
+    size_t const buffersize
+  ) const;
 
   // --- Descriptor set ---
 
