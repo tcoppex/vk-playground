@@ -2,13 +2,26 @@
 
 /* -------------------------------------------------------------------------- */
 
-void RaytracingScene::init(Context const& ctx) {
+void RayTracingScene::init(Context const& ctx) {
   context_ptr_ = &ctx;
 }
 
 // ----------------------------------------------------------------------------
 
-void RaytracingScene::build(
+void RayTracingScene::release() {
+  auto const& allocator = context_ptr_->allocator();
+
+  vkDestroyAccelerationStructureKHR(context_ptr_->get_device(), tlas_.handle, nullptr);
+  allocator.destroy_buffer(tlas_.buffer);
+  for (auto &blas : blas_) {
+    vkDestroyAccelerationStructureKHR(context_ptr_->get_device(), blas.handle, nullptr);
+    allocator.destroy_buffer(blas.buffer);
+  }
+}
+
+// ----------------------------------------------------------------------------
+
+void RayTracingScene::build(
   scene::ResourceBuffer<scene::Mesh> const& meshes,
   backend::Buffer const& vertex_buffer,
   backend::Buffer const& index_buffer
@@ -16,7 +29,7 @@ void RaytracingScene::build(
   vertex_address_ = vertex_buffer.address;
   index_address_ = index_buffer.address;
 
-  blas_.reserve(meshes.size()); //
+  blas_.reserve(meshes.size()); // heuristic
   tlas_.instances.reserve(meshes.size());
 
   // Build a BLAS for each submeshes.
@@ -45,7 +58,7 @@ void RaytracingScene::build(
 
 // ----------------------------------------------------------------------------
 
-void RaytracingScene::build_blas(scene::Mesh::SubMesh const& submesh) {
+void RayTracingScene::build_blas(scene::Mesh::SubMesh const& submesh) {
   auto const& allocator = context_ptr_->allocator();
 
   // A - Setup the BLAS Geometry info.
@@ -142,7 +155,7 @@ void RaytracingScene::build_blas(scene::Mesh::SubMesh const& submesh) {
 
 // ----------------------------------------------------------------------------
 
-void RaytracingScene::build_tlas() {
+void RayTracingScene::build_tlas() {
   auto const& allocator = context_ptr_->allocator();
 
 #if 0
@@ -228,21 +241,7 @@ void RaytracingScene::build_tlas() {
 
 // ----------------------------------------------------------------------------
 
-void RaytracingScene::release() {
-  auto const& allocator = context_ptr_->allocator();
-
-  vkDestroyAccelerationStructureKHR(context_ptr_->get_device(), tlas_.handle, nullptr);
-  allocator.destroy_buffer(tlas_.buffer);
-  for (auto &blas : blas_) {
-    vkDestroyAccelerationStructureKHR(context_ptr_->get_device(), blas.handle, nullptr);
-    allocator.destroy_buffer(blas.buffer);
-  }
-}
-
-
-// ----------------------------------------------------------------------------
-
-void RaytracingScene::build_acceleration_structure(
+void RayTracingScene::build_acceleration_structure(
   backend::AccelerationStructure* as,
   VkPipelineStageFlags2 dstStageMask,
   VkAccelerationStructureBuildRangeInfoKHR buildRangeInfo
@@ -271,7 +270,6 @@ void RaytracingScene::build_acceleration_structure(
       build_range_infos.data()
     );
 
-    // ACCELLERATION_STRUCTURE_BUILD WRITE -> RAY_TRACING_SHADER READ
     VkMemoryBarrier2 barrier{
       .sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2,
       .srcStageMask  = VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_BUILD_BIT_KHR,

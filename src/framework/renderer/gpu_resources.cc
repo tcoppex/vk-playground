@@ -14,7 +14,8 @@ GPUResources::GPUResources(Renderer const& renderer)
   : renderer_ptr_(&renderer)
   , context_ptr_(&renderer.context())
 {
-  rt_scene_.init(*context_ptr_); //
+  rt_scene_ = std::make_unique<RayTracingScene>();
+  rt_scene_->init(*context_ptr_); //
 }
 
 // ----------------------------------------------------------------------------
@@ -26,7 +27,7 @@ GPUResources::~GPUResources() {
     material_fx_registry_->release();
   }
   if (allocator_ptr_ != nullptr) {
-    rt_scene_.release();
+    rt_scene_.reset();
 
     for (auto& img : device_images) {
       allocator_ptr_->destroy_image(&img);
@@ -103,7 +104,7 @@ void GPUResources::upload_to_device(bool const bReleaseHostDataOnUpload) {
     upload_buffers(*context_ptr_);
 
     /* Build the Raytracing acceleration structures. */
-    rt_scene_.build(meshes, vertex_buffer, index_buffer);
+    rt_scene_->build(meshes, vertex_buffer, index_buffer);
   }
 
 

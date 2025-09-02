@@ -57,8 +57,7 @@ struct GPUResources : scene::HostResources {
 
  protected:
   std::unique_ptr<MaterialFxRegistry> material_fx_registry_{};
-
-  RaytracingScene rt_scene_{};
+  std::unique_ptr<RayTracingSceneInterface> rt_scene_{};
 
   using SubMeshBuffer = std::vector<scene::Mesh::SubMesh const*>;
   using FxHashPair = std::pair< MaterialFx*, scene::MaterialStates >;

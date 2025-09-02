@@ -8,27 +8,55 @@
 
 /* -------------------------------------------------------------------------- */
 
+class RayTracingSceneInterface {
+ public:
+  virtual ~RayTracingSceneInterface() = default;
+
+  virtual void init(Context const& ctx) = 0;
+
+  virtual void release() = 0;
+
+  virtual void build(
+    scene::ResourceBuffer<scene::Mesh> const& meshes,
+    backend::Buffer const& vertex_buffer,
+    backend::Buffer const& index_buffer
+  ) = 0;
+
+  // TODO : build the DescriptorSetAccelerationStructure
+
+ protected:
+  virtual void build_blas(scene::Mesh::SubMesh const& submesh) = 0;
+
+  virtual void build_tlas() = 0;
+};
+
+// ----------------------------------------------------------------------------
+
 ///
 /// Acceleration Structure for a basic raytracer.
 ///
-class RaytracingScene {
+class RayTracingScene : public RayTracingSceneInterface {
  public:
-  RaytracingScene() = default;
-  ~RaytracingScene() = default;
+  RayTracingScene() = default;
 
-  void init(Context const& ctx);
+  virtual ~RayTracingScene() {
+    release();
+  }
+
+  void init(Context const& ctx) final;
+
+  void release() final;
 
   void build(
     scene::ResourceBuffer<scene::Mesh> const& meshes,
     backend::Buffer const& vertex_buffer,
     backend::Buffer const& index_buffer
-  );
+  ) final;
 
-  void build_blas(scene::Mesh::SubMesh const& submesh);
+ protected:
+  void build_blas(scene::Mesh::SubMesh const& submesh) final;
 
-  void build_tlas();
-
-  void release();
+  void build_tlas() final;
 
  private:
   void build_acceleration_structure(
@@ -44,7 +72,6 @@ class RaytracingScene {
 
   std::vector<backend::BLAS> blas_{}; // one per submesh
   backend::TLAS tlas_{};
-
   backend::Buffer scratch_buffer_{};
 };
 
