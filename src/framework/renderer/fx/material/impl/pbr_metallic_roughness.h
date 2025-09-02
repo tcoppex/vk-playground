@@ -139,23 +139,27 @@ class PBRMetallicRoughnessFx final : public TMaterialFx<PBRMetallicRoughnessMate
         .bindingFlags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT
                       | VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT,
       },
+      // ----------------------------------------------
       {
         .binding = pbr_metallic_roughness_shader_interop::kDescriptorSetBinding_IBL_Prefiltered,
         .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
         .descriptorCount = 1u,
         .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+        .bindingFlags = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT
       },
       {
         .binding = pbr_metallic_roughness_shader_interop::kDescriptorSetBinding_IBL_Irradiance,
         .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
         .descriptorCount = 1u,
         .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+        .bindingFlags = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT
       },
       {
         .binding = pbr_metallic_roughness_shader_interop::kDescriptorSetBinding_IBL_SpecularBRDF,
         .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
         .descriptorCount = 1u,
         .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+        .bindingFlags = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT
       },
       // ----------------------------------------------
       {
