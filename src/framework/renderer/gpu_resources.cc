@@ -332,12 +332,20 @@ void GPUResources::upload_buffers(Context const& context) {
   LOG_CHECK(vertex_buffer_size > 0);
   LOG_CHECK(allocator_ptr_ != nullptr);
 
+  VkBufferUsageFlags extra_flags{};
+
+  // ---------------------------------------
+  if (rt_scene_) {
+    extra_flags |= VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
+  }
+  // ---------------------------------------
+
   /* Allocate device buffers for meshes & their transforms. */
   vertex_buffer = allocator_ptr_->create_buffer(
     vertex_buffer_size,
       VK_BUFFER_USAGE_2_VERTEX_BUFFER_BIT
     | VK_BUFFER_USAGE_2_TRANSFER_DST_BIT_KHR
-    | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR //
+    | extra_flags
     ,
     VMA_MEMORY_USAGE_GPU_ONLY
   );
@@ -347,7 +355,7 @@ void GPUResources::upload_buffers(Context const& context) {
       index_buffer_size,
         VK_BUFFER_USAGE_2_INDEX_BUFFER_BIT
       | VK_BUFFER_USAGE_2_TRANSFER_DST_BIT_KHR
-      | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR //
+      | extra_flags
       ,
       VMA_MEMORY_USAGE_GPU_ONLY
     );
