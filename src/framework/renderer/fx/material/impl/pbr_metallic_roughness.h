@@ -117,11 +117,8 @@ class PBRMetallicRoughnessFx final : public TMaterialFx<PBRMetallicRoughnessMate
         .descriptorCount = 1u,
         .stageFlags = VK_SHADER_STAGE_VERTEX_BIT
                     | VK_SHADER_STAGE_FRAGMENT_BIT
-                    ,
-        .bindingFlags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT
-                      | VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT
-                      | VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT
       },
+      // ----------------------------------------------
       {
         .binding = getTransformsStorageBufferBinding(),
         .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
@@ -132,44 +129,41 @@ class PBRMetallicRoughnessFx final : public TMaterialFx<PBRMetallicRoughnessMate
                       | VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT
                       | VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT
       },
+      // ----------------------------------------------
       {
         .binding = getTextureAtlasBinding(),
         .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
         .descriptorCount = kMaxNumTextures, //
         .stageFlags = VK_SHADER_STAGE_VERTEX_BIT
                     | VK_SHADER_STAGE_FRAGMENT_BIT,
-        .bindingFlags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT,
+        .bindingFlags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT
+                      | VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT,
       },
       {
         .binding = pbr_metallic_roughness_shader_interop::kDescriptorSetBinding_IBL_Prefiltered,
         .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
         .descriptorCount = 1u,
         .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
-        .bindingFlags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT,
       },
       {
         .binding = pbr_metallic_roughness_shader_interop::kDescriptorSetBinding_IBL_Irradiance,
         .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
         .descriptorCount = 1u,
         .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
-        .bindingFlags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT,
       },
       {
         .binding = pbr_metallic_roughness_shader_interop::kDescriptorSetBinding_IBL_SpecularBRDF,
         .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
         .descriptorCount = 1u,
         .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
-        .bindingFlags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT,
       },
+      // ----------------------------------------------
       {
         .binding = pbr_metallic_roughness_shader_interop::kDescriptorSetBinding_MaterialSSBO,
         .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
         .descriptorCount = 1u,
         .stageFlags = VK_SHADER_STAGE_VERTEX_BIT
                     | VK_SHADER_STAGE_FRAGMENT_BIT,
-        .bindingFlags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT
-                      | VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT
-                      | VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT
       },
     };
   }
