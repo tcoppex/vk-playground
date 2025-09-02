@@ -161,7 +161,7 @@ class Renderer : public backend::RTInterface {
 
   // --- Sampler ---
 
-  VkSampler get_default_sampler() const {
+  VkSampler default_sampler() const {
     return sampler_pool_.default_sampler(); //
   }
 

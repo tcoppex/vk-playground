@@ -68,7 +68,7 @@ void RenderTargetFx::createRenderTarget(VkExtent2D const dimension) {
     },
     .depth_stencil_format = VK_FORMAT_D24_UNORM_S8_UINT, //
     .size = dimension,
-    .sampler = renderer_ptr_->get_default_sampler(),
+    .sampler = renderer_ptr_->default_sampler(),
   });
 #endif
 

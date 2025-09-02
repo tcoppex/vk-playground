@@ -12,7 +12,7 @@ void FragmentFx::setImageInputs(std::vector<backend::Image> const& inputs) {
   };
   for (auto const& input : inputs) {
     write_entry.images.push_back({
-      .sampler = renderer_ptr_->get_default_sampler(), //
+      .sampler = renderer_ptr_->default_sampler(), //
       .imageView = input.view,
       .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
     });

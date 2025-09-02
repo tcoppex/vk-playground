@@ -239,7 +239,7 @@ std::shared_ptr<RenderTarget> Renderer::create_default_render_target(uint32_t nu
     .color_formats = {},
     .depth_stencil_format = get_valid_depth_format(),
     .size = swapchain_.get_surface_size(),
-    .sampler = get_default_sampler(),
+    .sampler = default_sampler(),
   };
   desc.color_formats.resize(num_color_outputs, get_color_attachment().format);
 
