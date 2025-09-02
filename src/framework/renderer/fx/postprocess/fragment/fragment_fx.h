@@ -23,7 +23,7 @@ class FragmentFx : public virtual GenericFx {
  protected:
   void createPipeline() override;
 
-  std::vector<DescriptorSetLayoutParams> getDescriptorSetLayoutParams() const override {
+  DescriptorSetLayoutParamsBuffer getDescriptorSetLayoutParams() const override {
     return {
       {
         .binding = kDefaultCombinedImageSamplerBinding,

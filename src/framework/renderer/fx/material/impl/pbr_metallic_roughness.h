@@ -109,7 +109,7 @@ class PBRMetallicRoughnessFx final : public TMaterialFx<PBRMetallicRoughnessMate
     return FRAMEWORK_COMPILED_SHADERS_DIR "scene/pbr_metallic_roughness/scene.vert.glsl";
   }
 
-  std::vector<DescriptorSetLayoutParams> getDescriptorSetLayoutParams() const final {
+  DescriptorSetLayoutParamsBuffer getDescriptorSetLayoutParams() const final {
     return {
       {
         .binding = getFrameUniformBufferBinding(),

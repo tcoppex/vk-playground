@@ -69,7 +69,7 @@ class ComputeFx : public PostGenericFx {
  protected:
   virtual void releaseImagesAndBuffers();
 
-  std::vector<DescriptorSetLayoutParams> getDescriptorSetLayoutParams() const override {
+  DescriptorSetLayoutParamsBuffer getDescriptorSetLayoutParams() const override {
     return {
       // INPUTS
       {

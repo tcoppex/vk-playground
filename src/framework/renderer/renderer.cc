@@ -744,7 +744,7 @@ void Renderer::destroy_pipeline(Pipeline const& pipeline) const {
 
 // ----------------------------------------------------------------------------
 
-VkDescriptorSetLayout Renderer::create_descriptor_set_layout(std::vector<DescriptorSetLayoutParams> const& params) const {
+VkDescriptorSetLayout Renderer::create_descriptor_set_layout(DescriptorSetLayoutParamsBuffer const& params) const {
   std::vector<VkDescriptorSetLayoutBinding> entries;
   std::vector<VkDescriptorBindingFlags> flags;
 

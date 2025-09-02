@@ -24,7 +24,7 @@ class GenericFx : public virtual FxInterface {
   virtual std::string getShaderName() const = 0; //
   // virtual backend::ShadersMap createShaderModules() const = 0;
 
-  virtual std::vector<DescriptorSetLayoutParams> getDescriptorSetLayoutParams() const = 0;
+  virtual DescriptorSetLayoutParamsBuffer getDescriptorSetLayoutParams() const = 0;
 
   virtual std::vector<VkPushConstantRange> getPushConstantRanges() const {
     return {};

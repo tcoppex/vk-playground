@@ -57,7 +57,7 @@ class UnlitMaterialFx final : public TMaterialFx<unlit_shader_interop::Material>
     return FRAMEWORK_COMPILED_SHADERS_DIR "scene/unlit/scene.vert.glsl";
   }
 
-  std::vector<DescriptorSetLayoutParams> getDescriptorSetLayoutParams() const final {
+  DescriptorSetLayoutParamsBuffer getDescriptorSetLayoutParams() const final {
     return {
       {
         .binding = getFrameUniformBufferBinding(),

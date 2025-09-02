@@ -228,6 +228,7 @@ struct DescriptorSetLayoutParams {
   VkSampler const* pImmutableSamplers{};
   VkDescriptorBindingFlags bindingFlags{};
 };
+using DescriptorSetLayoutParamsBuffer = std::vector<DescriptorSetLayoutParams>;
 
 struct DescriptorSetWriteEntry {
   uint32_t binding{};
@@ -235,6 +236,13 @@ struct DescriptorSetWriteEntry {
   std::vector<VkDescriptorImageInfo> images{};
   std::vector<VkDescriptorBufferInfo> buffers{};
   std::vector<VkBufferView> bufferViews{};
+  // ---------------------------------------
+  std::vector<VkAccelerationStructureKHR> accelerationStructures{};
+
+  struct Extension {
+    VkWriteDescriptorSetAccelerationStructureKHR accelerationStructureInfo{};
+  };
+  // ---------------------------------------
 };
 
 struct VertexInputDescriptor {

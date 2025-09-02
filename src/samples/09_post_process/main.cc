@@ -79,7 +79,7 @@ class SceneFx final : public RenderTargetFx {
     render_target_->set_color_clear_value({ 0.0f, 0.0f, -1.0f, 0.0f }, 1u);
   }
 
-  std::vector<DescriptorSetLayoutParams> getDescriptorSetLayoutParams() const final {
+  DescriptorSetLayoutParamsBuffer getDescriptorSetLayoutParams() const final {
     return {
       {
         .binding = shader_interop::kDescriptorSetBinding_UniformBuffer,

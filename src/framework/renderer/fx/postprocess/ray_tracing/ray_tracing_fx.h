@@ -12,10 +12,12 @@ class RayTracingFx : public virtual GenericFx {
     GenericFx::release();
   }
 
+  virtual void setTLAS(backend::TLAS const& tlas);
+
  protected:
   std::string getShaderName() const final { return ""; } //
 
-  std::vector<DescriptorSetLayoutParams> getDescriptorSetLayoutParams() const override {
+  DescriptorSetLayoutParamsBuffer getDescriptorSetLayoutParams() const override {
     return {
       {
         .binding = 0, //

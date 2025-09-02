@@ -141,7 +141,7 @@ class Renderer : public backend::RTInterface {
 
   // --- Descriptor Set Layout ---
 
-  VkDescriptorSetLayout create_descriptor_set_layout(std::vector<DescriptorSetLayoutParams> const& params) const;
+  VkDescriptorSetLayout create_descriptor_set_layout(DescriptorSetLayoutParamsBuffer const& params) const;
 
   void destroy_descriptor_set_layout(VkDescriptorSetLayout& layout) const;
 

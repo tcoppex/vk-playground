@@ -57,7 +57,7 @@ class MaterialFx {
 
   virtual backend::ShaderMap createShaderModules() const;
 
-  virtual std::vector<DescriptorSetLayoutParams> getDescriptorSetLayoutParams() const {
+  virtual DescriptorSetLayoutParamsBuffer getDescriptorSetLayoutParams() const {
     return {}; //
   }
 
