@@ -52,7 +52,12 @@ void Context::deinit() {
 
 // ----------------------------------------------------------------------------
 
-backend::Image Context::create_image_2d(uint32_t width, uint32_t height, VkFormat const format, VkImageUsageFlags const extra_usage) const {
+backend::Image Context::create_image_2d(
+  uint32_t width,
+  uint32_t height,
+  VkFormat const format,
+  VkImageUsageFlags const extra_usage
+) const {
   VkImageUsageFlags usage{
       VK_IMAGE_USAGE_SAMPLED_BIT
     | extra_usage

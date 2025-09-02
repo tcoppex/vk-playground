@@ -66,7 +66,7 @@ class RenderTargetFx : public FragmentFx
   virtual void createRenderTarget(VkExtent2D const dimension);
 
  protected:
-  std::shared_ptr<RenderTarget> render_target_{};
+  std::shared_ptr<RenderTarget> render_target_{}; //
   std::vector<backend::Buffer> unused_buffers_{};
 };
 

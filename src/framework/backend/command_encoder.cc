@@ -175,6 +175,7 @@ void CommandEncoder::blit_image_2d(backend::Image const& src, VkImageLayout src_
 // ----------------------------------------------------------------------------
 
 void CommandEncoder::blit(PostFxInterface const& fx_src, backend::RTInterface const& rt_dst) const {
+  LOG_CHECK(false == fx_src.getImageOutputs().empty());
   blit_image_2d(
     fx_src.getImageOutput(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
     rt_dst.get_color_attachment(), VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
@@ -189,7 +190,7 @@ void CommandEncoder::transfer_host_to_device(void const* host_data, size_t const
   assert(host_data_size > 0u);
 
   // ----------------
-  // [TODO] Staging buffers need cleaning / garbage collection !
+  // [TODO] Staging buffers need better cleaning / garbage collection !
   auto staging_buffer{
     allocator_ptr_->create_staging_buffer(host_data_size, host_data)   //
   };
