@@ -173,7 +173,7 @@ void Envmap::init(Context const& context, Renderer const& renderer) {
       .anisotropyEnable = VK_FALSE,
       .maxLod = 0,
     };
-    CHECK_VK( vkCreateSampler(context.get_device(), &sampler_create_info, nullptr, &sampler_) );
+    CHECK_VK( vkCreateSampler(context.device(), &sampler_create_info, nullptr, &sampler_) );
   }
 }
 
@@ -181,7 +181,7 @@ void Envmap::init(Context const& context, Renderer const& renderer) {
 
 void Envmap::release() {
   allocator_ptr_->destroy_buffer(irradiance_matrices_buffer_);
-  vkDestroySampler(context_->get_device(), sampler_, nullptr); //
+  vkDestroySampler(context_->device(), sampler_, nullptr); //
   for (auto &image : images_) {
     allocator_ptr_->destroy_image(&image);
   }
@@ -508,7 +508,7 @@ void Envmap::compute_specular() {
   for (uint32_t level = 0u; level < kSpecularLevelCount; ++level) {
     view_info.subresourceRange.baseMipLevel = level;
     CHECK_VK(vkCreateImageView(
-      context_->get_device(), &view_info, nullptr, &desc_image_infos[level].imageView
+      context_->device(), &view_info, nullptr, &desc_image_infos[level].imageView
     ));
   }
 
@@ -569,7 +569,7 @@ void Envmap::compute_specular() {
   context_->finish_transient_command_encoder(cmd);
 
   for (auto const& desc_image_info : desc_image_infos) {
-    vkDestroyImageView(context_->get_device(), desc_image_info.imageView, nullptr);
+    vkDestroyImageView(context_->device(), desc_image_info.imageView, nullptr);
   }
 }
 

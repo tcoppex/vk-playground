@@ -11,10 +11,10 @@ void RayTracingScene::init(Context const& ctx) {
 void RayTracingScene::release() {
   auto const& allocator = context_ptr_->allocator();
 
-  vkDestroyAccelerationStructureKHR(context_ptr_->get_device(), tlas_.handle, nullptr);
+  vkDestroyAccelerationStructureKHR(context_ptr_->device(), tlas_.handle, nullptr);
   allocator.destroy_buffer(tlas_.buffer);
   for (auto &blas : blas_) {
-    vkDestroyAccelerationStructureKHR(context_ptr_->get_device(), blas.handle, nullptr);
+    vkDestroyAccelerationStructureKHR(context_ptr_->device(), blas.handle, nullptr);
     allocator.destroy_buffer(blas.buffer);
   }
 }
@@ -138,7 +138,7 @@ bool RayTracingScene::build_blas(scene::Mesh::SubMesh const& submesh) {
   };
 
   vkGetAccelerationStructureBuildSizesKHR(
-    context_ptr_->get_device(),
+    context_ptr_->device(),
     VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
     &blas.build_geometry_info,
     &primitiveCount,
@@ -158,7 +158,7 @@ bool RayTracingScene::build_blas(scene::Mesh::SubMesh const& submesh) {
     .type   = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR
   };
   CHECK_VK(vkCreateAccelerationStructureKHR(
-    context_ptr_->get_device(), &asInfo, nullptr, &blas.handle
+    context_ptr_->device(), &asInfo, nullptr, &blas.handle
   ));
 
   // C - Build the BLAS.
@@ -232,7 +232,7 @@ void RayTracingScene::build_tlas() {
 
   uint32_t const primitiveCount{ static_cast<uint32_t>(tlas_.instances.size()) };
   vkGetAccelerationStructureBuildSizesKHR(
-    context_ptr_->get_device(),
+    context_ptr_->device(),
     VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
     &tlas_.build_geometry_info,
     &primitiveCount,
@@ -252,7 +252,7 @@ void RayTracingScene::build_tlas() {
     .type   = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR
   };
   CHECK_VK(vkCreateAccelerationStructureKHR(
-    context_ptr_->get_device(), &asInfo, nullptr, &tlas_.handle
+    context_ptr_->device(), &asInfo, nullptr, &tlas_.handle
   ));
 
   build_acceleration_structure(
@@ -318,7 +318,7 @@ void RayTracingScene::build_acceleration_structure(
     .accelerationStructure = as->handle
   };
   as->buffer.address = vkGetAccelerationStructureDeviceAddressKHR(
-    context_ptr_->get_device(),
+    context_ptr_->device(),
     &addrInfo
   );
 }

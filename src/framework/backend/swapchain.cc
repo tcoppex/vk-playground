@@ -29,8 +29,8 @@ bool CheckOutOfDataResult(VkResult const result, std::string_view const& msg) {
 /* -------------------------------------------------------------------------- */
 
 void Swapchain::init(Context const& context, VkSurfaceKHR const surface) {
-  gpu_ = context.get_gpu();
-  device_ = context.get_device();
+  gpu_ = context.physical_device();
+  device_ = context.device();
   surface_ = surface;
 
   /* Retrieve the GPU's capabilities for this surface. */

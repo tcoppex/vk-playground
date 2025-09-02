@@ -27,25 +27,26 @@ class Context {
   ~Context() {}
 
   bool init(std::vector<char const*> const& instance_extensions);
+
   void deinit();
 
-  VkInstance get_instance() const {
+  VkInstance instance() const {
     return instance_;
   }
 
-  VkPhysicalDevice get_gpu() const {
+  VkPhysicalDevice physical_device() const {
     return gpu_;
   }
 
-  VkDevice get_device() const {
+  VkDevice device() const {
     return device_;
   }
 
-  backend::Queue const& get_queue(TargetQueue const target = TargetQueue::Main) const {
+  backend::Queue const& queue(TargetQueue const target = TargetQueue::Main) const {
     return queues_[target];
   }
 
-  backend::GPUProperties const& get_gpu_properties() const {
+  backend::GPUProperties const& gpu_properties() const {
     return properties_;
   }
 

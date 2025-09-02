@@ -13,7 +13,7 @@ char const* kDefaulShaderEntryPoint{
 
 void Renderer::init(Context const& context, ResourceAllocator* allocator, VkSurfaceKHR const surface) {
   ctx_ptr_ = &context;
-  device_ = context.get_device();
+  device_ = context.device();
   allocator_ptr_ = allocator;
 
   /* Initialize the swapchain. */
@@ -42,7 +42,7 @@ void Renderer::init(Context const& context, ResourceAllocator* allocator, VkSurf
     timeline_.frames.resize(frame_count);
     VkCommandPoolCreateInfo const command_pool_create_info{
       .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-      .queueFamilyIndex = context.get_queue(Context::TargetQueue::Main).family_index,
+      .queueFamilyIndex = context.queue(Context::TargetQueue::Main).family_index,
     };
     for (uint64_t i = 0u; i < frame_count; ++i) {
       auto& frame = timeline_.frames[i];
@@ -211,7 +211,7 @@ void Renderer::end_frame() {
     .pSignalSemaphoreInfos = signal_semaphores.data(),
   };
 
-  VkQueue const queue{ctx_ptr_->get_queue(Context::TargetQueue::Main).queue};
+  VkQueue const queue{ctx_ptr_->queue(Context::TargetQueue::Main).queue};
   CHECK_VK( vkQueueSubmit2(queue, 1u, &submit_info_2, nullptr) );
 
   /* Display and swap buffers. */

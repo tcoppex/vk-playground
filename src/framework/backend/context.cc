@@ -22,7 +22,7 @@ bool Context::init(std::vector<char const*> const& instance_extensions) {
 
     for (uint32_t i = 0u; i < static_cast<uint32_t>(TargetQueue::kCount); ++i) {
       auto const target = static_cast<TargetQueue>(i);
-      command_pool_create_info.queueFamilyIndex = get_queue(target).family_index;
+      command_pool_create_info.queueFamilyIndex = queue(target).family_index;
       CHECK_VK(vkCreateCommandPool(
         device_, &command_pool_create_info, nullptr, &transient_command_pools_[target]
       ));
@@ -203,7 +203,7 @@ void Context::finish_transient_command_encoder(CommandEncoder const& encoder) co
     static_cast<TargetQueue>(encoder.get_target_queue_index())
   };
 
-  CHECK_VK( vkQueueSubmit2(get_queue(target_queue).queue, 1u, &submit_info_2, fence) );
+  CHECK_VK( vkQueueSubmit2(queue(target_queue).queue, 1u, &submit_info_2, fence) );
 
   CHECK_VK( vkWaitForFences(device_, 1u, &fence, VK_TRUE, UINT64_MAX) );
   vkDestroyFence(device_, fence, nullptr);

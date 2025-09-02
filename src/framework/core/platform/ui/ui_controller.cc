@@ -30,7 +30,7 @@ bool UIController::init(Context const& context, Renderer const& renderer, WMInte
     .poolSizeCount = 1u,
     .pPoolSizes = pool_sizes,
   };
-  CHECK_VK(vkCreateDescriptorPool(context.get_device(), &desc_pool_info, nullptr, &imgui_descriptor_pool_));
+  CHECK_VK(vkCreateDescriptorPool(context.device(), &desc_pool_info, nullptr, &imgui_descriptor_pool_));
 
   VkFormat const formats[]{
     renderer.get_color_attachment().format
@@ -38,11 +38,11 @@ bool UIController::init(Context const& context, Renderer const& renderer, WMInte
   VkFormat const depth_stencil_format{
     renderer.get_depth_stencil_attachment().format
   };
-  auto const main_queue{ context.get_queue() };
+  auto const main_queue{ context.queue() };
   ImGui_ImplVulkan_InitInfo info{
-    .Instance = context.get_instance(),
-    .PhysicalDevice = context.get_gpu(),
-    .Device = context.get_device(),
+    .Instance = context.instance(),
+    .PhysicalDevice = context.physical_device(),
+    .Device = context.device(),
     .QueueFamily = main_queue.family_index,
     .Queue = main_queue.queue,
     .DescriptorPool = imgui_descriptor_pool_,
@@ -72,7 +72,7 @@ void UIController::release(Context const& context) {
   ImGui_ImplVulkan_Shutdown();
   ImGui_ImplGlfw_Shutdown();
   ImGui::DestroyContext();
-  vkDestroyDescriptorPool(context.get_device(), imgui_descriptor_pool_, nullptr);
+  vkDestroyDescriptorPool(context.device(), imgui_descriptor_pool_, nullptr);
 }
 
 // ----------------------------------------------------------------------------
