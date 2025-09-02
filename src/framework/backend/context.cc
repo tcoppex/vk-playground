@@ -267,7 +267,10 @@ void Context::copy_buffer(
 
 // ----------------------------------------------------------------------------
 
-void Context::update_descriptor_set(VkDescriptorSet const& descriptor_set, std::vector<DescriptorSetWriteEntry> const& entries) const {
+void Context::update_descriptor_set(
+  VkDescriptorSet const& descriptor_set,
+  std::vector<DescriptorSetWriteEntry> const& entries
+) const {
   if (entries.empty()) {
     return;
   }
@@ -276,7 +279,6 @@ void Context::update_descriptor_set(VkDescriptorSet const& descriptor_set, std::
   write_descriptor_sets.reserve(entries.size());
 
   std::vector<DescriptorSetWriteEntry> updated_entries{entries};
-
   for (auto& entry : updated_entries) {
     VkWriteDescriptorSet write_descriptor_set{
       .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
@@ -285,6 +287,8 @@ void Context::update_descriptor_set(VkDescriptorSet const& descriptor_set, std::
       .dstArrayElement = 0u,
       .descriptorType = entry.type,
     };
+
+    DescriptorSetWriteEntry::Extension ext{};
 
     switch (entry.type) {
       case VK_DESCRIPTOR_TYPE_SAMPLER:
@@ -313,6 +317,16 @@ void Context::update_descriptor_set(VkDescriptorSet const& descriptor_set, std::
         LOG_CHECK(entry.images.empty() && entry.buffers.empty());
         write_descriptor_set.pTexelBufferView = entry.bufferViews.data();
         write_descriptor_set.descriptorCount = static_cast<uint32_t>(entry.bufferViews.size());
+      break;
+
+      case VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR:
+        ext.accelerationStructureInfo = {
+          .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR,
+          .accelerationStructureCount = static_cast<uint32_t>(entry.accelerationStructures.size()),
+          .pAccelerationStructures = entry.accelerationStructures.data(),
+        };
+        write_descriptor_set.descriptorCount = 1;
+        write_descriptor_set.pNext = &ext.accelerationStructureInfo;
       break;
 
       default:

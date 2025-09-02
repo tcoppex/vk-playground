@@ -134,7 +134,10 @@ class Context {
 
   // --- Descriptor set ---
 
-  void update_descriptor_set(VkDescriptorSet const& descriptor_set, std::vector<DescriptorSetWriteEntry> const& entries) const;
+  void update_descriptor_set(
+    VkDescriptorSet const& descriptor_set,
+    std::vector<DescriptorSetWriteEntry> const& entries
+  ) const;
 
  private:
   bool has_extension(std::string_view const& name, std::vector<VkExtensionProperties> const& extensions) const {
