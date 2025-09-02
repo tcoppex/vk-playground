@@ -70,6 +70,10 @@ struct SpecializationConstant32_t {
     std::vector<VkSpecializationMapEntry> mapEntries_{};
 };
 
+using SpecializationConstants = std::vector<SpecializationConstant32_t::Entry>;
+
+// ----------------------------------------------------------------------------
+
 struct GraphicsPipelineCreateInfoData_t {
   std::vector<VkPipelineColorBlendAttachmentState> color_blend_attachments{};
 
@@ -100,8 +104,6 @@ struct GraphicsPipelineDescriptor_t {
     | VK_COLOR_COMPONENT_B_BIT
     | VK_COLOR_COMPONENT_A_BIT
   };
-
-  using SpecializationConstants = std::vector<SpecializationConstant32_t::Entry>;
 
   std::vector<VkDynamicState> dynamicStates{};
 
