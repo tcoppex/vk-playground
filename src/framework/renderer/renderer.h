@@ -48,7 +48,7 @@ class Renderer : public backend::RTInterface {
 
   void end_frame();
 
-  Swapchain const& get_swapchain() const {
+  Swapchain const& swapchain() const {
     return swapchain_;
   }
 

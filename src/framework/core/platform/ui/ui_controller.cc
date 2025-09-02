@@ -47,7 +47,7 @@ bool UIController::init(Context const& context, Renderer const& renderer, WMInte
     .Queue = main_queue.queue,
     .DescriptorPool = imgui_descriptor_pool_,
     .MinImageCount = 2,
-    .ImageCount = renderer.get_swapchain().get_image_count(),
+    .ImageCount = renderer.swapchain().get_image_count(),
     .UseDynamicRendering = true,
     .PipelineRenderingCreateInfo = {
       .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
