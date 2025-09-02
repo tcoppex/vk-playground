@@ -18,7 +18,7 @@ class RayTracingFx : public virtual GenericFx {
   std::vector<DescriptorSetLayoutParams> getDescriptorSetLayoutParams() const override {
     return {
       {
-        .binding = 0,
+        .binding = 0, //
         .descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR,
         .descriptorCount = 1u,
         .stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR
@@ -50,17 +50,17 @@ class RayTracingFx : public virtual GenericFx {
 
   void execute(CommandEncoder& cmd) final {
     // (buffer & images barriers in)
-    cmd.bind_pipeline(pipeline_);
-    // cmd.bind_descriptor_set(descriptor_set_, pipeline_layout_, VK_SHADER_STAGE_COMPUTE_BIT);
-    pushConstant(cmd);
-    vkCmdTraceRaysKHR(
-      cmd.get_handle(),
-      &raygen_region_,
-      &miss_region_,
-      &hit_region_,
-      &callable_region_,
-      32, 32, 1 //width, height, 1
-    );
+    // cmd.bind_pipeline(pipeline_);
+    // // cmd.bind_descriptor_set(descriptor_set_, pipeline_layout_, VK_SHADER_STAGE_COMPUTE_BIT);
+    // pushConstant(cmd);
+    // vkCmdTraceRaysKHR(
+    //   cmd.get_handle(),
+    //   &region_.raygen,
+    //   &region_.miss,
+    //   &region_.hit,
+    //   &region_.callable,
+    //   32, 32, 1 //width, height, 1
+    // );
     // (buffer & images barriers out)
   }
 
@@ -69,7 +69,7 @@ class RayTracingFx : public virtual GenericFx {
 
   virtual RayTracingPipelineDescriptor_t pipelineDescriptor(backend::ShadersMap const& shaders_map) = 0;
 
-  virtual void buildShaderBindingTable(RayTracingPipelineDescriptor_t const& desc) {
+  void buildShaderBindingTable(RayTracingPipelineDescriptor_t const& desc) {
     VkPhysicalDeviceRayTracingPipelinePropertiesKHR rtProps{
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR
     };
@@ -173,19 +173,15 @@ class RayTracingFx : public virtual GenericFx {
       };
     };
 
-    raygen_region_   = getRegion(offsetRayGen, sizeRayGen);
-    miss_region_     = getRegion(offsetMiss, sizeMiss);
-    hit_region_      = getRegion(offsetHit, sizeHit);
-    callable_region_ = getRegion(offsetCallable, sizeCallable);
+    region_.raygen   = getRegion(offsetRayGen, sizeRayGen);
+    region_.miss     = getRegion(offsetMiss, sizeMiss);
+    region_.hit      = getRegion(offsetHit, sizeHit);
+    region_.callable = getRegion(offsetCallable, sizeCallable);
   }
 
  protected:
   backend::Buffer sbt_storage_{};
-
-  VkStridedDeviceAddressRegionKHR raygen_region_{};
-  VkStridedDeviceAddressRegionKHR miss_region_{};
-  VkStridedDeviceAddressRegionKHR hit_region_{};
-  VkStridedDeviceAddressRegionKHR callable_region_{};
+  RayTracingAddressRegion region_{};
 };
 
 /* -------------------------------------------------------------------------- */
