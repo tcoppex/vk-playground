@@ -199,6 +199,7 @@ class Context {
   struct {
     VkPhysicalDeviceFeatures2 base{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
     VkPhysicalDeviceIndexTypeUint8FeaturesKHR index_type_uint8{};
+    VkPhysicalDevice16BitStorageFeaturesKHR storage_16bit{};
     VkPhysicalDeviceBufferDeviceAddressFeaturesKHR buffer_device_address{};
     VkPhysicalDeviceDynamicRenderingFeaturesKHR dynamic_rendering{};
     VkPhysicalDeviceMaintenance4FeaturesKHR maintenance4{};

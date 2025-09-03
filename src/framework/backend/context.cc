@@ -454,6 +454,12 @@ bool Context::init_device() {
     );
 
     add_device_feature(
+      VK_KHR_16BIT_STORAGE_EXTENSION_NAME,
+      feature_.storage_16bit,
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES_KHR
+    );
+
+    add_device_feature(
       VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME,
       feature_.dynamic_rendering,
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR
