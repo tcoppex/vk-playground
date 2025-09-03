@@ -11,6 +11,7 @@ namespace backend {
 struct AccelerationStructure {
   VkAccelerationStructureKHR handle{VK_NULL_HANDLE};
   backend::Buffer buffer{};
+  VkDeviceAddress accelerationStructAddress{};
   VkAccelerationStructureBuildGeometryInfoKHR build_geometry_info{};
   VkAccelerationStructureBuildSizesInfoKHR build_sizes_info{};
 };

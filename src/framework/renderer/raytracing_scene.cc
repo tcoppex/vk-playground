@@ -2,6 +2,25 @@
 
 /* -------------------------------------------------------------------------- */
 
+namespace {
+
+static
+VkTransformMatrixKHR ToVkTransformMatrix(mat4 const& m) {
+  VkTransformMatrixKHR out{};
+
+  // Vulkan expects row-major order [3][4]
+  for (int row = 0; row < 3; ++row) {
+    for (int col = 0; col < 4; ++col) {
+      out.matrix[row][col] = static_cast<float>(m[col][row]);
+    }
+  }
+  return out;
+}
+
+}
+
+/* -------------------------------------------------------------------------- */
+
 void RayTracingScene::init(Context const& ctx) {
   context_ptr_ = &ctx;
 }
@@ -49,20 +68,18 @@ void RayTracingScene::build(
 
   // Build a BLAS for each submeshes.
   for (auto const& mesh : meshes) {
-    mat3x4 transform{
-      lina::to_mat3x4(mesh->world_matrix())
-    };
-
     for (auto const& submesh : mesh->submeshes) {
       if (build_blas(submesh)) {
         // (simply instanciate the BLAS we just built)
-        tlas_.instances.emplace_back(VkAccelerationStructureInstanceKHR{
-          .transform = *static_cast<float*>(lina::ptr(transform)), //
+        tlas_.instances.push_back({
+          .transform = {
+            .matrix = ToVkTransformMatrix(mesh->world_matrix())
+          },
           .instanceCustomIndex = submesh.material_ref->proxy_index, //
           .mask = 0xFF,
           .instanceShaderBindingTableRecordOffset = 0,
           .flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR, //
-          .accelerationStructureReference = blas_.back().buffer.address,
+          .accelerationStructureReference = blas_.back().accelerationStructAddress,
         });
       }
     }
@@ -319,7 +336,7 @@ void RayTracingScene::build_acceleration_structure(
     .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR,
     .accelerationStructure = as->handle
   };
-  as->buffer.address = vkGetAccelerationStructureDeviceAddressKHR(
+  as->accelerationStructAddress = vkGetAccelerationStructureDeviceAddressKHR(
     context_ptr_->device(),
     &addrInfo
   );
