@@ -36,6 +36,8 @@ void RayTracingScene::release() {
     vkDestroyAccelerationStructureKHR(context_ptr_->device(), blas.handle, nullptr);
     allocator.destroy_buffer(blas.buffer);
   }
+
+  allocator.destroy_buffer(instances_data_buffer_);
 }
 
 // ----------------------------------------------------------------------------
@@ -50,9 +52,12 @@ void RayTracingScene::build(
   for (auto const& mesh : meshes) {
     for (auto const& submesh : mesh->submeshes) {
       auto const indexType = submesh.draw_descriptor.indexType;
-      hasAnyValidIndexFormat |= (indexType == VK_INDEX_TYPE_UINT16)
-                             || (indexType == VK_INDEX_TYPE_UINT32)
+      hasAnyValidIndexFormat |= (indexType == VK_INDEX_TYPE_UINT32)
+                             || (indexType == VK_INDEX_TYPE_UINT16)
                              ;
+      if (indexType == VK_INDEX_TYPE_UINT16) {
+        LOGI("index is 16bit");
+      }
     }
   }
   if (!hasAnyValidIndexFormat) {
@@ -67,15 +72,18 @@ void RayTracingScene::build(
   tlas_.instances.reserve(meshes.size());
 
   // Build a BLAS for each submeshes.
+  uint32_t instance_index = 0;
   for (auto const& mesh : meshes) {
     for (auto const& submesh : mesh->submeshes) {
+      uint32_t custom_index = instance_index++; // submesh.material_ref->proxy_index, //
+
       if (build_blas(submesh)) {
         // (simply instanciate the BLAS we just built)
         tlas_.instances.push_back({
           .transform = {
             .matrix = ToVkTransformMatrix(mesh->world_matrix())
           },
-          .instanceCustomIndex = submesh.material_ref->proxy_index, //
+          .instanceCustomIndex = custom_index,
           .mask = 0xFF,
           .instanceShaderBindingTableRecordOffset = 0,
           .flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR, //
@@ -84,8 +92,9 @@ void RayTracingScene::build(
       }
     }
   }
-
   build_tlas();
+
+  build_instances_data_buffer(meshes, vertex_buffer, index_buffer); //
 
   context_ptr_->allocator().clear_staging_buffers();
 }
@@ -120,7 +129,7 @@ bool RayTracingScene::build_blas(scene::Mesh::SubMesh const& submesh) {
     .vertexData    = {
       .deviceAddress = vertex_address_ + desc.vertexOffset, //
     },
-    .vertexStride  = mesh.get_stride(Geometry::AttributeType::Position),
+    .vertexStride  = mesh.get_stride(Geometry::AttributeType::Position), //sizeof(VertexInternal_t)
     .maxVertex     = desc.vertexCount - 1,
     .indexType     = desc.indexType,
     .indexData     = {
@@ -288,6 +297,35 @@ void RayTracingScene::build_tlas() {
   );
 
   allocator.destroy_buffer(instances_buffer);
+}
+
+// ----------------------------------------------------------------------------
+
+void RayTracingScene::build_instances_data_buffer(
+  scene::ResourceBuffer<scene::Mesh> const& meshes,
+  backend::Buffer const& vertex_buffer,
+  backend::Buffer const& index_buffer
+) {
+  size_t submeshes_count = 0;
+  for (auto const& mesh : meshes) {
+    submeshes_count += mesh->submeshes.size();
+  }
+
+  std::vector<InstanceData> instances{};
+  instances.reserve(submeshes_count);
+
+  for (auto const& mesh : meshes) {
+    for (auto const& submesh : mesh->submeshes) {
+      instances.push_back({
+        .vertex = vertex_address_ + submesh.draw_descriptor.vertexOffset,
+        .index = index_address_ + submesh.draw_descriptor.indexOffset,
+      });
+    }
+  }
+  instances_data_buffer_ = context_ptr_->create_buffer_and_upload(
+    instances,
+    VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
+  );
 }
 
 // ----------------------------------------------------------------------------

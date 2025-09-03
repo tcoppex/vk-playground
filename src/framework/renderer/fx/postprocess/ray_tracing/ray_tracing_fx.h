@@ -16,10 +16,14 @@ class RayTracingFx : public virtual PostGenericFx {
  public:
   struct DescriptorSetUpdateParams {
     VkAccelerationStructureKHR tlasHandle{};
+    VkBuffer instancesBuffer{};
     VkBuffer frameBuffer{};
-    VkBuffer vertexBuffer{};
-    VkBuffer indexBuffer{};
   };
+
+  const uint kDescriptorSetBinding_ImageOutput      = 0;
+  const uint kDescriptorSetBinding_TLAS             = 1;
+  const uint kDescriptorSetBinding_InstanceSBO      = 2;
+  const uint kDescriptorSetBinding_FrameUBO         = 3;
 
  public:
   virtual void release() {

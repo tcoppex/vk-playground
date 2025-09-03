@@ -298,9 +298,8 @@ void GPUResources::set_ray_tracing_fx(RayTracingFx const* fx) {
 
   ray_tracing_fx_->updateDescriptorSet({
     .tlasHandle = rt_scene_->tlas().handle,
+    .instancesBuffer = rt_scene_->instances_data_buffer().buffer,
     .frameBuffer = frame_ubo_.buffer,
-    .vertexBuffer = vertex_buffer.buffer,
-    .indexBuffer = index_buffer.buffer,
   });
 }
 
@@ -393,6 +392,7 @@ void GPUResources::upload_buffers(Context const& context) {
                 // Position & Indices are needed for the BLAS.
                 | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR
                 // Attributes & Indices are fetched by the closeshit shaders.
+                | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT
                 | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
                 ;
   }
