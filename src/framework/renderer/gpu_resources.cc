@@ -355,11 +355,26 @@ void GPUResources::upload_images(Context const& context) {
   {
     VkImageLayout const transfer_layout{ VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL };
 
-    cmd.transition_images_layout(device_images, VK_IMAGE_LAYOUT_UNDEFINED, transfer_layout);
+    cmd.transition_images_layout(
+      device_images,
+      VK_IMAGE_LAYOUT_UNDEFINED,
+      transfer_layout
+    );
     for (uint32_t i = 0u; i < device_images.size(); ++i) {
-      vkCmdCopyBufferToImage(cmd.get_handle(), staging_buffer.buffer, device_images[i].image, transfer_layout, 1u, &copies[i]);
+      vkCmdCopyBufferToImage(
+        cmd.get_handle(),
+        staging_buffer.buffer,
+        device_images[i].image,
+        transfer_layout,
+        1u,
+        &copies[i]
+      );
     }
-    cmd.transition_images_layout(device_images, transfer_layout, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    cmd.transition_images_layout(
+      device_images,
+      transfer_layout,
+      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+    );
   }
   context.finish_transient_command_encoder(cmd);
 }
@@ -374,7 +389,12 @@ void GPUResources::upload_buffers(Context const& context) {
 
   // ---------------------------------------
   if (rt_scene_) {
-    extra_flags |= VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
+    extra_flags = extra_flags
+                // Position & Indices are needed for the BLAS.
+                | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR
+                // Attributes & Indices are fetched by the closeshit shaders.
+                | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
+                ;
   }
   // ---------------------------------------
 

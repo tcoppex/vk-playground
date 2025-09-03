@@ -7,6 +7,10 @@
 
 // -----------------------------------------------------------------------------
 
+#include <material/interop.h>
+
+// -----------------------------------------------------------------------------
+
 hitAttributeEXT vec2 attribs;
 
 struct HitPayload_t {
@@ -20,46 +24,55 @@ layout(location = 0) rayPayloadInEXT HitPayload_t payload;
 
 // -----------------------------------------------------------------------------
 
-// struct Vertex {
-//   vec3 position;
-//   vec3 normal;
-//   vec3 tangent;
-//   vec2 uv;
-// };
+layout(set = 0, binding = 3, std430) buffer Vertices {
+  Vertex vertices[];
+};
 
-// layout(buffer_reference, scalar) buffer Vertices {
-//   Vertex v[];
-// };
-
-// layout(buffer_reference, scalar) buffer Indices {
-//   uvec3 i[];
-// };
+layout(set = 0, binding = 4, scalar) buffer Indices {
+  uint indices[];
+};
 
 // -----------------------------------------------------------------------------
 
 void main() {
-
   // Indices  indices  = Indices(objResource.indices);
   // Vertices vertices = Vertices(objResource.vertices);
+  // const uint instID = gl_InstanceCustomIndexEXT;
 
-  // Get primitive + instance info
-  const uint primID   = gl_PrimitiveID;
-  const uint instID   = gl_InstanceCustomIndexEXT;
+  // ----------------------------------------
+
+  uint i0 = indices[gl_PrimitiveID * 3 + 0];
+  uint i1 = indices[gl_PrimitiveID * 3 + 1];
+  uint i2 = indices[gl_PrimitiveID * 3 + 2];
+
+  Vertex v0 = vertices[i0];
+  Vertex v1 = vertices[i1];
+  Vertex v2 = vertices[i2];
+
+  // ----------------------------------------
 
   // Access interpolated barycentrics (attribs.xy)
-  vec2 bary = attribs;
+  vec3 bary = vec3(attribs, 1.0 - attribs.x - attribs.y);
 
-  // Lookup vertex positions/normals in SSBO (you need to bind them)
-  // e.g., Vertex v0 = vertices[indices[primID*3+0]];
-  // Interpolate using barycentric coords
+  // Interpolate attributes
+  vec3 position = v0.position * bary.z +
+                  v1.position * bary.x +
+                  v2.position * bary.y;
 
-  // vec3 N = normalize(interpolatedNormal);
-  // vec3 color = 0.5 * (N + 1.0); // quick debug: normal to color
-  // payload.radiance = color;
+  vec3 normal = normalize(v0.normal * bary.z +
+                          v1.normal * bary.x +
+                          v2.normal * bary.y);
 
-  payload.radiance = vec3(0.9, 0.1, 0.3);
+  // vec2 uv = v0.uv * bary.z +
+  //           v1.uv * bary.x +
+  //           v2.uv * bary.y;
+
+  // ----------------------------------------
+
+  vec3 color = 0.5 * (normal + 1.0); //
+
+  payload.radiance = color;
   payload.done = 1; // stop bouncing
-
 }
 
 // -----------------------------------------------------------------------------

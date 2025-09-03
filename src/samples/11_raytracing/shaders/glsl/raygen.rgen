@@ -59,9 +59,13 @@ void main() {
       topLevelAS,
       gl_RayFlagsOpaqueEXT,
       0xff,
-      0, 0, 0,
-      payload.origin, tmin,
-      payload.direction, tmax,
+      0, // sbt record offset
+      0, // sbt record stride
+      0, // miss shader index in miss group
+      payload.origin,
+      tmin,
+      payload.direction,
+      tmax,
       0
     );
     hitValue += payload.radiance;

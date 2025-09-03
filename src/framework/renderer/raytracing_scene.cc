@@ -102,6 +102,13 @@ bool RayTracingScene::build_blas(scene::Mesh::SubMesh const& submesh) {
 
   // A - Setup the BLAS Geometry info.
 
+  ///
+  /// Note: The acceleration structure only use vertex position (and indices),
+  ///  so using an interleaved vertex buffer can be less efficient.
+  ///  We could use a single position buffer and a separate interleaved
+  ///   attributes one.
+  ///
+
   scene::Mesh const& mesh{ *submesh.parent };
   bool const is_opaque{
     submesh.material_ref->states.alpha_mode != scene::MaterialStates::AlphaMode::Blend

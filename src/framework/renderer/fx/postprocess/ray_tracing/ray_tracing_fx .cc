@@ -160,6 +160,9 @@ void RayTracingFx::buildShaderBindingTable(RayTracingPipelineDescriptor_t const&
     shader_handles.data()
   ));
 
+  // (this should be rewrite to avoid expecting a certain order)
+  /// --------------------------------------
+  /// --------------------------------------
   uint32_t const numRayGen  = static_cast<uint32_t>(desc.raygens.size());
   uint32_t const numMiss    = static_cast<uint32_t>(desc.misses.size());
   uint32_t const numHit     = static_cast<uint32_t>(desc.anyHits.size()
@@ -175,6 +178,8 @@ void RayTracingFx::buildShaderBindingTable(RayTracingPipelineDescriptor_t const&
   size_t const sizeHit        = numHit * handleSizeAligned;
   size_t const offsetCallable = utils::AlignTo(offsetHit + sizeHit, baseAlignment);
   size_t const sizeCallable   = numCallable * handleSizeAligned;
+  /// --------------------------------------
+  /// --------------------------------------
 
   size_t const sbt_buffersize = offsetCallable + sizeCallable;
 
@@ -182,14 +187,17 @@ void RayTracingFx::buildShaderBindingTable(RayTracingPipelineDescriptor_t const&
     sbt_buffersize,
       VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR
     | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT
-    | VK_BUFFER_USAGE_TRANSFER_DST_BIT
     | VK_BUFFER_USAGE_TRANSFER_SRC_BIT
+    | VK_BUFFER_USAGE_TRANSFER_DST_BIT
     ,
     VMA_MEMORY_USAGE_CPU_TO_GPU
   );
 
   backend::Buffer staging_buffer = allocator_ptr_->create_staging_buffer(sbt_buffersize);
 
+
+  /// --------------------------------------
+  /// --------------------------------------
   // Map staging and fill regions with shader handles
   {
     void* mapped;
@@ -219,6 +227,8 @@ void RayTracingFx::buildShaderBindingTable(RayTracingPipelineDescriptor_t const&
 
     allocator_ptr_->unmap_memory(staging_buffer);
   }
+  /// --------------------------------------
+  /// --------------------------------------
 
   context_ptr_->copy_buffer(
     staging_buffer, sbt_storage_, sbt_buffersize
@@ -241,9 +251,9 @@ void RayTracingFx::buildShaderBindingTable(RayTracingPipelineDescriptor_t const&
     };
   };
 
-  region_.raygen   = getRegion(offsetRayGen, sizeRayGen);
-  region_.miss     = getRegion(offsetMiss, sizeMiss);
-  region_.hit      = getRegion(offsetHit, sizeHit);
+  region_.raygen   = getRegion(  offsetRayGen, sizeRayGen);
+  region_.miss     = getRegion(    offsetMiss, sizeMiss);
+  region_.hit      = getRegion(     offsetHit, sizeHit);
   region_.callable = getRegion(offsetCallable, sizeCallable);
 }
 
