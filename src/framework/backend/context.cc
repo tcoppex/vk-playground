@@ -280,6 +280,9 @@ void Context::update_descriptor_set(
     return;
   }
 
+  // (if one update need many of same extensions it could fails).
+  DescriptorSetWriteEntry::Extension ext{}; //
+
   std::vector<VkWriteDescriptorSet> write_descriptor_sets{};
   write_descriptor_sets.reserve(entries.size());
 
@@ -292,8 +295,6 @@ void Context::update_descriptor_set(
       .dstArrayElement = 0u,
       .descriptorType = entry.type,
     };
-
-    DescriptorSetWriteEntry::Extension ext{};
 
     switch (entry.type) {
       case VK_DESCRIPTOR_TYPE_SAMPLER:
