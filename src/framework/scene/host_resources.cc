@@ -139,7 +139,9 @@ bool HostResources::load_file(std::string_view filename) {
           data,
           materials_indices, material_refs,
           skeletons_indices, skeletons,
-          meshes, transforms, kRestructureAttribs
+          meshes, transforms,
+          kRestructureAttribs,
+          kForce32BitsIndexing
         );
       });
 
@@ -166,7 +168,9 @@ bool HostResources::load_file(std::string_view filename) {
         data,
         materials_indices, material_refs,
         skeletons_indices, skeletons,
-        meshes, transforms, kRestructureAttribs
+        meshes, transforms,
+        kRestructureAttribs,
+        kForce32BitsIndexing
       );
     }
 

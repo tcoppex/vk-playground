@@ -56,7 +56,8 @@ void ExtractMeshes(
   scene::ResourceBuffer<scene::Skeleton>const& skeletons,
   scene::ResourceBuffer<scene::Mesh>& meshes,
   std::vector<mat4f>& transforms,
-  bool const bRestructureAttribs
+  bool const bRestructureAttribs,
+  bool const bForce32bitsIndex
 );
 
 void ExtractAnimations(

@@ -413,7 +413,8 @@ void ExtractMeshes(
   scene::ResourceBuffer<scene::Skeleton>const& skeletons,
   scene::ResourceBuffer<scene::Mesh>& meshes,
   std::vector<mat4f>& meshes_transforms,
-  bool const bRestructureAttribs
+  bool const bRestructureAttribs,
+  bool const bForce32bitsIndex
 ) {
   /**
    * Each Mesh hold its geometry,
@@ -436,16 +437,16 @@ void ExtractMeshes(
   // meshes.reserve(meshNodeIndices.size());
 
   // Parse each mesh nodes (for primitives & skeleton).
-  for (auto i : meshNodeIndices) {
-    cgltf_node const& node = data->nodes[i];
+  for (auto mesh_node_index : meshNodeIndices) {
+    cgltf_node const& node = data->nodes[mesh_node_index];
 
     std::vector<uint32_t> valid_prim_indices{};
     uint32_t total_vertex_count{0u};
 
     // -----------------
     // A. Preprocess primitives.
-    for (cgltf_size j = 0; j < node.mesh->primitives_count; ++j) {
-      cgltf_primitive const& prim = node.mesh->primitives[j];
+    for (cgltf_size prim_index = 0; prim_index < node.mesh->primitives_count; ++prim_index) {
+      cgltf_primitive const& prim = node.mesh->primitives[prim_index];
 
       if (prim.attributes_count <= 0u) {
         LOGW("[GLTF] A primitive was missing attributes.");
@@ -476,7 +477,7 @@ void ExtractMeshes(
       }
 
       total_vertex_count += prim.attributes[0].data->count;
-      valid_prim_indices.push_back(j);
+      valid_prim_indices.push_back(prim_index);
     }
 
     if (valid_prim_indices.empty()) {
@@ -545,9 +546,10 @@ void ExtractMeshes(
           // Indices.
           if (prim.indices) {
             cgltf_accessor const* accessor = prim.indices;
-            if (auto index_format = ConvertIndexFormat(accessor); index_format != Geometry::IndexFormat::kUnknown) {
-              // [the same index format should be shared by the whole mesh.]
-              mesh->set_index_format(index_format);
+
+            if (auto index_format = ConvertIndexFormat(accessor);
+                index_format != Geometry::IndexFormat::kUnknown)
+            {
               primitive.indexCount = accessor->count;
 
               cgltf_buffer_view const* buffer_view = accessor->buffer_view;
@@ -556,10 +558,43 @@ void ExtractMeshes(
               size_t const index_size = cgltf_component_size(accessor->component_type);
               size_t const stride = accessor->stride ? accessor->stride : index_size;
               size_t const total_size = accessor->count * stride;
-              primitive.indexOffset = mesh->add_indices_data(
-                reinterpret_cast<std::byte const*>(buffer->data) + buffer_view->offset + accessor->offset,
-                total_size
-              );
+
+              std::byte const* src = reinterpret_cast<std::byte const*>(buffer->data) +
+                                buffer_view->offset + accessor->offset;
+              std::vector<uint32_t> indices_u32{};
+
+              // [the same index format should be shared by the whole mesh.]
+              if (bForce32bitsIndex && (index_format != Geometry::IndexFormat::U32)) {
+                indices_u32.reserve(accessor->count);
+                for (size_t i = 0; i < accessor->count; ++i) {
+                  uint32_t val = 0;
+                  switch (accessor->component_type)
+                  {
+                    case cgltf_component_type_r_16u:
+                      val = *reinterpret_cast<uint16_t const*>(src + i * stride);
+                    break;
+
+                    case cgltf_component_type_r_8u:
+                      val = *reinterpret_cast<uint8_t const*>(src + i * stride);
+                    break;
+
+                    default:
+                      LOGE("Index 32bit convertion, unknown base format.");
+                    break;
+                  }
+                  indices_u32.push_back(val);
+                }
+                src = reinterpret_cast<std::byte const*>(indices_u32.data());
+
+                mesh->set_index_format(Geometry::IndexFormat::U32);
+                primitive.indexOffset = mesh->add_indices_data(
+                  reinterpret_cast<std::byte const*>(indices_u32.data()),
+                  indices_u32.size() * sizeof(indices_u32[0])
+                );
+              } else {
+                mesh->set_index_format(index_format);
+                primitive.indexOffset = mesh->add_indices_data( src, total_size);
+              }
             } else {
               LOGD("index format unsupported.");
             }

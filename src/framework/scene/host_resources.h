@@ -23,8 +23,14 @@ using ResourceMap = std::unordered_map<std::string, std::unique_ptr<T>>;
 
 struct HostResources {
  public:
-  static bool constexpr kRestructureAttribs{true};
+  // Use Async to extract internal GLTF assets & load images.
   static bool constexpr kUseAsyncLoad{true};
+
+  // Force all loaded meshes to match VertexInternal_t structure.
+  static bool constexpr kRestructureAttribs{true};
+
+  // For consistency and simplicity across shaders, even if 16bit is common.
+  static bool constexpr kForce32BitsIndexing{true};
 
  public:
   HostResources() = default;
