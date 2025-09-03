@@ -4,6 +4,7 @@
 #include "framework/renderer/renderer.h"
 #include "framework/renderer/fx/material/material_fx.h"
 
+#include "framework/renderer/fx/postprocess/ray_tracing/ray_tracing_fx.h" //
 #include "framework/shaders/material/interop.h" //
 
 using namespace scene;
@@ -152,9 +153,13 @@ DescriptorSetWriteEntry GPUResources::descriptor_set_texture_atlas_entry(uint32_
 
 // ----------------------------------------------------------------------------
 
-void GPUResources::update(Camera const& camera, VkExtent2D const& surfaceSize, float elapsedTime) {
+void GPUResources::update(
+  Camera const& camera,
+  VkExtent2D const& surfaceSize,
+  float elapsedTime
+) {
   // Update the shared Frame UBO.
-  FrameData const frame_data{
+  FrameData frame_data{
     .projectionMatrix = camera.proj(),
     .viewMatrix = camera.view(),
     .viewProjMatrix = camera.viewproj(),
@@ -162,9 +167,18 @@ void GPUResources::update(Camera const& camera, VkExtent2D const& surfaceSize, f
     .resolution = vec2(surfaceSize.width, surfaceSize.height),
   };
 
+  if (ray_tracing_fx_) {
+    frame_data.projectionMatrix = linalg::inverse(frame_data.projectionMatrix);
+    frame_data.viewMatrix = camera.world();
+  }
+
   context_ptr_->transfer_host_to_device(
     &frame_data, sizeof(frame_data), frame_ubo_
   );
+
+  if (ray_tracing_fx_) {
+    return;
+  }
 
   /// ---------------------------------------
   ///
@@ -245,6 +259,11 @@ void GPUResources::update(Camera const& camera, VkExtent2D const& surfaceSize, f
 
 void GPUResources::render(RenderPassEncoder const& pass) {
   LOG_CHECK( material_fx_registry_ != nullptr );
+
+  if (ray_tracing_fx_) {
+    return;
+  }
+
   // Render each Fx.
   uint32_t instance_index = 0u;
   for (auto& lookup : lookups_) {
@@ -270,6 +289,14 @@ void GPUResources::render(RenderPassEncoder const& pass) {
       }
     }
   }
+}
+
+// ----------------------------------------------------------------------------
+
+void GPUResources::set_ray_tracing_fx(RayTracingFx const* fx) {
+  ray_tracing_fx_ = fx;
+  ray_tracing_fx_->updateTLAS(rt_scene_->tlas());
+  ray_tracing_fx_->updateDescriptorSetFrameUBO(frame_ubo_);
 }
 
 // ----------------------------------------------------------------------------

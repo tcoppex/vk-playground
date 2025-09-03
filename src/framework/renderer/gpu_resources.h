@@ -10,6 +10,7 @@ class ResourceAllocator;
 class SamplerPool;
 class RenderPassEncoder;
 class Camera;
+class RayTracingFx; //
 
 /* -------------------------------------------------------------------------- */
 
@@ -41,9 +42,10 @@ struct GPUResources : scene::HostResources {
   void render(RenderPassEncoder const& pass);
 
   // -------------------------------
-  RayTracingSceneInterface const* ray_tracing_scene() const {
-    return rt_scene_.get();
-  }
+  // RayTracingSceneInterface const* ray_tracing_scene() const {
+  //   return rt_scene_.get();
+  // }
+  void set_ray_tracing_fx(RayTracingFx const* fx);
   // -------------------------------
 
  private:
@@ -66,6 +68,7 @@ struct GPUResources : scene::HostResources {
 
   // -------------------------------
   std::unique_ptr<RayTracingSceneInterface> rt_scene_{};
+  RayTracingFx const* ray_tracing_fx_{};
   // -------------------------------
 
   using SubMeshBuffer = std::vector<scene::Mesh::SubMesh const*>;
