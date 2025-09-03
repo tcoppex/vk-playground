@@ -2,7 +2,10 @@
 #define VKFRAMEWORK_RENDERER_FX_FX_INTERFACE_H_
 
 #include "framework/core/common.h"
-#include "framework/renderer/renderer.h"
+#include "framework/backend/context.h"
+#include "framework/backend/types.h"
+
+class Renderer;
 class CommandEncoder;
 
 /* -------------------------------------------------------------------------- */
@@ -13,10 +16,7 @@ class FxInterface {
 
   virtual ~FxInterface() {}
 
-  virtual void init(Renderer const& renderer) {
-    context_ptr_ = &renderer.context();
-    renderer_ptr_ = &renderer;
-  }
+  virtual void init(Renderer const& renderer) = 0;
 
   virtual void setup(VkExtent2D const dimension) = 0; //
 
@@ -37,12 +37,8 @@ class FxInterface {
     setBufferInputs({ input });
   }
 
-  virtual void execute(CommandEncoder& cmd) = 0;
+  virtual void execute(CommandEncoder& cmd) const = 0;
   // -----------------
-
- protected:
-  Context const* context_ptr_{};
-  Renderer const* renderer_ptr_{};
 };
 
 /* -------------------------------------------------------------------------- */

@@ -33,7 +33,7 @@ class ComputeFx : public PostGenericFx {
 
   void release() override;
 
-  void execute(CommandEncoder& cmd) override;
+  void execute(CommandEncoder& cmd) const override;
 
   // --- Setters ---
 

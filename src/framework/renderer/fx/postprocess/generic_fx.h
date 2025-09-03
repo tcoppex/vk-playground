@@ -2,6 +2,7 @@
 #define VKFRAMEWORK_RENDERER_FX_POSTPROCESS_GENERIC_FX_H_
 
 #include "framework/renderer/fx/postprocess/fx_interface.h"
+#include "framework/renderer/pipeline.h"
 
 /* -------------------------------------------------------------------------- */
 
@@ -26,13 +27,15 @@ class GenericFx : public virtual FxInterface {
     return {};
   }
 
-  virtual void pushConstant(GenericCommandEncoder const& cmd) {}
+  virtual void pushConstant(GenericCommandEncoder const& cmd) const {} //
 
   virtual void createPipelineLayout();
 
   virtual void createPipeline() = 0;
 
  protected:
+  Context const* context_ptr_{};
+  Renderer const* renderer_ptr_{};
   ResourceAllocator const* allocator_ptr_{};
 
   // ----------------

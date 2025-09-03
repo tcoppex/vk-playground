@@ -3,7 +3,7 @@
 
 /* -------------------------------------------------------------------------- */
 
-void RayTracingFx::updateTLAS(backend::TLAS const& tlas) {
+void RayTracingFx::updateTLAS(backend::TLAS const& tlas) const {
   context_ptr_->update_descriptor_set(descriptor_set_, {
     {
       .binding = 0, //
@@ -11,6 +11,34 @@ void RayTracingFx::updateTLAS(backend::TLAS const& tlas) {
       .accelerationStructures = { tlas.handle },
     },
   });
+}
+
+// ----------------------------------------------------------------------------
+
+void RayTracingFx::execute(CommandEncoder& cmd) const {
+  cmd.pipeline_image_barriers(barriers_.images_start);
+  // cmd.pipeline_image_barriers(barriers_.buffers_start);
+
+  // ---------------------------------------
+  cmd.bind_pipeline(pipeline_);
+  cmd.bind_descriptor_set(descriptor_set_, pipeline_layout_,
+      VK_SHADER_STAGE_RAYGEN_BIT_KHR
+    | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR
+  );
+  pushConstant(cmd);
+
+  vkCmdTraceRaysKHR(
+    cmd.get_handle(),
+    &region_.raygen,
+    &region_.miss,
+    &region_.hit,
+    &region_.callable,
+    dimension_.width, dimension_.height, 1
+  );
+  // ---------------------------------------
+
+  cmd.pipeline_image_barriers(barriers_.images_end);
+  // cmd.pipeline_image_barriers(barriers_.buffers_end);
 }
 
 // ----------------------------------------------------------------------------
@@ -97,35 +125,6 @@ void RayTracingFx::resetMemoryBarriers() {
       barriers_.images_end[i].image   = img;
     }
   }
-
-}
-
-// ----------------------------------------------------------------------------
-
-void RayTracingFx::execute(CommandEncoder& cmd) {
-  cmd.pipeline_image_barriers(barriers_.images_start);
-  // cmd.pipeline_image_barriers(barriers_.buffers_start);
-
-  // ---------------------------------------
-  cmd.bind_pipeline(pipeline_);
-  cmd.bind_descriptor_set(descriptor_set_, pipeline_layout_,
-      VK_SHADER_STAGE_RAYGEN_BIT_KHR
-    | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR
-  );
-  pushConstant(cmd);
-
-  vkCmdTraceRaysKHR(
-    cmd.get_handle(),
-    &region_.raygen,
-    &region_.miss,
-    &region_.hit,
-    &region_.callable,
-    dimension_.width, dimension_.height, 1
-  );
-  // ---------------------------------------
-
-  cmd.pipeline_image_barriers(barriers_.images_end);
-  // cmd.pipeline_image_barriers(barriers_.buffers_end);
 }
 
 // ----------------------------------------------------------------------------

@@ -109,7 +109,7 @@ class SceneFx final : public RenderTargetFx {
     };
   }
 
-  void pushConstant(GenericCommandEncoder const &cmd) final {
+  void pushConstant(GenericCommandEncoder const &cmd) const final {
     cmd.push_constant(push_constant_, pipeline_layout_, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
   }
 
@@ -140,7 +140,7 @@ class SceneFx final : public RenderTargetFx {
     };
   }
 
-  void draw(RenderPassEncoder const& pass) final {
+  void draw(RenderPassEncoder const& pass) const final {
     uint32_t instance_index = 0u;
     for (auto const& mesh : scene_->meshes) {
       pass.set_primitive_topology(mesh->vk_primitive_topology());
@@ -196,7 +196,7 @@ class SceneFx final : public RenderTargetFx {
   }
 
  private:
-  shader_interop::PushConstant push_constant_{};
+  mutable shader_interop::PushConstant push_constant_{};
 
   shader_interop::UniformData host_data_{};
   backend::Buffer uniform_buffer_{};

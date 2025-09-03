@@ -15,11 +15,6 @@
 /* -------------------------------------------------------------------------- */
 
 class BasicRayTracingFx : public RayTracingFx {
- public:
-  virtual ~BasicRayTracingFx() {
-    // release();
-  }
-
  protected:
   backend::ShadersMap createShaderModules() const final {
     auto create_modules{[&](std::vector<std::string_view> const& filenames) {
@@ -93,9 +88,6 @@ class SampleApp final : public Application {
     wm_->setTitle("11 - shining through");
 
     renderer_.set_color_clear_value({ 0.72f, 0.28f, 0.30f, 0.0f });
-    // renderer_.skybox().setup(ASSETS_DIR "textures/"
-    //   "rogland_clear_night_2k.hdr"
-    // );
 
     /* Setup the ArcBall camera. */
     {
@@ -113,18 +105,15 @@ class SampleApp final : public Application {
     }
 
     // -------------------------------
-
     raytracing_.init(renderer_);
-    raytracing_.setup({});
-
-    raytracing_.release();
-
+    raytracing_.setup(renderer_.get_surface_size());
     // -------------------------------
 
     /* Load a glTF Scene. */
     std::string gtlf_filename{ASSETS_DIR "models/"
       // "sponza.glb"
       "DamagedHelmet.glb"
+      // "Duck.glb"
     };
 
     if constexpr(true) {
@@ -137,6 +126,7 @@ class SampleApp final : public Application {
   }
 
   void release() final {
+    raytracing_.release();
     scene_.reset();
   }
 
@@ -146,6 +136,9 @@ class SampleApp final : public Application {
     if (future_scene_.valid()
      && future_scene_.wait_for(0ms) == std::future_status::ready) {
       scene_ = future_scene_.get();
+      // -------------------------------
+      scene_->set_ray_tracing_fx(&raytracing_);
+      // -------------------------------
     }
     if (scene_) {
       scene_->update(camera_, renderer_.get_surface_size(), elapsed_time());
@@ -154,24 +147,21 @@ class SampleApp final : public Application {
 
   void draw() final {
     auto cmd = renderer_.begin_frame();
+
+    if constexpr(true)
     {
-      auto pass = cmd.begin_rendering();
-      {
-        // SKYBOX.
-        if (auto const& skybox = renderer_.skybox(); skybox.is_valid()) {
-          skybox.render(pass, camera_);
-        }
-
-        // SCENE.
-        if (scene_) {
-          scene_->render(pass);
-        }
-      }
-      cmd.end_rendering();
-
-      // UI.
-      cmd.render_ui(renderer_);
+      // RAY TRACER
+      raytracing_.execute(cmd);
+      cmd.blit(raytracing_, renderer_);
     }
+    else
+    {
+      // RASTERIZER
+      auto pass = cmd.begin_rendering();
+      if (scene_) scene_->render(pass);
+      cmd.end_rendering();
+    }
+
     renderer_.end_frame();
   }
 

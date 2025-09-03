@@ -4,6 +4,8 @@
 // #include "framework/renderer/fx/postprocess/generic_fx.h"
 #include "framework/renderer/fx/postprocess/post_generic_fx.h"
 
+#include "framework/renderer/renderer.h" //
+
 namespace backend {
 struct TLAS;
 }
@@ -35,12 +37,19 @@ class RayTracingFx : public virtual PostGenericFx {
     });
   }
 
-  virtual void updateTLAS(backend::TLAS const& tlas);
+  virtual void updateTLAS(backend::TLAS const& tlas) const;
 
-  void execute(CommandEncoder& cmd) final;
+  virtual void updateDescriptorSetFrameUBO(backend::Buffer const& buf) const {
+    context_ptr_->update_descriptor_set(descriptor_set_, {{
+      .binding = 2,
+      .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+      .buffers = { { buf.buffer } },
+    }});
+  }
+
+  void execute(CommandEncoder& cmd) const final;
 
  public:
-  // ----------------------
   bool resize(VkExtent2D const dimension) override;
 
   backend::Image getImageOutput(uint32_t index = 0u) const final {
@@ -58,7 +67,6 @@ class RayTracingFx : public virtual PostGenericFx {
   std::vector<backend::Buffer> const& getBufferOutputs() const final {
     return out_buffers_;
   }
-  // ----------------------
 
   void setImageInputs(std::vector<backend::Image> const& inputs) override {} //
 
@@ -67,13 +75,6 @@ class RayTracingFx : public virtual PostGenericFx {
  protected:
   virtual void resetMemoryBarriers();
 
-  virtual backend::ShadersMap createShaderModules() const = 0;
-
-  virtual RayTracingPipelineDescriptor_t pipelineDescriptor(backend::ShadersMap const& shaders_map) = 0;
-
-  virtual void buildShaderBindingTable(RayTracingPipelineDescriptor_t const& desc);
-
- protected:
   DescriptorSetLayoutParamsBuffer getDescriptorSetLayoutParams() const override {
     return {
       {
@@ -91,12 +92,26 @@ class RayTracingFx : public virtual PostGenericFx {
         .stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR,
         .bindingFlags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT,
       },
+      {
+        .binding = 2,
+        .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+        .descriptorCount = 1u,
+        .stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR
+                    | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR,
+        .bindingFlags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT,
+      },
     };
   }
 
-  void createPipeline();
+  virtual backend::ShadersMap createShaderModules() const = 0;
 
-  void releaseOutputImagesAndBuffers() {
+  virtual RayTracingPipelineDescriptor_t pipelineDescriptor(backend::ShadersMap const& shaders_map) = 0;
+
+  virtual void createPipeline();
+
+  virtual void buildShaderBindingTable(RayTracingPipelineDescriptor_t const& desc);
+
+  virtual void releaseOutputImagesAndBuffers() {
     for (auto &image : out_images_) {
       allocator_ptr_->destroy_image(&image);
     }
@@ -109,10 +124,6 @@ class RayTracingFx : public virtual PostGenericFx {
   }
 
  protected:
-  backend::Buffer sbt_storage_{};
-  RayTracingAddressRegion region_{};
-
- protected:
   VkExtent2D dimension_{};
   std::vector<backend::Image> out_images_{};
   std::vector<backend::Buffer> out_buffers_{};
@@ -121,6 +132,9 @@ class RayTracingFx : public virtual PostGenericFx {
     std::vector<VkImageMemoryBarrier2> images_start{};
     std::vector<VkImageMemoryBarrier2> images_end{};
   } barriers_;
+
+  backend::Buffer sbt_storage_{};
+  RayTracingAddressRegion region_{};
 };
 
 /* -------------------------------------------------------------------------- */

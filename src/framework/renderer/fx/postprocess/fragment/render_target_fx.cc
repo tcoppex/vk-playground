@@ -1,5 +1,6 @@
 #include "framework/renderer/fx/postprocess/fragment/render_target_fx.h"
 #include "framework/backend/command_encoder.h"
+#include "framework/renderer/renderer.h"
 
 /* -------------------------------------------------------------------------- */
 
@@ -26,7 +27,7 @@ void RenderTargetFx::release() {
 
 // ----------------------------------------------------------------------------
 
-void RenderTargetFx::execute(CommandEncoder& cmd) {
+void RenderTargetFx::execute(CommandEncoder& cmd) const {
   if (!isEnabled()) {
     return;
   }
@@ -54,7 +55,35 @@ std::vector<backend::Image> const& RenderTargetFx::getImageOutputs() const {
   return render_target_->get_color_attachments();
 }
 
-/* -------------------------------------------------------------------------- */
+// ----------------------------------------------------------------------------
+
+GraphicsPipelineDescriptor_t RenderTargetFx::getGraphicsPipelineDescriptor(
+  std::vector<backend::ShaderModule> const& shaders
+) const {
+   return {
+    .vertex = {
+      .module = shaders[0u].module,
+    },
+    .fragment = {
+      .module = shaders[1u].module,
+      .targets = {
+        { .format = render_target_->get_color_attachment().format },
+      }
+    },
+    .primitive = {
+      .topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+      .cullMode = VK_CULL_MODE_BACK_BIT,
+    },
+  };
+}
+
+// ----------------------------------------------------------------------------
+
+VkExtent2D RenderTargetFx::getRenderSurfaceSize() const {
+  return render_target_->get_surface_size();
+}
+
+// ----------------------------------------------------------------------------
 
 void RenderTargetFx::createRenderTarget(VkExtent2D const dimension) {
   VkClearColorValue const debug_clear_value{ { 0.99f, 0.12f, 0.89f, 0.0f } }; //

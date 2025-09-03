@@ -49,13 +49,7 @@ class PostFxPipeline : public PostFxInterface {
   virtual void setupDependencies();
 
  public:
-  void init(Renderer const& renderer) override {
-    LOG_CHECK(!effects_.empty());
-    PostFxInterface::init(renderer);
-    for (auto fx : effects_) {
-      fx->init(renderer);
-    }
-  }
+  void init(Renderer const& renderer) override;
 
   void setup(VkExtent2D const dimension) override {
     for (auto fx : effects_) {
@@ -79,7 +73,7 @@ class PostFxPipeline : public PostFxInterface {
     reset();
   }
 
-  void execute(CommandEncoder& cmd) override {
+  void execute(CommandEncoder& cmd) const override {
     for (auto fx : effects_) {
       fx->execute(cmd);
     }
@@ -138,6 +132,8 @@ class PostFxPipeline : public PostFxInterface {
   }
 
  protected:
+  Context const* context_ptr_{};
+  Renderer const* renderer_ptr_{};
   std::vector<std::shared_ptr<PostFxInterface>> effects_{};
   std::vector<PostFxDependencies> dependencies_{};
 };
@@ -199,7 +195,7 @@ class PassDataNoFx final : public PostFxInterface {
  public:
   void setup(VkExtent2D const dimension) final {}
   bool resize(VkExtent2D const dimension) final { return false; }
-  void execute(CommandEncoder& cmd) final {}
+  void execute(CommandEncoder& cmd) const final {}
   void setupUI() final {}
 
   void release() final {

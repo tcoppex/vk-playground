@@ -414,7 +414,11 @@ void RenderPassEncoder::set_viewport_scissor(VkRect2D const rect, bool flip_y) c
 
 // ----------------------------------------------------------------------------
 
-void RenderPassEncoder::draw(DrawDescriptor const& desc, backend::Buffer const& vertex_buffer, backend::Buffer const& index_buffer) const {
+void RenderPassEncoder::draw(
+  DrawDescriptor const& desc,
+  backend::Buffer const& vertex_buffer,
+  backend::Buffer const& index_buffer
+) const {
   // Vertex Input.
   {
     auto const& vi{desc.vertexInput};

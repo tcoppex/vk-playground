@@ -1,12 +1,14 @@
 #include "framework/renderer/fx/postprocess/generic_fx.h"
 #include "framework/backend/context.h"
+#include "framework/renderer/renderer.h"
 // #include <filesystem> 
 
 /* -------------------------------------------------------------------------- */
 
 void GenericFx::init(Renderer const& renderer) {
-  FxInterface::init(renderer);
-  allocator_ptr_ = renderer.context().allocator_ptr();
+  context_ptr_ = &renderer.context();
+  renderer_ptr_ = &renderer;
+  allocator_ptr_ = context_ptr_->allocator_ptr();
 }
 
 void GenericFx::setup(VkExtent2D const dimension) {

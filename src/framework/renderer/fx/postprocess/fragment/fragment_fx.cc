@@ -1,6 +1,5 @@
 #include "framework/renderer/fx/postprocess/fragment/fragment_fx.h"
-
-#include "framework/backend/context.h"
+#include "framework/renderer/renderer.h"
 #include "framework/backend/command_encoder.h"
 
 /* -------------------------------------------------------------------------- */
@@ -39,8 +38,7 @@ void FragmentFx::setBufferInputs(std::vector<backend::Buffer> const& inputs) {
 
 // ----------------------------------------------------------------------------
 
-void FragmentFx::execute(CommandEncoder& cmd) {
-  // -----------------------------
+void FragmentFx::execute(CommandEncoder& cmd) const {
   auto pass = cmd.begin_rendering(); //
   {
     prepareDrawState(pass);
@@ -48,7 +46,6 @@ void FragmentFx::execute(CommandEncoder& cmd) {
     draw(pass);
   }
   cmd.end_rendering();
-  // -----------------------------
 }
 
 // ----------------------------------------------------------------------------
@@ -60,6 +57,12 @@ void FragmentFx::createPipeline() {
   })};
   pipeline_ = renderer_ptr_->create_graphics_pipeline(pipeline_layout_, getGraphicsPipelineDescriptor(shaders));
   context_ptr_->release_shader_modules(shaders);
+}
+
+// ----------------------------------------------------------------------------
+
+VkExtent2D FragmentFx::getRenderSurfaceSize() const {
+  return renderer_ptr_->get_surface_size();
 }
 
 /* -------------------------------------------------------------------------- */

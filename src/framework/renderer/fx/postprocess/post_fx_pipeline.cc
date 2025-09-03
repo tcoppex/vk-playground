@@ -1,7 +1,18 @@
 #include "framework/renderer/fx/postprocess/post_fx_pipeline.h"
 #include "framework/backend/context.h"
+#include "framework/renderer/renderer.h"
 
 /* -------------------------------------------------------------------------- */
+
+void PostFxPipeline::init(Renderer const& renderer) {
+  context_ptr_ = &renderer.context();
+  renderer_ptr_ = &renderer;
+
+  LOG_CHECK(!effects_.empty());
+  for (auto fx : effects_) {
+    fx->init(renderer);
+  }
+}
 
 void PostFxPipeline::setupDependencies() {
   assert(context_ptr_ != nullptr);
