@@ -10,6 +10,15 @@ const uint kAttribLocation_Tangent  = 3;
 
 // ----------------------------------------------------------------------------
 
+struct Vertex {
+  vec3 position; float _pad0[1];
+  vec3 normal;   float _pad1[1];
+  vec4 tangent;
+  vec2 texcoord; float _pad2[2];
+};
+
+// ----------------------------------------------------------------------------
+
 struct FrameData {
   mat4 projectionMatrix;
   mat4 viewMatrix;

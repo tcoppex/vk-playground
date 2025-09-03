@@ -2,6 +2,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 
 #include "framework/scene/private/gltf_loader.h"
+#include "framework/scene/vertex_internal.h"
 
 #if defined(FRAMEWORK_HAS_DRACO) && VKPLAYGROUND_HAS_DRACO
 #include <draco/compression/decode.h>
@@ -37,68 +38,6 @@ scene::MaterialStates GetMaterialStates(cgltf_material const& mat) {
   };
   return states;
 }
-
-// ----------------------------------------------------------------------------
-
-//
-// Internal interleaved vertex structure used when bRestructureAttribs is set to true.
-// (Used for main topological attributes, others attributes should reside on different buffers,
-//    eg. extra uvs, colors, skin weights, morph targets, ...)
-//
-struct VertexInternal_t {
-  vec3 position;
-  vec3 normal;
-  vec4 tangent;
-  vec2 texcoord;
-
-  static
-  Geometry::AttributeInfoMap GetAttributeInfoMap() {
-    return {
-      {
-        Geometry::AttributeType::Position,
-        {
-          .format = Geometry::AttributeFormat::RGB_F32,
-          .offset = offsetof(VertexInternal_t, position),
-          .stride = sizeof(VertexInternal_t),
-        }
-      },
-      {
-        Geometry::AttributeType::Normal,
-        {
-          .format = Geometry::AttributeFormat::RGB_F32,
-          .offset = offsetof(VertexInternal_t, normal),
-          .stride = sizeof(VertexInternal_t),
-        }
-      },
-      {
-        Geometry::AttributeType::Tangent,
-        {
-          .format = Geometry::AttributeFormat::RGBA_F32,
-          .offset = offsetof(VertexInternal_t, tangent),
-          .stride = sizeof(VertexInternal_t),
-        }
-      },
-      {
-        Geometry::AttributeType::Texcoord,
-        {
-          .format = Geometry::AttributeFormat::RG_F32,
-          .offset = offsetof(VertexInternal_t, texcoord),
-          .stride = sizeof(VertexInternal_t),
-        }
-      },
-    };
-  }
-
-  static
-  Geometry::AttributeOffsetMap GetAttributeOffsetMap(uint64_t buffer_offset) {
-    return {
-      { Geometry::AttributeType::Position,  buffer_offset },
-      { Geometry::AttributeType::Normal,    buffer_offset },
-      { Geometry::AttributeType::Tangent,   buffer_offset },
-      { Geometry::AttributeType::Texcoord,  buffer_offset },
-    };
-  }
-};
 
 // ----------------------------------------------------------------------------
 
