@@ -45,7 +45,6 @@ class BasicRayTracingFx : public RayTracingFx {
       for (auto const& [stage, shaders] : shaders_map) {
         for (auto const& shader : shaders) {
           if (shader.basename == shader_name) {
-            // LOGI("%s %d", shader_name.data(), index);
             return index;
           }
           ++index;
@@ -53,15 +52,23 @@ class BasicRayTracingFx : public RayTracingFx {
       }
       return kInvalidIndexU32;
     }};
+
     return {
       .raygens      = shaders_map.at(backend::ShaderStage::Raygen),
       .closestHits  = shaders_map.at(backend::ShaderStage::ClosestHit),
       .misses       = shaders_map.at(backend::ShaderStage::Miss),
+
+      // ~ ORDER MATTERS ... ~
       .shaderGroups = {
         // Raygen Group (unique)
         {
           .type               = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR,
           .generalShader      = shader_index("raygen.rgen"),
+        },
+        // Miss Group (any numbers)
+        {
+          .type               = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR,
+          .generalShader      = shader_index("miss.rmiss"),
         },
         // Hit Group (1 per material type)
         {
@@ -69,11 +76,6 @@ class BasicRayTracingFx : public RayTracingFx {
           .closestHitShader   = shader_index("closesthit.rchit"),
           .anyHitShader       = VK_SHADER_UNUSED_KHR,
           .intersectionShader = VK_SHADER_UNUSED_KHR,
-        },
-        // Miss Group (any numbers)
-        {
-          .type               = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR,
-          .generalShader      = shader_index("miss.rmiss"),
         },
       }
     };

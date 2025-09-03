@@ -37,7 +37,7 @@ class RayTracingFx : public virtual PostGenericFx {
     
     context_ptr_->update_descriptor_set(descriptor_set_, {
       {
-        .binding = 1, //
+        .binding = kDescriptorSetBinding_ImageOutput,
         .type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
         .images = {
           {
@@ -52,24 +52,19 @@ class RayTracingFx : public virtual PostGenericFx {
   virtual void updateDescriptorSet(DescriptorSetUpdateParams const& params) const {
     context_ptr_->update_descriptor_set(descriptor_set_, {
       {
-        .binding = 0, //
+        .binding = kDescriptorSetBinding_TLAS,
         .type = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR,
         .accelerationStructures = { params.tlasHandle },
       },
       {
-        .binding = 2,
+        .binding = kDescriptorSetBinding_InstanceSBO,
+        .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+        .buffers = { { params.instancesBuffer } },
+      },
+      {
+        .binding = kDescriptorSetBinding_FrameUBO,
         .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
         .buffers = { { params.frameBuffer } },
-      },
-      {
-        .binding = 3,
-        .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-        .buffers = { { params.vertexBuffer } },
-      },
-      {
-        .binding = 4,
-        .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-        .buffers = { { params.indexBuffer } },
       },
     });
   }
@@ -105,15 +100,7 @@ class RayTracingFx : public virtual PostGenericFx {
   DescriptorSetLayoutParamsBuffer getDescriptorSetLayoutParams() const override {
     return {
       {
-        .binding = 0, //
-        .descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR,
-        .descriptorCount = 1u,
-        .stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR
-                    | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR,
-        .bindingFlags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT,
-      },
-      {
-        .binding = 1, //
+        .binding = kDescriptorSetBinding_ImageOutput, //
         .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
         .descriptorCount = 1,
         .stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR,
@@ -121,25 +108,24 @@ class RayTracingFx : public virtual PostGenericFx {
       },
       // ----------------------------------------------------
       {
-        .binding = 2,
-        .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+        .binding = kDescriptorSetBinding_TLAS, //
+        .descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR,
         .descriptorCount = 1u,
         .stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR
                     | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR,
+        .bindingFlags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT,
+      },
+      {
+        .binding = kDescriptorSetBinding_InstanceSBO,
+        .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+        .descriptorCount = 1u,
+        .stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR,
         .bindingFlags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT,
       },
       // ----------------------------------------------------
       {
-        .binding = 3,
-        .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-        .descriptorCount = 1u,
-        .stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR
-                    | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR,
-        .bindingFlags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT,
-      },
-      {
-        .binding = 4,
-        .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+        .binding = kDescriptorSetBinding_FrameUBO,
+        .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
         .descriptorCount = 1u,
         .stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR
                     | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR,

@@ -62,7 +62,6 @@ bool RayTracingFx::resize(VkExtent2D const dimension) {
   return true;
 }
 
-
 // ----------------------------------------------------------------------------
 
 void RayTracingFx::resetMemoryBarriers() {
@@ -172,10 +171,13 @@ void RayTracingFx::buildShaderBindingTable(RayTracingPipelineDescriptor_t const&
 
   size_t const offsetRayGen   = 0;
   size_t const sizeRayGen     = numRayGen * handleSizeAligned;
+
   size_t const offsetMiss     = utils::AlignTo(offsetRayGen + sizeRayGen, baseAlignment);
   size_t const sizeMiss       = numMiss * handleSizeAligned;
+
   size_t const offsetHit      = utils::AlignTo(offsetMiss + sizeMiss, baseAlignment);
   size_t const sizeHit        = numHit * handleSizeAligned;
+
   size_t const offsetCallable = utils::AlignTo(offsetHit + sizeHit, baseAlignment);
   size_t const sizeCallable   = numCallable * handleSizeAligned;
   /// --------------------------------------
@@ -195,7 +197,6 @@ void RayTracingFx::buildShaderBindingTable(RayTracingPipelineDescriptor_t const&
 
   backend::Buffer staging_buffer = allocator_ptr_->create_staging_buffer(sbt_buffersize);
 
-
   /// --------------------------------------
   /// --------------------------------------
   // Map staging and fill regions with shader handles
@@ -207,9 +208,14 @@ void RayTracingFx::buildShaderBindingTable(RayTracingPipelineDescriptor_t const&
 
     auto copyHandles = [&](uint32_t firstGroup, uint32_t count, size_t dstOffset) {
       for (uint32_t i = 0; i < count; i++) {
-        std::byte* src = shader_handles.data() + (firstGroup + i) * handleSize;
         std::byte* dst = reinterpret_cast<std::byte*>(pData + dstOffset + i * handleSizeAligned);
+
+        // 1. Copy shader identifier.
+        std::byte* src = shader_handles.data() + (firstGroup + i) * handleSize;
         std::memcpy(dst, src, handleSize);
+
+        // 2. Copy custom data ?
+        // std::memcpy(dst + handleSizeAligned, &record_data[i], sizeof(record_data[i]));
       }
     };
 
@@ -256,6 +262,5 @@ void RayTracingFx::buildShaderBindingTable(RayTracingPipelineDescriptor_t const&
   region_.hit      = getRegion(     offsetHit, sizeHit);
   region_.callable = getRegion(offsetCallable, sizeCallable);
 }
-
 
 /* -------------------------------------------------------------------------- */
