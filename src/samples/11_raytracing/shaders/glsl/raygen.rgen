@@ -1,30 +1,79 @@
 #version 460
 #extension GL_EXT_ray_tracing : require
+#extension GL_EXT_scalar_block_layout : require
 
-// COMPILE with glslc --target-spv=spv1.4 test.rgen 
+// ----------------------------------------------------------------------------
 
-// layout(set = 0, binding = 0, rgba8) uniform image2D imageOutput;
-// layout(set = 0, binding = 1) uniform accelerationStructureEXT topLevelAS;
+#include <material/interop.h>
 
-layout(location = 0) rayPayloadEXT vec4 payload;
+// ----------------------------------------------------------------------------
+
+layout(set = 0, binding = 0) uniform accelerationStructureEXT topLevelAS;
+layout(set = 0, binding = 1, rgba8) uniform image2D imageOutput;
+
+layout(set = 0, binding = 2, scalar) uniform FrameUBO_ {
+  FrameData uFrame;
+};
+
+// ----------------------------------------------------------------------------
+
+struct HitPayload_t {
+  vec3 origin;
+  vec3 radiance;
+  vec3 direction;
+  int done;
+};
+
+layout(location = 0) rayPayloadEXT HitPayload_t payload;
 
 void main() {
-  const vec2 pixelCenter = vec2(gl_LaunchIDEXT.xy) + vec2(0.5);
-  const vec2 uv = pixelCenter / vec2(gl_LaunchSizeEXT.xy);
+  // Normalized device coordinates in [-1, 1]
+  vec2 pixelCenter  = vec2(gl_LaunchIDEXT.xy) + vec2(0.5);
+  vec2 uv           = pixelCenter / vec2(gl_LaunchSizeEXT.xy);
+  vec2 ndc          = uv * 2.0 - 1.0;
 
-  payload = vec4(uv, 0.0, 1.0);
+  // (flip Y to be consistent with the rasterizer flip..)
+  ndc.y = -ndc.y;
 
-  // traceRayEXT(
-  //   topLevelAS,
-  //   gl_RayFlagsOpaqueEXT,
-  //   0xFF,
-  //   0, 0, 0,
-  //   vec3(0.0, 0.0, -1.0),
-  //   0.0,
-  //   vec3(0.0, 0.0, 1.0),
-  //   10000.0,
-  //   0
-  // );
+  // We use the same UBO as for the rasterization, but with invert
+  // view and proj matrices (names don't changes).
+  const mat4 viewInverse = uFrame.viewMatrix;
+  const mat4 projInverse = uFrame.projectionMatrix;
 
-  // imageStore(imageOutput, ivec2(gl_LaunchIDEXT.xy), payload);
+  vec4 origin = viewInverse * vec4(0, 0, 0, 1);
+  vec4 target = projInverse * vec4(ndc, 1, 1);
+  vec4 direction = viewInverse * normalize(vec4(target.xyz, 0));
+
+  float tmin = 1e-3;
+  float tmax = 1e32;
+
+  payload.origin = origin.xyz;
+  payload.direction = direction.xyz;
+  payload.radiance = vec3(0);
+  payload.done = 0;
+
+  vec3 hitValue = vec3(0);
+
+  for (int depth=0; depth<64; ++depth) {
+    traceRayEXT(
+      topLevelAS,
+      gl_RayFlagsOpaqueEXT,
+      0xff,
+      0, 0, 0,
+      payload.origin, tmin,
+      payload.direction, tmax,
+      0
+    );
+    hitValue += payload.radiance;
+
+    if (payload.done == 1) {
+      break;
+    }
+  }
+
+  vec4 finalColor = vec4(hitValue, 1.0);
+
+  imageStore(imageOutput, ivec2(gl_LaunchIDEXT.xy), finalColor);
 }
+
+// ----------------------------------------------------------------------------
