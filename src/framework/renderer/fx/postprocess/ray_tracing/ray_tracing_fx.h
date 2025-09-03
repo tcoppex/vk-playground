@@ -14,6 +14,14 @@ struct TLAS;
 
 class RayTracingFx : public virtual PostGenericFx {
  public:
+  struct DescriptorSetUpdateParams {
+    VkAccelerationStructureKHR tlasHandle{};
+    VkBuffer frameBuffer{};
+    VkBuffer vertexBuffer{};
+    VkBuffer indexBuffer{};
+  };
+
+ public:
   virtual void release() {
     allocator_ptr_->destroy_buffer(sbt_storage_);
     releaseOutputImagesAndBuffers();
@@ -37,14 +45,29 @@ class RayTracingFx : public virtual PostGenericFx {
     });
   }
 
-  virtual void updateTLAS(backend::TLAS const& tlas) const;
-
-  virtual void updateDescriptorSetFrameUBO(backend::Buffer const& buf) const {
-    context_ptr_->update_descriptor_set(descriptor_set_, {{
-      .binding = 2,
-      .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-      .buffers = { { buf.buffer } },
-    }});
+  virtual void updateDescriptorSet(DescriptorSetUpdateParams const& params) const {
+    context_ptr_->update_descriptor_set(descriptor_set_, {
+      {
+        .binding = 0, //
+        .type = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR,
+        .accelerationStructures = { params.tlasHandle },
+      },
+      {
+        .binding = 2,
+        .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+        .buffers = { { params.frameBuffer } },
+      },
+      {
+        .binding = 3,
+        .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+        .buffers = { { params.vertexBuffer } },
+      },
+      {
+        .binding = 4,
+        .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+        .buffers = { { params.indexBuffer } },
+      },
+    });
   }
 
   void execute(CommandEncoder& cmd) const final;
@@ -92,9 +115,27 @@ class RayTracingFx : public virtual PostGenericFx {
         .stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR,
         .bindingFlags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT,
       },
+      // ----------------------------------------------------
       {
         .binding = 2,
         .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+        .descriptorCount = 1u,
+        .stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR
+                    | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR,
+        .bindingFlags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT,
+      },
+      // ----------------------------------------------------
+      {
+        .binding = 3,
+        .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+        .descriptorCount = 1u,
+        .stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR
+                    | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR,
+        .bindingFlags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT,
+      },
+      {
+        .binding = 4,
+        .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
         .descriptorCount = 1u,
         .stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR
                     | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR,

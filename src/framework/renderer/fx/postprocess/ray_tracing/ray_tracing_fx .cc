@@ -3,18 +3,6 @@
 
 /* -------------------------------------------------------------------------- */
 
-void RayTracingFx::updateTLAS(backend::TLAS const& tlas) const {
-  context_ptr_->update_descriptor_set(descriptor_set_, {
-    {
-      .binding = 0, //
-      .type = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR,
-      .accelerationStructures = { tlas.handle },
-    },
-  });
-}
-
-// ----------------------------------------------------------------------------
-
 void RayTracingFx::execute(CommandEncoder& cmd) const {
   cmd.pipeline_image_barriers(barriers_.images_start);
   // cmd.pipeline_image_barriers(barriers_.buffers_start);

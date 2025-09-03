@@ -295,8 +295,13 @@ void GPUResources::render(RenderPassEncoder const& pass) {
 
 void GPUResources::set_ray_tracing_fx(RayTracingFx const* fx) {
   ray_tracing_fx_ = fx;
-  ray_tracing_fx_->updateTLAS(rt_scene_->tlas());
-  ray_tracing_fx_->updateDescriptorSetFrameUBO(frame_ubo_);
+
+  ray_tracing_fx_->updateDescriptorSet({
+    .tlasHandle = rt_scene_->tlas().handle,
+    .frameBuffer = frame_ubo_.buffer,
+    .vertexBuffer = vertex_buffer.buffer,
+    .indexBuffer = index_buffer.buffer,
+  });
 }
 
 // ----------------------------------------------------------------------------
