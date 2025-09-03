@@ -101,16 +101,16 @@ struct ShaderModule {
 };
 
 enum class ShaderStage {
-  Vertex        = VK_SHADER_STAGE_VERTEX_BIT,
-  Fragment      = VK_SHADER_STAGE_FRAGMENT_BIT,
-  Compute       = VK_SHADER_STAGE_COMPUTE_BIT,
+  Vertex        ,
+  Fragment      ,
+  Compute       ,
   // ---------------------------------------
-  Raygen        = VK_SHADER_STAGE_RAYGEN_BIT_KHR,
-  AnyHit        = VK_SHADER_STAGE_ANY_HIT_BIT_KHR,
-  ClosestHit    = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR,
-  Miss          = VK_SHADER_STAGE_MISS_BIT_KHR,
-  Intersection  = VK_SHADER_STAGE_INTERSECTION_BIT_KHR,
-  Callable      = VK_SHADER_STAGE_CALLABLE_BIT_KHR,
+  Raygen        ,
+  AnyHit        ,
+  ClosestHit    ,
+  Miss          ,
+  Intersection  ,
+  Callable      ,
   // ---------------------------------------
   kCount,
 };
