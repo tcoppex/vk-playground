@@ -54,7 +54,7 @@ void main() {
   ObjBuffers_t obj = ObjBuffers.addr[nonuniformEXT(gl_InstanceCustomIndexEXT)];
 
   Vertices vertices = Vertices(obj.vertexAddr);
-  Indices indices = Indices(obj.indexAddr);
+  Indices indices   = Indices(obj.indexAddr);
 
   vec3 color;
 

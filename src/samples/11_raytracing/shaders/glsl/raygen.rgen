@@ -48,7 +48,6 @@ void main() {
   vec4 origin = viewInverse * vec4(0, 0, 0, 1);
   vec4 target = projInverse * vec4(ndc, 1, 1);
   vec4 direction = viewInverse * normalize(vec4(target.xyz, 0));
-
   float tmin = 1e-3;
   float tmax = 1e32;
 

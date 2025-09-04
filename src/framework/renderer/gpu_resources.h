@@ -42,9 +42,6 @@ struct GPUResources : scene::HostResources {
   void render(RenderPassEncoder const& pass);
 
   // -------------------------------
-  // RayTracingSceneInterface const* ray_tracing_scene() const {
-  //   return rt_scene_.get();
-  // }
   void set_ray_tracing_fx(RayTracingFx const* fx);
   // -------------------------------
 
