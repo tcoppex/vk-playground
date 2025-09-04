@@ -15,7 +15,34 @@ void GenericCommandEncoder::bind_descriptor_set(VkDescriptorSet const descriptor
     .pDescriptorSets = &descriptor_set,
   };
   // (requires VK_KHR_maintenance6 or VK_VERSION_1_4)
+  LOG_CHECK(vkCmdBindDescriptorSets2KHR != nullptr);
   vkCmdBindDescriptorSets2KHR(command_buffer_, &bind_desc_sets_info);
+}
+
+// ----------------------------------------------------------------------------
+
+void GenericCommandEncoder::push_descriptor_set(
+  backend::PipelineInterface const& pipeline,
+  uint32_t set,
+  std::vector<DescriptorSetWriteEntry> const& entries
+) const {
+  DescriptorSetWriteEntry::Result out{};
+  vkutils::TransformDescriptorSetWriteEntries(
+    VK_NULL_HANDLE,
+    entries,
+    out
+  );
+
+  // (requires VK_KHR_get_physical_device_properties2 or VK_VERSION_1_4)
+  LOG_CHECK(vkCmdPushDescriptorSetKHR != nullptr);
+  vkCmdPushDescriptorSetKHR(
+    command_buffer_,
+    pipeline.get_bind_point(),
+    pipeline.get_layout(),
+    set,
+    static_cast<uint32_t>(out.write_descriptor_sets.size()),
+    out.write_descriptor_sets.data()
+  );
 }
 
 // ----------------------------------------------------------------------------

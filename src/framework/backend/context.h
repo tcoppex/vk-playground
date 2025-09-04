@@ -189,11 +189,13 @@ class Context {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME,
     VK_KHR_DEPTH_STENCIL_RESOLVE_EXTENSION_NAME,
     VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME,
+    VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME,
 
+    // -------------------------------
     VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
     VK_KHR_SPIRV_1_4_EXTENSION_NAME,
     VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME,
-
+    // -------------------------------
   };
 
   struct {
@@ -214,9 +216,11 @@ class Context {
     VkPhysicalDeviceVertexInputDynamicStateFeaturesEXT vertex_input_dynamic_state{};
     VkPhysicalDeviceImageViewMinLodFeaturesEXT image_view_min_lod{};
 
+    // -------------------------------
     VkPhysicalDeviceAccelerationStructureFeaturesKHR acceleration_structure{};
     VkPhysicalDeviceRayTracingPipelineFeaturesKHR ray_tracing_pipeline{};
     // VkPhysicalDeviceRayQueryFeaturesKHR ray_query{};
+    // -------------------------------
   } feature_;
 
   VkInstance instance_{};
