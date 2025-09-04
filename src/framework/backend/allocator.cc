@@ -6,6 +6,7 @@
     fprintf(stderr, "\n");                      \
   }
 #include "framework/backend/allocator.h"
+#include "framework/backend/vk_utils.h"
 #include "framework/core/utils.h"
 
 /* -------------------------------------------------------------------------- */

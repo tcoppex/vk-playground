@@ -3,8 +3,8 @@
 
 /* -------------------------------------------------------------------------- */
 
+#include "framework/core/common.h"
 #include <map>
-#include "framework/backend/vk_utils.h"
 
 #define VMA_DYNAMIC_VULKAN_FUNCTIONS 1
 
