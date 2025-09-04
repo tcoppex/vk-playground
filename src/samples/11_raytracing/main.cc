@@ -54,29 +54,33 @@ class BasicRayTracingFx : public RayTracingFx {
     }};
 
     return {
-      .raygens      = shaders_map.at(backend::ShaderStage::Raygen),
-      .closestHits  = shaders_map.at(backend::ShaderStage::ClosestHit),
-      .misses       = shaders_map.at(backend::ShaderStage::Miss),
+      .shaders = {
+        .raygens      = shaders_map.at(backend::ShaderStage::Raygen),
+        .closestHits  = shaders_map.at(backend::ShaderStage::ClosestHit),
+        .misses       = shaders_map.at(backend::ShaderStage::Miss),
+      },
 
       // ~ ORDER MATTERS ... ~
       .shaderGroups = {
-        // Raygen Group (unique)
-        {
-          .type               = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR,
-          .generalShader      = shader_index("raygen.rgen"),
-        },
-        // Miss Group (any numbers)
-        {
-          .type               = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR,
-          .generalShader      = shader_index("miss.rmiss"),
-        },
-        // Hit Group (1 per material type)
-        {
+        // Raygen Groups
+        .raygens = {{
+          .type          = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR,
+          .generalShader = shader_index("raygen.rgen"),
+        }},
+
+        // Miss Groups
+        .misses = {{
+          .type           = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR,
+          .generalShader  = shader_index("miss.rmiss"),
+        }},
+
+        // Hit Groups
+        .hits = {{
           .type               = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR,
           .closestHitShader   = shader_index("closesthit.rchit"),
           .anyHitShader       = VK_SHADER_UNUSED_KHR,
-          .intersectionShader = VK_SHADER_UNUSED_KHR,
-        },
+          .intersectionShader = VK_SHADER_UNUSED_KHR, // only on PROCEDURAL type
+        }},
       }
     };
   }

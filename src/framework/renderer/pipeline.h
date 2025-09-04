@@ -2,7 +2,6 @@
 #define VKFRAMEWORK_RENDERER_PIPELINE_H_
 
 #include "framework/backend/types.h"
-
 class Renderer;
 
 /* -------------------------------------------------------------------------- */
@@ -185,14 +184,21 @@ struct RayTracingPipelineDescriptor_t {
   };
   using ShaderGroups = std::vector<ShaderGroup>;
 
-  std::vector<ShaderStageDesc> raygens{};
-  std::vector<ShaderStageDesc> anyHits{};
-  std::vector<ShaderStageDesc> closestHits{};
-  std::vector<ShaderStageDesc> misses{};
-  std::vector<ShaderStageDesc> intersections{};
-  std::vector<ShaderStageDesc> callables{};
+  struct Shaders {
+    std::vector<ShaderStageDesc> raygens{};
+    std::vector<ShaderStageDesc> anyHits{};
+    std::vector<ShaderStageDesc> closestHits{};
+    std::vector<ShaderStageDesc> misses{};
+    std::vector<ShaderStageDesc> intersections{};
+    std::vector<ShaderStageDesc> callables{};
+  } shaders{};
 
-  ShaderGroups shaderGroups{};
+  struct {
+    ShaderGroups raygens{};
+    ShaderGroups misses{};
+    ShaderGroups hits{};
+    ShaderGroups callables{};
+  } shaderGroups;
   
   uint32_t maxPipelineRayRecursionDepth{1};
 };

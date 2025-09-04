@@ -131,6 +131,8 @@ void RayTracingFx::createPipeline() {
     }
   }
 
+  // The default SBT holds all groups requested.
+  // [In the future we might prefers build them dynamically].
   buildShaderBindingTable(pipeline_desc);
 }
 
@@ -147,7 +149,13 @@ void RayTracingFx::buildShaderBindingTable(RayTracingPipelineDescriptor_t const&
   uint32_t const handleAlignment    = rtProps.shaderGroupHandleAlignment;
   uint32_t const handleSizeAligned  = utils::AlignTo(handleSize, handleAlignment);
   uint32_t const baseAlignment      = rtProps.shaderGroupBaseAlignment;
-  uint32_t const numGroups          = desc.shaderGroups.size();
+
+  auto const& sg = desc.shaderGroups;
+  uint32_t const numRayGen    = static_cast<uint32_t>(sg.raygens.size());
+  uint32_t const numMiss      = static_cast<uint32_t>(sg.misses.size());
+  uint32_t const numHit       = static_cast<uint32_t>(sg.hits.size());
+  uint32_t const numCallable  = static_cast<uint32_t>(sg.callables.size());
+  uint32_t const numGroups    = numRayGen + numMiss + numHit + numCallable;
 
   std::vector<std::byte> shader_handles(numGroups * handleSize);
   CHECK_VK(vkGetRayTracingShaderGroupHandlesKHR(
@@ -159,15 +167,8 @@ void RayTracingFx::buildShaderBindingTable(RayTracingPipelineDescriptor_t const&
     shader_handles.data()
   ));
 
-  // (this should be rewrite to avoid expecting a certain order)
-  /// --------------------------------------
-  /// --------------------------------------
-  uint32_t const numRayGen  = static_cast<uint32_t>(desc.raygens.size());
-  uint32_t const numMiss    = static_cast<uint32_t>(desc.misses.size());
-  uint32_t const numHit     = static_cast<uint32_t>(desc.anyHits.size()
-                                                  + desc.closestHits.size()
-                                                  + desc.intersections.size());
-  uint32_t const numCallable = static_cast<uint32_t>(desc.callables.size());
+
+  // ShadersGroups.
 
   size_t const offsetRayGen   = 0;
   size_t const sizeRayGen     = numRayGen * handleSizeAligned;
@@ -180,8 +181,7 @@ void RayTracingFx::buildShaderBindingTable(RayTracingPipelineDescriptor_t const&
 
   size_t const offsetCallable = utils::AlignTo(offsetHit + sizeHit, baseAlignment);
   size_t const sizeCallable   = numCallable * handleSizeAligned;
-  /// --------------------------------------
-  /// --------------------------------------
+
 
   size_t const sbt_buffersize = offsetCallable + sizeCallable;
 
@@ -197,8 +197,6 @@ void RayTracingFx::buildShaderBindingTable(RayTracingPipelineDescriptor_t const&
 
   backend::Buffer staging_buffer = allocator_ptr_->create_staging_buffer(sbt_buffersize);
 
-  /// --------------------------------------
-  /// --------------------------------------
   // Map staging and fill regions with shader handles
   {
     void* mapped;
@@ -210,12 +208,12 @@ void RayTracingFx::buildShaderBindingTable(RayTracingPipelineDescriptor_t const&
       for (uint32_t i = 0; i < count; i++) {
         std::byte* dst = reinterpret_cast<std::byte*>(pData + dstOffset + i * handleSizeAligned);
 
-        // 1. Copy shader identifier.
+        // Copy shadergroup identifier.
         std::byte* src = shader_handles.data() + (firstGroup + i) * handleSize;
         std::memcpy(dst, src, handleSize);
 
-        // 2. Copy custom data ?
-        // std::memcpy(dst + handleSizeAligned, &record_data[i], sizeof(record_data[i]));
+        // If we allocated enough memory we could copy extra data here
+        // to be retrieved in the shaders.
       }
     };
 
@@ -233,8 +231,6 @@ void RayTracingFx::buildShaderBindingTable(RayTracingPipelineDescriptor_t const&
 
     allocator_ptr_->unmap_memory(staging_buffer);
   }
-  /// --------------------------------------
-  /// --------------------------------------
 
   context_ptr_->copy_buffer(
     staging_buffer, sbt_storage_, sbt_buffersize

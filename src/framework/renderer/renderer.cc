@@ -662,49 +662,92 @@ Pipeline Renderer::create_raytracing_pipeline(
   RayTracingPipelineDescriptor_t const& desc
 ) const {
   std::vector<VkPipelineShaderStageCreateInfo> stage_infos{};
-  stage_infos.reserve(
-    desc.raygens.size() + desc.misses.size()        + desc.closestHits.size() +
-    desc.anyHits.size() + desc.intersections.size() + desc.callables.size()
-  );
 
-  auto entry_point{[](auto const& stage) {
-    return kDefaulShaderEntryPoint;
-    // return stage.entryPoint.empty() ? kDefaulShaderEntryPoint
-    //                                 : stage.entryPoint.c_str()
-    //                                 ;
-  }};
+  // Shaders.
+  {
+    auto const& s = desc.shaders;
 
-  auto insert_shaders{[&](auto const& stages, VkShaderStageFlagBits flag) {
-    for (auto const& stage : stages) {
-      stage_infos.push_back({
-        .sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-        .stage  = flag,
-        .module = stage.module,
-        .pName  = entry_point(stage),
-      });
+    stage_infos.reserve(
+      s.raygens.size() + s.misses.size()        + s.closestHits.size() +
+      s.anyHits.size() + s.intersections.size() + s.callables.size()
+    );
+
+    auto entry_point{[](auto const& stage) {
+      return kDefaulShaderEntryPoint;
+      // return stage.entryPoint.empty() ? kDefaulShaderEntryPoint
+      //                                 : stage.entryPoint.c_str()
+      //                                 ;
+    }};
+
+    auto insert_shaders{[&](auto const& stages, VkShaderStageFlagBits flag) {
+      for (auto const& stage : stages) {
+        stage_infos.push_back({
+          .sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+          .stage  = flag,
+          .module = stage.module,
+          .pName  = entry_point(stage),
+        });
+      }
+    }};
+
+    insert_shaders(s.raygens,        VK_SHADER_STAGE_RAYGEN_BIT_KHR);
+    insert_shaders(s.anyHits,        VK_SHADER_STAGE_ANY_HIT_BIT_KHR);
+    insert_shaders(s.closestHits,    VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR);
+    insert_shaders(s.misses,         VK_SHADER_STAGE_MISS_BIT_KHR);
+    insert_shaders(s.intersections,  VK_SHADER_STAGE_INTERSECTION_BIT_KHR);
+    insert_shaders(s.callables,      VK_SHADER_STAGE_CALLABLE_BIT_KHR);
+  }
+
+  // ShaderGroups.
+  std::vector<VkRayTracingShaderGroupCreateInfoKHR> shaderGroups{};
+  {
+    auto const& sg = desc.shaderGroups;
+
+    shaderGroups.resize(
+      sg.raygens.size() + sg.misses.size() + sg.hits.size() + sg.callables.size(),
+      {
+        .sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR,
+        .generalShader      = VK_SHADER_UNUSED_KHR,
+        .closestHitShader   = VK_SHADER_UNUSED_KHR,
+        .anyHitShader       = VK_SHADER_UNUSED_KHR,
+        .intersectionShader = VK_SHADER_UNUSED_KHR
+      }
+    );
+    size_t sg_index{0};
+    for (auto const& raygengroup : sg.raygens) {
+      LOG_CHECK((raygengroup.type == 0)
+             || (raygengroup.type == VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR)
+      );
+      shaderGroups[sg_index].type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR;
+      shaderGroups[sg_index].generalShader = raygengroup.generalShader;
+      sg_index++;
     }
-  }};
-
-  insert_shaders(desc.raygens,        VK_SHADER_STAGE_RAYGEN_BIT_KHR);
-  insert_shaders(desc.anyHits,        VK_SHADER_STAGE_ANY_HIT_BIT_KHR);
-  insert_shaders(desc.closestHits,    VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR);
-  insert_shaders(desc.misses,         VK_SHADER_STAGE_MISS_BIT_KHR);
-  insert_shaders(desc.intersections,  VK_SHADER_STAGE_INTERSECTION_BIT_KHR);
-  insert_shaders(desc.callables,      VK_SHADER_STAGE_CALLABLE_BIT_KHR);
-
-  std::vector<VkRayTracingShaderGroupCreateInfoKHR> shaderGroups;
-  shaderGroups.reserve(desc.shaderGroups.size());
-
-  for (size_t i = 0; i < desc.shaderGroups.size(); ++i) {
-    auto const& src = desc.shaderGroups[i];
-    shaderGroups.push_back({
-      .sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR,
-      .type = src.type,
-      .generalShader = src.generalShader,
-      .closestHitShader = src.closestHitShader,
-      .anyHitShader = src.anyHitShader,
-      .intersectionShader = src.intersectionShader,
-    });
+    for (auto const& missgroup : sg.misses) {
+      LOG_CHECK((missgroup.type == 0)
+             || (missgroup.type == VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR)
+      );
+      shaderGroups[sg_index].type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR;
+      shaderGroups[sg_index].generalShader = missgroup.generalShader;
+      sg_index++;
+    }
+    for (auto const& hitgroup : sg.hits) {
+      LOG_CHECK((hitgroup.type == VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR)
+             || (hitgroup.type == VK_RAY_TRACING_SHADER_GROUP_TYPE_PROCEDURAL_HIT_GROUP_KHR)
+      );
+      shaderGroups[sg_index].type               = hitgroup.type;
+      shaderGroups[sg_index].closestHitShader   = hitgroup.closestHitShader;
+      shaderGroups[sg_index].anyHitShader       = hitgroup.anyHitShader;
+      shaderGroups[sg_index].intersectionShader = hitgroup.intersectionShader;
+      sg_index++;
+    }
+    for (auto const& callgroup : sg.callables) {
+      LOG_CHECK((callgroup.type == 0)
+             || (callgroup.type == VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR)
+      );
+      shaderGroups[sg_index].type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR;
+      shaderGroups[sg_index].generalShader = callgroup.generalShader;
+      sg_index++;
+    }
   }
 
   VkRayTracingPipelineCreateInfoKHR const raytracing_pipeline_create_info{
