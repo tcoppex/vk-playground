@@ -130,6 +130,83 @@ std::tuple<VkPipelineStageFlags2, VkAccessFlags2> MakePipelineStageAccessTuple(
   }
 }
 
+// ----------------------------------------------------------------------------
+
+void TransformDescriptorSetWriteEntries(
+  VkDescriptorSet descriptor_set,
+  std::vector<DescriptorSetWriteEntry> const& entries,
+  DescriptorSetWriteEntry::Result &result
+) {
+  // (we do "need" to update some internal value withing that ref..)
+  auto& updated_entries{
+    const_cast<std::vector<DescriptorSetWriteEntry>&>(entries)
+  };
+
+  // (if one update need many of same extensions it could fails).
+  auto &ext = result.ext;
+  auto& write_descriptor_sets = result.write_descriptor_sets;
+
+  write_descriptor_sets.reserve(entries.size());
+
+  for (auto& entry : updated_entries) {
+    VkWriteDescriptorSet write_descriptor_set{
+      .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+      .dstSet = descriptor_set,
+      .dstBinding = entry.binding,
+      .dstArrayElement = 0u,
+      .descriptorType = entry.type,
+    };
+
+    switch (entry.type) {
+      case VK_DESCRIPTOR_TYPE_SAMPLER:
+      case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
+      case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+      case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+        LOG_CHECK(entry.buffers.empty() && entry.bufferViews.empty());
+
+        write_descriptor_set.pImageInfo = entry.images.data();
+        write_descriptor_set.descriptorCount = static_cast<uint32_t>(entry.images.size());
+      break;
+
+      case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+      case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+      case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
+      case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
+        LOG_CHECK(entry.images.empty() && entry.bufferViews.empty());
+        for (auto &buf : entry.buffers) {
+          buf.range = (buf.range == 0) ? VK_WHOLE_SIZE : buf.range;
+        }
+        write_descriptor_set.pBufferInfo = entry.buffers.data();
+        write_descriptor_set.descriptorCount = static_cast<uint32_t>(entry.buffers.size());
+      break;
+
+      case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
+        LOG_CHECK(entry.images.empty() && entry.buffers.empty());
+        write_descriptor_set.pTexelBufferView = entry.bufferViews.data();
+        write_descriptor_set.descriptorCount = static_cast<uint32_t>(entry.bufferViews.size());
+      break;
+
+      case VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR:
+        ext.accelerationStructureInfo = {
+          .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR,
+          .accelerationStructureCount = static_cast<uint32_t>(entry.accelerationStructures.size()),
+          .pAccelerationStructures = entry.accelerationStructures.data(),
+        };
+        write_descriptor_set.descriptorCount = 1;
+        write_descriptor_set.pNext = &ext.accelerationStructureInfo;
+      break;
+
+      default:
+        LOGE("Unknown descriptor type: %d", static_cast<int>(entry.type));
+        continue;
+    }
+
+    write_descriptor_sets.push_back(write_descriptor_set);
+  }
+}
+
+// ----------------------------------------------------------------------------
+
 } // namespace "vkutils"
 
 /* -------------------------------------------------------------------------- */

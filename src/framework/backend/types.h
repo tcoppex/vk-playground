@@ -236,13 +236,19 @@ struct DescriptorSetWriteEntry {
   std::vector<VkDescriptorImageInfo> images{};
   std::vector<VkDescriptorBufferInfo> buffers{};
   std::vector<VkBufferView> bufferViews{};
+
   // ---------------------------------------
   std::vector<VkAccelerationStructureKHR> accelerationStructures{};
 
-  struct Extension {
+  struct Extensions {
     VkWriteDescriptorSetAccelerationStructureKHR accelerationStructureInfo{};
   };
   // ---------------------------------------
+
+  struct Result {
+    Extensions ext{};
+    std::vector<VkWriteDescriptorSet> write_descriptor_sets{};
+  };
 };
 
 struct VertexInputDescriptor {

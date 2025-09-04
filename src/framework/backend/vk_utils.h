@@ -19,13 +19,32 @@
 
 namespace vkutils {
 
-VkResult CheckVKResult(VkResult result, char const* file, int const line, bool const bExitOnFail);
+VkResult CheckVKResult(
+  VkResult result,
+  char const* file,
+  int const line,
+  bool const bExitOnFail
+);
 
-bool IsValidStencilFormat(VkFormat const format);
+bool IsValidStencilFormat(
+  VkFormat const format
+);
 
-VkShaderModule CreateShaderModule(VkDevice const device, char const* shader_directory, char const* shader_name);
+VkShaderModule CreateShaderModule(
+  VkDevice const device,
+  char const* shader_directory,
+  char const* shader_name
+);
 
-std::tuple<VkPipelineStageFlags2, VkAccessFlags2> MakePipelineStageAccessTuple(VkImageLayout const state);
+std::tuple<VkPipelineStageFlags2, VkAccessFlags2> MakePipelineStageAccessTuple(
+  VkImageLayout const state
+);
+
+void TransformDescriptorSetWriteEntries(
+  VkDescriptorSet descriptor_set,
+  std::vector<DescriptorSetWriteEntry> const& entries,
+  DescriptorSetWriteEntry::Result &result
+);
 
 // ----------------------------------------------------------------------------
 
