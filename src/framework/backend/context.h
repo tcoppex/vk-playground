@@ -139,6 +139,13 @@ class Context {
     std::vector<DescriptorSetWriteEntry> const& entries
   ) const;
 
+  // --- Utils ---
+
+  template <typename T>
+  void setDebugObjectName(T object, std::string const& name) const {
+    return vkutils::SetDebugObjectName(device_, object, name);
+  }
+
  private:
   bool has_extension(std::string_view const& name, std::vector<VkExtensionProperties> const& extensions) const {
     for (auto const& ext : extensions) {

@@ -23,7 +23,8 @@ VkShaderModule CreateShaderModule(VkDevice const device, char const* shader_dire
                           : fs::path(shader_directory) / (std::string(shader_name) + ".spv");
 
   size_t filesize{};
-  char* code = utils::ReadBinaryFile(spirv_path.string().c_str(), &filesize);
+  std::string filename{spirv_path.string()};
+  char* code = utils::ReadBinaryFile(filename.c_str(), &filesize);
 
   if (code == nullptr) {
     fprintf(stderr, "Error: the spirv shader \"%s\" could not be found.\n", spirv_path.string().c_str());
@@ -38,9 +39,10 @@ VkShaderModule CreateShaderModule(VkDevice const device, char const* shader_dire
 
   VkShaderModule module;
   VkResult err = vkCreateShaderModule(device, &shader_module_info, nullptr, &module);
-  delete [] code;
-
+  SetDebugObjectName(device, module, shader_name);
   CHECK_VK(err);
+
+  delete [] code;
 
   return module;
 }
@@ -68,7 +70,6 @@ bool IsValidStencilFormat(VkFormat const format) {
 
 // ----------------------------------------------------------------------------
 
-// (from nvpro_sample/minimal_latest)
 std::tuple<VkPipelineStageFlags2, VkAccessFlags2> MakePipelineStageAccessTuple(
   VkImageLayout const state
 ) {
