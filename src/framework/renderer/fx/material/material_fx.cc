@@ -1,5 +1,7 @@
 #include "framework/renderer/fx/material/material_fx.h"
+
 #include "framework/backend/context.h"
+#include "framework/scene/vertex_internal.h" // (for material_shader_interop)
 
 /* -------------------------------------------------------------------------- */
 
@@ -60,11 +62,36 @@ void MaterialFx::prepareDrawState(
   LOG_CHECK(pipelines_.contains(states));
 
   pass.bind_pipeline(pipelines_[states]);
+
+
+  // ----------------------------
+  auto const& DSR = renderer_ptr_->descriptor_set_registry();
+  VkShaderStageFlags const stage_flags{
+      VK_SHADER_STAGE_VERTEX_BIT
+    | VK_SHADER_STAGE_FRAGMENT_BIT
+  };
+
   pass.bind_descriptor_set(
     descriptor_set_,
     pipeline_layout_,
-    VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT
+    stage_flags,
+    material_shader_interop::kDescriptorSet_Internal
   );
+
+  pass.bind_descriptor_set(
+    DSR.descriptor(DescriptorSetRegistry::Type::Frame).set,
+    pipeline_layout_,
+    stage_flags,
+    material_shader_interop::kDescriptorSet_Frame
+  );
+
+  pass.bind_descriptor_set(
+    DSR.descriptor(DescriptorSetRegistry::Type::Scene).set,
+    pipeline_layout_,
+    stage_flags,
+    material_shader_interop::kDescriptorSet_Scene
+  );
+  // ----------------------------
 }
 
 // ----------------------------------------------------------------------------
@@ -76,8 +103,13 @@ void MaterialFx::createPipelineLayout() {
     getDescriptorSetLayoutParams()
   );
 
+  auto const& DSR = renderer_ptr_->descriptor_set_registry();
   pipeline_layout_ = renderer_ptr_->create_pipeline_layout({
-    .setLayouts = { descriptor_set_layout_ },
+    .setLayouts = {
+      descriptor_set_layout_,
+      DSR.descriptor(DescriptorSetRegistry::Type::Frame).layout,
+      DSR.descriptor(DescriptorSetRegistry::Type::Scene).layout,
+    },
     .pushConstantRanges = getPushConstantRanges()
   });
 }
@@ -153,22 +185,6 @@ backend::ShaderMap MaterialFx::createShaderModules() const {
       context_ptr_->create_shader_module(getShaderName())
     },
   };
-}
-
-// ----------------------------------------------------------------------------
-
-void MaterialFx::updateDescriptorSetTextureAtlasEntry(DescriptorSetWriteEntry const& entry) const {
-  context_ptr_->update_descriptor_set(descriptor_set_, { entry });
-}
-
-// ----------------------------------------------------------------------------
-
-void MaterialFx::updateDescriptorSetFrameUBO(backend::Buffer const& buf) const {
-  context_ptr_->update_descriptor_set(descriptor_set_, {{
-    .binding = getFrameUniformBufferBinding(),
-    .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-    .buffers = { { buf.buffer } },
-  }});
 }
 
 // ----------------------------------------------------------------------------

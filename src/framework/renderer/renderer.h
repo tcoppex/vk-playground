@@ -14,6 +14,8 @@
 #include "framework/renderer/gpu_resources.h" // (for GLTFScene)
 #include "framework/renderer/fx/skybox.h"
 
+#include "framework/renderer/descriptor_set_registry.h" //
+
 class Context;
 
 /* -------------------------------------------------------------------------- */
@@ -139,6 +141,13 @@ class Renderer : public backend::RTInterface {
     RayTracingPipelineDescriptor_t const& desc
   ) const;
 
+  // --------------------------
+  // --- Descriptor Allocator ---
+
+  DescriptorSetRegistry const& descriptor_set_registry() const {
+    return descriptor_set_registry_;
+  }
+
   // --- Descriptor Set Layout ---
 
   VkDescriptorSetLayout create_descriptor_set_layout(
@@ -155,6 +164,7 @@ class Renderer : public backend::RTInterface {
   VkDescriptorSet create_descriptor_set(VkDescriptorSetLayout const layout) const;
 
   VkDescriptorSet create_descriptor_set(VkDescriptorSetLayout const layout, std::vector<DescriptorSetWriteEntry> const& entries) const;
+// --------------------------
 
   // --- Texture ---
 
@@ -283,6 +293,10 @@ class Renderer : public backend::RTInterface {
   /* Main descriptor pool. */
   std::vector<VkDescriptorPoolSize> descriptor_pool_sizes_{};
   VkDescriptorPool descriptor_pool_{};
+
+// -----------------------------------
+  DescriptorSetRegistry descriptor_set_registry_{};
+// -----------------------------------
 
   /* Miscs resources */
   VkClearValue color_clear_value_{kDefaultColorClearValue};

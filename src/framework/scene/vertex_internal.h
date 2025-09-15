@@ -5,7 +5,7 @@
 #include "framework/core/common.h"
 #include "framework/core/geometry.h"
 
-namespace shaders_interop_material {
+namespace material_shader_interop {
 #include "framework/shaders/material/interop.h"
 }
 
@@ -16,7 +16,7 @@ namespace shaders_interop_material {
 // (Used for main topological attributes, others attributes should reside on different buffers,
 //    eg. extra uvs, colors, skin weights, morph targets, ...)
 //
-struct VertexInternal_t : shaders_interop_material::Vertex {
+struct VertexInternal_t : material_shader_interop::Vertex {
   // vec3 position; float _pad0[1];
   // vec3 normal;   float _pad1[1];
   // vec4 tangent;

@@ -1,32 +1,61 @@
 #include "framework/renderer/fx/postprocess/ray_tracing/ray_tracing_fx.h"
+
 #include "framework/backend/accel_struct.h"
+#include "framework/scene/vertex_internal.h" // (for material_shader_interop)
 
 /* -------------------------------------------------------------------------- */
 
 void RayTracingFx::execute(CommandEncoder& cmd) const {
+
+  cmd.bind_pipeline(pipeline_);
+
+  // Bind descriptor sets.
+  {
+    auto const& DSR = renderer_ptr_->descriptor_set_registry();
+
+    VkShaderStageFlags const stage_flags{
+        VK_SHADER_STAGE_RAYGEN_BIT_KHR
+      | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR
+    };
+
+    cmd.bind_descriptor_set(
+      descriptor_set_,
+      pipeline_layout_,
+      stage_flags,
+      material_shader_interop::kDescriptorSet_Internal
+    );
+
+    cmd.bind_descriptor_set(
+      DSR.descriptor(DescriptorSetRegistry::Type::Frame).set,
+      pipeline_layout_,
+      stage_flags,
+      material_shader_interop::kDescriptorSet_Frame
+    );
+
+    cmd.bind_descriptor_set(
+      DSR.descriptor(DescriptorSetRegistry::Type::Scene).set,
+      pipeline_layout_,
+      stage_flags,
+      material_shader_interop::kDescriptorSet_Scene
+    );
+
+    cmd.bind_descriptor_set(
+      DSR.descriptor(DescriptorSetRegistry::Type::RayTracing).set,
+      pipeline_layout_,
+      stage_flags,
+      material_shader_interop::kDescriptorSet_RayTracing
+    );
+  }
+
+  pushConstant(cmd);
+
   cmd.pipeline_image_barriers(barriers_.images_start);
   // cmd.pipeline_image_barriers(barriers_.buffers_start);
 
-  // ---------------------------------------
-  cmd.bind_pipeline(pipeline_);
-  cmd.bind_descriptor_set(descriptor_set_, pipeline_layout_,
-      VK_SHADER_STAGE_RAYGEN_BIT_KHR
-    | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR
-  );
-  pushConstant(cmd);
+  cmd.trace_rays(region_, dimension_.width, dimension_.height);
 
-  vkCmdTraceRaysKHR(
-    cmd.get_handle(),
-    &region_.raygen,
-    &region_.miss,
-    &region_.hit,
-    &region_.callable,
-    dimension_.width, dimension_.height, 1
-  );
-  // ---------------------------------------
-
-  cmd.pipeline_image_barriers(barriers_.images_end);
   // cmd.pipeline_image_barriers(barriers_.buffers_end);
+  cmd.pipeline_image_barriers(barriers_.images_end);
 }
 
 // ----------------------------------------------------------------------------
@@ -120,6 +149,7 @@ void RayTracingFx::createPipeline() {
   auto shaders_map = createShaderModules();
 
   auto pipeline_desc = pipelineDescriptor(shaders_map);
+
   pipeline_ = renderer_ptr_->create_raytracing_pipeline(
     pipeline_layout_,
     pipeline_desc

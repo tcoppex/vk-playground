@@ -14,40 +14,36 @@
 
 layout(constant_id = 0) const bool constant_kUseAlphaCutoff = false;
 
-// -- Frame & Scene --
+layout(scalar, set = kDescriptorSet_Internal, binding = kDescriptorSet_Internal_MaterialSSBO)
+buffer MaterialSSBO_ {
+  Material materials[];
+};
 
-layout(scalar, set = 0, binding = kDescriptorSetBinding_FrameUBO)
+// -- Frame --
+
+layout(scalar, set = kDescriptorSet_Frame, binding = kDescriptorSet_Frame_FrameUBO)
 uniform FrameUBO_ {
   FrameData uFrame;
 };
 
-// -- Image Based Lighting --
+// -- Scene resource (Textures & Image Based Lighting) --
 
-layout(set = 0, binding = kDescriptorSetBinding_IBL_Prefiltered)
+layout(set = kDescriptorSet_Scene, binding = kDescriptorSet_Scene_IBL_Textures)
+uniform sampler2D[] uTextureChannels;
+
+layout(set = kDescriptorSet_Scene, binding = kDescriptorSet_Scene_IBL_Prefiltered)
 uniform samplerCube uEnvMapPrefilterd;
 
-layout(set = 0, binding = kDescriptorSetBinding_IBL_Irradiance)
+layout(set = kDescriptorSet_Scene, binding = kDescriptorSet_Scene_IBL_Irradiance)
 uniform samplerCube uEnvMapIrradiance;
 
-layout(set = 0, binding = kDescriptorSetBinding_IBL_SpecularBRDF)
+layout(set = kDescriptorSet_Scene, binding = kDescriptorSet_Scene_IBL_SpecularBRDF)
 uniform sampler2D uSpecularBRDF;
 
-// -- Lighting --
-
-// layout(set = 0, binding = kDescriptorSetBinding_LightSSBO)
+// layout(set = kDescriptorSet_Scene, binding = kDescriptorSet_Scene_LightSSBO)
 // buffer LightSSBO_ {
 //   LightInfo_t lights[];
 // };
-
-// -- Material & Textures --
-
-layout(set = 0, binding = kDescriptorSetBinding_TextureAtlas)
-uniform sampler2D[] uTextureChannels;
-
-layout(scalar, set = 0, binding = kDescriptorSetBinding_MaterialSSBO)
-buffer MaterialSSBO_ {
-  Material materials[];
-};
 
 // -- Instance PushConstant --
 

@@ -9,16 +9,16 @@
 
 // ----------------------------------------------------------------------------
 
-layout(set = 0, binding = kDescriptorSetBinding_ImageOutput, rgba8)
+layout(set = kDescriptorSet_Internal, binding = kDescriptorSetBinding_ImageOutput, rgba8)
 uniform image2D imageOutput;
 
-layout(set = 0, binding = kDescriptorSetBinding_TLAS)
-uniform accelerationStructureEXT topLevelAS;
-
-layout(set = 0, binding = kDescriptorSetBinding_FrameUBO, scalar)
+layout(set = kDescriptorSet_Frame, binding = kDescriptorSet_Frame_FrameUBO, scalar)
 uniform FrameUBO_ {
   FrameData uFrame;
 };
+
+layout(set = kDescriptorSet_RayTracing, binding = kDescriptorSet_RayTracing_TLAS)
+uniform accelerationStructureEXT topLevelAS;
 
 // ----------------------------------------------------------------------------
 

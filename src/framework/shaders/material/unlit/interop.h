@@ -3,11 +3,8 @@
 
 // ---------------------------------------------------------------------------
 
-const uint kDescriptorSetBinding_FrameUBO           = 0;
+const uint kDescriptorSet_Internal_MaterialSSBO     = 0;
 const uint kDescriptorSetBinding_TransformSSBO      = 1;
-
-const uint kDescriptorSetBinding_TextureAtlas       = 2;
-const uint kDescriptorSetBinding_MaterialSSBO       = 3;
 
 struct Material {
   vec4 diffuse_factor;

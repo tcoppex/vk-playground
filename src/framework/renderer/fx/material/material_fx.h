@@ -66,19 +66,11 @@ class MaterialFx {
  public:
   // -- frame-wide resource descriptor --
 
-  void updateDescriptorSetFrameUBO(backend::Buffer const& buf) const;
-
-  void updateDescriptorSetTextureAtlasEntry(DescriptorSetWriteEntry const& entry) const;
-
+  // [DEPRECATED] use descriptor allocator instead.
+  // -----------------------------
   void updateDescriptorSetTransformsSSBO(backend::Buffer const& buf) const;
-
-  virtual uint32_t getFrameUniformBufferBinding() const = 0;
-
   virtual uint32_t getTransformsStorageBufferBinding() const = 0;
-
-  virtual uint32_t getTextureAtlasBinding() const {
-    return kInvalidIndexU32;
-  }
+  // -----------------------------
 
   // -- mesh instance push constants --
 
@@ -100,8 +92,8 @@ class MaterialFx {
   // ----------------
   VkDescriptorSetLayout descriptor_set_layout_{};
   VkDescriptorSet descriptor_set_{}; //
-  VkPipelineLayout pipeline_layout_{}; //
   // ----------------
+  VkPipelineLayout pipeline_layout_{}; //
 
   std::map<scene::MaterialStates, Pipeline> pipelines_{};
   backend::Buffer material_storage_buffer_{};

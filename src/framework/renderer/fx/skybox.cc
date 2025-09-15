@@ -12,6 +12,8 @@
 /* -------------------------------------------------------------------------- */
 
 void Skybox::init(Renderer& renderer) {
+  renderer_ptr_ = &renderer;
+
   envmap_.init(renderer);
 
   /* Precalculate the BRDF LUT. */
@@ -154,6 +156,11 @@ void Skybox::release(Renderer const& renderer) {
 
 bool Skybox::setup(std::string_view hdr_filename) {
   setuped_ = envmap_.setup(hdr_filename);
+
+  if (setuped_) {
+    renderer_ptr_->descriptor_set_registry().update_scene_ibl();
+  }
+
   return setuped_;
 }
 

@@ -81,6 +81,9 @@ void GPUResources::upload_to_device(bool const bReleaseHostDataOnUpload) {
     allocator_ptr_ = context_ptr_->allocator_ptr();
   }
 
+  /* Transfer Materials */
+  material_fx_registry_->push_material_storage_buffers();
+
   /* Create the shared Frame UBO */
   frame_ubo_ = allocator_ptr_->create_buffer(
     sizeof(FrameData),
@@ -90,18 +93,10 @@ void GPUResources::upload_to_device(bool const bReleaseHostDataOnUpload) {
       VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
     | VMA_ALLOCATION_CREATE_MAPPED_BIT
   );
-  material_fx_registry_->update_frame_ubo(frame_ubo_);
-
-  /* Transfer Materials */
-  material_fx_registry_->push_material_storage_buffers();
 
   /* Transfer Textures */
   if (total_image_size > 0) {
     upload_images(*context_ptr_);
-
-    material_fx_registry_->update_texture_atlas([this](uint32_t binding) {
-      return this->descriptor_set_texture_atlas_entry(binding);
-    });
   }
 
   /* Transfer Buffers */
@@ -114,6 +109,22 @@ void GPUResources::upload_to_device(bool const bReleaseHostDataOnUpload) {
     // ---------------------------------------
   }
 
+  /* Update Global Descriptor Set bindings. */
+  {
+    auto const& DSR = renderer_ptr_->descriptor_set_registry();
+
+    DSR.update_frame_ubo(frame_ubo_);
+
+    if (total_image_size > 0) {
+      DSR.update_scene_textures(get_descriptor_image_infos());
+    }
+
+    // ---------------------------------------
+    if (rt_scene_) {
+      DSR.update_ray_tracing_scene(rt_scene_.get());
+    }
+    // ---------------------------------------
+  }
 
   /* Clear host data once uploaded */
   if (bReleaseHostDataOnUpload) {
@@ -138,6 +149,8 @@ DescriptorSetWriteEntry GPUResources::descriptor_set_texture_atlas_entry(uint32_
   }
   LOG_CHECK( !device_images.empty() );
 
+  texture_atlas_entry.images.reserve(textures.size());
+
   auto const& sampler_pool = renderer_ptr_->sampler_pool();
   for (auto const& texture : textures) {
     auto const& img = device_images.at(texture.channel_index());
@@ -153,28 +166,30 @@ DescriptorSetWriteEntry GPUResources::descriptor_set_texture_atlas_entry(uint32_
 
 // ----------------------------------------------------------------------------
 
+std::vector<VkDescriptorImageInfo> GPUResources::get_descriptor_image_infos() const {
+  std::vector<VkDescriptorImageInfo> image_infos{};
+  image_infos.reserve(textures.size());
+
+  auto const& sampler_pool = renderer_ptr_->sampler_pool();
+  for (auto const& texture : textures) {
+    auto const& img = device_images.at(texture.channel_index());
+    image_infos.push_back({
+      .sampler = sampler_pool.convert(texture.sampler),
+      .imageView = img.view,
+      .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+    });
+  }
+  return image_infos;
+}
+
+// ----------------------------------------------------------------------------
+
 void GPUResources::update(
   Camera const& camera,
   VkExtent2D const& surfaceSize,
   float elapsedTime
 ) {
-  // Update the shared Frame UBO.
-  FrameData frame_data{
-    .projectionMatrix = camera.proj(),
-    .viewMatrix = camera.view(),
-    .viewProjMatrix = camera.viewproj(),
-    .cameraPos_Time = vec4(camera.position(), elapsedTime),
-    .resolution = vec2(surfaceSize.width, surfaceSize.height),
-  };
-
-  if (ray_tracing_fx_) {
-    frame_data.projectionMatrix = linalg::inverse(frame_data.projectionMatrix);
-    frame_data.viewMatrix = camera.world();
-  }
-
-  context_ptr_->transfer_host_to_device(
-    &frame_data, sizeof(frame_data), frame_ubo_
-  );
+  update_frame_data(camera, surfaceSize, elapsedTime);
 
   if (ray_tracing_fx_) {
     return;
@@ -295,12 +310,6 @@ void GPUResources::render(RenderPassEncoder const& pass) {
 
 void GPUResources::set_ray_tracing_fx(RayTracingFx const* fx) {
   ray_tracing_fx_ = fx;
-
-  ray_tracing_fx_->updateDescriptorSet({
-    .tlasHandle = rt_scene_->tlas().handle,
-    .instancesBuffer = rt_scene_->instances_data_buffer().buffer,
-    .frameBuffer = frame_ubo_.buffer,
-  });
 }
 
 // ----------------------------------------------------------------------------
@@ -509,6 +518,32 @@ void GPUResources::upload_buffers(Context const& context) {
     cmd.pipeline_buffer_barriers(barriers);
   }
   context.finish_transient_command_encoder(cmd);
+}
+
+// ----------------------------------------------------------------------------
+
+void GPUResources::update_frame_data(
+  Camera const& camera,
+  VkExtent2D const& surfaceSize,
+  float elapsedTime
+) {
+  FrameData frame_data{
+    .projectionMatrix = camera.proj(),
+    .viewMatrix = camera.view(),
+    .viewProjMatrix = camera.viewproj(),
+    .cameraPos_Time = vec4(camera.position(), elapsedTime),
+    .resolution = vec2(surfaceSize.width, surfaceSize.height),
+  };
+
+  // For ray tracing we need to use the inverse of those matrices.
+  if (ray_tracing_fx_) {
+    frame_data.projectionMatrix = linalg::inverse(frame_data.projectionMatrix);
+    frame_data.viewMatrix = camera.world();
+  }
+
+  context_ptr_->transfer_host_to_device(
+    &frame_data, sizeof(frame_data), frame_ubo_
+  );
 }
 
 /* -------------------------------------------------------------------------- */

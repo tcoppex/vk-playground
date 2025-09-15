@@ -1,30 +1,15 @@
 #ifndef VKFRAMEWORK_RENDERER_FX_PP_RT_RAY_TRACING_FX_H_
 #define VKFRAMEWORK_RENDERER_FX_PP_RT_RAY_TRACING_FX_H_
 
-// #include "framework/renderer/fx/postprocess/generic_fx.h"
 #include "framework/renderer/fx/postprocess/post_generic_fx.h"
-
 #include "framework/renderer/renderer.h" //
-
-namespace backend {
-struct TLAS;
-}
 
 /* -------------------------------------------------------------------------- */
 
 class RayTracingFx : public virtual PostGenericFx {
  public:
-  struct DescriptorSetUpdateParams {
-    VkAccelerationStructureKHR tlasHandle{};
-    VkBuffer instancesBuffer{};
-    VkBuffer frameBuffer{};
-  };
-
   // -------------------------------
   const uint kDescriptorSetBinding_ImageOutput      = 0;
-  const uint kDescriptorSetBinding_TLAS             = 1;
-  const uint kDescriptorSetBinding_InstanceSBO      = 2;
-  const uint kDescriptorSetBinding_FrameUBO         = 3;
   // -------------------------------
 
  public:
@@ -47,26 +32,6 @@ class RayTracingFx : public virtual PostGenericFx {
             .imageLayout = VK_IMAGE_LAYOUT_GENERAL,
           }
         },
-      },
-    });
-  }
-
-  virtual void updateDescriptorSet(DescriptorSetUpdateParams const& params) const {
-    context_ptr_->update_descriptor_set(descriptor_set_, {
-      {
-        .binding = kDescriptorSetBinding_TLAS,
-        .type = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR,
-        .accelerationStructures = { params.tlasHandle },
-      },
-      {
-        .binding = kDescriptorSetBinding_InstanceSBO,
-        .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-        .buffers = { { params.instancesBuffer } },
-      },
-      {
-        .binding = kDescriptorSetBinding_FrameUBO,
-        .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-        .buffers = { { params.frameBuffer } },
       },
     });
   }
@@ -108,31 +73,16 @@ class RayTracingFx : public virtual PostGenericFx {
         .stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR,
         .bindingFlags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT,
       },
-      // ----------------------------------------------------
-      {
-        .binding = kDescriptorSetBinding_TLAS, //
-        .descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR,
-        .descriptorCount = 1u,
-        .stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR
-                    | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR,
-        .bindingFlags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT,
-      },
-      {
-        .binding = kDescriptorSetBinding_InstanceSBO,
-        .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-        .descriptorCount = 1u,
-        .stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR,
-        .bindingFlags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT,
-      },
-      // ----------------------------------------------------
-      {
-        .binding = kDescriptorSetBinding_FrameUBO,
-        .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-        .descriptorCount = 1u,
-        .stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR
-                    | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR,
-        .bindingFlags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT,
-      },
+    };
+  }
+
+  std::vector<VkDescriptorSetLayout> getDescriptorSetLayouts() const override {
+    auto const& DSR = renderer_ptr_->descriptor_set_registry();
+    return {
+      descriptor_set_layout_,
+      DSR.descriptor(DescriptorSetRegistry::Type::Frame).layout,
+      DSR.descriptor(DescriptorSetRegistry::Type::Scene).layout,
+      DSR.descriptor(DescriptorSetRegistry::Type::RayTracing).layout,
     };
   }
 

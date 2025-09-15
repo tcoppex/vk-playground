@@ -43,7 +43,7 @@ struct ObjBuffers_t {
   uint64_t indexAddr;
 };
 
-layout(set = 0, binding = kDescriptorSetBinding_InstanceSBO, scalar)
+layout(set = kDescriptorSet_RayTracing, binding = kDescriptorSet_RayTracing_InstanceSBO, scalar)
 buffer _scene_desc {
   ObjBuffers_t addr[];
 } ObjBuffers;

@@ -101,10 +101,13 @@ void Renderer::deinit() {
   assert(device_ != VK_NULL_HANDLE);
 
   skybox_.release(*this);
-
   sampler_pool_.deinit();
 
+  // ------------
   vkDestroyDescriptorPool(device_, descriptor_pool_, nullptr);
+  descriptor_set_registry_.release();
+  // ------------
+
   vkDestroySemaphore(device_, timeline_.semaphore, nullptr);
   for (auto & frame : timeline_.frames) {
     vkFreeCommandBuffers(device_, frame.command_pool, 1u, &frame.command_buffer);
@@ -979,6 +982,10 @@ GLTFScene Renderer::load_and_upload(std::string_view gltf_filename) {
 
 void Renderer::init_descriptor_pool() {
   uint32_t const kMaxDescriptorPoolSets{ 256u };
+
+  descriptor_set_registry_.init(*this, kMaxDescriptorPoolSets);
+
+  // -------------------------------
 
   /* Default pool, to adjust based on application needs. */
   descriptor_pool_sizes_ = {

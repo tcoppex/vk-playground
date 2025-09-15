@@ -63,6 +63,7 @@ class Skybox {
  private:
   using PushConstant_t = shader_interop::skybox::PushConstant;
 
+  Renderer const* renderer_ptr_{};
   Envmap envmap_{};
 
   backend::Image specular_brdf_lut_{};

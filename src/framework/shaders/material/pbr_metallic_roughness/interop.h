@@ -3,17 +3,8 @@
 
 // ---------------------------------------------------------------------------
 
-const uint kDescriptorSetBinding_FrameUBO           = 0;
+const uint kDescriptorSet_Internal_MaterialSSBO     = 0;
 const uint kDescriptorSetBinding_TransformSSBO      = 1;
-
-const uint kDescriptorSetBinding_IBL_Prefiltered    = 2;
-const uint kDescriptorSetBinding_IBL_Irradiance     = 3;
-const uint kDescriptorSetBinding_IBL_SpecularBRDF   = 4;
-
-const uint kDescriptorSetBinding_LightSSBO          = 5;
-
-const uint kDescriptorSetBinding_TextureAtlas       = 6;
-const uint kDescriptorSetBinding_MaterialSSBO       = 7;
 
 // ---------------------------------------------------------------------------
 // Fx Materials SSBOs struct.

@@ -27,16 +27,29 @@ struct GPUResources : scene::HostResources {
   bool load_file(std::string_view filename);
 
   /* Bind mesh attributes to pipeline locations. */
-  void initialize_submesh_descriptors(scene::Mesh::AttributeLocationMap const& attribute_to_location);
+  void initialize_submesh_descriptors(
+    scene::Mesh::AttributeLocationMap const& attribute_to_location
+  );
 
   /* Upload host resources to Device memory. */
-  void upload_to_device(bool const bReleaseHostDataOnUpload = kReleaseHostDataOnUpload);
+  void upload_to_device(
+    bool const bReleaseHostDataOnUpload = kReleaseHostDataOnUpload
+  );
 
-  /* Construct a texture atlas entry for a descriptor set. */
-  DescriptorSetWriteEntry descriptor_set_texture_atlas_entry(uint32_t const binding) const;
+  /* [DEPRECATED] Construct a texture atlas entry for a descriptor set. */
+  DescriptorSetWriteEntry descriptor_set_texture_atlas_entry(
+    uint32_t const binding
+  ) const;
+
+  /* Construct the image info buffer for the scene textures descriptor set. */
+  std::vector<VkDescriptorImageInfo> get_descriptor_image_infos() const;
 
   /* Update relevant resources before rendering (eg. shared uniform buffers). */
-  void update(Camera const& camera, VkExtent2D const& surfaceSize, float elapsedTime);
+  void update(
+    Camera const& camera,
+    VkExtent2D const& surfaceSize,
+    float elapsedTime
+  );
 
   /* Render the scene batch per MaterialFx. */
   void render(RenderPassEncoder const& pass);
@@ -48,6 +61,12 @@ struct GPUResources : scene::HostResources {
  private:
   void upload_images(Context const& context);
   void upload_buffers(Context const& context);
+
+  void update_frame_data(
+    Camera const& camera,
+    VkExtent2D const& surfaceSize,
+    float elapsedTime
+  );
 
  public:
   /* --- Device Data --- */
