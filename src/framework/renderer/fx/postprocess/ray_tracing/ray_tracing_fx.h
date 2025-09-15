@@ -167,7 +167,7 @@ class RayTracingFx : public virtual PostGenericFx {
   } barriers_;
 
   backend::Buffer sbt_storage_{};
-  RayTracingAddressRegion region_{};
+  backend::RayTracingAddressRegion region_{};
 };
 
 /* -------------------------------------------------------------------------- */

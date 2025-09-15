@@ -141,6 +141,21 @@ class GenericCommandEncoder {
     );
   }
 
+  // --- Ray Tracing ---
+
+  void trace_rays(backend::RayTracingAddressRegion const& region, uint32_t width, uint32_t height, uint32_t depth = 1u) {
+    vkCmdTraceRaysKHR(
+      command_buffer_,
+      &region.raygen,
+      &region.miss,
+      &region.hit,
+      &region.callable,
+      width,
+      height,
+      depth
+    );
+  }
+
  protected:
   VkCommandBuffer command_buffer_{};
   uint32_t target_queue_index_{};

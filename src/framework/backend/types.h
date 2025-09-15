@@ -160,6 +160,17 @@ class PipelineInterface {
 
 // ----------------------------------------------------------------------------
 
+// RayTracing
+
+struct RayTracingAddressRegion {
+  VkStridedDeviceAddressRegionKHR raygen{};
+  VkStridedDeviceAddressRegionKHR miss{};
+  VkStridedDeviceAddressRegionKHR hit{};
+  VkStridedDeviceAddressRegionKHR callable{};
+};
+
+// ----------------------------------------------------------------------------
+
 /* Interface for dynamic rendering. */
 struct RTInterface {
   RTInterface() = default;

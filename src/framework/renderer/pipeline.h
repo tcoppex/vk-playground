@@ -203,13 +203,6 @@ struct RayTracingPipelineDescriptor_t {
   uint32_t maxPipelineRayRecursionDepth{1};
 };
 
-struct RayTracingAddressRegion {
-  VkStridedDeviceAddressRegionKHR raygen{};
-  VkStridedDeviceAddressRegionKHR miss{};
-  VkStridedDeviceAddressRegionKHR hit{};
-  VkStridedDeviceAddressRegionKHR callable{};
-};
-
 // ----------------------------------------------------------------------------
 
 using PipelineVertexBufferDescriptor = GraphicsPipelineDescriptor_t::Vertex::Buffer;
