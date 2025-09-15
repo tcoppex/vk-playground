@@ -36,13 +36,8 @@ struct GPUResources : scene::HostResources {
     bool const bReleaseHostDataOnUpload = kReleaseHostDataOnUpload
   );
 
-  /* [DEPRECATED] Construct a texture atlas entry for a descriptor set. */
-  DescriptorSetWriteEntry descriptor_set_texture_atlas_entry(
-    uint32_t const binding
-  ) const;
-
   /* Construct the image info buffer for the scene textures descriptor set. */
-  std::vector<VkDescriptorImageInfo> get_descriptor_image_infos() const;
+  std::vector<VkDescriptorImageInfo> descriptor_image_infos() const;
 
   /* Update relevant resources before rendering (eg. shared uniform buffers). */
   void update(

@@ -116,7 +116,7 @@ void GPUResources::upload_to_device(bool const bReleaseHostDataOnUpload) {
     DSR.update_frame_ubo(frame_ubo_);
 
     if (total_image_size > 0) {
-      DSR.update_scene_textures(get_descriptor_image_infos());
+      DSR.update_scene_textures(descriptor_image_infos());
     }
 
     // ---------------------------------------
@@ -138,36 +138,12 @@ void GPUResources::upload_to_device(bool const bReleaseHostDataOnUpload) {
 
 // ----------------------------------------------------------------------------
 
-DescriptorSetWriteEntry GPUResources::descriptor_set_texture_atlas_entry(uint32_t const binding) const {
-  DescriptorSetWriteEntry texture_atlas_entry{
-    .binding = binding,
-    .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-  };
+std::vector<VkDescriptorImageInfo> GPUResources::descriptor_image_infos() const {
+  std::vector<VkDescriptorImageInfo> image_infos{};
 
   if (textures.empty()) {
-    return texture_atlas_entry;
+    return image_infos;
   }
-  LOG_CHECK( !device_images.empty() );
-
-  texture_atlas_entry.images.reserve(textures.size());
-
-  auto const& sampler_pool = renderer_ptr_->sampler_pool();
-  for (auto const& texture : textures) {
-    auto const& img = device_images.at(texture.channel_index());
-    texture_atlas_entry.images.push_back({
-      .sampler = sampler_pool.convert(texture.sampler),
-      .imageView = img.view,
-      .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-    });
-  }
-
-  return texture_atlas_entry;
-}
-
-// ----------------------------------------------------------------------------
-
-std::vector<VkDescriptorImageInfo> GPUResources::get_descriptor_image_infos() const {
-  std::vector<VkDescriptorImageInfo> image_infos{};
   image_infos.reserve(textures.size());
 
   auto const& sampler_pool = renderer_ptr_->sampler_pool();

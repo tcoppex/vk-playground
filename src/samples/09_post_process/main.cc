@@ -169,7 +169,11 @@ class SceneFx final : public RenderTargetFx {
 
     /* Update the Sampler Atlas descriptor with the currently loaded textures. */
     context_ptr_->update_descriptor_set(descriptor_set_, {
-      scene_->descriptor_set_texture_atlas_entry( shader_interop::kDescriptorSetBinding_Sampler )
+      {
+        .binding = shader_interop::kDescriptorSetBinding_Sampler,
+        .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+        .images = scene_->descriptor_image_infos()
+      }
     });
   }
 
