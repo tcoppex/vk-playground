@@ -40,7 +40,8 @@ class GenericCommandEncoder {
   void bind_descriptor_set(
     VkDescriptorSet const descriptor_set,
     VkPipelineLayout const pipeline_layout,
-    VkShaderStageFlags const stage_flags
+    VkShaderStageFlags const stage_flags,
+    uint32_t first_set = 0u
   ) const;
 
   void bind_descriptor_set(

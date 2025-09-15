@@ -5,12 +5,17 @@
 
 /* -------------------------------------------------------------------------- */
 
-void GenericCommandEncoder::bind_descriptor_set(VkDescriptorSet const descriptor_set, VkPipelineLayout const pipeline_layout, VkShaderStageFlags const stage_flags) const {
+void GenericCommandEncoder::bind_descriptor_set(
+  VkDescriptorSet const descriptor_set,
+  VkPipelineLayout const pipeline_layout,
+  VkShaderStageFlags const stage_flags,
+  uint32_t first_set
+) const {
   VkBindDescriptorSetsInfoKHR const bind_desc_sets_info{
     .sType = VK_STRUCTURE_TYPE_BIND_DESCRIPTOR_SETS_INFO_KHR,
     .stageFlags = stage_flags,
     .layout = pipeline_layout,
-    .firstSet = 0u,
+    .firstSet = first_set,
     .descriptorSetCount = 1u, //
     .pDescriptorSets = &descriptor_set,
   };
