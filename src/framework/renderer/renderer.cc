@@ -72,11 +72,17 @@ void Renderer::init(Context const& context, ResourceAllocator* allocator, VkSurf
       .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
       .pNext = &semaphore_type_create_info,
     };
-    CHECK_VK(vkCreateSemaphore(device_, &semaphore_create_info, nullptr, &timeline_.semaphore));
+    CHECK_VK(vkCreateSemaphore(
+      device_, &semaphore_create_info, nullptr, &timeline_.semaphore
+    ));
   }
+
+  // -------------------------------------------------
 
   /* Create a generic descriptor pool for the framework / app. */
   init_descriptor_pool();
+
+  // -------------------------------------------------
 
   sampler_pool_.init(device_);
   // sampler_LinearRepeatMipMapAniso_ = sampler_pool_.get({
@@ -583,6 +589,7 @@ void Renderer::create_graphics_pipelines(
 
   for (size_t i = 0; i < descs.size(); ++i) {
     (*out_pipelines)[i] = Pipeline(pipeline_layout, pipelines[i], VK_PIPELINE_BIND_POINT_GRAPHICS);
+    vkutils::SetDebugObjectName(device_, pipelines[i], "GraphicsPipeline::NoName");
   }
 }
 

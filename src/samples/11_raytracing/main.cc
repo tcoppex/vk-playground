@@ -60,7 +60,6 @@ class BasicRayTracingFx : public RayTracingFx {
         .misses       = shaders_map.at(backend::ShaderStage::Miss),
       },
 
-      // ~ ORDER MATTERS ... ~
       .shaderGroups = {
         // Raygen Groups
         .raygens = {{

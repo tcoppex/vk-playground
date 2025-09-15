@@ -122,7 +122,10 @@ backend::Image Context::create_image_2d(
 
 // ----------------------------------------------------------------------------
 
-backend::ShaderModule Context::create_shader_module(std::string_view const& directory, std::string_view const& shader_name) const {
+backend::ShaderModule Context::create_shader_module(
+  std::string_view const& directory,
+  std::string_view const& shader_name
+) const {
   return {
     .module = vkutils::CreateShaderModule(device_, directory.data(), shader_name.data()),
     .basename = utils::ExtractBasename(shader_name, true),
@@ -578,13 +581,13 @@ bool Context::init_device() {
   /* Use aliases without suffixes. */
   {
     auto bind_func{ [](auto & f1, auto & f2) { if (!f1) { f1 = f2; } } };
-    bind_func(vkWaitSemaphores, vkWaitSemaphoresKHR);
-    bind_func(vkCmdPipelineBarrier2, vkCmdPipelineBarrier2KHR);
-    bind_func(vkQueueSubmit2, vkQueueSubmit2KHR);
-    bind_func(vkCmdBeginRendering, vkCmdBeginRenderingKHR);
-    bind_func(vkCmdEndRendering, vkCmdEndRenderingKHR);
-    bind_func(vkCmdBindVertexBuffers2, vkCmdBindVertexBuffers2EXT);
-    bind_func(vkCmdBindIndexBuffer2, vkCmdBindIndexBuffer2KHR);
+    bind_func(         vkWaitSemaphores, vkWaitSemaphoresKHR);
+    bind_func(    vkCmdPipelineBarrier2, vkCmdPipelineBarrier2KHR);
+    bind_func(           vkQueueSubmit2, vkQueueSubmit2KHR);
+    bind_func(      vkCmdBeginRendering, vkCmdBeginRenderingKHR);
+    bind_func(        vkCmdEndRendering, vkCmdEndRenderingKHR);
+    bind_func(  vkCmdBindVertexBuffers2, vkCmdBindVertexBuffers2EXT);
+    bind_func(    vkCmdBindIndexBuffer2, vkCmdBindIndexBuffer2KHR);
   }
 
   /* Retrieved requested queues. */

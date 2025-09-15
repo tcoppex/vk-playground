@@ -1,6 +1,8 @@
 #version 460
 #extension GL_EXT_ray_tracing : require
 
+// ----------------------------------------------------------------------------
+
 struct HitPayload_t {
   vec3 origin;
   vec3 radiance;
@@ -8,7 +10,11 @@ struct HitPayload_t {
   int done;
 };
 
+// ----------------------------------------------------------------------------
+
 layout(location = 0) rayPayloadInEXT HitPayload_t payload;
+
+// ----------------------------------------------------------------------------
 
 void main() {
   vec3 dir = normalize(payload.direction);
@@ -19,3 +25,5 @@ void main() {
   );
   payload.done = 1;
 }
+
+// ----------------------------------------------------------------------------
