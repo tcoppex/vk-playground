@@ -224,8 +224,8 @@ if(USE_GCC OR USE_CLANG)
   )
 
   list(APPEND CXX_FLAGS_DEBUG           -O0 -g3 -Wundef)
-  list(APPEND CXX_FLAGS_RELEASE         -O2 -msse4.1)
-  list(APPEND CXX_FLAGS_RELWITHDEBINFO  ${CXX_FLAGS_RELEASE} -g1)
+  list(APPEND CXX_FLAGS_RELEASE         -O2 -msse4.1 -s)
+  list(APPEND CXX_FLAGS_RELWITHDEBINFO  -O2 -msse4.1 -g1)
 
   # Linker flags.
   list(APPEND CustomLinkFlags
