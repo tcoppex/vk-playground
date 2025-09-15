@@ -1,0 +1,110 @@
+#pragma once
+
+#include "framework/core/common.h"
+#include "framework/backend/types.h"
+
+class Context;
+class Renderer;
+class RayTracingSceneInterface;
+
+/* -------------------------------------------------------------------------- */
+
+// class DescriptorPool {};
+
+// ----------------------------------------------------------------------------
+
+///
+/// Handler to access the renderer global Descriptor Sets:
+///   - Frame, for dynamic per-frame data (eg. camera matrices)
+///   - Scene, for scene shared resources (eg. TextureAtlas, IBL)
+///   - RayTracing, for scene data that could change (eg. raytracing instances)
+///
+class DescriptorSetRegistry {
+ public:
+  enum class Type {
+    Frame,
+    Scene,
+    RayTracing,
+    kCount,
+  };
+
+  struct Bindings {
+    enum Frame {
+      FrameUBO,
+    };
+
+    enum Scene {
+      TextureAtlas,
+      IBLPrefiltered,
+      IBLIrradiance,
+      SpecularBRDF,
+    };
+
+    enum RayTracing {
+      TLAS,
+      InstancesData,
+    };
+  };
+
+  struct DescriptorSet {
+    uint32_t index{};
+    VkDescriptorSet set{};
+    VkDescriptorSetLayout layout{};
+  };
+
+ public:
+  DescriptorSetRegistry() = default;
+
+  /* Allocate the main DescriptorSets. */
+  void init(Renderer const& renderer, uint32_t const max_sets);
+  void release();
+
+  /* Return a main DescriptorSet. */
+  DescriptorSet const& descriptor(Type type) const {
+    return sets_[type];
+  };
+
+ public:
+  /* Methods to update shared internal descriptor sets. */
+
+  void update_frame_ubo(backend::Buffer const& buffer) const;
+
+  void update_scene_textures(std::vector<VkDescriptorImageInfo> image_infos) const;
+
+  void update_scene_ibl() const;
+
+  void update_ray_tracing_scene(RayTracingSceneInterface const* rt_scene) const;
+
+ private:
+  VkDescriptorSetLayout create_layout(
+    DescriptorSetLayoutParamsBuffer const& params,
+    VkDescriptorSetLayoutCreateFlags flags
+  ) const;
+
+  VkDescriptorSet allocate_descriptor_set(
+    VkDescriptorSetLayout const layout
+  ) const;
+
+  void init_descriptor_pool(uint32_t const max_sets);
+
+  void init_descriptor_sets();
+
+  void create_main_set(
+    Type const type,
+    DescriptorSetLayoutParamsBuffer const& layout_params,
+    VkDescriptorSetLayoutCreateFlags layout_flags,
+    std::string const& name
+  );
+
+ private:
+  Renderer const* renderer_ptr_{};
+  Context const* context_ptr_{}; //
+  VkDevice device_{}; //
+
+  std::vector<VkDescriptorPoolSize> descriptor_pool_sizes_{};
+  VkDescriptorPool main_pool_{};
+
+  EnumArray<DescriptorSet, Type> sets_{};
+};
+
+/* -------------------------------------------------------------------------- */
