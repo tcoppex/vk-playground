@@ -15,12 +15,16 @@
 #pragma clang diagnostic ignored "-Wmissing-field-initializers"
 #pragma clang diagnostic ignored "-Wunused-variable"
 #pragma clang diagnostic ignored "-Wunused-function"
+#pragma clang diagnostic ignored "-Wuseless-cast"
+#pragma clang diagnostic ignored "-Wundef"
 #elif defined(__GNUC__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 #pragma GCC diagnostic ignored "-Wunused-variable"
 #pragma GCC diagnostic ignored "-Wunused-function"
-#endif
+#pragma GCC diagnostic ignored "-Wuseless-cast"
+#pragma GCC diagnostic ignored "-Wundef"
+#else
 #pragma warning(push)
 #pragma warning(disable : 4100)  // Unreferenced formal parameter
 #pragma warning(disable : 4189)  // Local variable is initialized but not referenced
@@ -28,17 +32,19 @@
 #pragma warning(disable : 4324)  // Structure was padded due to alignment specifier
 #pragma warning(disable : 4505)  // Unreferenced function with internal linkage has been removed
 #endif
+#endif // VMA_IMPLEMENTATION
 
 #include "vk_mem_alloc.h"
 
 #ifdef VMA_IMPLEMENTATION
-#pragma warning(pop)
 #ifdef __clang__
 #pragma clang diagnostic pop
 #elif defined(__GNUC__)
 #pragma GCC diagnostic pop
+#else
+#pragma warning(pop)
 #endif
-#endif
+#endif // VMA_IMPLEMENTATION
 
 namespace backend {
 

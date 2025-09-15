@@ -554,6 +554,7 @@ void Renderer::create_graphics_pipelines(
   std::vector<Pipeline> *out_pipelines
 ) const {
   LOG_CHECK( pipeline_layout != VK_NULL_HANDLE );
+  LOG_CHECK( !descs.empty() );
 
   /// When batching pipelines, most underlying data will not changes, so
   /// we could improve setupping by changing only those needed (like
@@ -566,9 +567,11 @@ void Renderer::create_graphics_pipelines(
     create_infos[i].flags |= VK_PIPELINE_CREATE_DERIVATIVE_BIT;
     create_infos[i].basePipelineIndex = 0;
   }
-  create_infos[0].flags &= ~VK_PIPELINE_CREATE_DERIVATIVE_BIT;
-  create_infos[0].flags |= VK_PIPELINE_CREATE_ALLOW_DERIVATIVES_BIT;
-  create_infos[0].basePipelineIndex = -1;
+  if (!descs.empty()) {
+    create_infos[0].flags &= ~VK_PIPELINE_CREATE_DERIVATIVE_BIT;
+    create_infos[0].flags |= VK_PIPELINE_CREATE_ALLOW_DERIVATIVES_BIT;
+    create_infos[0].basePipelineIndex = -1;
+  }
 
   std::vector<VkPipeline> pipelines(descs.size());
   CHECK_VK(vkCreateGraphicsPipelines(

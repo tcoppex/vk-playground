@@ -103,9 +103,9 @@ size_t CommandEncoder::copy_buffer(backend::Buffer const& src, size_t src_offset
   LOG_CHECK(size > 0);
   copy_buffer(src, dst, {
     {
-      .srcOffset = static_cast<VkDeviceSize>(src_offset),
-      .dstOffset = static_cast<VkDeviceSize>(dst_offet),
-      .size = static_cast<VkDeviceSize>(size),
+      .srcOffset = src_offset,
+      .dstOffset = dst_offet,
+      .size = size,
     }
   });
   return src_offset + size;

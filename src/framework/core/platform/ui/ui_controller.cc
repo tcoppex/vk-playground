@@ -1,6 +1,29 @@
 /* -------------------------------------------------------------------------- */
 
+
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wuseless-cast"
+#elif defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wuseless-cast"
+#else
+#pragma warning(push)
+#endif
+
 #define IMGUI_WRAPPER_IMPL
+#include "framework/core/platform/ui/imgui_wrapper.h"
+#include <imgui_internal.h>
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#elif defined(__GNUC__)
+#pragma GCC diagnostic pop
+#else
+#pragma warning(pop)
+#endif
+
+
 #include "framework/core/platform/ui/ui_controller.h"
 
 #include "framework/renderer/renderer.h"

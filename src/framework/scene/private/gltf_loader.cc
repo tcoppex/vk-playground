@@ -792,13 +792,13 @@ void ExtractAnimations(
   for (cgltf_size i = 0; i < data->skins_count; ++i) {
     cgltf_skin* skin = &data->skins[i];
     auto const skeletonName = skin->name ? skin->name
-                            : basename + std::string("::Skeleton_" + std::to_string(i));
+                            : basename + "::Skeleton_" + std::to_string(i);
     for (size_t j = 0; j < skin->joints_count; ++j) {
       cgltf_node* joint_node = skin->joints[j];
       for (size_t k = 0; k < data->animations_count; ++k) {
         cgltf_animation const& animation = data->animations[k];
         auto const clipName = animation.name ? animation.name
-                            : basename + std::string("::Animation_" + std::to_string(k));
+                            : basename + "::Animation_" + std::to_string(k);
         for (size_t l = 0; l < animation.channels_count; ++l) {
           cgltf_animation_channel* channel = &animation.channels[l];
           if (channel->target_node == joint_node) {
@@ -818,7 +818,7 @@ void ExtractAnimations(
   for (cgltf_size i = 0; i < data->animations_count; ++i) {
     cgltf_animation const& animation = data->animations[i];
     std::string const clipName = animation.name ? animation.name
-                               : basename + std::string("##Animation_" + std::to_string(i));
+                               : basename + "##Animation_" + std::to_string(i);
     LOG_CHECK(animation.samplers_count == animation.channels_count);
 
     // Find animation's skeleton.

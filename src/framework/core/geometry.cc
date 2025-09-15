@@ -254,7 +254,8 @@ void Geometry::MakeSphere(Geometry &geo, float radius, uint32_t resx, uint32_t r
   uint32_t const nrows = resy + 1u;
 
   uint32_t const vertex_count = 2u + (nrows - 2u) * ncols;
-  std::vector<Vertex_t> vertices(vertex_count);
+  std::vector<Vertex_t> vertices;
+  vertices.resize(vertex_count);
 
   // Vertices data.
   {

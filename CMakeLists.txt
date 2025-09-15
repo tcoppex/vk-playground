@@ -191,18 +191,19 @@ if(USE_GCC OR USE_CLANG)
     -Wduplicated-cond
     # -Wdouble-promotion
     # -Wuseless-cast
-    # -Wcast-align
-    # -Wlogical-op
-    # -Wnull-dereference
+    -Wcast-align
+    -Wlogical-op
+    -Wnull-dereference
     # -Wzero-as-null-pointer-constant
-    # -Wdisabled-optimization
-    # -Wvector-operation-performance
-    # -Wformat=2 -Wformat-truncation -Wformat-overflow
+    -Wdisabled-optimization
+    -Wvector-operation-performance
+    -Wformat=2 -Wformat-truncation -Wformat-overflow
     -Wno-unknown-pragmas
     -Wno-unused-function
     -Wno-unused-parameter
     -Wno-missing-field-initializers
     -Wno-invalid-offsetof
+    # -Wundef
   )
 
   # To avoid warnings about the previous mismatched GCC / Clang options.
@@ -223,7 +224,7 @@ if(USE_GCC OR USE_CLANG)
     # -funroll-loops
   )
 
-  list(APPEND CXX_FLAGS_DEBUG           -O0 -g3 -Wundef)
+  list(APPEND CXX_FLAGS_DEBUG           -O0 -g3)
   list(APPEND CXX_FLAGS_RELEASE         -O2 -msse4.1 -s)
   list(APPEND CXX_FLAGS_RELWITHDEBINFO  -O2 -msse4.1 -g1)
 

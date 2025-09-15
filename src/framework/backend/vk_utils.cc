@@ -38,9 +38,8 @@ VkShaderModule CreateShaderModule(VkDevice const device, char const* shader_dire
   };
 
   VkShaderModule module;
-  VkResult err = vkCreateShaderModule(device, &shader_module_info, nullptr, &module);
+  CHECK_VK( vkCreateShaderModule(device, &shader_module_info, nullptr, &module) );
   SetDebugObjectName(device, module, shader_name);
-  CHECK_VK(err);
 
   delete [] code;
 
