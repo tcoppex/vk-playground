@@ -35,11 +35,20 @@ add_library(
 
 # -----------------------------------------------------------------------------
 
-target_link_libraries(${target} PRIVATE
+list(APPEND FrameworkLibs
   ${SharedLibs}
   ${MikkTSpace}
   VulkanMemoryAllocator
 )
+
+if (OS_LINUX)
+  # Required to build imgui_glfw_impl
+  find_package(X11 REQUIRED)
+  list(APPEND FrameworkLibs ${X11_LIBRARIES})
+endif()
+
+
+target_link_libraries(${target} PRIVATE ${FrameworkLibs})
 
 target_include_directories(${target} PRIVATE
   ${SharedIncludeDirs}
