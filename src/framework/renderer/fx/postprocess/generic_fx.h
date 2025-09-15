@@ -23,6 +23,10 @@ class GenericFx : public virtual FxInterface {
 
   virtual DescriptorSetLayoutParamsBuffer getDescriptorSetLayoutParams() const = 0;
 
+  virtual std::vector<VkDescriptorSetLayout> getDescriptorSetLayouts() const {
+    return {descriptor_set_layout_};
+  }
+
   virtual std::vector<VkPushConstantRange> getPushConstantRanges() const {
     return {};
   }
