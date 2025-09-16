@@ -101,13 +101,14 @@ void russianRoulette() {
 // -----------------------------------------------------------------------------
 
 void main() {
-  const uint objid = gl_InstanceCustomIndexEXT;
+  const uint object_id   = gl_InstanceID; //
+  const uint material_id = gl_InstanceCustomIndexEXT;
 
   // ----------------------------------------
 
   // GEOMETRY.
 
-  ObjBuffers_t obj = ObjBuffers.addr[nonuniformEXT(objid)];
+  ObjBuffers_t obj = ObjBuffers.addr[nonuniformEXT(object_id)];
   Vertices vertices = Vertices(obj.vertexAddr);
   Indices indices   = Indices(obj.indexAddr);
 
