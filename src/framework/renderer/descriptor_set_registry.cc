@@ -29,6 +29,73 @@ void DescriptorSetRegistry::release() {
 
 // ----------------------------------------------------------------------------
 
+VkDescriptorSetLayout DescriptorSetRegistry::create_layout(
+  DescriptorSetLayoutParamsBuffer const& params,
+  VkDescriptorSetLayoutCreateFlags flags
+) const {
+  std::vector<VkDescriptorSetLayoutBinding> entries{};
+  entries.reserve(params.size());
+
+  std::vector<VkDescriptorBindingFlags> binding_flags{};
+  binding_flags.reserve(params.size());
+
+  for (auto const& param : params) {
+    entries.push_back({
+      .binding = param.binding,
+      .descriptorType = param.descriptorType,
+      .descriptorCount = param.descriptorCount,
+      .stageFlags = param.stageFlags,
+      .pImmutableSamplers = param.pImmutableSamplers,
+    });
+    binding_flags.push_back(param.bindingFlags);
+  }
+
+  VkDescriptorSetLayoutBindingFlagsCreateInfo const flags_create_info{
+    .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO,
+    .bindingCount = static_cast<uint32_t>(binding_flags.size()),
+    .pBindingFlags = binding_flags.data(),
+  };
+  VkDescriptorSetLayoutCreateInfo const layout_create_info{
+    .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+    .pNext = binding_flags.empty() ? nullptr : &flags_create_info,
+    .flags = flags,
+    .bindingCount = static_cast<uint32_t>(entries.size()),
+    .pBindings = entries.data(),
+  };
+
+  VkDescriptorSetLayout descriptor_set_layout;
+  CHECK_VK(vkCreateDescriptorSetLayout(
+    device_, &layout_create_info, nullptr, &descriptor_set_layout
+  ));
+
+  return descriptor_set_layout;
+}
+
+// ----------------------------------------------------------------------------
+
+void DescriptorSetRegistry::destroy_layout(VkDescriptorSetLayout &layout) const {
+  vkDestroyDescriptorSetLayout(device_, layout, nullptr);
+  layout = VK_NULL_HANDLE;
+}
+
+// ----------------------------------------------------------------------------
+
+VkDescriptorSet DescriptorSetRegistry::allocate_descriptor_set(
+  VkDescriptorSetLayout const layout
+) const {
+  VkDescriptorSetAllocateInfo const alloc_info{
+    .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+    .descriptorPool = main_pool_,
+    .descriptorSetCount = 1u,
+    .pSetLayouts = &layout,
+  };
+  VkDescriptorSet descriptor_set{};
+  CHECK_VK(vkAllocateDescriptorSets(device_, &alloc_info, &descriptor_set));
+  return descriptor_set;
+}
+
+// ----------------------------------------------------------------------------
+
 void DescriptorSetRegistry::update_frame_ubo(backend::Buffer const& buffer) const {
   context_ptr_->update_descriptor_set(
     sets_[DescriptorSetRegistry::Type::Frame].set,
@@ -131,65 +198,6 @@ void DescriptorSetRegistry::update_ray_tracing_scene(RayTracingSceneInterface co
 }
 
 // ----------------------------------------------------------------------------
-
-VkDescriptorSetLayout DescriptorSetRegistry::create_layout(
-  DescriptorSetLayoutParamsBuffer const& params,
-  VkDescriptorSetLayoutCreateFlags flags
-) const {
-  std::vector<VkDescriptorSetLayoutBinding> entries{};
-  entries.reserve(params.size());
-
-  std::vector<VkDescriptorBindingFlags> binding_flags{};
-  binding_flags.reserve(params.size());
-
-  for (auto const& param : params) {
-    entries.push_back({
-      .binding = param.binding,
-      .descriptorType = param.descriptorType,
-      .descriptorCount = param.descriptorCount,
-      .stageFlags = param.stageFlags,
-      .pImmutableSamplers = param.pImmutableSamplers,
-    });
-    binding_flags.push_back(param.bindingFlags);
-  }
-
-  VkDescriptorSetLayoutBindingFlagsCreateInfo const flags_create_info{
-    .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO,
-    .bindingCount = static_cast<uint32_t>(binding_flags.size()),
-    .pBindingFlags = binding_flags.data(),
-  };
-  VkDescriptorSetLayoutCreateInfo const layout_create_info{
-    .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-    .pNext = binding_flags.empty() ? nullptr : &flags_create_info,
-    .flags = flags,
-    .bindingCount = static_cast<uint32_t>(entries.size()),
-    .pBindings = entries.data(),
-  };
-
-  VkDescriptorSetLayout descriptor_set_layout;
-  CHECK_VK(vkCreateDescriptorSetLayout(
-    device_, &layout_create_info, nullptr, &descriptor_set_layout
-  ));
-
-  return descriptor_set_layout;
-}
-
-// ----------------------------------------------------------------------------
-
-VkDescriptorSet DescriptorSetRegistry::allocate_descriptor_set(
-  VkDescriptorSetLayout const layout
-) const {
-  VkDescriptorSetAllocateInfo const alloc_info{
-    .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-    .descriptorPool = main_pool_,
-    .descriptorSetCount = 1u,
-    .pSetLayouts = &layout,
-  };
-  VkDescriptorSet descriptor_set{};
-  CHECK_VK(vkAllocateDescriptorSets(device_, &alloc_info, &descriptor_set));
-  return descriptor_set;
-}
-
 // ----------------------------------------------------------------------------
 
 void DescriptorSetRegistry::init_descriptor_pool(uint32_t const max_sets) {

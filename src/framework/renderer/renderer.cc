@@ -77,27 +77,13 @@ void Renderer::init(Context const& context, ResourceAllocator* allocator, VkSurf
     ));
   }
 
-  // -------------------------------------------------
+  /* Handle Descriptor Set allocation through the framework. */
+  descriptor_set_registry_.init(*this, kMaxDescriptorPoolSets);
 
-  /* Create a generic descriptor pool for the framework / app. */
-  init_descriptor_pool();
-
-  // -------------------------------------------------
-
+  /*  */
   sampler_pool_.init(device_);
-  // sampler_LinearRepeatMipMapAniso_ = sampler_pool_.get({
-  //   .magFilter = VK_FILTER_LINEAR,
-  //   .minFilter = VK_FILTER_LINEAR,
-  //   .mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
-  //   .addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-  //   .addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-  //   .addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
-  //   .anisotropyEnable = VK_TRUE,
-  //   .maxAnisotropy = 16.0f,
-  //   .maxLod = VK_LOD_CLAMP_NONE,
-  // });
 
-  /* Renderer internal helpers. */
+  /* Renderer internal effects. */
   skybox_.init(*this);
 }
 
@@ -106,13 +92,9 @@ void Renderer::init(Context const& context, ResourceAllocator* allocator, VkSurf
 void Renderer::deinit() {
   assert(device_ != VK_NULL_HANDLE);
 
-  skybox_.release(*this);
+  skybox_.release(*this); //
   sampler_pool_.deinit();
-
-  // ------------
-  vkDestroyDescriptorPool(device_, descriptor_pool_, nullptr);
   descriptor_set_registry_.release();
-  // ------------
 
   vkDestroySemaphore(device_, timeline_.semaphore, nullptr);
   for (auto & frame : timeline_.frames) {
@@ -804,75 +786,19 @@ VkDescriptorSetLayout Renderer::create_descriptor_set_layout(
   DescriptorSetLayoutParamsBuffer const& params,
   VkDescriptorSetLayoutCreateFlags flags
 ) const {
-  std::vector<VkDescriptorSetLayoutBinding> entries{};
-  std::vector<VkDescriptorBindingFlags> binding_flags{};
-
-  entries.reserve(params.size());
-  binding_flags.reserve(params.size());
-
-  for (auto const& param : params) {
-    entries.push_back({
-      .binding = param.binding,
-      .descriptorType = param.descriptorType,
-      .descriptorCount = param.descriptorCount,
-      .stageFlags = param.stageFlags,
-      .pImmutableSamplers = param.pImmutableSamplers,
-    });
-    binding_flags.push_back(param.bindingFlags);
-  }
-
-  VkDescriptorSetLayoutBindingFlagsCreateInfo const flags_create_info{
-    .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO,
-    .bindingCount = static_cast<uint32_t>(binding_flags.size()),
-    .pBindingFlags = binding_flags.data(),
-  };
-  VkDescriptorSetLayoutCreateInfo const layout_create_info{
-    .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-    .pNext = binding_flags.empty() ? nullptr : &flags_create_info,
-    .flags = flags,
-    .bindingCount = static_cast<uint32_t>(entries.size()),
-    .pBindings = entries.data(),
-  };
-
-  VkDescriptorSetLayout descriptor_set_layout;
-  CHECK_VK(vkCreateDescriptorSetLayout(device_, &layout_create_info, nullptr, &descriptor_set_layout));
-
-  return descriptor_set_layout;
+  return descriptor_set_registry_.create_layout(params, flags);
 }
 
 // ----------------------------------------------------------------------------
 
 void Renderer::destroy_descriptor_set_layout(VkDescriptorSetLayout &layout) const {
-  vkDestroyDescriptorSetLayout(device_, layout, nullptr);
-  layout = VK_NULL_HANDLE;
-}
-
-// ----------------------------------------------------------------------------
-
-std::vector<VkDescriptorSet> Renderer::create_descriptor_sets(std::vector<VkDescriptorSetLayout> const& layouts) const {
-  VkDescriptorSetAllocateInfo const alloc_info{
-    .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-    .descriptorPool = descriptor_pool_,
-    .descriptorSetCount = static_cast<uint32_t>(layouts.size()),
-    .pSetLayouts = layouts.data(),
-  };
-  std::vector<VkDescriptorSet> descriptor_sets(layouts.size());
-  CHECK_VK(vkAllocateDescriptorSets(device_, &alloc_info, descriptor_sets.data()));
-  return descriptor_sets;
+  descriptor_set_registry_.destroy_layout(layout);
 }
 
 // ----------------------------------------------------------------------------
 
 VkDescriptorSet Renderer::create_descriptor_set(VkDescriptorSetLayout const layout) const {
-  VkDescriptorSetAllocateInfo const alloc_info{
-    .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-    .descriptorPool = descriptor_pool_,
-    .descriptorSetCount = 1u,
-    .pSetLayouts = &layout,
-  };
-  VkDescriptorSet descriptor_set{};
-  CHECK_VK(vkAllocateDescriptorSets(device_, &alloc_info, &descriptor_set));
-  return descriptor_set;
+  return descriptor_set_registry_.allocate_descriptor_set(layout);
 }
 
 // ----------------------------------------------------------------------------
@@ -982,46 +908,6 @@ GLTFScene Renderer::load_and_upload(std::string_view gltf_filename) {
   // -----------------------
   // -----------------------
   return load_and_upload(gltf_filename, kDefaultFxPipelineAttributeLocationMap);
-}
-
-/* -------------------------------------------------------------------------- */
-/* -------------------------------------------------------------------------- */
-
-void Renderer::init_descriptor_pool() {
-  uint32_t const kMaxDescriptorPoolSets{ 256u };
-
-  descriptor_set_registry_.init(*this, kMaxDescriptorPoolSets);
-
-  // -------------------------------
-
-  /* Default pool, to adjust based on application needs. */
-  descriptor_pool_sizes_ = {
-    { VK_DESCRIPTOR_TYPE_SAMPLER, 50 },                 // standalone samplers
-    { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 300 }, // textures in materials
-    { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 100 },          // sampled images
-    { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 50 },           // compute shaders
-    { VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 50 },    // texel buffers
-    { VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 50 },    // storage texel buffers
-    { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 200 },         // per-frame and per-object data
-    { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 100 },         // compute data or large resource buffers
-    { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 50 },  // dynamic uniform buffers (per-frame, per-object)
-    { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 50 },  // dynamic storage buffers
-    { VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 50 },        // subpass inputs
-    // ---------------------------------------
-    { VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 50 },
-    // ---------------------------------------
-  };
-
-  VkDescriptorPoolCreateInfo const descriptor_pool_info{
-    .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-    .flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT
-           | VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT
-           ,
-    .maxSets = kMaxDescriptorPoolSets,
-    .poolSizeCount = static_cast<uint32_t>(descriptor_pool_sizes_.size()),
-    .pPoolSizes = descriptor_pool_sizes_.data(),
-  };
-  CHECK_VK(vkCreateDescriptorPool(device_, &descriptor_pool_info, nullptr, &descriptor_pool_));
 }
 
 /* -------------------------------------------------------------------------- */

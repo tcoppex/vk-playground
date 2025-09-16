@@ -41,10 +41,24 @@ class DescriptorSetRegistry {
   void init(Renderer const& renderer, uint32_t const max_sets);
   void release();
 
-  /* Return a main DescriptorSet. */
+  /* Return an internal main DescriptorSet. */
   DescriptorSet const& descriptor(Type type) const {
     return sets_[type];
   };
+
+ public:
+  /* Methods to allocate custom descriptor set and layout. */
+
+  VkDescriptorSetLayout create_layout(
+    DescriptorSetLayoutParamsBuffer const& params,
+    VkDescriptorSetLayoutCreateFlags flags
+  ) const;
+
+  void destroy_layout(VkDescriptorSetLayout &layout) const;
+
+  VkDescriptorSet allocate_descriptor_set(
+    VkDescriptorSetLayout const layout
+  ) const;
 
  public:
   /* Methods to update shared internal descriptor sets. */
@@ -60,15 +74,6 @@ class DescriptorSetRegistry {
   void update_ray_tracing_scene(RayTracingSceneInterface const* rt_scene) const;
 
  private:
-  VkDescriptorSetLayout create_layout(
-    DescriptorSetLayoutParamsBuffer const& params,
-    VkDescriptorSetLayoutCreateFlags flags
-  ) const;
-
-  VkDescriptorSet allocate_descriptor_set(
-    VkDescriptorSetLayout const layout
-  ) const;
-
   void init_descriptor_pool(uint32_t const max_sets);
 
   void init_descriptor_sets();

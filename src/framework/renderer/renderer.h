@@ -37,6 +37,7 @@ class Context;
 class Renderer : public backend::RTInterface {
  public:
   static constexpr VkClearValue kDefaultColorClearValue{{{1.0f, 0.25f, 0.75f, 1.0f}}};
+  static constexpr uint32_t kMaxDescriptorPoolSets{ 256u };
 
  public:
   Renderer() = default;
@@ -141,14 +142,11 @@ class Renderer : public backend::RTInterface {
     RayTracingPipelineDescriptor_t const& desc
   ) const;
 
-  // --------------------------
-  // --- Descriptor Allocator ---
+  // --- Descriptor Set Registry ---
 
   DescriptorSetRegistry const& descriptor_set_registry() const {
     return descriptor_set_registry_;
   }
-
-  // --- Descriptor Set Layout ---
 
   VkDescriptorSetLayout create_descriptor_set_layout(
     DescriptorSetLayoutParamsBuffer const& params,
@@ -157,14 +155,9 @@ class Renderer : public backend::RTInterface {
 
   void destroy_descriptor_set_layout(VkDescriptorSetLayout& layout) const;
 
-  // --- Descriptor Set ---
-
-  std::vector<VkDescriptorSet> create_descriptor_sets(std::vector<VkDescriptorSetLayout> const& layouts) const;
-
   VkDescriptorSet create_descriptor_set(VkDescriptorSetLayout const layout) const;
 
   VkDescriptorSet create_descriptor_set(VkDescriptorSetLayout const layout, std::vector<DescriptorSetWriteEntry> const& entries) const;
-// --------------------------
 
   // --- Texture ---
 
@@ -282,21 +275,20 @@ class Renderer : public backend::RTInterface {
   mutable std::vector<backend::Image> proxy_swap_attachment_{};
 
   /* Pipeline Cache */
-  VkPipelineCache pipeline_cache_;
+  VkPipelineCache pipeline_cache_{};
 
   /* Default depth-stencil buffer. */
   backend::Image depth_stencil_{};
 
   /* Timeline frame resources */
-  Timeline_t timeline_;
+  Timeline_t timeline_{};
 
-  /* Main descriptor pool. */
-  std::vector<VkDescriptorPoolSize> descriptor_pool_sizes_{};
-  VkDescriptorPool descriptor_pool_{};
-
-// -----------------------------------
+  /* Descriptor registry and allocator */
   DescriptorSetRegistry descriptor_set_registry_{};
-// -----------------------------------
+
+  /* Utils */
+  SamplerPool sampler_pool_{};
+  Skybox skybox_{};
 
   /* Miscs resources */
   VkClearValue color_clear_value_{kDefaultColorClearValue};
@@ -305,10 +297,6 @@ class Renderer : public backend::RTInterface {
 
   // Reference to the current CommandEncoder returned by 'begin_frame'
   CommandEncoder cmd_{}; //
-
-  /* Utils */
-  SamplerPool sampler_pool_{};
-  Skybox skybox_{};
 };
 
 /* -------------------------------------------------------------------------- */
