@@ -29,6 +29,10 @@ uniform sampler2D[] uTextureChannels;
 
 #define TEXTURE_ATLAS(i)  uTextureChannels[nonuniformEXT(i)]
 
+layout(push_constant, scalar) uniform PushConstant_ {
+  PushConstant pushConstant;
+};
+
 // -----------------------------------------------------------------------------
 
 layout(buffer_reference, scalar) buffer Vertices {
@@ -187,8 +191,9 @@ void main() {
 
   if (material_type == kRayTracingMaterialType_Emissive)
   {
-    float intensity = 10.0;
-    payload.radiance += payload.throughput * emissive * intensity; //
+    payload.radiance += payload.throughput
+                      * emissive * pushConstant.light_intensity
+                      ;
     payload.done = 1;
     return;
   }

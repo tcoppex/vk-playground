@@ -1,11 +1,16 @@
 #version 460
 #extension GL_EXT_ray_tracing : require
+#extension GL_EXT_scalar_block_layout : enable
 
 #include "../interop.h"
 
 // ----------------------------------------------------------------------------
 
 layout(location = 0) rayPayloadInEXT HitPayload_t payload;
+
+layout(push_constant, scalar) uniform PushConstant_ {
+  PushConstant pushConstant;
+};
 
 // ----------------------------------------------------------------------------
 
@@ -17,8 +22,9 @@ void main() {
   vec3 color = mix(dawn, sky,
     pow(0.5*(dir.y + 1.0), 0.90)
   );
+  color *= pushConstant.sky_intensity;
 
-  payload.radiance += 1.1 * color * payload.throughput;
+  payload.radiance += color * payload.throughput;
   payload.done = 1;
 }
 

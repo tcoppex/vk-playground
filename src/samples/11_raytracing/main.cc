@@ -267,14 +267,30 @@ class SampleApp final : public Application {
       cmd.end_rendering();
     }
 
+    /* Draw UI on top. */
+    cmd.render_ui(renderer_);
+
     renderer_.end_frame();
+  }
+
+  void build_ui() final {
+    ImGui::Begin("Settings");
+    {
+      ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
+      ImGui::Separator();
+
+      if (ImGui::CollapsingHeader("Ray Tracing", ImGuiTreeNodeFlags_DefaultOpen)) {
+        ray_tracing_fx_.setupUI();
+      }
+    }
+    ImGui::End();
   }
 
  private:
   Camera camera_{};
   ArcBallController arcball_controller_{};
 
-  BasicRayTracingFx raytracing_{};
+  BasicRayTracingFx ray_tracing_fx_{};
 
   std::future<GLTFScene> future_scene_{};
   GLTFScene scene_{};
