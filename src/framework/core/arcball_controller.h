@@ -28,26 +28,17 @@ class ArcBallController : public Camera::ViewController {
       dolly2_(dolly_)
   {}
 
-  void update(float dt) override;
+  bool update(float dt) override;
 
-  void getViewMatrix(mat4 *m) final;
-
-  void update(double const deltatime,
+  bool update(double const deltatime,
               bool const bMoving,
               bool const btnTranslate,
               bool const btnRotate,
               double const mouseX,
               double const mouseY,
-              double const wheelDelta)
-  {
-    if (bMoving) {
-      eventMouseMoved(btnTranslate, btnRotate, mouseX, mouseY);
-    }
-    eventWheel(wheelDelta);
-    smoothTransition(deltatime);
-    RegulateAngle(pitch_, pitch2_);
-    RegulateAngle(yaw_, yaw2_);
-  }
+              double const wheelDelta);
+
+  void getViewMatrix(mat4 *m) final;
 
   double yaw() const {
     return yaw_;

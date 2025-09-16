@@ -16,7 +16,7 @@ class Camera {
    public:
     virtual ~ViewController() = default;
 
-    virtual void update(float dt) {} 
+    virtual bool update(float dt) { return false; }
 
     virtual void getViewMatrix(mat4 *m) = 0;
 
@@ -80,10 +80,13 @@ class Camera {
 
   // Update controller and rebuild all matrices.
   void update(float dt) {
+    rebuilt_ = false;
     if (controller_) {
-      controller_->update(dt);
+      need_rebuild_ |= controller_->update(dt);
     }
-    rebuild();
+    if (need_rebuild_) {
+      rebuild();
+    }
   }
 
   // Rebuild all matrices.
@@ -93,6 +96,9 @@ class Camera {
     }
     world_    = linalg::inverse(view_); //
     viewproj_ = linalg::mul(proj_, view_);
+
+    need_rebuild_ = false;
+    rebuilt_ = true;
   }
 
   void setController(ViewController *controller) {
@@ -172,6 +178,10 @@ class Camera {
     return bUseOrtho_;
   }
 
+  bool rebuilt() const {
+    return rebuilt_;
+  }
+
  private:
   ViewController *controller_{};
 
@@ -186,6 +196,9 @@ class Camera {
   mat4 viewproj_{};
 
   bool bUseOrtho_{};
+
+  bool need_rebuild_{true};
+  bool rebuilt_{false};
 };
 
 /* -------------------------------------------------------------------------- */

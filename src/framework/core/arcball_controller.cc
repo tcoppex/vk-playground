@@ -4,10 +4,10 @@
 
 /* -------------------------------------------------------------------------- */
 
-void ArcBallController::update(float dt) {
+bool ArcBallController::update(float dt) {
   auto const& e{ Events::Get() };
 
-  update(
+  bool is_dirty = update(
     dt,
     e.mouseMoved(),
     e.buttonDown(2) || e.keyDown(342),  //   e.bMiddleMouse || e.bLeftAlt,
@@ -30,6 +30,7 @@ void ArcBallController::update(float dt) {
   // if (!e.bKeypad) {
   //   return;
   // }
+  bool is_dirty2 = true;
   switch (e.lastInputChar()) {
     // "Default" view.
     case '0': //GLFW_KEY_0:
@@ -80,8 +81,39 @@ void ArcBallController::update(float dt) {
     break;
 
     default:
+      is_dirty2 = false;
     break;
   }
+
+  return is_dirty || is_dirty2;
+}
+
+bool ArcBallController::update(
+  double const deltatime,
+  bool const bMoving,
+  bool const btnTranslate,
+  bool const btnRotate,
+  double const mouseX,
+  double const mouseY,
+  double const wheelDelta
+) {
+  if (bMoving) {
+    eventMouseMoved(btnTranslate, btnRotate, mouseX, mouseY);
+  }
+  eventWheel(wheelDelta);
+  smoothTransition(deltatime);
+
+  bool is_dirty = (bMoving && (btnTranslate || btnRotate))
+    || !lina::almost_equal<float>(yaw_, yaw2_, 0.01f)
+    || !lina::almost_equal<float>(pitch_, pitch2_, 0.01f)
+    || !lina::almost_equal<float>(dolly_, dolly2_, 0.01f)
+    || !lina::almost_equal(target_, target2_, vec3(lina::kEpsilon))
+    ;
+
+  RegulateAngle(pitch_, pitch2_);
+  RegulateAngle(yaw_, yaw2_);
+
+  return is_dirty;
 }
 
 // ----------------------------------------------------------------------------
@@ -195,6 +227,14 @@ void ArcBallController::eventWheel(double const dx) {
 }
 
 // ----------------------------------------------------------------------------
+
+float convergeEaseIn(float current, float target, float alpha)
+{
+  float d = target - current;
+  float step = d * pow(abs(d), alpha);
+  return current + step;
+}
+
 
 void ArcBallController::smoothTransition(double const deltatime) {
   // should filter / bias the final signal as it will keep a small jittering aliasing value
