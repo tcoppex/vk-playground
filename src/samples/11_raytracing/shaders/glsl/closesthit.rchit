@@ -101,7 +101,7 @@ void russianRoulette() {
 // -----------------------------------------------------------------------------
 
 void main() {
-  const uint object_id   = gl_InstanceID; //
+  const uint object_id   = uint(gl_InstanceID); //
   const uint material_id = gl_InstanceCustomIndexEXT;
 
   // ----------------------------------------
@@ -146,12 +146,12 @@ void main() {
 
   // MATERIAL.
 
-  const uint kInvalidIndexU32 = ((1 << 32) - 1);
+  const uint kInvalidIndexU24 = 0x00FFFFFF;
   uint material_type = kRayTracingMaterialType_Diffuse;
   vec3 emissive = vec3(0.0f);
   vec3 color = vec3(1.0f);
 
-  if (material_id < kInvalidIndexU32)
+  if (material_id != kInvalidIndexU24)
   {
     RayTracingMaterial mat = materials[nonuniformEXT(material_id)];
 

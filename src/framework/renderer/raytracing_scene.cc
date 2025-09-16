@@ -85,7 +85,7 @@ void RayTracingScene::build(
           .transform = {
             .matrix = ToVkTransformMatrix(mesh->world_matrix())
           },
-          .instanceCustomIndex = custom_index,
+          .instanceCustomIndex = custom_index & 0x00FFFFFF,
           .mask = 0xFF,
           .instanceShaderBindingTableRecordOffset = 0,
           .flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR, //
