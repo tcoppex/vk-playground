@@ -76,7 +76,8 @@ class Context {
     uint32_t width,
     uint32_t height,
     VkFormat const format,
-    VkImageUsageFlags const extra_usage = {}
+    VkImageUsageFlags const extra_usage = {},
+    std::string_view debugName = ""
   ) const;
 
   // --- Shader Module ---

@@ -58,7 +58,8 @@ backend::Image Context::create_image_2d(
   uint32_t width,
   uint32_t height,
   VkFormat const format,
-  VkImageUsageFlags const extra_usage
+  VkImageUsageFlags const extra_usage,
+  std::string_view debugName
 ) const {
   VkImageUsageFlags usage{
       VK_IMAGE_USAGE_SAMPLED_BIT
@@ -116,6 +117,12 @@ backend::Image Context::create_image_2d(
 
   backend::Image image;
   resource_allocator_->create_image_with_view(image_info, view_info, &image);
+
+  vkutils::SetDebugObjectName(
+    device_,
+    image.image,
+    debugName.empty() ? "Image2d::NoName" : debugName
+  );
 
   return image;
 }
