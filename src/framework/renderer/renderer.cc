@@ -11,7 +11,11 @@ char const* kDefaulShaderEntryPoint{
 
 /* -------------------------------------------------------------------------- */
 
-void Renderer::init(Context const& context, ResourceAllocator* allocator, VkSurfaceKHR const surface) {
+void Renderer::init(
+  Context const& context,
+  ResourceAllocator* allocator,
+  VkSurfaceKHR const surface
+) {
   ctx_ptr_ = &context;
   device_ = context.device();
   allocator_ptr_ = allocator;
@@ -26,15 +30,23 @@ void Renderer::init(Context const& context, ResourceAllocator* allocator, VkSurf
       .initialDataSize = 0u,
       .pInitialData = nullptr,
     };
-    CHECK_VK( vkCreatePipelineCache(device_, &cache_info, nullptr, &pipeline_cache_) );
+    CHECK_VK(vkCreatePipelineCache(
+      device_,
+      &cache_info,
+      nullptr,
+      &pipeline_cache_
+    ));
   }
 
   /* Create a default depth stencil buffer. */
   VkExtent2D const dimension{swapchain_.get_surface_size()};
-  depth_stencil_ = context.create_image_2d(dimension.width, dimension.height, get_valid_depth_format());
+  depth_stencil_ = context.create_image_2d(
+    dimension.width,
+    dimension.height,
+    get_valid_depth_format()
+  );
 
   /* Initialize resources for the semaphore timeline. */
-  // See https://docs.vulkan.org/samples/latest/samples/extensions/timeline_semaphore/README.html
   {
     uint64_t const frame_count = swapchain_.get_image_count();
 
@@ -131,7 +143,12 @@ CommandEncoder Renderer::begin_frame() {
   CHECK_VK( vkResetCommandPool(device_, frame.command_pool, 0u) );
 
   //------------
-  cmd_ = CommandEncoder(frame.command_buffer, (uint32_t)Context::TargetQueue::Main, device_, allocator_ptr_);
+  cmd_ = CommandEncoder(
+    frame.command_buffer,
+    (uint32_t)Context::TargetQueue::Main,
+    device_,
+    allocator_ptr_
+  );
   cmd_.default_render_target_ptr_ = this;
   cmd_.begin();
   //------------
@@ -212,12 +229,15 @@ void Renderer::end_frame() {
 
 // ----------------------------------------------------------------------------
 
-
 std::shared_ptr<RenderTarget> Renderer::create_render_target() const {
   return std::shared_ptr<RenderTarget>(new RenderTarget(*ctx_ptr_));
 }
 
-std::shared_ptr<RenderTarget> Renderer::create_render_target(RenderTarget::Descriptor_t const& desc) const {
+// ----------------------------------------------------------------------------
+
+std::shared_ptr<RenderTarget> Renderer::create_render_target(
+  RenderTarget::Descriptor_t const& desc
+) const {
   if (auto rt = create_render_target(); rt) {
     rt->setup(desc);
     return rt;
@@ -225,7 +245,11 @@ std::shared_ptr<RenderTarget> Renderer::create_render_target(RenderTarget::Descr
   return nullptr;
 }
 
-std::shared_ptr<RenderTarget> Renderer::create_default_render_target(uint32_t num_color_outputs) const {
+// ----------------------------------------------------------------------------
+
+std::shared_ptr<RenderTarget> Renderer::create_default_render_target(
+  uint32_t num_color_outputs
+) const {
   RenderTarget::Descriptor_t desc{
     .color_formats = {},
     .depth_stencil_format = get_valid_depth_format(),
@@ -243,7 +267,11 @@ std::shared_ptr<Framebuffer> Renderer::create_framebuffer() const {
   return std::shared_ptr<Framebuffer>(new Framebuffer(*ctx_ptr_, swapchain_));
 }
 
-std::shared_ptr<Framebuffer> Renderer::create_framebuffer(Framebuffer::Descriptor_t const& desc) const {
+// ----------------------------------------------------------------------------
+
+std::shared_ptr<Framebuffer> Renderer::create_framebuffer(
+  Framebuffer::Descriptor_t const& desc
+) const {
   if (auto framebuffer = create_framebuffer(); framebuffer) {
     framebuffer->setup(desc);
     return framebuffer;
@@ -259,7 +287,9 @@ void Renderer::destroy_pipeline_layout(VkPipelineLayout layout) const {
 
 // ----------------------------------------------------------------------------
 
-VkPipelineLayout Renderer::create_pipeline_layout(PipelineLayoutDescriptor_t const& params) const {
+VkPipelineLayout Renderer::create_pipeline_layout(
+  PipelineLayoutDescriptor_t const& params
+) const {
   for (size_t i = 1u; i < params.pushConstantRanges.size(); ++i) {
     if (params.pushConstantRanges[i].offset == 0u) {
       LOGW("[Warning] 'create_pipeline_layout' has constant ranges with no offsets.");
@@ -275,7 +305,12 @@ VkPipelineLayout Renderer::create_pipeline_layout(PipelineLayoutDescriptor_t con
     .pPushConstantRanges = params.pushConstantRanges.data(),
   };
   VkPipelineLayout pipeline_layout;
-  CHECK_VK(vkCreatePipelineLayout(device_, &pipeline_layout_create_info, nullptr, &pipeline_layout));
+  CHECK_VK(vkCreatePipelineLayout(
+    device_,
+    &pipeline_layout_create_info,
+    nullptr,
+    &pipeline_layout
+  ));
   return pipeline_layout;
 }
 
@@ -576,11 +611,20 @@ void Renderer::create_graphics_pipelines(
 
   std::vector<VkPipeline> pipelines(descs.size());
   CHECK_VK(vkCreateGraphicsPipelines(
-    device_, pipeline_cache_, create_infos.size(), create_infos.data(), nullptr, pipelines.data()
+    device_,
+    pipeline_cache_,
+    create_infos.size(),
+    create_infos.data(),
+    nullptr,
+    pipelines.data()
   ));
 
   for (size_t i = 0; i < descs.size(); ++i) {
-    (*out_pipelines)[i] = Pipeline(pipeline_layout, pipelines[i], VK_PIPELINE_BIND_POINT_GRAPHICS);
+    (*out_pipelines)[i] = Pipeline(
+      pipeline_layout,
+      pipelines[i],
+      VK_PIPELINE_BIND_POINT_GRAPHICS
+    );
     vkutils::SetDebugObjectName(device_, pipelines[i], "GraphicsPipeline::NoName");
   }
 }
@@ -608,7 +652,10 @@ Pipeline Renderer::create_graphics_pipeline(
 
 // ----------------------------------------------------------------------------
 
-Pipeline Renderer::create_graphics_pipeline(PipelineLayoutDescriptor_t const& layout_desc, GraphicsPipelineDescriptor_t const& desc) const {
+Pipeline Renderer::create_graphics_pipeline(
+  PipelineLayoutDescriptor_t const& layout_desc,
+  GraphicsPipelineDescriptor_t const& desc
+) const {
   Pipeline pipeline = create_graphics_pipeline(
     create_pipeline_layout(layout_desc),
     desc
@@ -619,13 +666,19 @@ Pipeline Renderer::create_graphics_pipeline(PipelineLayoutDescriptor_t const& la
 
 // ----------------------------------------------------------------------------
 
-Pipeline Renderer::create_graphics_pipeline(GraphicsPipelineDescriptor_t const& desc) const {
+Pipeline Renderer::create_graphics_pipeline(
+  GraphicsPipelineDescriptor_t const& desc
+) const {
   return create_graphics_pipeline(PipelineLayoutDescriptor_t(), desc);
 }
 
 // ----------------------------------------------------------------------------
 
-void Renderer::create_compute_pipelines(VkPipelineLayout pipeline_layout, std::vector<backend::ShaderModule> const& modules, Pipeline *pipelines) const {
+void Renderer::create_compute_pipelines(
+  VkPipelineLayout pipeline_layout,
+  std::vector<backend::ShaderModule> const& modules,
+  Pipeline *pipelines
+) const {
   assert(pipelines != nullptr);
 
   std::vector<VkComputePipelineCreateInfo> pipeline_infos(modules.size(), {
@@ -644,7 +697,12 @@ void Renderer::create_compute_pipelines(VkPipelineLayout pipeline_layout, std::v
   std::vector<VkPipeline> pips(modules.size());
 
   CHECK_VK(vkCreateComputePipelines(
-    device_, pipeline_cache_, static_cast<uint32_t>(pipeline_infos.size()), pipeline_infos.data(), nullptr, pips.data()
+    device_,
+    pipeline_cache_,
+    static_cast<uint32_t>(pipeline_infos.size()),
+    pipeline_infos.data(),
+    nullptr,
+    pips.data()
   ));
 
   for (size_t i = 0; i < pips.size(); ++i) {
@@ -654,7 +712,10 @@ void Renderer::create_compute_pipelines(VkPipelineLayout pipeline_layout, std::v
 
 // ----------------------------------------------------------------------------
 
-Pipeline Renderer::create_compute_pipeline(VkPipelineLayout pipeline_layout, backend::ShaderModule const& module) const {
+Pipeline Renderer::create_compute_pipeline(
+  VkPipelineLayout pipeline_layout,
+  backend::ShaderModule const& module
+) const {
   Pipeline p;
   create_compute_pipelines(pipeline_layout, { module }, &p);
   return p;
@@ -775,10 +836,20 @@ Pipeline Renderer::create_raytracing_pipeline(
 
   VkPipeline pipeline;
   CHECK_VK(vkCreateRayTracingPipelinesKHR(
-    device_, deferredOperation, pipeline_cache_, 1, &raytracing_pipeline_create_info, nullptr, &pipeline
+    device_,
+    deferredOperation,
+    pipeline_cache_,
+    1,
+    &raytracing_pipeline_create_info,
+    nullptr,
+    &pipeline
   ));
 
-  return Pipeline(pipeline_layout, pipeline, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR);
+  return Pipeline(
+    pipeline_layout,
+    pipeline,
+    VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR
+  );
 }
 
 // ----------------------------------------------------------------------------
@@ -801,19 +872,26 @@ VkDescriptorSetLayout Renderer::create_descriptor_set_layout(
 
 // ----------------------------------------------------------------------------
 
-void Renderer::destroy_descriptor_set_layout(VkDescriptorSetLayout &layout) const {
+void Renderer::destroy_descriptor_set_layout(
+  VkDescriptorSetLayout &layout
+) const {
   descriptor_set_registry_.destroy_layout(layout);
 }
 
 // ----------------------------------------------------------------------------
 
-VkDescriptorSet Renderer::create_descriptor_set(VkDescriptorSetLayout const layout) const {
+VkDescriptorSet Renderer::create_descriptor_set(
+  VkDescriptorSetLayout const layout
+) const {
   return descriptor_set_registry_.allocate_descriptor_set(layout);
 }
 
 // ----------------------------------------------------------------------------
 
-VkDescriptorSet Renderer::create_descriptor_set(VkDescriptorSetLayout const layout, std::vector<DescriptorSetWriteEntry> const& entries) const {
+VkDescriptorSet Renderer::create_descriptor_set(
+  VkDescriptorSetLayout const layout,
+  std::vector<DescriptorSetWriteEntry> const& entries
+) const {
   auto const descriptor_set{ create_descriptor_set(layout) };
   ctx_ptr_->update_descriptor_set(descriptor_set, entries);
   return descriptor_set;
@@ -821,7 +899,11 @@ VkDescriptorSet Renderer::create_descriptor_set(VkDescriptorSetLayout const layo
 
 // ----------------------------------------------------------------------------
 
-bool Renderer::load_image_2d(CommandEncoder const& cmd, std::string_view const& filename, backend::Image &image) const {
+bool Renderer::load_image_2d(
+  CommandEncoder const& cmd,
+  std::string_view const& filename,
+  backend::Image &image
+) const {
   uint32_t constexpr kForcedChannelCount{ 4u }; //
 
   bool const is_hdr{ stbi_is_hdr(filename.data()) != 0 };
@@ -833,7 +915,9 @@ bool Renderer::load_image_2d(CommandEncoder const& cmd, std::string_view const& 
   stbi_uc* data{nullptr};
 
   if (is_hdr) [[unlikely]] {
-    data = reinterpret_cast<stbi_uc*>(stbi_loadf(filename.data(), &x, &y, &num_channels, kForcedChannelCount)); //
+    data = reinterpret_cast<stbi_uc*>(
+      stbi_loadf(filename.data(), &x, &y, &num_channels, kForcedChannelCount) //
+    );
   } else {
     data = stbi_load(filename.data(), &x, &y, &num_channels, kForcedChannelCount);
   }
@@ -859,16 +943,28 @@ bool Renderer::load_image_2d(CommandEncoder const& cmd, std::string_view const& 
 
   /* Copy host data to a staging buffer. */
   size_t const comp_bytesize{ (is_hdr ? 4 : 1) * sizeof(std::byte) };
-  size_t const bytesize{ kForcedChannelCount * extent.width * extent.height * comp_bytesize };
+  size_t const bytesize{
+    kForcedChannelCount * extent.width * extent.height * comp_bytesize
+  };
   auto staging_buffer = allocator_ptr_->create_staging_buffer(bytesize, data); //
   stbi_image_free(data);
 
   /* Transfer staging device buffer to image memory. */
   {
     VkImageLayout const transfer_layout{ VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL };
-    cmd.transition_images_layout({ image }, VK_IMAGE_LAYOUT_UNDEFINED, transfer_layout);
+    cmd.transition_images_layout(
+      { image },
+      VK_IMAGE_LAYOUT_UNDEFINED,
+      transfer_layout
+    );
+
     cmd.copy_buffer_to_image(staging_buffer, image, extent, transfer_layout);
-    cmd.transition_images_layout({ image }, transfer_layout, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+    cmd.transition_images_layout(
+      { image },
+      transfer_layout,
+      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+    );
   }
 
   return true;
@@ -876,7 +972,10 @@ bool Renderer::load_image_2d(CommandEncoder const& cmd, std::string_view const& 
 
 // ----------------------------------------------------------------------------
 
-bool Renderer::load_image_2d(std::string_view const& filename, backend::Image &image) const {
+bool Renderer::load_image_2d(
+  std::string_view const& filename,
+  backend::Image &image
+) const {
   auto cmd = ctx_ptr_->create_transient_command_encoder();
   bool result = load_image_2d(cmd, filename, image);
   ctx_ptr_->finish_transient_command_encoder(cmd);
