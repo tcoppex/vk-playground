@@ -38,11 +38,27 @@ class BasicRayTracingFx : public RayTracingFx {
     changed |= ImGui::SliderFloat(
       "Sky intensity",
       &push_constant_.sky_intensity,
-      0.0f, 2.0f, "%.1f"
+      0.0f, 4.0f, "%.1f"
     );
+
+    int value = max_accumulation_frame_count_;
+    ImGui::SliderInt(
+      "Max Accumulation Frame",
+      &value,
+      8, 1024
+    );
+    max_accumulation_frame_count_ = value;
+
+    ImGui::Text("Accumulation frame count: %u", push_constant_.accumulation_frame_count);
 
     if (changed) {
       resetFrameAccumulation();
+    }
+  }
+
+  void execute(CommandEncoder& cmd) const override {
+    if (push_constant_.accumulation_frame_count < max_accumulation_frame_count_) {
+      RayTracingFx::execute(cmd);
     }
   }
 
@@ -174,9 +190,11 @@ class BasicRayTracingFx : public RayTracingFx {
   }
 
  private:
+  uint32_t max_accumulation_frame_count_{512};
+
   mutable shader_interop::PushConstant push_constant_{
-    .light_intensity = 50.0f,
-    .sky_intensity = 0.4f,
+    .light_intensity = 34.0f,
+    .sky_intensity = 1.6f,
   };
 
   std::vector<shader_interop::RayTracingMaterial> materials_{};

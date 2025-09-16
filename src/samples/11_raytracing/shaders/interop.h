@@ -14,6 +14,7 @@ struct HitPayload_t {
   vec3 radiance;
   vec3 throughput;
   int done;
+  int depth;
   uint rngState;
 };
 

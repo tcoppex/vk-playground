@@ -45,7 +45,7 @@ class RayTracingFx : public virtual PostGenericFx {
     resetFrameAccumulation();
   }
 
-  void execute(CommandEncoder& cmd) const final;
+  void execute(CommandEncoder& cmd) const override;
 
   void buildMaterialStorageBuffer(std::vector<scene::MaterialProxy> const& proxy_materials) {
     buildMaterials(proxy_materials);

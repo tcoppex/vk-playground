@@ -20,7 +20,7 @@ void main() {
   vec3 sky  = vec3(0.2, 0.4, 0.8);
 
   vec3 color = mix(dawn, sky,
-    pow(0.5*(dir.y + 1.0), 0.90)
+    pow(0.5*(dir.y + 1.0), 0.70)
   );
   color *= pushConstant.sky_intensity;
 

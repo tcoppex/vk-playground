@@ -83,6 +83,21 @@ vec2 rand2() {
   return vec2(rand(), rand());
 }
 
+void russianRoulette() {
+  ++payload.depth;
+  if (payload.depth > 3) {
+    float p = max(payload.throughput.r,
+              max(payload.throughput.g, payload.throughput.b));
+    p = clamp(p, 0.05, 0.95);
+    if (rand() > p) {
+      payload.done = 1;
+      return;
+    } else {
+      payload.throughput /= p;
+    }
+  }
+}
+
 // -----------------------------------------------------------------------------
 
 void main() {
@@ -178,6 +193,9 @@ void main() {
     payload.throughput *= color;
     payload.origin = P + N * 1e-3;
     payload.direction = newDir;
+
+    russianRoulette();
+
     return;
   }
 
