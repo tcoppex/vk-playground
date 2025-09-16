@@ -30,7 +30,7 @@ void HostResources::setup() {
     bindings.normal             = push_default_texture({128, 128, 255, 255});
     bindings.roughness_metallic = push_default_texture({  0, 255,   0, 255});
     bindings.occlusion          = push_default_texture({255, 255, 255, 255});
-    bindings.emissive           = push_default_texture({  0,   0,   0, 255});
+    bindings.emissive           = push_default_texture({  0,   0,   0, 0});
   }
 }
 

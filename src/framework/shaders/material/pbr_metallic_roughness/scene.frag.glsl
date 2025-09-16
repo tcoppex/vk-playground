@@ -128,8 +128,10 @@ PBRMetallicRoughness_Material_t calculate_pbr_material_data(
   data.color = mainColor;
 
   // Emissive.
-  data.emissive = texture(TEXTURE_ATLAS(mat.emissive_texture_id), frag.uv).rgb;
-  data.emissive *= mat.emissive_factor;
+  vec4 emissive_base = texture(TEXTURE_ATLAS(mat.emissive_texture_id), frag.uv);
+  data.emissive = mix(vec3(1.0f), emissive_base.xyz, emissive_base.a)
+                * mat.emissive_factor
+                ;
 
   float flickering = pow(sin(1.4 * uFrame.cameraPos_Time.w), 2) + cos(0.7 * uFrame.cameraPos_Time.w);
   data.emissive *= abs(flickering);
