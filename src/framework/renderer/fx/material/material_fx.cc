@@ -29,7 +29,6 @@ void MaterialFx::release() {
 void MaterialFx::createPipelines(std::vector<scene::MaterialStates> const& states) {
   auto shaders = createShaderModules();
 
-  // ------------------------------
   // Retrieve specific descriptors.
   std::vector<GraphicsPipelineDescriptor_t> descs{};
   descs.reserve(states.size());
@@ -46,7 +45,6 @@ void MaterialFx::createPipelines(std::vector<scene::MaterialStates> const& state
   for (size_t i = 0; i < states.size(); ++i) {
     pipelines_[states[i]] = pipelines[i];
   }
-  // ------------------------------
 
   for (auto const& [_, shader] : shaders) {
     context_ptr_->release_shader_module(shader);
@@ -62,7 +60,6 @@ void MaterialFx::prepareDrawState(
   LOG_CHECK(pipelines_.contains(states));
 
   pass.bind_pipeline(pipelines_[states]);
-
 
   // ----------------------------
   auto const& DSR = renderer_ptr_->descriptor_set_registry();
@@ -134,7 +131,7 @@ GraphicsPipelineDescriptor_t MaterialFx::getGraphicsPipelineDescriptor(
     .fragment = {
       .module = shaders.at(backend::ShaderStage::Fragment).module,
       .specializationConstants = {
-        { 0u, VK_FALSE },  // kUseAlphaCutoff
+        { 0u, VK_FALSE },  // <=> kUseAlphaCutoff
       },
       .targets = {
         {

@@ -82,7 +82,7 @@ bool RayTracingFx::resize(VkExtent2D const dimension) {
       dimension_.width, dimension_.height,
       VK_FORMAT_R8G8B8A8_UNORM,
         VK_IMAGE_USAGE_STORAGE_BIT
-      | VK_IMAGE_USAGE_TRANSFER_SRC_BIT // (to allow blitting)
+      | VK_IMAGE_USAGE_TRANSFER_SRC_BIT // (for blitting)
     )
   };
   // --------------------------------------

@@ -102,22 +102,26 @@ class Renderer : public backend::RTInterface {
     GraphicsPipelineDescriptor_t const& desc
   ) const;
 
+  // Batch create graphics pipelines from a common layout.
   void create_graphics_pipelines(
     VkPipelineLayout pipeline_layout,
     std::vector<GraphicsPipelineDescriptor_t> const& descs,
     std::vector<Pipeline> *out_pipelines
   ) const;
 
+  // Create a graphics pipeline with a pre-defined layout.
   Pipeline create_graphics_pipeline(
     VkPipelineLayout pipeline_layout,
     GraphicsPipelineDescriptor_t const& desc
   ) const;
 
+  // Create a graphics pipeline and a layout based on description.
   Pipeline create_graphics_pipeline(
     PipelineLayoutDescriptor_t const& layout_desc,
     GraphicsPipelineDescriptor_t const& desc
   ) const;
 
+  // Create a graphics pipeline with a default empty layout.
   Pipeline create_graphics_pipeline(
     GraphicsPipelineDescriptor_t const& desc
   ) const;
@@ -168,7 +172,7 @@ class Renderer : public backend::RTInterface {
   // --- Sampler ---
 
   VkSampler default_sampler() const {
-    return sampler_pool_.default_sampler(); //
+    return sampler_pool_.default_sampler();
   }
 
   SamplerPool& sampler_pool() {
