@@ -106,6 +106,10 @@ class ArcBallController : public Camera::ViewController {
       target_ = target2_;
     }
   }
+
+  void moveTarget(vec3 const& v, bool const bSmooth = kDefaultSmoothTransition) {
+    setTarget(v - target2_, bSmooth);
+  }
   //---------------
 
   void resetTarget() {
