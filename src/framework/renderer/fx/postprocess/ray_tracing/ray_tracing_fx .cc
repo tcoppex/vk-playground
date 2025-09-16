@@ -73,16 +73,16 @@ bool RayTracingFx::resize(VkExtent2D const dimension) {
 
   dimension_ = dimension;
 
-  // --------------------------------------
-  // BAD, but heh..
-  //
   releaseOutputImagesAndBuffers(); //
+  // --------------------------------------
   out_images_ = {
     context_ptr_->create_image_2d(
       dimension_.width, dimension_.height,
-      VK_FORMAT_R8G8B8A8_UNORM,
+      VK_FORMAT_R16G16B16A16_SFLOAT, // (for accumulation)
         VK_IMAGE_USAGE_STORAGE_BIT
       | VK_IMAGE_USAGE_TRANSFER_SRC_BIT // (for blitting)
+      ,
+      "RayTracingFx::AccumulationImage"
     )
   };
   // --------------------------------------
@@ -96,10 +96,14 @@ bool RayTracingFx::resize(VkExtent2D const dimension) {
 void RayTracingFx::resetMemoryBarriers() {
   if (!out_images_.empty()) {
     barriers_.images_start.resize(out_images_.size(), {
-      .srcStageMask  = VK_PIPELINE_STAGE_2_NONE,
-      .srcAccessMask = 0,
+      .srcStageMask  = VK_PIPELINE_STAGE_2_RAY_TRACING_SHADER_BIT_KHR,
+      .srcAccessMask = VK_ACCESS_2_SHADER_READ_BIT
+                     | VK_ACCESS_2_SHADER_WRITE_BIT
+                     ,
       .dstStageMask  = VK_PIPELINE_STAGE_2_RAY_TRACING_SHADER_BIT_KHR,
-      .dstAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT,
+      .dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT
+                     | VK_ACCESS_2_SHADER_WRITE_BIT
+                     ,
       .oldLayout     = VK_IMAGE_LAYOUT_UNDEFINED, //VK_IMAGE_LAYOUT_GENERAL,
       .newLayout     = VK_IMAGE_LAYOUT_GENERAL,
       .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
@@ -115,7 +119,9 @@ void RayTracingFx::resetMemoryBarriers() {
 
     barriers_.images_end.resize(out_images_.size(), {
       .srcStageMask  = VK_PIPELINE_STAGE_2_RAY_TRACING_SHADER_BIT_KHR,
-      .srcAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT,
+      .srcAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT
+                     | VK_ACCESS_2_SHADER_READ_BIT
+                     ,
       .dstStageMask  = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT
                      | VK_PIPELINE_STAGE_2_TRANSFER_BIT
                      ,

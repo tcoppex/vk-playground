@@ -45,7 +45,8 @@ struct FrameData {
   mat4 viewProjMatrix;
   vec4 cameraPos_Time;   // xyz = camera, w = time
   vec2 resolution;
-  vec2 _pad0;
+  uint frame;
+  uint _pad0;
 };
 
 struct TransformSBO {

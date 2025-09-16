@@ -22,6 +22,30 @@ class BasicRayTracingFx : public RayTracingFx {
  public:
   BasicRayTracingFx() = default;
 
+  void resetFrameAccumulation() override {
+    push_constant_.accumulation_frame_count = 0u;
+  }
+
+  void setupUI() override {
+    bool changed = false;
+
+    changed |= ImGui::SliderFloat(
+      "Light intensity",
+      &push_constant_.light_intensity,
+      0.0f, 250.0f, "%.1f"
+    );
+
+    changed |= ImGui::SliderFloat(
+      "Sky intensity",
+      &push_constant_.sky_intensity,
+      0.0f, 2.0f, "%.1f"
+    );
+
+    if (changed) {
+      resetFrameAccumulation();
+    }
+  }
+
  protected:
   backend::ShadersMap createShaderModules() const final {
     auto create_modules{[&](std::vector<std::string_view> const& filenames) {
@@ -91,6 +115,31 @@ class BasicRayTracingFx : public RayTracingFx {
     };
   }
 
+  std::vector<VkPushConstantRange> getPushConstantRanges() const final {
+    return {
+      {
+        .stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR
+                    | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR
+                    | VK_SHADER_STAGE_MISS_BIT_KHR
+                    | VK_SHADER_STAGE_ANY_HIT_BIT_KHR
+                    ,
+        .size = sizeof(push_constant_),
+      }
+    };
+  }
+
+  void pushConstant(GenericCommandEncoder const &cmd) const override {
+    push_constant_.accumulation_frame_count += 1u;
+    cmd.push_constant(
+      push_constant_,
+      pipeline_layout_,
+        VK_SHADER_STAGE_RAYGEN_BIT_KHR
+      | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR
+      | VK_SHADER_STAGE_MISS_BIT_KHR
+      | VK_SHADER_STAGE_ANY_HIT_BIT_KHR
+    );
+  }
+
   void buildMaterials(std::vector<scene::MaterialProxy> const& proxy_materials) override {
     LOG_CHECK(!proxy_materials.empty());
     materials_.reserve(proxy_materials.size());
@@ -125,6 +174,11 @@ class BasicRayTracingFx : public RayTracingFx {
   }
 
  private:
+  mutable shader_interop::PushConstant push_constant_{
+    .light_intensity = 50.0f,
+    .sky_intensity = 0.4f,
+  };
+
   std::vector<shader_interop::RayTracingMaterial> materials_{};
 };
 
@@ -154,8 +208,8 @@ class SampleApp final : public Application {
     }
 
     // -------------------------------
-    raytracing_.init(renderer_);
-    raytracing_.setup(renderer_.get_surface_size());
+    ray_tracing_fx_.init(renderer_);
+    ray_tracing_fx_.setup(renderer_.get_surface_size());
     // -------------------------------
 
     /* Load a glTF Scene. */
@@ -173,7 +227,7 @@ class SampleApp final : public Application {
   }
 
   void release() final {
-    raytracing_.release();
+    ray_tracing_fx_.release();
     scene_.reset();
   }
 
@@ -184,11 +238,15 @@ class SampleApp final : public Application {
      && future_scene_.wait_for(0ms) == std::future_status::ready) {
       scene_ = future_scene_.get();
       // -------------------------------
-      scene_->set_ray_tracing_fx(&raytracing_);
+      scene_->set_ray_tracing_fx(&ray_tracing_fx_);
       // -------------------------------
     }
     if (scene_) {
       scene_->update(camera_, renderer_.get_surface_size(), elapsed_time());
+    }
+
+    if (camera_.rebuilt()) {
+      ray_tracing_fx_.resetFrameAccumulation();
     }
   }
 
@@ -198,8 +256,8 @@ class SampleApp final : public Application {
     if constexpr(true)
     {
       // RAY TRACER
-      raytracing_.execute(cmd);
-      cmd.blit(raytracing_, renderer_);
+      ray_tracing_fx_.execute(cmd);
+      cmd.blit(ray_tracing_fx_, renderer_);
     }
     else
     {

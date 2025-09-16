@@ -91,6 +91,7 @@ struct GPUResources : scene::HostResources {
   Renderer const* renderer_ptr_{};
   Context const* context_ptr_{};
   ResourceAllocator const* allocator_ptr_{};
+  uint32_t frame_index_{};
 };
 
 /* -------------------------------------------------------------------------- */

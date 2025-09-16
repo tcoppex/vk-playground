@@ -8,8 +8,6 @@ const uint kDescriptorSetBinding_MaterialSBO      = 1;
 
 // -----------------------------------------------------------------------------
 
-// Simple RayTracing proxy material.
-
 struct HitPayload_t {
   vec3 origin;
   vec3 direction;
@@ -18,6 +16,19 @@ struct HitPayload_t {
   int done;
   uint rngState;
 };
+
+// -----------------------------------------------------------------------------
+
+struct PushConstant {
+  uint accumulation_frame_count;
+  float light_intensity;
+  float sky_intensity;
+  uint _pad0[1];
+};
+
+// -----------------------------------------------------------------------------
+
+// Simple RayTracing proxy material.
 
 const uint kRayTracingMaterialType_Diffuse  = 0;
 const uint kRayTracingMaterialType_Mirror   = 1;

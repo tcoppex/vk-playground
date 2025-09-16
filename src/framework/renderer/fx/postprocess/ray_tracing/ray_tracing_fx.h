@@ -42,11 +42,11 @@ class RayTracingFx : public virtual PostGenericFx {
         },
       },
     });
+    resetFrameAccumulation();
   }
 
   void execute(CommandEncoder& cmd) const final;
 
-  // ----------------------------
   void buildMaterialStorageBuffer(std::vector<scene::MaterialProxy> const& proxy_materials) {
     buildMaterials(proxy_materials);
     if (size_t bufferSize = getMaterialBufferSize(); bufferSize > 0) {
@@ -75,7 +75,8 @@ class RayTracingFx : public virtual PostGenericFx {
       // (we could release the internal material buffer here)
     }
   }
-  // ----------------------------
+
+  virtual void resetFrameAccumulation() = 0;
 
  public:
   bool resize(VkExtent2D const dimension) override;

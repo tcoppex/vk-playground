@@ -515,6 +515,7 @@ void GPUResources::update_frame_data(
     .viewProjMatrix = camera.viewproj(),
     .cameraPos_Time = vec4(camera.position(), elapsedTime),
     .resolution = vec2(surfaceSize.width, surfaceSize.height),
+    .frame = frame_index_++,
   };
 
   // For ray tracing we need to use the inverse of those matrices.
