@@ -105,7 +105,9 @@ void GPUResources::upload_to_device(bool const bReleaseHostDataOnUpload) {
 
     // ---------------------------------------
     /* Build the Raytracing acceleration structures. */
-    rt_scene_->build(meshes, vertex_buffer, index_buffer);
+    if (rt_scene_) {
+      rt_scene_->build(meshes, vertex_buffer, index_buffer);
+    }
     // ---------------------------------------
   }
 
