@@ -50,7 +50,7 @@ struct GPUResources : scene::HostResources {
   void render(RenderPassEncoder const& pass);
 
   // -------------------------------
-  void set_ray_tracing_fx(RayTracingFx const* fx);
+  void set_ray_tracing_fx(RayTracingFx* fx); //
   // -------------------------------
 
  private:

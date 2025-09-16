@@ -12,9 +12,16 @@
 
 #include "framework/renderer/fx/postprocess/ray_tracing/ray_tracing_fx.h"
 
+namespace shader_interop {
+#include "shaders/interop.h"
+}
+
 /* -------------------------------------------------------------------------- */
 
 class BasicRayTracingFx : public RayTracingFx {
+ public:
+  BasicRayTracingFx() = default;
+
  protected:
   backend::ShadersMap createShaderModules() const final {
     auto create_modules{[&](std::vector<std::string_view> const& filenames) {
@@ -83,6 +90,42 @@ class BasicRayTracingFx : public RayTracingFx {
       }
     };
   }
+
+  void buildMaterials(std::vector<scene::MaterialProxy> const& proxy_materials) override {
+    LOG_CHECK(!proxy_materials.empty());
+    materials_.reserve(proxy_materials.size());
+
+    // [Quite similar to PBRMetalRoughnessFx, but we separate them for now
+    // because we don't know if the load gltf was defined with only PBR]
+    for (auto const& proxy : proxy_materials) {
+      materials_.push_back({
+        .emissive_factor      = proxy.emissive_factor,
+        .emissive_texture_id  = proxy.bindings.emissive,
+        .diffuse_factor       = proxy.pbr_mr.basecolor_factor,
+        .diffuse_texture_id   = proxy.bindings.basecolor,
+        .orm_texture_id       = proxy.bindings.roughness_metallic,
+        .metallic_factor      = proxy.pbr_mr.metallic_factor,
+        .roughness_factor     = proxy.pbr_mr.roughness_factor,
+        // .normal_texture_id = proxy.bindings.normal,
+        // .occlusion_texture_id = proxy.bindings.occlusion,
+        // .alpha_cutoff = proxy.alpha_cutoff,
+        // .double_sided = proxy.double_sided,
+      });
+    }
+  }
+
+  void const* getMaterialBufferData() const override {
+    return materials_.data();
+  }
+
+  size_t getMaterialBufferSize() const override {
+    return !materials_.empty() ? materials_.size() * sizeof(materials_[0])
+                               : 0
+                               ;
+  }
+
+ private:
+  std::vector<shader_interop::RayTracingMaterial> materials_{};
 };
 
 /* -------------------------------------------------------------------------- */
@@ -105,7 +148,8 @@ class SampleApp final : public Application {
       );
       camera_.setController(&arcball_controller_);
 
-      arcball_controller_.setView(lina::kTwoPi/16.0f, lina::kTwoPi/8.0f, false);
+      arcball_controller_.setTarget(vec3f(0.0f, 1.0f, 0.0), false);
+      arcball_controller_.setView(lina::kTwoPi/32.0f, 0.0f, false);
       arcball_controller_.setDolly(4.0f, false);
     }
 
@@ -116,9 +160,7 @@ class SampleApp final : public Application {
 
     /* Load a glTF Scene. */
     std::string gtlf_filename{ASSETS_DIR "models/"
-      // "sponza.glb"
-      "DamagedHelmet.glb"
-      // "Duck.glb"
+      "CornellBox-Original.gltf"
     };
 
     if constexpr(true) {

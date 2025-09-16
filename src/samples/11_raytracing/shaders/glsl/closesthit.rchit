@@ -17,14 +17,17 @@
 
 hitAttributeEXT vec2 attribs;
 
-struct HitPayload_t {
-  vec3 origin;
-  vec3 radiance;
-  vec3 direction;
-  int done;
+layout(location = 0) rayPayloadInEXT HitPayload_t payload;
+
+layout(scalar, set = kDescriptorSet_Internal, binding = kDescriptorSetBinding_MaterialSBO)
+buffer RayTracingMaterialSBO_ {
+  RayTracingMaterial materials[];
 };
 
-layout(location = 0) rayPayloadInEXT HitPayload_t payload;
+layout(set = kDescriptorSet_Scene, binding = kDescriptorSet_Scene_Textures)
+uniform sampler2D[] uTextureChannels;
+
+#define TEXTURE_ATLAS(i)  uTextureChannels[nonuniformEXT(i)]
 
 // -----------------------------------------------------------------------------
 
@@ -50,15 +53,44 @@ buffer _scene_desc {
 
 // -----------------------------------------------------------------------------
 
+void buildTangentBasis(in vec3 N, out vec3 T, out vec3 B) {
+  if (abs(N.z) < 0.999) {
+    T = normalize(cross(N, vec3(0,0,1)));
+  } else {
+    T = normalize(cross(N, vec3(0,1,0)));
+  }
+  B = cross(N, T);
+}
+
+vec3 cosineSampleHemisphere(vec2 u) {
+  float r = sqrt(u.x);
+  float theta = 2.0 * 3.14159265 * u.y;
+  return vec3(r * cos(theta), r * sin(theta), sqrt(max(0.0, 1.0 - u.x)));
+}
+
+float rand() {
+  payload.rngState ^= (payload.rngState << 13);
+  payload.rngState ^= (payload.rngState >> 17);
+  payload.rngState ^= (payload.rngState << 5);
+  return float(payload.rngState & 0x00FFFFFFu) / float(0x01000000u);
+}
+
+vec2 rand2() {
+  return vec2(rand(), rand());
+}
+
+// -----------------------------------------------------------------------------
+
 void main() {
-  ObjBuffers_t obj = ObjBuffers.addr[nonuniformEXT(gl_InstanceCustomIndexEXT)];
-
-  Vertices vertices = Vertices(obj.vertexAddr);
-  Indices indices   = Indices(obj.indexAddr);
-
-  vec3 color;
+  const uint objid = gl_InstanceCustomIndexEXT;
 
   // ----------------------------------------
+
+  // GEOMETRY.
+
+  ObjBuffers_t obj = ObjBuffers.addr[nonuniformEXT(objid)];
+  Vertices vertices = Vertices(obj.vertexAddr);
+  Indices indices   = Indices(obj.indexAddr);
 
   uint base_index = gl_PrimitiveID * 3;
 
@@ -85,12 +117,81 @@ void main() {
          + v2.position.xyz * barycentrics.z;
   P = vec3(gl_ObjectToWorldEXT * vec4(P, 1.0));
 
+  vec2 uv = v0.texcoord * barycentrics.x
+          + v1.texcoord * barycentrics.y
+          + v2.texcoord * barycentrics.z;
+
+
   // ----------------------------------------
 
-  color = 0.5 * (N + 1.0);
+  // MATERIAL.
 
-  payload.radiance = color;
-  payload.done = 1;
+  RayTracingMaterial mat = materials[nonuniformEXT(objid)];
+
+  vec4 emissive_base = texture(TEXTURE_ATLAS(mat.emissive_texture_id), uv).rgba;
+
+  // Handle the default emissive texture.
+  vec3 emissive = mix(vec3(1.0f), emissive_base.xyz, emissive_base.a)
+                * mat.emissive_factor
+                ;
+
+  vec3 color = texture(TEXTURE_ATLAS(mat.diffuse_texture_id), uv).rgb
+             * mat.diffuse_factor.rgb
+             ;
+
+  const vec3 orm = texture(TEXTURE_ATLAS(mat.orm_texture_id), uv).xyz;
+  const float roughness = max(orm.y, 1e-3) * mat.roughness_factor;
+  const float metallic = orm.z * mat.metallic_factor;
+
+  uint material_type;
+  if (any(greaterThan(emissive, vec3(1.e-2))))
+  {
+    material_type = kRayTracingMaterialType_Emissive;
+  }
+  else if ((metallic > 0.0f) && (roughness < 0.05f))
+  {
+    material_type = kRayTracingMaterialType_Mirror;
+  }
+  else
+  {
+    material_type = kRayTracingMaterialType_Diffuse;
+  }
+
+  // ----------------------------------------
+
+  // SHADING.
+
+  if (material_type == kRayTracingMaterialType_Diffuse) {
+    // Cosine-weighted hemisphere sampling
+    vec3 tangent, bitangent;
+    buildTangentBasis(N, tangent, bitangent);
+    vec2 u = rand2();
+    vec3 localDir = cosineSampleHemisphere(u);
+    vec3 newDir = normalize(localDir.x * tangent +
+                            localDir.y * bitangent +
+                            localDir.z * N);
+
+    payload.throughput *= color;
+    payload.origin = P + N * 1e-3;
+    payload.direction = newDir;
+    return;
+  }
+
+  if (material_type == kRayTracingMaterialType_Mirror)
+  {
+    vec3 reflDir = reflect(normalize(gl_WorldRayDirectionEXT), N);
+    payload.origin = P + N * 1e-3;
+    payload.direction = reflDir;
+    return;
+  }
+
+  if (material_type == kRayTracingMaterialType_Emissive)
+  {
+    float intensity = 10.0;
+    payload.radiance += payload.throughput * emissive * intensity; //
+    payload.done = 1;
+    return;
+  }
 }
 
 // -----------------------------------------------------------------------------

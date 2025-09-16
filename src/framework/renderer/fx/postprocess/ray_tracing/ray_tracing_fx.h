@@ -6,15 +6,23 @@
 
 /* -------------------------------------------------------------------------- */
 
+/**
+ * A PostProcessing Fx using Ray Tracing shaders.
+ *
+ * There are some similarities with MaterialFx but the both of them are
+ * decorrelated as for now.
+ */
 class RayTracingFx : public virtual PostGenericFx {
  public:
   // -------------------------------
-  const uint kDescriptorSetBinding_ImageOutput      = 0;
+  static constexpr uint kDescriptorSetBinding_ImageOutput      = 0;
+  static constexpr uint kDescriptorSetBinding_MaterialSBO      = 1;
   // -------------------------------
 
  public:
   virtual void release() {
-    allocator_ptr_->destroy_buffer(sbt_storage_);
+    allocator_ptr_->destroy_buffer(material_storage_buffer_);
+    allocator_ptr_->destroy_buffer(sbt_storage_buffer_);
     releaseOutputImagesAndBuffers();
     GenericFx::release();
   }
@@ -37,6 +45,37 @@ class RayTracingFx : public virtual PostGenericFx {
   }
 
   void execute(CommandEncoder& cmd) const final;
+
+  // ----------------------------
+  void buildMaterialStorageBuffer(std::vector<scene::MaterialProxy> const& proxy_materials) {
+    buildMaterials(proxy_materials);
+    if (size_t bufferSize = getMaterialBufferSize(); bufferSize > 0) {
+      // Setup the SSBO for rarer device-to-device transfer.
+      material_storage_buffer_ = allocator_ptr_->create_buffer(
+        bufferSize,
+        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+        VMA_MEMORY_USAGE_GPU_ONLY
+      );
+
+      context_ptr_->transfer_host_to_device(
+        getMaterialBufferData(),
+        bufferSize,
+        material_storage_buffer_
+      );
+
+      context_ptr_->update_descriptor_set(descriptor_set_, {
+        {
+          .binding = kDescriptorSetBinding_MaterialSBO,
+          .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+          .buffers = { { material_storage_buffer_.buffer } },
+        },
+      });
+
+      // (we could release the internal material buffer here)
+    }
+  }
+  // ----------------------------
 
  public:
   bool resize(VkExtent2D const dimension) override;
@@ -73,6 +112,15 @@ class RayTracingFx : public virtual PostGenericFx {
         .stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR,
         .bindingFlags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT,
       },
+      {
+        .binding = kDescriptorSetBinding_MaterialSBO,
+        .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+        .descriptorCount = 1u,
+        .stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR
+                    | VK_SHADER_STAGE_ANY_HIT_BIT_KHR
+                    ,
+        .bindingFlags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT,
+      },
     };
   }
 
@@ -106,6 +154,20 @@ class RayTracingFx : public virtual PostGenericFx {
     out_buffers_.clear();
   }
 
+  // ----------------------------
+  // Build optionnal ray tracing materials based on proxy materials.
+  virtual void buildMaterials(std::vector<scene::MaterialProxy> const& proxy_materials) {
+  }
+
+  virtual void const* getMaterialBufferData() const {
+    return nullptr;
+  }
+
+  virtual size_t getMaterialBufferSize() const {
+    return 0;
+  }
+  // ----------------------------
+
  protected:
   VkExtent2D dimension_{};
   std::vector<backend::Image> out_images_{};
@@ -116,8 +178,10 @@ class RayTracingFx : public virtual PostGenericFx {
     std::vector<VkImageMemoryBarrier2> images_end{};
   } barriers_;
 
-  backend::Buffer sbt_storage_{};
+  backend::Buffer sbt_storage_buffer_{};
   backend::RayTracingAddressRegion region_{};
+
+  backend::Buffer material_storage_buffer_{};
 };
 
 /* -------------------------------------------------------------------------- */

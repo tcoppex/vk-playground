@@ -22,14 +22,17 @@ uniform accelerationStructureEXT topLevelAS;
 
 // ----------------------------------------------------------------------------
 
-struct HitPayload_t {
-  vec3 origin;
-  vec3 radiance;
-  vec3 direction;
-  int done;
-};
-
 layout(location = 0) rayPayloadEXT HitPayload_t payload;
+
+// Init (exemple simple basé sur pixel ID + frame)
+void rngSeed(uvec2 pixel, uint frame) {
+  payload.rngState = pixel.x * 1973u + pixel.y * 9277u + frame * 26699u;
+  payload.rngState ^= (payload.rngState << 13);
+  payload.rngState ^= (payload.rngState >> 17);
+  payload.rngState ^= (payload.rngState << 5);
+}
+
+// ----------------------------------------------------------------------------
 
 void main() {
   // Normalized device coordinates in [-1, 1]
@@ -37,8 +40,11 @@ void main() {
   vec2 uv           = pixelCenter / vec2(gl_LaunchSizeEXT.xy);
   vec2 ndc          = uv * 2.0 - 1.0;
 
-  // (flip Y to be consistent with the rasterizer flip..)
+  // (flip Y to be consistent with the rasterizer viewport flip..)
   ndc.y = -ndc.y;
+
+  uvec2 pixel = gl_LaunchIDEXT.xy;
+  rngSeed(pixel, uint(uFrame.cameraPos_Time.w));
 
   // We use the same UBO as for the rasterization, but with invert
   // view and proj matrices (names don't changes).
@@ -53,12 +59,13 @@ void main() {
 
   payload.origin = origin.xyz;
   payload.direction = direction.xyz;
-  payload.radiance = vec3(0);
+  payload.radiance = vec3(0.0);
+  payload.throughput = vec3(1.0);
   payload.done = 0;
 
-  vec3 hitValue = vec3(0);
+  // vec3 hitValue = vec3(0);
 
-  for (int depth=0; depth<64; ++depth) {
+  for (int depth = 0; depth < 64; ++depth) {
     traceRayEXT(
       topLevelAS,
       gl_RayFlagsOpaqueEXT,
@@ -72,14 +79,15 @@ void main() {
       tmax,
       0
     );
-    hitValue += payload.radiance;
 
-    if (payload.done == 1) {
+    if (payload.done == 1
+      || (dot(payload.throughput, payload.throughput) < 0.01)
+    ) {
       break;
     }
   }
 
-  vec4 finalColor = vec4(hitValue, 1.0);
+  vec4 finalColor = vec4(payload.radiance, 1.0);
 
   imageStore(imageOutput, ivec2(gl_LaunchIDEXT.xy), finalColor);
 }

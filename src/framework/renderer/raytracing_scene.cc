@@ -72,10 +72,10 @@ void RayTracingScene::build(
   tlas_.instances.reserve(meshes.size());
 
   // Build a BLAS for each submeshes.
-  uint32_t instance_index = 0;
+  // uint32_t instance_index = 0;
   for (auto const& mesh : meshes) {
     for (auto const& submesh : mesh->submeshes) {
-      uint32_t custom_index = instance_index++; // submesh.material_ref->proxy_index, //
+      uint32_t custom_index = submesh.material_ref->proxy_index; //
 
       if (build_blas(submesh)) {
         // (simply instanciate the BLAS we just built)

@@ -288,7 +288,11 @@ void GPUResources::render(RenderPassEncoder const& pass) {
 
 // ----------------------------------------------------------------------------
 
-void GPUResources::set_ray_tracing_fx(RayTracingFx const* fx) {
+void GPUResources::set_ray_tracing_fx(RayTracingFx* fx) {
+  LOG_CHECK(fx != nullptr);
+
+  fx->buildMaterialStorageBuffer(material_proxies); //
+
   ray_tracing_fx_ = fx;
 }
 

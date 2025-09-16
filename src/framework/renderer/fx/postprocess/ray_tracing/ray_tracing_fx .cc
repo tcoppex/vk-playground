@@ -215,7 +215,7 @@ void RayTracingFx::buildShaderBindingTable(RayTracingPipelineDescriptor_t const&
 
   size_t const sbt_buffersize = offsetCallable + sizeCallable;
 
-  sbt_storage_ = allocator_ptr_->create_buffer(
+  sbt_storage_buffer_ = allocator_ptr_->create_buffer(
     sbt_buffersize,
       VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR
     | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT
@@ -263,14 +263,14 @@ void RayTracingFx::buildShaderBindingTable(RayTracingPipelineDescriptor_t const&
   }
 
   context_ptr_->copy_buffer(
-    staging_buffer, sbt_storage_, sbt_buffersize
+    staging_buffer, sbt_storage_buffer_, sbt_buffersize
   );
   context_ptr_->wait_device_idle();
 
   auto getRegion = [&](size_t offset, size_t size) -> VkStridedDeviceAddressRegionKHR {
     VkBufferDeviceAddressInfo addrInfo{
       .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
-      .buffer = sbt_storage_.buffer,
+      .buffer = sbt_storage_buffer_.buffer,
     };
 
     VkDeviceAddress baseAddress = vkGetBufferDeviceAddressKHR(
