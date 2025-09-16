@@ -37,10 +37,12 @@ cmake --build build --config Release
 * **[03_descriptor_set](src/samples/03_descriptor_set)**: Initialize & update a descriptor set on a single uniform buffer (_Descriptor Set_).
 * **[04_texturing](src/samples/04_texturing)**: Display a textured cube with a linear sampler (_Image, Sampler_).
 * **[05_stencil_op](src/samples/05_stencil_op)**: Stencil operations and instancing through a multi-passes portal effect (_Stencil, instancing_).
-* **[06_blend_op](src/samples/06_blend_op)**: Fast & simple billboarded GPU particles with additive blend operation (_Blending_).
+* **[06_blend_op](src/samples/06_blend_op)**: Fast & simple billboarded GPU particles with additive blending (_Blending_).
 * **[07_compute](src/samples/07_compute)**: Waves simulation with sorted alpha-blended particles (_Compute Pipeline, Buffer Barriers_).
-* **[08_hdr_envmap](src/samples/08_hdr_envmap)**: Image based lighting via convoluted HDR envmap (_Texture Barriers_).
+* **[08_hdr_envmap](src/samples/08_hdr_envmap)**: Image-based lighting from a prefiltered HDR environment map (_Texture Barriers_).
 * **[09_post_process](src/samples/09_post_process)**: Screen-space contour effect via a post-processing pipeline.
+* **[10_material](src/samples/10_material)**: Showcase the internal PBR material system with scene graph ordering.
+* **[11_ray_tracing](src/samples/11_raytracing)**: Render a Cornell Box with hardware-accelerated ray tracing (_Ray Tracing_).
 
 ### Dependencies
 
