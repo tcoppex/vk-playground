@@ -3,7 +3,7 @@
 
 // ---------------------------------------------------------------------------
 
-const uint kDescriptorSet_Internal_MaterialSSBO     = 0;
+const uint kDescriptorSet_Internal_MaterialSBO     = 0;
 
 // ---------------------------------------------------------------------------
 // Fx Materials SSBOs struct.

@@ -14,7 +14,7 @@
 
 layout(constant_id = 0) const bool constant_kUseAlphaCutoff = false;
 
-layout(scalar, set = kDescriptorSet_Internal, binding = kDescriptorSet_Internal_MaterialSSBO)
+layout(scalar, set = kDescriptorSet_Internal, binding = kDescriptorSet_Internal_MaterialSBO)
 buffer MaterialSSBO_ {
   Material materials[];
 };

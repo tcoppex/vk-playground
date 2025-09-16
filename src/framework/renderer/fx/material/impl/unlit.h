@@ -20,7 +20,7 @@ class UnlitMaterialFx final : public TMaterialFx<unlit_shader_interop::Material>
 
     context_ptr_->update_descriptor_set(descriptor_set_, {
       {
-        .binding = unlit_shader_interop::kDescriptorSet_Internal_MaterialSSBO,
+        .binding = unlit_shader_interop::kDescriptorSet_Internal_MaterialSBO,
         .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
         .buffers = { { material_storage_buffer_.buffer } },
       },
@@ -52,7 +52,7 @@ class UnlitMaterialFx final : public TMaterialFx<unlit_shader_interop::Material>
   DescriptorSetLayoutParamsBuffer getDescriptorSetLayoutParams() const final {
     return {
       {
-        .binding = unlit_shader_interop::kDescriptorSet_Internal_MaterialSSBO,
+        .binding = unlit_shader_interop::kDescriptorSet_Internal_MaterialSBO,
         .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
         .descriptorCount = 1u,
         .stageFlags = VK_SHADER_STAGE_VERTEX_BIT
