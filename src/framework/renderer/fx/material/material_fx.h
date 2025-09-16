@@ -66,12 +66,6 @@ class MaterialFx {
  public:
   // -- frame-wide resource descriptor --
 
-  // [DEPRECATED] use descriptor allocator instead.
-  // -----------------------------
-  void updateDescriptorSetTransformsSSBO(backend::Buffer const& buf) const;
-  virtual uint32_t getTransformsStorageBufferBinding() const = 0;
-  // -----------------------------
-
   // -- mesh instance push constants --
 
   virtual void setTransformIndex(uint32_t index) = 0;

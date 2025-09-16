@@ -28,10 +28,6 @@ class UnlitMaterialFx final : public TMaterialFx<unlit_shader_interop::Material>
   }
 
  public:
-  uint32_t getTransformsStorageBufferBinding() const final {
-    return unlit_shader_interop::kDescriptorSetBinding_TransformSSBO;
-  }
-
   void setTransformIndex(uint32_t index) final {
     push_constant_.transform_index = index;
   }
@@ -55,16 +51,6 @@ class UnlitMaterialFx final : public TMaterialFx<unlit_shader_interop::Material>
 
   DescriptorSetLayoutParamsBuffer getDescriptorSetLayoutParams() const final {
     return {
-      {
-        .binding = getTransformsStorageBufferBinding(),
-        .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-        .descriptorCount = 1u,
-        .stageFlags = VK_SHADER_STAGE_VERTEX_BIT
-                    | VK_SHADER_STAGE_FRAGMENT_BIT,
-        .bindingFlags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT
-                      | VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT
-                      | VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT
-      },
       {
         .binding = unlit_shader_interop::kDescriptorSet_Internal_MaterialSSBO,
         .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,

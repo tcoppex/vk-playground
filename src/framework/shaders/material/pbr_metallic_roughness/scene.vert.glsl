@@ -10,14 +10,14 @@
 
 // ----------------------------------------------------------------------------
 
-layout(scalar, set = kDescriptorSet_Internal, binding = kDescriptorSetBinding_TransformSSBO)
-buffer TransformSSBO_ {
-  TransformSSBO transforms[];
-};
-
 layout(scalar, set = kDescriptorSet_Frame, binding = kDescriptorSet_Frame_FrameUBO)
 uniform FrameUBO_ {
   FrameData uFrame;
+};
+
+layout(scalar, set = kDescriptorSet_Scene, binding = kDescriptorSet_Scene_TransformSBO)
+buffer TransformSBO_ {
+  TransformSBO transforms[];
 };
 
 layout(scalar, push_constant) uniform PushConstant_ {
@@ -39,7 +39,7 @@ layout(location = 3) out vec2 vTexcoord;
 // ----------------------------------------------------------------------------
 
 void main() {
-  TransformSSBO transform = transforms[nonuniformEXT(pushConstant.transform_index)];
+  TransformSBO transform = transforms[nonuniformEXT(pushConstant.transform_index)];
   mat4 worldMatrix = transform.worldMatrix;
   mat3 normalMatrix = mat3(worldMatrix);
   vec4 worldPos = worldMatrix * vec4(inPosition, 1.0);

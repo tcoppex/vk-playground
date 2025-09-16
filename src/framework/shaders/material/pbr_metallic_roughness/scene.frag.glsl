@@ -28,7 +28,7 @@ uniform FrameUBO_ {
 
 // -- Scene resource (Textures & Image Based Lighting) --
 
-layout(set = kDescriptorSet_Scene, binding = kDescriptorSet_Scene_IBL_Textures)
+layout(set = kDescriptorSet_Scene, binding = kDescriptorSet_Scene_Textures)
 uniform sampler2D[] uTextureChannels;
 
 layout(set = kDescriptorSet_Scene, binding = kDescriptorSet_Scene_IBL_Prefiltered)

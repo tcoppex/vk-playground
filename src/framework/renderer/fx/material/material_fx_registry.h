@@ -29,9 +29,6 @@ class MaterialFxRegistry {
     std::vector<std::unique_ptr<scene::MaterialRef>>& material_refs
   );
 
-  // [deprecated] Use DescriptorSetRegistry instead.
-  void update_transforms_ssbo(backend::Buffer const& buffer) const;
-
   /* Push updated for all MaterialFx. */
   void push_material_storage_buffers() const;
 

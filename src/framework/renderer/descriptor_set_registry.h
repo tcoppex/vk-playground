@@ -34,10 +34,11 @@ class DescriptorSetRegistry {
     };
 
     enum Scene {
+      Transforms,
       TextureAtlas,
       IBLPrefiltered,
       IBLIrradiance,
-      SpecularBRDF,
+      SpecularBRDF
     };
 
     enum RayTracing {
@@ -68,6 +69,8 @@ class DescriptorSetRegistry {
   /* Methods to update shared internal descriptor sets. */
 
   void update_frame_ubo(backend::Buffer const& buffer) const;
+
+  void update_scene_transforms(backend::Buffer const& buffer) const;
 
   void update_scene_textures(std::vector<VkDescriptorImageInfo> image_infos) const;
 

@@ -119,6 +119,8 @@ void GPUResources::upload_to_device(bool const bReleaseHostDataOnUpload) {
       DSR.update_scene_textures(descriptor_image_infos());
     }
 
+    DSR.update_scene_transforms(transforms_ssbo_);
+
     // ---------------------------------------
     if (rt_scene_) {
       DSR.update_ray_tracing_scene(rt_scene_.get());
@@ -413,8 +415,6 @@ void GPUResources::upload_buffers(Context const& context) {
       VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
       VMA_MEMORY_USAGE_GPU_ONLY
     );
-    // Update the transform SSBO DescriptorSet entry for all MaterialFx.
-    material_fx_registry_->update_transforms_ssbo(transforms_ssbo_);
   }
 
   /* Copy host mesh data to the staging buffer. */

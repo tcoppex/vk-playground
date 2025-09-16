@@ -187,14 +187,4 @@ backend::ShaderMap MaterialFx::createShaderModules() const {
   };
 }
 
-// ----------------------------------------------------------------------------
-
-void MaterialFx::updateDescriptorSetTransformsSSBO(backend::Buffer const& buf) const {
-  context_ptr_->update_descriptor_set(descriptor_set_, {{
-    .binding = getTransformsStorageBufferBinding(),
-    .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-    .buffers = { { buf.buffer } },
-  }});
-}
-
 /* -------------------------------------------------------------------------- */

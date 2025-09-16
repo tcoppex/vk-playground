@@ -40,6 +40,18 @@ void DescriptorSetRegistry::update_frame_ubo(backend::Buffer const& buffer) cons
 
 // ----------------------------------------------------------------------------
 
+void DescriptorSetRegistry::update_scene_transforms(backend::Buffer const& buffer) const {
+  context_ptr_->update_descriptor_set(
+    sets_[DescriptorSetRegistry::Type::Scene].set,
+  {{
+    .binding = Bindings::Scene::Transforms,
+    .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+    .buffers = { { buffer.buffer } },
+  }});
+}
+
+// ----------------------------------------------------------------------------
+
 void DescriptorSetRegistry::update_scene_textures(std::vector<VkDescriptorImageInfo> image_infos) const {
   context_ptr_->update_descriptor_set(
     sets_[DescriptorSetRegistry::Type::Scene].set,
@@ -247,6 +259,16 @@ void DescriptorSetRegistry::init_descriptor_sets() {
   create_main_set(
     Type::Scene,
     {
+      {
+        .binding = Bindings::Scene::Transforms,
+        .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+        .descriptorCount = 1u,
+        .stageFlags = VK_SHADER_STAGE_VERTEX_BIT
+                    | VK_SHADER_STAGE_FRAGMENT_BIT,
+        .bindingFlags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT
+                      | VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT
+                      | VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT
+      },
       {
         .binding = Bindings::Scene::TextureAtlas,
         .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,

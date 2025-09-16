@@ -81,14 +81,6 @@ void MaterialFxRegistry::push_material_storage_buffers() const {
 
 // ----------------------------------------------------------------------------
 
-void MaterialFxRegistry::update_transforms_ssbo(backend::Buffer const& buffer) const {
-  for (auto fx : active_fx_) {
-    fx->updateDescriptorSetTransformsSSBO(buffer);
-  }
-}
-
-// ----------------------------------------------------------------------------
-
 MaterialFx* MaterialFxRegistry::material_fx(scene::MaterialRef const& ref) const {
   if (auto it = fx_map_.find(ref.model); it != fx_map_.end()) {
     return it->second;
