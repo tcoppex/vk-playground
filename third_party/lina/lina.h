@@ -1,4 +1,4 @@
-//  lina.h - v0.3.1
+//  lina.h - v0.3.2
 //
 //  Public domain linear algebra header, wrapping sgorsten/linalg.h
 //  <http://unlicense.org/>
@@ -141,11 +141,11 @@ template<typename T> constexpr T min4(T const& a, T const& b, T const& c, T cons
 template<typename T> constexpr T max4(T const& a, T const& b, T const& c, T const& d) { return max( a, max( b, max( c, d))); }
 
 template<typename T>
-constexpr bool almost_equal(T const& a, T const& b, T tolerance = kEpsilon) {
-  static_assert(std::is_floating_point<T>::value);
+constexpr bool almost_equal(T const& a, T const& b, T tolerance) {
+  // static_assert(std::is_floating_point<T>::value);
   T const distance = linalg::abs(b - a);
   return (distance <= tolerance)
-      || (distance <= std::numeric_limits<T>::min() * std::fabs(b + a));
+      || (distance <= std::numeric_limits<T>::min() * linalg::abs(b + a));
 }
 
 template<typename T>
