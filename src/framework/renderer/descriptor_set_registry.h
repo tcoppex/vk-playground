@@ -28,25 +28,6 @@ class DescriptorSetRegistry {
     kCount,
   };
 
-  struct Bindings {
-    enum Frame {
-      FrameUBO,
-    };
-
-    enum Scene {
-      Transforms,
-      TextureAtlas,
-      IBLPrefiltered,
-      IBLIrradiance,
-      SpecularBRDF
-    };
-
-    enum RayTracing {
-      TLAS,
-      InstancesData,
-    };
-  };
-
   struct DescriptorSet {
     uint32_t index{};
     VkDescriptorSet set{};

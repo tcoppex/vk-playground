@@ -1,7 +1,8 @@
-
 #include "framework/renderer/descriptor_set_registry.h"
 
 #include "framework/renderer/renderer.h"
+
+#include "framework/scene/vertex_internal.h" // (for material_shader_interop)
 #include "framework/renderer/fx/skybox.h" //
 #include "framework/renderer/raytracing_scene.h" //
 
@@ -32,7 +33,7 @@ void DescriptorSetRegistry::update_frame_ubo(backend::Buffer const& buffer) cons
   context_ptr_->update_descriptor_set(
     sets_[DescriptorSetRegistry::Type::Frame].set,
   {{
-    .binding = Bindings::Frame::FrameUBO,
+    .binding = material_shader_interop::kDescriptorSet_Frame_FrameUBO,
     .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
     .buffers = { { buffer.buffer } },
   }});
@@ -44,7 +45,7 @@ void DescriptorSetRegistry::update_scene_transforms(backend::Buffer const& buffe
   context_ptr_->update_descriptor_set(
     sets_[DescriptorSetRegistry::Type::Scene].set,
   {{
-    .binding = Bindings::Scene::Transforms,
+    .binding = material_shader_interop::kDescriptorSet_Scene_TransformSBO,
     .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
     .buffers = { { buffer.buffer } },
   }});
@@ -56,7 +57,7 @@ void DescriptorSetRegistry::update_scene_textures(std::vector<VkDescriptorImageI
   context_ptr_->update_descriptor_set(
     sets_[DescriptorSetRegistry::Type::Scene].set,
     {{
-      .binding = Bindings::Scene::TextureAtlas,
+      .binding = material_shader_interop::kDescriptorSet_Scene_Textures,
       .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
       .images = std::move(image_infos),
     }}
@@ -73,7 +74,7 @@ void DescriptorSetRegistry::update_scene_ibl() const {
     sets_[DescriptorSetRegistry::Type::Scene].set,
     {
       {
-        .binding = Bindings::Scene::IBLPrefiltered,
+        .binding = material_shader_interop::kDescriptorSet_Scene_IBL_Prefiltered,
         .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
         .images = {
           {
@@ -84,7 +85,7 @@ void DescriptorSetRegistry::update_scene_ibl() const {
         },
       },
       {
-        .binding = Bindings::Scene::IBLIrradiance,
+        .binding = material_shader_interop::kDescriptorSet_Scene_IBL_Irradiance,
         .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
         .images = {
           {
@@ -95,7 +96,7 @@ void DescriptorSetRegistry::update_scene_ibl() const {
         },
       },
       {
-        .binding = Bindings::Scene::SpecularBRDF,
+        .binding = material_shader_interop::kDescriptorSet_Scene_IBL_SpecularBRDF,
         .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
         .images = {
           {
@@ -116,12 +117,12 @@ void DescriptorSetRegistry::update_ray_tracing_scene(RayTracingSceneInterface co
     sets_[DescriptorSetRegistry::Type::RayTracing].set,
     {
       {
-        .binding = Bindings::RayTracing::TLAS,
+        .binding = material_shader_interop::kDescriptorSet_RayTracing_TLAS,
         .type = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR,
         .accelerationStructures = { rt_scene->tlas().handle },
       },
       {
-        .binding = Bindings::RayTracing::InstancesData,
+        .binding = material_shader_interop::kDescriptorSet_RayTracing_InstanceSBO,
         .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
         .buffers = { { rt_scene->instances_data_buffer().buffer } },
       },
@@ -242,7 +243,7 @@ void DescriptorSetRegistry::init_descriptor_sets() {
     Type::Frame,
     {
       {
-        .binding = Bindings::Frame::FrameUBO,
+        .binding = material_shader_interop::kDescriptorSet_Frame_FrameUBO,
         .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
         .descriptorCount = 1u,
         .stageFlags = VK_SHADER_STAGE_VERTEX_BIT
@@ -260,7 +261,7 @@ void DescriptorSetRegistry::init_descriptor_sets() {
     Type::Scene,
     {
       {
-        .binding = Bindings::Scene::Transforms,
+        .binding = material_shader_interop::kDescriptorSet_Scene_TransformSBO,
         .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
         .descriptorCount = 1u,
         .stageFlags = VK_SHADER_STAGE_VERTEX_BIT
@@ -270,7 +271,7 @@ void DescriptorSetRegistry::init_descriptor_sets() {
                       | VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT
       },
       {
-        .binding = Bindings::Scene::TextureAtlas,
+        .binding = material_shader_interop::kDescriptorSet_Scene_Textures,
         .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
         .descriptorCount = kMaxNumTextures, //
         .stageFlags = VK_SHADER_STAGE_VERTEX_BIT
@@ -281,21 +282,21 @@ void DescriptorSetRegistry::init_descriptor_sets() {
                       | VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT,
       },
       {
-        .binding = Bindings::Scene::IBLPrefiltered,
+        .binding = material_shader_interop::kDescriptorSet_Scene_IBL_Prefiltered,
         .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
         .descriptorCount = 1u,
         .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
         .bindingFlags = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT
       },
       {
-        .binding = Bindings::Scene::IBLIrradiance,
+        .binding = material_shader_interop::kDescriptorSet_Scene_IBL_Irradiance,
         .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
         .descriptorCount = 1u,
         .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
         .bindingFlags = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT
       },
       {
-        .binding = Bindings::Scene::SpecularBRDF,
+        .binding = material_shader_interop::kDescriptorSet_Scene_IBL_SpecularBRDF,
         .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
         .descriptorCount = 1u,
         .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
@@ -310,7 +311,7 @@ void DescriptorSetRegistry::init_descriptor_sets() {
     Type::RayTracing,
     {
       {
-        .binding = Bindings::RayTracing::TLAS,
+        .binding = material_shader_interop::kDescriptorSet_RayTracing_TLAS,
         .descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR,
         .descriptorCount = 1u,
         .stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR
@@ -318,7 +319,7 @@ void DescriptorSetRegistry::init_descriptor_sets() {
         .bindingFlags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT,
       },
       {
-        .binding = Bindings::RayTracing::InstancesData,
+        .binding = material_shader_interop::kDescriptorSet_RayTracing_InstanceSBO,
         .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
         .descriptorCount = 1u,
         .stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR,
