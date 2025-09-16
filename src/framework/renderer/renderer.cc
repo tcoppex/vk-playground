@@ -486,31 +486,41 @@ VkGraphicsPipelineCreateInfo Renderer::get_graphics_pipeline_create_info(
   };
 
   /* Dynamic states */
-  data.dynamic_states = {
-    VK_DYNAMIC_STATE_VIEWPORT,
-    VK_DYNAMIC_STATE_SCISSOR,
+  {
+    // Default states.
+    data.dynamic_states = {
+      VK_DYNAMIC_STATE_VIEWPORT,
+      VK_DYNAMIC_STATE_SCISSOR,
 
-    // // VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK,
-    // // VK_DYNAMIC_STATE_STENCIL_WRITE_MASK,
-    // // VK_DYNAMIC_STATE_STENCIL_REFERENCE,
+      // // VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK,
+      // // VK_DYNAMIC_STATE_STENCIL_WRITE_MASK,
+      // // VK_DYNAMIC_STATE_STENCIL_REFERENCE,
 
-    // VK_DYNAMIC_STATE_STENCIL_TEST_ENABLE_EXT,
-    // VK_DYNAMIC_STATE_STENCIL_OP_EXT,
+      // VK_DYNAMIC_STATE_STENCIL_TEST_ENABLE_EXT,
+      // VK_DYNAMIC_STATE_STENCIL_OP_EXT,
 
-    // VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE_EXT,
-    // VK_DYNAMIC_STATE_COLOR_WRITE_MASK_EXT,
+      // VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE_EXT,
+      // VK_DYNAMIC_STATE_COLOR_WRITE_MASK_EXT,
 
-    // VK_DYNAMIC_STATE_PRIMITIVE_TOPOLOGY_EXT,
-    // VK_DYNAMIC_STATE_CULL_MODE_EXT,
-  };
-  data.dynamic_states.insert(
-    data.dynamic_states.end(), desc.dynamicStates.begin(), desc.dynamicStates.end()
-  );
-  data.dynamic_state_create_info = {
-    .sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
-    .dynamicStateCount = static_cast<uint32_t>(data.dynamic_states.size()),
-    .pDynamicStates = data.dynamic_states.data(),
-  };
+      // VK_DYNAMIC_STATE_PRIMITIVE_TOPOLOGY_EXT,
+      // VK_DYNAMIC_STATE_CULL_MODE_EXT,
+    };
+
+    // User defined states.
+    data.dynamic_states.insert(
+      data.dynamic_states.end(), desc.dynamicStates.begin(), desc.dynamicStates.end()
+    );
+
+    // Remove dupplicates.
+    std::set<VkDynamicState> s(data.dynamic_states.begin(), data.dynamic_states.end());
+    data.dynamic_states.assign(s.begin(), s.end());
+
+    data.dynamic_state_create_info = {
+      .sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
+      .dynamicStateCount = static_cast<uint32_t>(data.dynamic_states.size()),
+      .pDynamicStates = data.dynamic_states.data(),
+    };
+  }
 
   VkGraphicsPipelineCreateInfo const graphics_pipeline_create_info{
     .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
@@ -761,7 +771,7 @@ Pipeline Renderer::create_raytracing_pipeline(
     .basePipelineIndex = -1,
   };
 
-  VkDeferredOperationKHR deferredOperation{VK_NULL_HANDLE}; //
+  VkDeferredOperationKHR const deferredOperation{ VK_NULL_HANDLE }; // (unused)
 
   VkPipeline pipeline;
   CHECK_VK(vkCreateRayTracingPipelinesKHR(
