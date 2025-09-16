@@ -18,14 +18,22 @@ list(APPEND hdriPolyhavenAssets
 )
 
 foreach(asset IN LISTS glbKhronosAssets)
-  set(GLB_KHRONOS_ASSETS_URL "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/")
+  set(GLB_KHRONOS_ASSETS_URL
+    "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/"
+  )
   download_model(
     "${GLB_KHRONOS_ASSETS_URL}${asset}/glTF-Binary/${asset}.glb"
   )
 endforeach()
 
+download_model(
+  "https://raw.githubusercontent.com/SaschaWillems/VulkanPathTracer/refs/heads/master/data/models/CornellBox-Original.gltf"
+)
+
 foreach(asset IN LISTS hdriPolyhavenAssets)
-  set(HDRI_POLYHAVEN_ASSETS_URL "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/")
+  set(HDRI_POLYHAVEN_ASSETS_URL
+    "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/"
+  )
   download_texture(
     "${HDRI_POLYHAVEN_ASSETS_URL}${asset}.hdr"
   )
