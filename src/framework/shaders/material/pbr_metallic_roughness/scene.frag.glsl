@@ -179,7 +179,9 @@ void main() {
   Material mat = materials[nonuniformEXT(pushConstant.material_index)];
 
   /* Diffuse. */
-  const vec4 mainColor = sample_DiffuseColor(mat);
+  const vec4 mainColor = sample_DiffuseColor(mat)
+                       * mat.diffuse_factor
+                       ;
 
   /* Early Alpha Test. */
   if (constant_kUseAlphaCutoff)
