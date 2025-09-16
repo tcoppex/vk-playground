@@ -117,7 +117,7 @@ constexpr VkObjectType GetObjectType() {
 }
 
 template <typename T>
-void SetDebugObjectName(VkDevice device, T object, std::string const& name) {
+void SetDebugObjectName(VkDevice device, T object, std::string_view name) {
   constexpr VkObjectType objectType = vkutils::GetObjectType<T>();
 
   if (vkSetDebugUtilsObjectNameEXT && (objectType != VK_OBJECT_TYPE_UNKNOWN)) {
@@ -125,7 +125,7 @@ void SetDebugObjectName(VkDevice device, T object, std::string const& name) {
       .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT,
       .objectType = objectType,
       .objectHandle = (uint64_t)(object),
-      .pObjectName = name.c_str()
+      .pObjectName = name.data()
     };
     vkSetDebugUtilsObjectNameEXT(device, &info);
   }
