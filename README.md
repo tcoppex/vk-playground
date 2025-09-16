@@ -42,7 +42,7 @@ cmake --build build --config Release
 * **[08_hdr_envmap](src/samples/08_hdr_envmap)**: Image-based lighting from a prefiltered HDR environment map (_Texture Barriers_).
 * **[09_post_process](src/samples/09_post_process)**: Screen-space contour effect via a post-processing pipeline.
 * **[10_material](src/samples/10_material)**: Showcase the internal PBR material system with scene graph ordering.
-* **[11_ray_tracing](src/samples/11_raytracing)**: Render a Cornell Box with hardware-accelerated ray tracing (_Ray Tracing_).
+* **[11_ray_tracing](src/samples/11_raytracing)**: Render a Cornell Box with hardware-accelerated ray tracing (_Acceleration Structure_, _Ray Tracing Pipeline_).
 
 ### Dependencies
 
@@ -78,7 +78,8 @@ cmake --build build --config Release
 * [VK_KHR_swapchain](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_swapchain.html)
 * [VK_KHR_synchronization2](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_synchronization2.html)
 * [VK_KHR_timeline_semaphore](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_timeline_semaphore.html)
-
+* [VK_KHR_acceleration_structure](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_acceleration_structure.html)
+* [VK_KHR_ray_tracing_pipeline](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_ray_tracing_pipeline.html)
 
 ### Acknowledgement
 
