@@ -30,6 +30,10 @@ class RayTracingSceneInterface {
   /* Return the Instances data buffer. */
   virtual backend::Buffer instances_data_buffer() const = 0;
 
+  // TODO:
+  // add tlas update
+  // Add tlas rebuild
+
  protected:
   /* Build the Bottom Level Acceleration Structure. */
   virtual bool build_blas(scene::Mesh::SubMesh const& submesh) = 0;

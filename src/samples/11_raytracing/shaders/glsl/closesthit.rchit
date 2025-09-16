@@ -145,35 +145,42 @@ void main() {
 
   // MATERIAL.
 
-  RayTracingMaterial mat = materials[nonuniformEXT(objid)];
+  const uint kInvalidIndexU32 = ((1 << 32) - 1);
+  uint material_type = kRayTracingMaterialType_Diffuse;
+  vec3 emissive = vec3(0.0f);
+  vec3 color = vec3(1.0f);
 
-  vec4 emissive_base = texture(TEXTURE_ATLAS(mat.emissive_texture_id), uv).rgba;
+  if (material_id < kInvalidIndexU32)
+  {
+    RayTracingMaterial mat = materials[nonuniformEXT(material_id)];
 
-  // Handle the default emissive texture.
-  vec3 emissive = mix(vec3(1.0f), emissive_base.xyz, emissive_base.a)
-                * mat.emissive_factor
-                ;
+    vec4 emissive_base = texture(TEXTURE_ATLAS(mat.emissive_texture_id), uv).rgba;
 
-  vec3 color = texture(TEXTURE_ATLAS(mat.diffuse_texture_id), uv).rgb
-             * mat.diffuse_factor.rgb
+    // Handle the default emissive texture.
+    emissive = mix(vec3(1.0f), emissive_base.xyz, emissive_base.a)
+             * mat.emissive_factor
              ;
 
-  const vec3 orm = texture(TEXTURE_ATLAS(mat.orm_texture_id), uv).xyz;
-  const float roughness = max(orm.y, 1e-3) * mat.roughness_factor;
-  const float metallic = orm.z * mat.metallic_factor;
+    color = texture(TEXTURE_ATLAS(mat.diffuse_texture_id), uv).rgb
+          * mat.diffuse_factor.rgb
+          ;
 
-  uint material_type;
-  if (any(greaterThan(emissive, vec3(1.e-2))))
-  {
-    material_type = kRayTracingMaterialType_Emissive;
-  }
-  else if ((metallic > 0.0f) && (roughness < 0.05f))
-  {
-    material_type = kRayTracingMaterialType_Mirror;
-  }
-  else
-  {
-    material_type = kRayTracingMaterialType_Diffuse;
+    const vec3 orm = texture(TEXTURE_ATLAS(mat.orm_texture_id), uv).xyz;
+    const float roughness = max(orm.y, 1e-3) * mat.roughness_factor;
+    const float metallic = orm.z * mat.metallic_factor;
+
+    if (any(greaterThan(emissive, vec3(1.e-2))))
+    {
+      material_type = kRayTracingMaterialType_Emissive;
+    }
+    else if ((metallic > 0.0f) && (roughness < 0.05f))
+    {
+      material_type = kRayTracingMaterialType_Mirror;
+    }
+    else
+    {
+      material_type = kRayTracingMaterialType_Diffuse;
+    }
   }
 
   // ----------------------------------------

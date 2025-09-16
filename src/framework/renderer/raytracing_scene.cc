@@ -75,7 +75,9 @@ void RayTracingScene::build(
   // uint32_t instance_index = 0;
   for (auto const& mesh : meshes) {
     for (auto const& submesh : mesh->submeshes) {
-      uint32_t custom_index = submesh.material_ref->proxy_index; //
+      uint32_t custom_index = submesh.material_ref ? submesh.material_ref->proxy_index
+                                                   : kInvalidIndexU32
+                                                   ;
 
       if (build_blas(submesh)) {
         // (simply instanciate the BLAS we just built)
@@ -119,7 +121,7 @@ bool RayTracingScene::build_blas(scene::Mesh::SubMesh const& submesh) {
   ///
 
   scene::Mesh const& mesh{ *submesh.parent };
-  bool const is_opaque{
+  bool const is_opaque{ !submesh.material_ref ? true :
     submesh.material_ref->states.alpha_mode != scene::MaterialStates::AlphaMode::Blend
   };
 

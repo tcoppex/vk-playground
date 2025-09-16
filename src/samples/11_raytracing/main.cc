@@ -157,6 +157,10 @@ class BasicRayTracingFx : public RayTracingFx {
   }
 
   void buildMaterials(std::vector<scene::MaterialProxy> const& proxy_materials) override {
+    if (proxy_materials.empty()) {
+      return;
+    }
+
     LOG_CHECK(!proxy_materials.empty());
     materials_.reserve(proxy_materials.size());
 
