@@ -24,8 +24,8 @@ uniform accelerationStructureEXT topLevelAS;
 
 layout(location = 0) rayPayloadEXT HitPayload_t payload;
 
-// Init (exemple simple basé sur pixel ID + frame)
-void rngSeed(uvec2 pixel, uint frame) {
+void rngSeed(uint frame) {
+  uvec2 pixel = gl_LaunchIDEXT.xy;
   payload.rngState = pixel.x * 1973u + pixel.y * 9277u + frame * 26699u;
   payload.rngState ^= (payload.rngState << 13);
   payload.rngState ^= (payload.rngState >> 17);
@@ -42,9 +42,6 @@ void main() {
 
   // (flip Y to be consistent with the rasterizer viewport flip..)
   ndc.y = -ndc.y;
-
-  uvec2 pixel = gl_LaunchIDEXT.xy;
-  rngSeed(pixel, uint(uFrame.cameraPos_Time.w));
 
   // We use the same UBO as for the rasterization, but with invert
   // view and proj matrices (names don't changes).
@@ -63,7 +60,7 @@ void main() {
   payload.throughput = vec3(1.0);
   payload.done = 0;
 
-  // vec3 hitValue = vec3(0);
+  rngSeed(floatBitsToUint(uFrame.cameraPos_Time.w));
 
   for (int depth = 0; depth < 64; ++depth) {
     traceRayEXT(
@@ -80,8 +77,8 @@ void main() {
       0
     );
 
-    if (payload.done == 1
-      || (dot(payload.throughput, payload.throughput) < 0.01)
+    if ((payload.done == 1)
+     || (dot(payload.throughput, payload.throughput) < 0.01)
     ) {
       break;
     }
