@@ -79,7 +79,7 @@ class Camera {
   }
 
   // Update controller and rebuild all matrices.
-  void update(float dt) {
+  bool update(float dt) {
     rebuilt_ = false;
     if (controller_) {
       need_rebuild_ |= controller_->update(dt);
@@ -87,6 +87,7 @@ class Camera {
     if (need_rebuild_) {
       rebuild();
     }
+    return rebuilt_;
   }
 
   // Rebuild all matrices.
