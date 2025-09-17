@@ -44,7 +44,7 @@ void ComputeFx::setBufferInputs(std::vector<backend::Buffer> const& inputs) {
 // ----------------------------------------------------------------------------
 
 void ComputeFx::execute(CommandEncoder& cmd) const {
-  if (!isEnabled()) {
+  if (!enabled()) {
     return;
   }
 

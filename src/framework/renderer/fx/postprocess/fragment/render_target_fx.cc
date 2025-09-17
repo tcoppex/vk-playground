@@ -28,7 +28,7 @@ void RenderTargetFx::release() {
 // ----------------------------------------------------------------------------
 
 void RenderTargetFx::execute(CommandEncoder& cmd) const {
-  if (!isEnabled()) {
+  if (!enabled()) {
     return;
   }
 
