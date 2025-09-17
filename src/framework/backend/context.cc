@@ -38,6 +38,8 @@ bool Context::init(std::vector<char const*> const& instance_extensions) {
     .instance = instance_,
   });
 
+  LOGD("--------------------------------------------\n");
+
   return true;
 }
 
@@ -332,7 +334,7 @@ void Context::init_instance(std::vector<char const*> const& instance_extensions)
   VkApplicationInfo const application_info{
     .pApplicationName = "hello_vulkan_sample_app", //
     .applicationVersion = VK_MAKE_VERSION(1, 0, 0),
-    .pEngineName = "hello_vulkan_framework",
+    .pEngineName = "vk_framework",
     .engineVersion = VK_MAKE_VERSION(1, 0, 0),
     .apiVersion = VK_API_VERSION_1_1,
   };
@@ -347,6 +349,21 @@ void Context::init_instance(std::vector<char const*> const& instance_extensions)
   CHECK_VK( vkCreateInstance(&instance_create_info, nullptr, &instance_) );
 
   volkLoadInstance(instance_);
+
+  // ------------------------------------------
+
+  LOGD("Vulkan version required: %d.%d.%d",
+    VK_API_VERSION_MAJOR(application_info.apiVersion),
+    VK_API_VERSION_MINOR(application_info.apiVersion),
+    VK_API_VERSION_PATCH(application_info.apiVersion)
+  );
+  LOGD(" ");
+
+  LOGD("Used Instance layers:");
+  for (auto const& name : instance_extension_names_) {
+    LOGD(" > %s", name);
+  }
+  LOGD(" ");
 }
 
 // ----------------------------------------------------------------------------
@@ -380,6 +397,20 @@ void Context::select_gpu() {
   vkGetPhysicalDeviceQueueFamilyProperties2(gpu_, &queue_family_count, nullptr);
   properties_.queue_families2.resize(queue_family_count, {.sType = VK_STRUCTURE_TYPE_QUEUE_FAMILY_PROPERTIES_2});
   vkGetPhysicalDeviceQueueFamilyProperties2(gpu_, &queue_family_count, properties_.queue_families2.data());
+
+  LOGD("Selected Device:");
+  LOGD(" - Device Name    : %s", properties_.gpu2.properties.deviceName);
+  LOGD(" - Driver version : %d.%d.%d",
+    VK_API_VERSION_MAJOR(properties_.gpu2.properties.driverVersion),
+    VK_API_VERSION_MINOR(properties_.gpu2.properties.driverVersion),
+    VK_API_VERSION_PATCH(properties_.gpu2.properties.driverVersion)
+  );
+  LOGD(" - API version    : %d.%d.%d",
+    VK_API_VERSION_MAJOR(properties_.gpu2.properties.apiVersion),
+    VK_API_VERSION_MINOR(properties_.gpu2.properties.apiVersion),
+    VK_API_VERSION_PATCH(properties_.gpu2.properties.apiVersion)
+  );
+  LOGD(" ");
 }
 
 // ----------------------------------------------------------------------------
@@ -596,6 +627,12 @@ bool Context::init_device() {
     bind_func(  vkCmdBindVertexBuffers2, vkCmdBindVertexBuffers2EXT);
     bind_func(    vkCmdBindIndexBuffer2, vkCmdBindIndexBuffer2KHR);
   }
+
+  LOGD("Used Device Extensions:");
+  for (auto const& name : device_extension_names_) {
+    LOGD(" > %s", name);
+  }
+  LOGD(" ");
 
   /* Retrieved requested queues. */
   for (auto& pair : queues) {

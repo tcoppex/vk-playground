@@ -228,11 +228,11 @@ class Context {
     VkPhysicalDeviceExtendedDynamicState3FeaturesEXT extended_dynamic_state3{};
     VkPhysicalDeviceVertexInputDynamicStateFeaturesEXT vertex_input_dynamic_state{};
     VkPhysicalDeviceImageViewMinLodFeaturesEXT image_view_min_lod{};
+    VkPhysicalDeviceAccelerationStructureFeaturesKHR acceleration_structure{};
+    // VkPhysicalDeviceRayQueryFeaturesKHR ray_query{};
 
     // -------------------------------
-    VkPhysicalDeviceAccelerationStructureFeaturesKHR acceleration_structure{};
     VkPhysicalDeviceRayTracingPipelineFeaturesKHR ray_tracing_pipeline{};
-    // VkPhysicalDeviceRayQueryFeaturesKHR ray_query{};
     // -------------------------------
   } feature_;
 
