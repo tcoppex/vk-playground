@@ -149,28 +149,28 @@ void main() {
   const uint kInvalidIndexU24 = 0x00FFFFFF;
   uint material_type = kRayTracingMaterialType_Diffuse;
   vec3 emissive = vec3(0.0f);
-  vec3 color = vec3(1.0f);
+  vec4 color = vec4(1.0f);
+  float alpha_cutoff = 0.5f;
 
   if (material_id != kInvalidIndexU24)
   {
     RayTracingMaterial mat = materials[nonuniformEXT(material_id)];
 
-    vec4 emissive_base = texture(TEXTURE_ATLAS(mat.emissive_texture_id), uv).rgba;
-
-    // Handle the default emissive texture.
-    emissive = mix(vec3(1.0f), emissive_base.xyz, emissive_base.a)
+    vec4 emissive_base = texture(TEXTURE_ATLAS(mat.emissive_texture_id), uv);
+    emissive = mix(vec3(1.0f), emissive_base.rgb, emissive_base.a)
              * mat.emissive_factor
              ;
 
-    color = texture(TEXTURE_ATLAS(mat.diffuse_texture_id), uv).rgb
-          * mat.diffuse_factor.rgb
+    color = texture(TEXTURE_ATLAS(mat.diffuse_texture_id), uv)
+          * mat.diffuse_factor
           ;
+    alpha_cutoff = mat.alpha_cutoff;
 
     const vec3 orm = texture(TEXTURE_ATLAS(mat.orm_texture_id), uv).xyz;
-    const float roughness = max(orm.y, 1e-3) * mat.roughness_factor;
+    const float roughness = max(orm.y, 1e-3f) * mat.roughness_factor;
     const float metallic = orm.z * mat.metallic_factor;
 
-    if (any(greaterThan(emissive, vec3(1.e-2))))
+    if (any(greaterThan(emissive, vec3(1.e-2f))))
     {
       material_type = kRayTracingMaterialType_Emissive;
     }
@@ -189,20 +189,27 @@ void main() {
   // SHADING.
 
   if (material_type == kRayTracingMaterialType_Diffuse) {
-    // Cosine-weighted hemisphere sampling
-    vec3 tangent, bitangent;
-    buildTangentBasis(N, tangent, bitangent);
-    vec2 u = rand2();
-    vec3 localDir = cosineSampleHemisphere(u);
-    vec3 newDir = normalize(localDir.x * tangent +
-                            localDir.y * bitangent +
-                            localDir.z * N);
+    if (color.a >= alpha_cutoff) {
+      // Cosine-weighted hemisphere sampling
+      vec3 tangent, bitangent;
+      buildTangentBasis(N, tangent, bitangent);
+      vec2 u = rand2();
+      vec3 localDir = cosineSampleHemisphere(u);
+      vec3 newDir = normalize(localDir.x * tangent +
+                              localDir.y * bitangent +
+                              localDir.z * N);
 
-    payload.throughput *= color;
-    payload.origin = P + N * 1e-3;
-    payload.direction = newDir;
-
-    russianRoulette();
+      payload.origin = P + N * 1e-3;
+      payload.direction = newDir;
+      payload.throughput *= color.rgb;
+      russianRoulette();
+    } else {
+      // This create crack between alpha geometry and colliders.
+      // We should probably separate the geometry for that reasons.
+      float eps = 1e-5 * max(1.0f, length(P));
+      payload.origin = P + payload.direction * eps;
+      payload.done = -1;
+    }
 
     return;
   }

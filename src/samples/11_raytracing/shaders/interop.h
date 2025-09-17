@@ -43,6 +43,8 @@ struct RayTracingMaterial {
   uint orm_texture_id;
   float metallic_factor;
   float roughness_factor;
+  float alpha_cutoff;
+  uint _pad0[3];
 };
 
 /* -------------------------------------------------------------------------- */

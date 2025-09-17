@@ -30,7 +30,7 @@ class BasicRayTracingFx : public RayTracingFx {
     bool changed = false;
 
     changed |= ImGui::SliderFloat(
-      "Light intensity",
+      "Emissive strength",
       &push_constant_.light_intensity,
       0.0f, 250.0f, "%.1f"
     );
@@ -177,7 +177,7 @@ class BasicRayTracingFx : public RayTracingFx {
         .roughness_factor     = proxy.pbr_mr.roughness_factor,
         // .normal_texture_id = proxy.bindings.normal,
         // .occlusion_texture_id = proxy.bindings.occlusion,
-        // .alpha_cutoff = proxy.alpha_cutoff,
+        .alpha_cutoff = proxy.alpha_cutoff,
         // .double_sided = proxy.double_sided,
       });
     }
