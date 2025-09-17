@@ -511,18 +511,14 @@ void GPUResources::update_frame_data(
 ) {
   FrameData frame_data{
     .projectionMatrix = camera.proj(),
+    .invProjectionMatrix = linalg::inverse(camera.proj()),
     .viewMatrix = camera.view(),
+    .invViewMatrix = camera.world(),
     .viewProjMatrix = camera.viewproj(),
     .cameraPos_Time = vec4(camera.position(), elapsedTime),
     .resolution = vec2(surfaceSize.width, surfaceSize.height),
     .frame = frame_index_++,
   };
-
-  // For ray tracing we need to use the inverse of those matrices.
-  if (ray_tracing_fx_) {
-    frame_data.projectionMatrix = linalg::inverse(frame_data.projectionMatrix);
-    frame_data.viewMatrix = camera.world();
-  }
 
   context_ptr_->transfer_host_to_device(
     &frame_data, sizeof(frame_data), frame_ubo_

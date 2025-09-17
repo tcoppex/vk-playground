@@ -41,7 +41,9 @@ const uint kDescriptorSet_RayTracing_InstanceSBO    = 1;
 
 struct FrameData {
   mat4 projectionMatrix;
+  mat4 invProjectionMatrix;
   mat4 viewMatrix;
+  mat4 invViewMatrix;
   mat4 viewProjMatrix;
   vec4 cameraPos_Time;   // xyz = camera, w = time
   vec2 resolution;
