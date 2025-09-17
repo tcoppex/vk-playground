@@ -217,18 +217,30 @@ void CommandEncoder::blit(PostFxInterface const& fx_src, backend::RTInterface co
 
 // ----------------------------------------------------------------------------
 
-void CommandEncoder::transfer_host_to_device(void const* host_data, size_t const host_data_size, backend::Buffer const& device_buffer, size_t const device_buffer_offset) const {
-  assert(host_data != nullptr);
-  assert(host_data_size > 0u);
+void CommandEncoder::transfer_host_to_device(
+  void const* host_data,
+  size_t const host_data_size,
+  backend::Buffer const& device_buffer,
+  size_t const device_buffer_offset
+) const {
+  LOG_CHECK(host_data != nullptr);
+  LOG_CHECK(host_data_size > 0u);
 
-  // ----------------
-  // [TODO] Staging buffers need better cleaning / garbage collection !
-  auto staging_buffer{
-    allocator_ptr_->create_staging_buffer(host_data_size, host_data)   //
-  };
-  // ----------------
-
-  copy_buffer(staging_buffer, 0u, device_buffer, device_buffer_offset, host_data_size);
+  if (host_data_size < 65536u) {
+    vkCmdUpdateBuffer(
+      command_buffer_,
+      device_buffer.buffer,
+      device_buffer_offset,
+      host_data_size,
+      host_data
+    );
+  } else {
+    // [TODO] Staging buffers need better cleaning / garbage collection !
+    auto staging_buffer{
+      allocator_ptr_->create_staging_buffer(host_data_size, host_data)   //
+    };
+    copy_buffer(staging_buffer, 0u, device_buffer, device_buffer_offset, host_data_size);
+  }
 }
 
 // ----------------------------------------------------------------------------
