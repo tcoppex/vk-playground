@@ -255,7 +255,7 @@ void Skybox::compute_specular_brdf_lut(Renderer const& renderer) {
   brdf_pipeline.init(renderer);
   brdf_pipeline.setup({ kBRDFLutResolution, kBRDFLutResolution });
 
-  auto cmd = renderer.context().create_transient_command_encoder();
+  auto cmd = renderer.context().create_transient_command_encoder(Context::TargetQueue::Compute);
   {
     brdf_pipeline.execute(cmd);
   }

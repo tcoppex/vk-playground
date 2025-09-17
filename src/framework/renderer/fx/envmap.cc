@@ -244,7 +244,7 @@ bool Envmap::load_diffuse_envmap(std::string_view hdr_filename) {
   auto const& diffuse = images_[ImageType::Diffuse];
 
   /* Transform the spherical texture into a cubemap. */
-  auto cmd = context_->create_transient_command_encoder();
+  auto cmd = context_->create_transient_command_encoder(Context::TargetQueue::Compute);
   {
     cmd.pipeline_image_barriers({
       {
@@ -324,7 +324,7 @@ void Envmap::compute_irradiance_sh_coeff() {
 
   // --------------------
 
-  auto cmd = context_->create_transient_command_encoder();
+  auto cmd = context_->create_transient_command_encoder(Context::TargetQueue::Compute);
   {
     cmd.bind_descriptor_set(descriptor_set_, pipeline_layout_, VK_SHADER_STAGE_COMPUTE_BIT);
 
@@ -437,7 +437,7 @@ void Envmap::compute_irradiance() {
     }
   });
 
-  auto cmd = context_->create_transient_command_encoder();
+  auto cmd = context_->create_transient_command_encoder(Context::TargetQueue::Compute);
   {
     cmd.pipeline_image_barriers({
       {
@@ -518,7 +518,7 @@ void Envmap::compute_specular() {
     }
   });
 
-  auto cmd = context_->create_transient_command_encoder();
+  auto cmd = context_->create_transient_command_encoder(Context::TargetQueue::Compute);
   {
     cmd.pipeline_image_barriers({
       {

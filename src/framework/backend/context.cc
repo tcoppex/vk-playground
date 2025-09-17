@@ -50,6 +50,7 @@ void Context::deinit() {
   resource_allocator_->deinit();
   vkDestroyCommandPool(device_, transient_command_pools_[TargetQueue::Main], nullptr);
   vkDestroyCommandPool(device_, transient_command_pools_[TargetQueue::Transfer], nullptr);
+  vkDestroyCommandPool(device_, transient_command_pools_[TargetQueue::Compute], nullptr);
   vkDestroyDevice(device_, nullptr);
   vkDestroyInstance(instance_, nullptr);
 }
@@ -541,9 +542,10 @@ bool Context::init_device() {
   // --------------------
 
   /* Find specific Queues Family */
-  std::array<float, 2u> constexpr priorities{
+  std::array<float, 3u> constexpr priorities{
     1.0f,     // MAIN Queue        (Graphics, Transfer, Compute)
-    0.75f     // TRANSFERT Queue   (Transfer)
+    0.75f,    // TRANSFERT Queue   (Transfer)
+    0.75f,    // COMPUTE Queue     (Compute)
   };
   std::vector<std::pair<backend::Queue*, VkQueueFlags>> const queues{
     { &queues_[TargetQueue::Main],      VK_QUEUE_GRAPHICS_BIT
@@ -551,6 +553,7 @@ bool Context::init_device() {
                                       | VK_QUEUE_COMPUTE_BIT  },
 
     { &queues_[TargetQueue::Transfer],  VK_QUEUE_TRANSFER_BIT },
+    { &queues_[TargetQueue::Compute],  VK_QUEUE_COMPUTE_BIT },
   };
 
   std::vector<VkDeviceQueueCreateInfo> queue_create_infos{};
@@ -567,7 +570,6 @@ bool Context::init_device() {
 
     for (size_t j = 0u; j < queues.size(); ++j) {
       auto& pair = queues[j];
-
 
       for (uint32_t i = 0u; i < queue_family_count; ++i) {
         auto const& queue_family_props = properties_.queue_families2[i].queueFamilyProperties;

@@ -14,6 +14,7 @@ class Context {
   enum class TargetQueue {
     Main,
     Transfer,
+    Compute,
     kCount,
   };
 
