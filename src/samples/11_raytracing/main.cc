@@ -29,6 +29,8 @@ class BasicRayTracingFx : public RayTracingFx {
   void setupUI() override {
     bool changed = false;
 
+    changed |= ImGui::Checkbox("Enable", &enabled_);
+
     changed |= ImGui::SliderFloat(
       "Emissive strength",
       &push_constant_.light_intensity,
@@ -254,8 +256,6 @@ class SampleApp final : public Application {
   }
 
   void update(float const dt) final {
-    camera_.update(dt);
-
     if (future_scene_.valid()
      && future_scene_.wait_for(0ms) == std::future_status::ready) {
       scene_ = future_scene_.get();
@@ -263,19 +263,20 @@ class SampleApp final : public Application {
       scene_->set_ray_tracing_fx(&ray_tracing_fx_);
       // -------------------------------
     }
-    if (scene_) {
-      scene_->update(camera_, renderer_.get_surface_size(), elapsed_time());
+
+    if (camera_.update(dt)) {
+      ray_tracing_fx_.resetFrameAccumulation();
     }
 
-    if (camera_.rebuilt()) {
-      ray_tracing_fx_.resetFrameAccumulation();
+    if (scene_) {
+      scene_->update(camera_, renderer_.get_surface_size(), elapsed_time());
     }
   }
 
   void draw() final {
     auto cmd = renderer_.begin_frame();
 
-    if constexpr(true)
+    if (ray_tracing_fx_.enabled())
     {
       // RAY TRACER
       ray_tracing_fx_.execute(cmd);

@@ -171,7 +171,7 @@ void GPUResources::update(
 ) {
   update_frame_data(camera, surfaceSize, elapsedTime);
 
-  if (ray_tracing_fx_) {
+  if (ray_tracing_fx_ && ray_tracing_fx_->enabled()) {
     return;
   }
 
@@ -255,7 +255,7 @@ void GPUResources::update(
 void GPUResources::render(RenderPassEncoder const& pass) {
   LOG_CHECK( material_fx_registry_ != nullptr );
 
-  if (ray_tracing_fx_) {
+  if (ray_tracing_fx_ && ray_tracing_fx_->enabled()) {
     return;
   }
 
