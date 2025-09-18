@@ -42,7 +42,7 @@ cmake --build build --config Release
 * **[08_hdr_envmap](src/samples/08_hdr_envmap)**: Image-based lighting from a prefiltered HDR environment map (_Texture Barriers_).
 * **[09_post_process](src/samples/09_post_process)**: Screen-space contour effect via a post-processing pipeline (_Render Target_, _Blit_).
 * **[10_material](src/samples/10_material)**: Showcase the internal PBR material system with scene graph ordering (_Pipeline Cache_, _Specialization Constants_).
-* **[11_ray_tracing](src/samples/11_raytracing)**: Render a Cornell Box with hardware-accelerated ray tracing (_Acceleration Structure_, _Ray Tracing Pipeline_, _Buffer Device Address_).
+* **[11_ray_tracing](src/samples/11_raytracing)**: Simple path tracer on a Cornell box via hardware-accelerated ray tracing (_Acceleration Structure_, _Ray Tracing Pipeline_, _Buffer Device Address_).
 
 ### Dependencies
 
