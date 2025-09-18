@@ -78,6 +78,10 @@ class BasicRayTracingFx : public RayTracingFx {
         create_modules({ "raygen.rgen" })
       },
       {
+        backend::ShaderStage::AnyHit,
+        create_modules({ "anyhit.rahit" })
+      },
+      {
         backend::ShaderStage::ClosestHit,
         create_modules({ "closesthit.rchit" })
       },
@@ -105,6 +109,7 @@ class BasicRayTracingFx : public RayTracingFx {
     return {
       .shaders = {
         .raygens      = shaders_map.at(backend::ShaderStage::Raygen),
+        .anyHits      = shaders_map.at(backend::ShaderStage::AnyHit),
         .closestHits  = shaders_map.at(backend::ShaderStage::ClosestHit),
         .misses       = shaders_map.at(backend::ShaderStage::Miss),
       },
@@ -126,7 +131,7 @@ class BasicRayTracingFx : public RayTracingFx {
         .hits = {{
           .type               = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR,
           .closestHitShader   = shader_index("closesthit.rchit"),
-          .anyHitShader       = VK_SHADER_UNUSED_KHR,
+          .anyHitShader       = shader_index("anyhit.rahit"),
           .intersectionShader = VK_SHADER_UNUSED_KHR, // only on PROCEDURAL type
         }},
       }
@@ -137,9 +142,9 @@ class BasicRayTracingFx : public RayTracingFx {
     return {
       {
         .stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR
+                    | VK_SHADER_STAGE_ANY_HIT_BIT_KHR
                     | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR
                     | VK_SHADER_STAGE_MISS_BIT_KHR
-                    | VK_SHADER_STAGE_ANY_HIT_BIT_KHR
                     ,
         .size = sizeof(push_constant_),
       }
@@ -147,7 +152,6 @@ class BasicRayTracingFx : public RayTracingFx {
   }
 
   void pushConstant(GenericCommandEncoder const &cmd) const override {
-    push_constant_.accumulation_frame_count += 1u;
     cmd.push_constant(
       push_constant_,
       pipeline_layout_,
@@ -156,6 +160,7 @@ class BasicRayTracingFx : public RayTracingFx {
       | VK_SHADER_STAGE_MISS_BIT_KHR
       | VK_SHADER_STAGE_ANY_HIT_BIT_KHR
     );
+    push_constant_.accumulation_frame_count += 1u;
   }
 
   void buildMaterials(std::vector<scene::MaterialProxy> const& proxy_materials) override {
@@ -300,6 +305,7 @@ class SampleApp final : public Application {
     ImGui::Begin("Settings");
     {
       ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
+      ImGui::Text("Elapsed time: %.2f ms", delta_time() * 1000.0f);
       ImGui::Separator();
 
       if (ImGui::CollapsingHeader("Ray Tracing", ImGuiTreeNodeFlags_DefaultOpen)) {

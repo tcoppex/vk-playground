@@ -1,11 +1,14 @@
 #version 460
 #extension GL_EXT_ray_tracing : require
 #extension GL_EXT_scalar_block_layout : require
+#extension GL_EXT_debug_printf : enable
 
 // ----------------------------------------------------------------------------
 
+#include "../interop.h"
+
 #include <material/interop.h>
-#include "../interop.h" //
+#include <shared/random.glsl>
 
 // ----------------------------------------------------------------------------
 
@@ -35,34 +38,16 @@ layout(push_constant, scalar) uniform PushConstant_ {
 
 layout(location = 0) rayPayloadEXT HitPayload_t payload;
 
-uint tea(uint v0, uint v1) {
-  uint s0 = 0u;
-  for (uint n = 0u; n < 16u; n++) {
-    s0 += 0x9e3779b9u;
-    v0 += ((v1 << 4) + 0xa341316cu) ^ (v1 + s0) ^ ((v1 >> 5) + 0xc8013ea4u);
-    v1 += ((v0 << 4) + 0xad90777du) ^ (v0 + s0) ^ ((v0 >> 5) + 0x7e95761eu);
-  }
-  return v0;
-}
-
 void rngSeed(uint frame) {
   uvec2 pixel = gl_LaunchIDEXT.xy;
-
-#if 0
-  uint h = pixel.x * 374761393u + pixel.y * 668265263u;
-  h = (h ^ (h >> 13)) * 1274126177u;
-  payload.rngState = h ^ (h >> 16);
-
-  payload.rngState ^= pushConstant.accumulation_frame_count << frame;
-  payload.rngState += floatBitsToUint(uFrame.cameraPos_Time.w);
-#else
-  payload.rngState = tea(
-    gl_LaunchIDEXT.x + gl_LaunchIDEXT.y * gl_LaunchSizeEXT.x,
-    pushConstant.accumulation_frame_count
-  );
-#endif
+  uvec3 params = uvec3(pixel, frame);
+  payload.rngState = xxhash32(params);
 }
-
+vec3 tonemapFilmic(vec3 x) {
+  vec3 X = max(vec3(0.0), x - 0.004);
+  vec3 result = (X * (6.2 * X + 0.5)) / (X * (6.2 * X + 1.7) + 0.06);
+  return pow(result, vec3(2.2));
+}
 // ----------------------------------------------------------------------------
 
 void main() {
@@ -87,12 +72,12 @@ void main() {
   payload.throughput = vec3(1.0);
   payload.done = 0;
   payload.depth = 0;
-  rngSeed(uFrame.frame);
+  rngSeed(pushConstant.accumulation_frame_count);
 
   for (int depth = 0; depth < 64; ++depth) {
     traceRayEXT(
       topLevelAS,
-      gl_RayFlagsOpaqueEXT,
+      gl_RayFlagsNoneEXT, //gl_RayFlagsOpaqueEXT,
       0xff,
       0, // sbt record offset
       0, // sbt record stride
@@ -105,24 +90,44 @@ void main() {
     );
 
     if ((payload.done == 1)
-     || (dot(payload.throughput, payload.throughput) < 0.01)
+     || (dot(payload.throughput, payload.throughput) < 0.001)
     ) {
       break;
     }
   }
 
+#if 1
   vec3 prevSample = imageLoad(uAccumImage, pixel).rgb;
-
   // To avoid having to clear the initial buffer.
   prevSample = max(vec3(0.0f), prevSample); //
 
+  // if (pushConstant.accumulation_frame_count < 2) {
+  //   prevSample = vec3(0.05);
+  // }
+
   vec3 newSample = payload.radiance.rgb;
-  newSample = clamp(newSample, 00.0f, 100.0f);
+  // newSample = clamp(newSample, 00.0f, 100.0f);
 
   float frameCount = float(pushConstant.accumulation_frame_count + 1);
-  vec3 accum = mix(prevSample, newSample, 1.0 / frameCount);
+  vec3 color = mix(prevSample, newSample, 1.0 / frameCount);
+#else
 
-  imageStore(uAccumImage, pixel, vec4(accum, 1.0));
+  uint frameID = pushConstant.accumulation_frame_count;
+  vec3 color = vec3(0.5);
+  vec3 newSample = payload.radiance.rgb;
+
+  if(frameID == 0) {
+    color = pow(newSample, vec3(1.0));
+  } else {
+    vec3 previousAverage = max(vec4(0), imageLoad(uAccumImage, pixel)).rgb;
+    previousAverage = pow(previousAverage, vec3(1.0/2.2));
+    vec3 newAverage = (previousAverage.rgb * float(frameID) + newSample) / float(frameID + 1);
+    color = newAverage;
+  }
+
+#endif
+
+  imageStore(uAccumImage, pixel, vec4(color, 1.0));
 }
 
 // ----------------------------------------------------------------------------
