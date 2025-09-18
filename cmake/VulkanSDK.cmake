@@ -109,21 +109,23 @@ function(compile_shaders GLOBAL_GLSL_DIR GLOBAL_SPIRV_DIR binaries sources extra
   )
 
 
-  file(GLOB ShadersDependencies
-    ${GLOBAL_GLSL_DIR}/../*.h ##
+  file(GLOB_RECURSE ShadersDependencies
+    ${GLOBAL_GLSL_DIR}/../interop.h ##
     ${GLOBAL_GLSL_DIR}/../*.glsl
   )
-  file(GLOB_RECURSE ShadersDependencies
-    ${GLOBAL_GLSL_DIR}/*.h ##
-  )
+  # file(GLOB_RECURSE ShadersDependencies
+  #   ${GLOBAL_GLSL_DIR}/*.h ##
+  # )
+  # foreach(dep IN LISTS ShadersDependencies)
+  #   message(STATUS "dep ${dep}")
+  # endforeach()
 
   file(GLOB_RECURSE ShadersDependencies_bis
     ${extra_dir}/*.h
     ${extra_dir}/*.glsl
   )
   list(APPEND ShadersDependencies ${ShadersDependencies_bis})
-  # foreach(dep IN LISTS ShadersDependencies_bis)
-  # endforeach()
+
 
   # transform shader path to relative
   foreach(glslshader IN LISTS g_ShadersGLSL)
