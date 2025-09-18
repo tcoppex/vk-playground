@@ -122,7 +122,7 @@ bool RayTracingScene::build_blas(scene::Mesh::SubMesh const& submesh) {
 
   scene::Mesh const& mesh{ *submesh.parent };
   bool const is_opaque{ !submesh.material_ref ? true :
-    submesh.material_ref->states.alpha_mode != scene::MaterialStates::AlphaMode::Blend
+    submesh.material_ref->states.alpha_mode == scene::MaterialStates::AlphaMode::Opaque
   };
 
   VkAccelerationStructureGeometryTrianglesDataKHR const tri{
