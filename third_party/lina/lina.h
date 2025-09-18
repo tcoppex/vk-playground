@@ -142,10 +142,17 @@ template<typename T> constexpr T max4(T const& a, T const& b, T const& c, T cons
 
 template<typename T>
 constexpr bool almost_equal(T const& a, T const& b, T tolerance) {
-  // static_assert(std::is_floating_point<T>::value);
+  static_assert(std::is_floating_point<T>::value);
   T const distance = linalg::abs(b - a);
   return (distance <= tolerance)
       || (distance <= std::numeric_limits<T>::min() * linalg::abs(b + a));
+}
+
+constexpr bool almost_equal(aliases::vec3 const& a, aliases::vec3 const& b, float tolerance) {
+  return almost_equal(a.x, b.x, tolerance)
+      && almost_equal(a.y, b.y, tolerance)
+      && almost_equal(a.z, b.z, tolerance)
+      ;
 }
 
 template<typename T>
