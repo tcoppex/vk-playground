@@ -132,14 +132,16 @@ PBRMetallicRoughness_Material_t calculate_pbr_material_data(
   data.emissive = mix(vec3(1.0f), emissive_base.xyz, emissive_base.a)
                 * mat.emissive_factor
                 ;
-
-  float flickering = pow(sin(1.4 * uFrame.cameraPos_Time.w), 2) + cos(0.7 * uFrame.cameraPos_Time.w);
-  data.emissive *= abs(flickering);
+  // float flickering = pow(sin(1.4 * uFrame.cameraPos_Time.w), 2) + cos(0.7 * uFrame.cameraPos_Time.w);
+  // data.emissive *= abs(flickering);
 
   // Roughness + Metallic.
-  const vec3 orm = texture(TEXTURE_ATLAS(mat.orm_texture_id), frag.uv).xyz; //
-  data.roughness = max(orm.y, 1e-3) * mat.roughness_factor;
-  data.metallic = orm.z * mat.metallic_factor;
+  {
+    const vec4 orm = texture(TEXTURE_ATLAS(mat.orm_texture_id), frag.uv);
+    data.roughness = mat.roughness_factor * mix(1.0, max(orm.y, 1e-3f), orm.w);
+    data.metallic = mat.metallic_factor * mix(1.0, orm.z, orm.w);
+  }
+
 
   // Ambient Occlusion.
   const float ao = texture(TEXTURE_ATLAS(mat.occlusion_texture_id), frag.uv).x;
