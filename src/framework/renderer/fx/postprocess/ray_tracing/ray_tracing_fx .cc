@@ -16,6 +16,7 @@ void RayTracingFx::execute(CommandEncoder& cmd) const {
     VkShaderStageFlags const stage_flags{
         VK_SHADER_STAGE_RAYGEN_BIT_KHR
       | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR
+      | VK_SHADER_STAGE_ANY_HIT_BIT_KHR
     };
 
     cmd.bind_descriptor_set(

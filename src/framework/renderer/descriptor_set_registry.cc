@@ -245,6 +245,7 @@ void DescriptorSetRegistry::init_descriptor_sets() {
   VkShaderStageFlags extra_stage_flags{
       VK_SHADER_STAGE_RAYGEN_BIT_KHR
     | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR
+    | VK_SHADER_STAGE_ANY_HIT_BIT_KHR
   };
 
   create_main_set(
@@ -323,14 +324,16 @@ void DescriptorSetRegistry::init_descriptor_sets() {
         .descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR,
         .descriptorCount = 1u,
         .stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR
-                    | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR,
+                    ,
         .bindingFlags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT,
       },
       {
         .binding = material_shader_interop::kDescriptorSet_RayTracing_InstanceSBO,
         .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
         .descriptorCount = 1u,
-        .stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR,
+        .stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR
+                    | VK_SHADER_STAGE_ANY_HIT_BIT_KHR
+                    ,
         .bindingFlags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT,
       },
     },
