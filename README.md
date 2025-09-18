@@ -40,9 +40,9 @@ cmake --build build --config Release
 * **[06_blend_op](src/samples/06_blend_op)**: Fast & simple billboarded GPU particles with additive blending (_Blending_).
 * **[07_compute](src/samples/07_compute)**: Waves simulation with sorted alpha-blended particles (_Compute Pipeline, Buffer Barriers_).
 * **[08_hdr_envmap](src/samples/08_hdr_envmap)**: Image-based lighting from a prefiltered HDR environment map (_Texture Barriers_).
-* **[09_post_process](src/samples/09_post_process)**: Screen-space contour effect via a post-processing pipeline.
-* **[10_material](src/samples/10_material)**: Showcase the internal PBR material system with scene graph ordering.
-* **[11_ray_tracing](src/samples/11_raytracing)**: Render a Cornell Box with hardware-accelerated ray tracing (_Acceleration Structure_, _Ray Tracing Pipeline_).
+* **[09_post_process](src/samples/09_post_process)**: Screen-space contour effect via a post-processing pipeline (_Render Target_, _Blit_).
+* **[10_material](src/samples/10_material)**: Showcase the internal PBR material system with scene graph ordering (_Pipeline Cache_, _Specialization Constants_).
+* **[11_ray_tracing](src/samples/11_raytracing)**: Render a Cornell Box with hardware-accelerated ray tracing (_Acceleration Structure_, _Ray Tracing Pipeline_, _Buffer Device Address_).
 
 ### Dependencies
 
