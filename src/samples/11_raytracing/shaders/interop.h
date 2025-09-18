@@ -22,9 +22,11 @@ struct HitPayload_t {
 
 struct PushConstant {
   uint accumulation_frame_count;
+  int num_samples;
+  float jitter_factor;
   float light_intensity;
   float sky_intensity;
-  uint _pad0[1];
+  uint _pad0[2];
 };
 
 // -----------------------------------------------------------------------------

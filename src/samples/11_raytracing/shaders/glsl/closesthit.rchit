@@ -18,7 +18,7 @@
 
 // -----------------------------------------------------------------------------
 
-hitAttributeEXT vec2 attribs;
+hitAttributeEXT vec2 hitAttribs;
 
 layout(location = 0) rayPayloadInEXT HitPayload_t payload;
 
@@ -58,22 +58,7 @@ buffer _scene_desc {
   ObjBuffers_t addr[];
 } ObjBuffers;
 
-// -----------------------------------------------------------------------------
-
-void russianRoulette() {
-  ++payload.depth;
-  if (payload.depth > 3) {
-    float p = max(payload.throughput.r,
-              max(payload.throughput.g, payload.throughput.b));
-    p = clamp(p, 0.05, 0.95);
-    if (randf(payload.rngState) > p) {
-      payload.done = 1;
-      return;
-    } else {
-      payload.throughput /= p;
-    }
-  }
-}
+#include <shared/rt_unpack_geometry.glsl>
 
 // -----------------------------------------------------------------------------
 
@@ -85,39 +70,8 @@ void main() {
 
   // GEOMETRY.
 
-  ObjBuffers_t obj = ObjBuffers.addr[nonuniformEXT(object_id)];
-  Vertices vertices = Vertices(obj.vertexAddr);
-  Indices indices   = Indices(obj.indexAddr);
-
-  uint base_index = gl_PrimitiveID * 3;
-
-  uint i0 = indices.u32[base_index + 0];
-  uint i1 = indices.u32[base_index + 1];
-  uint i2 = indices.u32[base_index + 2];
-
-  Vertex v0 = vertices.v[i0];
-  Vertex v1 = vertices.v[i1];
-  Vertex v2 = vertices.v[i2];
-
-  // Barycentric coordinates of the triangle
-  const vec3 barycentrics = vec3(1.0f - attribs.x - attribs.y, attribs.x, attribs.y);
-
-  // Hit Normal
-  vec3 N = v0.normal.xyz * barycentrics.x
-         + v1.normal.xyz * barycentrics.y
-         + v2.normal.xyz * barycentrics.z;
-  N = normalize(vec3(N.xyz * gl_WorldToObjectEXT));
-
-  // Hit Position
-  vec3 P = v0.position.xyz * barycentrics.x
-         + v1.position.xyz * barycentrics.y
-         + v2.position.xyz * barycentrics.z;
-  P = vec3(gl_ObjectToWorldEXT * vec4(P, 1.0));
-
-  vec2 uv = v0.texcoord * barycentrics.x
-          + v1.texcoord * barycentrics.y
-          + v2.texcoord * barycentrics.z;
-
+  Triangle_t tri = unpack_triangle(gl_InstanceID, gl_PrimitiveID);
+  Vertex v = calculate_vertex(tri, hitAttribs);
 
   // ----------------------------------------
 
@@ -125,25 +79,24 @@ void main() {
 
   const uint kInvalidIndexU24 = 0x00FFFFFF;
   uint material_type = kRayTracingMaterialType_Diffuse;
+
   vec3 emissive = vec3(0.0f);
   vec4 color = vec4(1.0f);
-  float opacity = 1.0f;
 
   if (material_id != kInvalidIndexU24)
   {
     RayTracingMaterial mat = materials[nonuniformEXT(material_id)];
 
-    vec4 emissive_base = texture(TEXTURE_ATLAS(mat.emissive_texture_id), uv);
+    vec4 emissive_base = texture(TEXTURE_ATLAS(mat.emissive_texture_id), v.texcoord);
     emissive = mix(vec3(1.0f), emissive_base.rgb, emissive_base.a)
              * mat.emissive_factor
              ;
 
-    color = texture(TEXTURE_ATLAS(mat.diffuse_texture_id), uv)
+    color = texture(TEXTURE_ATLAS(mat.diffuse_texture_id), v.texcoord)
           * mat.diffuse_factor
           ;
-    opacity = (color.a > mat.alpha_cutoff) ? 1.0f : 0.0f;
 
-    const vec4 orm = texture(TEXTURE_ATLAS(mat.orm_texture_id), uv);
+    const vec4 orm = texture(TEXTURE_ATLAS(mat.orm_texture_id), v.texcoord);
     const float roughness = mat.roughness_factor * mix(1.0, max(orm.y, 1e-3f), orm.w);
     const float metallic = mat.metallic_factor * mix(1.0, orm.z, orm.w);
 
@@ -166,54 +119,39 @@ void main() {
   // SHADING.
 
   if (material_type == kRayTracingMaterialType_Diffuse) {
-    // if (opacity >= 1.0f)
-    {
-      // Cosine-weighted hemisphere sampling
-      vec3 tangent, bitangent;
-      build_tangent_basis(N, tangent, bitangent);
+    // Cosine-weighted hemisphere sampling
+    vec3 tangent, bitangent;
+    build_tangent_basis(v.normal, tangent, bitangent);
 
-      vec2 u = rand2f(payload.rngState);
-      vec3 localDir = sample_hemisphere_cosine(u);
-      vec3 newDir = normalize(localDir.x * tangent +
-                              localDir.y * bitangent +
-                              localDir.z * N);
+    vec3 localDir = sample_hemisphere_cosine(rand2f(payload.rngState));
+    vec3 newDir = normalize(localDir.x * tangent +
+                            localDir.y * bitangent +
+                            localDir.z * v.normal);
 
-      payload.origin = P + N * 1e-3;
-      payload.direction = newDir;
-      payload.throughput *= color.rgb;
-      russianRoulette();
-    }
-    // else
-    // {
-    //   // To implement in an AnyHit shader.
-    //   // ignoreIntersectionEXT();
-
-    //   // [there is better way to handle alpha opacity]
-    //   // This create crack between alpha geometry and colliders.
-    //   // Probably need to separate the alphamask geometries in a different pass.
-    //   float eps = 1e-5f * max(1.0f, length(P));
-    //   payload.origin = P + payload.direction * eps;
-    // }
-
-    return;
+    payload.origin = v.position; // + v.normal * 1e-3;
+    payload.direction = newDir;
+    payload.throughput *= color.rgb;
   }
 
   if (material_type == kRayTracingMaterialType_Mirror)
   {
-    vec3 reflDir = reflect(normalize(gl_WorldRayDirectionEXT), N);
-    payload.origin = P + N * 1e-3;
+    vec3 reflDir = reflect(normalize(gl_WorldRayDirectionEXT), v.normal);
+    payload.origin = v.position + v.normal * 1e-3;
     payload.direction = reflDir;
-    return;
   }
+
 
   if (material_type == kRayTracingMaterialType_Emissive)
   {
-    payload.radiance += payload.throughput
-                      * emissive * pushConstant.light_intensity
+    payload.radiance = payload.throughput
+                      * emissive
+                      * pushConstant.light_intensity
                       ;
     payload.done = 1;
     return;
   }
+
+  payload.depth += 1;
 }
 
 // -----------------------------------------------------------------------------

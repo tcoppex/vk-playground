@@ -15,16 +15,15 @@ layout(push_constant, scalar) uniform PushConstant_ {
 // ----------------------------------------------------------------------------
 
 void main() {
-  vec3 dir = (payload.direction);
   vec3 dawn = vec3(1.0, 0.45, 0.05);
   vec3 sky  = vec3(0.2, 0.4, 0.8);
+  float t = 0.5 * (normalize(gl_WorldRayDirectionEXT).y + 1.0);
 
-  vec3 color = mix(dawn, sky,
-    pow(0.5*(dir.y + 1.0), 0.70)
-  );
-  color *= pushConstant.sky_intensity;
+  vec3 skyColor = mix(dawn, sky, pow(t, 0.7))
+                * pushConstant.sky_intensity 
+                ;
 
-  payload.radiance += color * payload.throughput;
+  payload.radiance += skyColor * payload.throughput;
   payload.done = 1;
 }
 

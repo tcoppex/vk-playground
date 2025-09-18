@@ -31,25 +31,38 @@ class BasicRayTracingFx : public RayTracingFx {
 
     changed |= ImGui::Checkbox("Enable", &enabled_);
 
-    changed |= ImGui::SliderFloat(
-      "Emissive strength",
-      &push_constant_.light_intensity,
-      0.0f, 250.0f, "%.1f"
-    );
-
-    changed |= ImGui::SliderFloat(
-      "Sky intensity",
-      &push_constant_.sky_intensity,
-      0.0f, 4.0f, "%.1f"
-    );
 
     int value = max_accumulation_frame_count_;
     ImGui::SliderInt(
       "Max Accumulation Frame",
       &value,
-      8, 1024
+      1, 256
     );
     max_accumulation_frame_count_ = value;
+
+    changed |= ImGui::SliderInt(
+      "Samples",
+      &push_constant_.num_samples,
+      1, 16
+    );
+
+    changed |= ImGui::SliderFloat(
+      "Jitter factor",
+      &push_constant_.jitter_factor,
+      1.0f, 100.0f, "%.1f"
+    );
+
+    changed |= ImGui::SliderFloat(
+      "Emissive strength",
+      &push_constant_.light_intensity,
+      0.0f, 64.0f, "%.1f"
+    );
+
+    changed |= ImGui::SliderFloat(
+      "Sky intensity",
+      &push_constant_.sky_intensity,
+      0.0f, 5.0f, "%.1f"
+    );
 
     ImGui::Text("Accumulation frame count: %u", push_constant_.accumulation_frame_count);
 
@@ -171,8 +184,7 @@ class BasicRayTracingFx : public RayTracingFx {
     LOG_CHECK(!proxy_materials.empty());
     materials_.reserve(proxy_materials.size());
 
-    // [Quite similar to PBRMetalRoughnessFx, but we separate them for now
-    // because we don't know if the load gltf was defined with only PBR]
+    // [we should probably sent the material proxy buffer directly to the GPU]
     for (auto const& proxy : proxy_materials) {
       materials_.push_back({
         .emissive_factor      = proxy.emissive_factor,
@@ -201,10 +213,12 @@ class BasicRayTracingFx : public RayTracingFx {
   }
 
  private:
-  uint32_t max_accumulation_frame_count_{512};
+  uint32_t max_accumulation_frame_count_{64};
 
   mutable shader_interop::PushConstant push_constant_{
-    .light_intensity = 34.0f,
+    .num_samples = 4,
+    .jitter_factor = 1.0f,
+    .light_intensity = 8.0f,
     .sky_intensity = 1.6f,
   };
 
@@ -218,7 +232,7 @@ class SampleApp final : public Application {
   bool setup() final {
     wm_->setTitle("11 - shining through");
 
-    renderer_.set_color_clear_value({ 0.72f, 0.28f, 0.30f, 0.0f });
+    renderer_.set_color_clear_value({ 0.52f, 0.28f, 0.80f, 0.0f });
 
     /* Setup the ArcBall camera. */
     {
@@ -226,14 +240,14 @@ class SampleApp final : public Application {
         lina::radians(55.0f),
         viewport_size_.width,
         viewport_size_.height,
-        0.01f,
-        500.0f
+        0.1f,
+        100.0f
       );
       camera_.setController(&arcball_controller_);
 
       arcball_controller_.setTarget(vec3f(0.0f, 1.0f, 0.0), false);
-      arcball_controller_.setView(lina::kTwoPi/32.0f, 0.0f, false);
-      arcball_controller_.setDolly(4.0f, false);
+      arcball_controller_.setView(0.0f, 0.0f, false);
+      arcball_controller_.setDolly(3.5f, false);
     }
 
     // -------------------------------

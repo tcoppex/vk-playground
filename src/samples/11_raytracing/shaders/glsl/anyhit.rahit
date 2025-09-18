@@ -13,7 +13,7 @@
 
 // -----------------------------------------------------------------------------
 
-hitAttributeEXT vec2 attribs;
+hitAttributeEXT vec2 hitAttribs;
 
 layout(location = 0) rayPayloadInEXT HitPayload_t payload;
 
@@ -53,55 +53,17 @@ buffer _scene_desc {
   ObjBuffers_t addr[];
 } ObjBuffers;
 
+#include <shared/rt_unpack_geometry.glsl>
+
 // -----------------------------------------------------------------------------
 
 void main() {
-  const uint object_id   = uint(gl_InstanceID); //
+  Triangle_t tri = unpack_triangle(gl_InstanceID, gl_PrimitiveID);
+  vec2 uv = calculate_texcoord(tri, barycenter_from_hit(hitAttribs));
+
   const uint material_id = gl_InstanceCustomIndexEXT;
-
-  // ----------------------------------------
-
-  // GEOMETRY.
-
-  ObjBuffers_t obj = ObjBuffers.addr[nonuniformEXT(object_id)];
-  Vertices vertices = Vertices(obj.vertexAddr);
-  Indices indices   = Indices(obj.indexAddr);
-
-  uint base_index = gl_PrimitiveID * 3;
-
-  uint i0 = indices.u32[base_index + 0];
-  uint i1 = indices.u32[base_index + 1];
-  uint i2 = indices.u32[base_index + 2];
-
-  Vertex v0 = vertices.v[i0];
-  Vertex v1 = vertices.v[i1];
-  Vertex v2 = vertices.v[i2];
-
-  // Barycentric coordinates of the triangle
-  const vec3 barycentrics = vec3(1.0f - attribs.x - attribs.y, attribs.x, attribs.y);
-
-  // Hit Normal
-  vec3 N = v0.normal.xyz * barycentrics.x
-         + v1.normal.xyz * barycentrics.y
-         + v2.normal.xyz * barycentrics.z;
-  N = normalize(vec3(N.xyz * gl_WorldToObjectEXT));
-
-  // Hit Position
-  vec3 P = v0.position.xyz * barycentrics.x
-         + v1.position.xyz * barycentrics.y
-         + v2.position.xyz * barycentrics.z;
-  P = vec3(gl_ObjectToWorldEXT * vec4(P, 1.0));
-
-  vec2 uv = v0.texcoord * barycentrics.x
-          + v1.texcoord * barycentrics.y
-          + v2.texcoord * barycentrics.z;
-
-
-  // ----------------------------------------
-
-  // MATERIAL.
-
   const uint kInvalidIndexU24 = 0x00FFFFFF;
+
   float opacity = 1.0f;
 
   if (material_id != kInvalidIndexU24)
@@ -117,7 +79,6 @@ void main() {
   if (opacity < 0.99f) {
     ignoreIntersectionEXT;
   }
-
 }
 
 // -----------------------------------------------------------------------------
