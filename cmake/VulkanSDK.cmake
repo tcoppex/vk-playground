@@ -51,6 +51,7 @@ function(glsl2spirv input_glsl output_spirv shader_dir deps extra_args)
   elseif(${fn} MATCHES "(.+\\.rgen)")
   elseif(${fn} MATCHES "(.+\\.rmiss)")
   elseif(${fn} MATCHES "(.+\\.rchit)")
+  elseif(${fn} MATCHES "(.+\\.rahit)")
   else()
     message(WARNING "Unknown shader type for ${fn}")
     # return()
@@ -98,7 +99,7 @@ function(compile_shaders GLOBAL_GLSL_DIR GLOBAL_SPIRV_DIR binaries sources extra
   file(GLOB_RECURSE g_ShadersGLSL ${GLOBAL_GLSL_DIR}/*.*)
 
   # Only keep shaders of the form "filename.stage.glsl"
-  set(RaytraceShadersREGEX ".+\\.rgen$|.+\\.rmiss$|.+\\.rchit$")
+  set(RaytraceShadersREGEX ".+\\.rgen$|.+\\.rmiss$|.+\\.rchit|.+\\.rahit$")
   list(
     FILTER
       g_ShadersGLSL
