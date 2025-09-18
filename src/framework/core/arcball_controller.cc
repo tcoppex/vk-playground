@@ -107,7 +107,7 @@ bool ArcBallController::update(
     || !lina::almost_equal<float>(yaw_, yaw2_, 0.01f)
     || !lina::almost_equal<float>(pitch_, pitch2_, 0.01f)
     || !lina::almost_equal<float>(dolly_, dolly2_, 0.01f)
-    || !lina::almost_equal(target_, target2_, vec3(lina::kEpsilon))
+    || !lina::almost_equal(target_, target2_, 0.0001f)
     ;
 
   RegulateAngle(pitch_, pitch2_);
