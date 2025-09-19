@@ -79,8 +79,8 @@ bool HostResources::load_file(std::string_view filename) {
     {
       /* --- Async tasks version --- */
 
-      auto run_task = utils::RunTaskGeneric<void>;
-      auto run_task_ret = utils::RunTaskGeneric<PointerToIndexMap_t>;
+      auto run_task         = utils::RunTaskGeneric<void>;
+      auto run_task_ret     = utils::RunTaskGeneric<PointerToIndexMap_t>;
       auto run_task_sampler = utils::RunTaskGeneric<PointerToSamplerMap_t>;
 
       auto taskSamplers = run_task_sampler([data, &samplers = this->samplers] {
