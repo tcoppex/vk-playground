@@ -4,12 +4,19 @@
 #include <iostream>
 #include <fstream>
 
+#if defined(ANDROID)
+#include "core/platform/android/jni_context.h"
+#endif
+
 /* -------------------------------------------------------------------------- */
 
 namespace utils {
 
 bool FileReader::Read(std::string_view filename, std::vector<uint8_t>& out) {
-  constexpr std::size_t kMaxReadFileSize{4 << 27};
+#if defined(ANDROID)
+  return JNIContext::Get().readFile(filename, out);
+#else
+  constexpr std::size_t kMaxReadFileSize{4 << 27}; //
 
   std::ifstream file(filename.data(), std::ios::binary | std::ios::ate);
   if (!file) {
@@ -36,11 +43,16 @@ bool FileReader::Read(std::string_view filename, std::vector<uint8_t>& out) {
   }
 
   return true;
+#endif
 }
 
 // ----------------------------------------------------------------------------
 
 char* ReadBinaryFile(const char *filename, size_t *filesize) {
+#if defined(ANDROID)
+  LOGE("%s undefined on ANDROID.\n", __FUNCTION);
+  return nullptr;
+#else
   FILE *fd = fopen(filename, "rb");
   if (!fd) {
     return nullptr;
@@ -60,6 +72,7 @@ char* ReadBinaryFile(const char *filename, size_t *filesize) {
   }
 
   return shader_binary;
+#endif
 }
 
 // ----------------------------------------------------------------------------
