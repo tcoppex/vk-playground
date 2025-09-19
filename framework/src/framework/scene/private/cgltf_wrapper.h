@@ -4,8 +4,20 @@
 /* -------------------------------------------------------------------------- */
 
 extern "C" {
+
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcast-align"
+#endif
+
 #include <cgltf.h>
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+
 #include <vulkan/vulkan.h> //
+
 }
 
 #include "framework/core/geometry.h"

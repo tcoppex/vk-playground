@@ -4,6 +4,7 @@
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wuseless-cast"
+#pragma clang diagnostic ignored "-Wcast-align"
 #pragma clang diagnostic ignored "-Wzero-as-null-pointer-constant"
 #elif defined(__GNUC__)
 #pragma GCC diagnostic push

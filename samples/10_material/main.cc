@@ -17,7 +17,7 @@ class SampleApp final : public Application {
   bool setup() final {
     wm_->setTitle("10 - kavalkada materia");
 
-    renderer_.set_color_clear_value({ 0.72f, 0.28f, 0.30f, 0.0f });
+    renderer_.set_color_clear_value({{ 0.72f, 0.28f, 0.30f, 0.0f }});
     renderer_.skybox().setup(ASSETS_DIR "textures/"
       "rogland_clear_night_2k.hdr"
     );

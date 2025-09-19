@@ -228,7 +228,12 @@ if(USE_GCC OR USE_CLANG)
 
   # To avoid warnings about the previous mismatched GCC / Clang options.
   if(USE_CLANG)
-    list(APPEND CXX_FLAGS -Wno-unknown-warning-option)
+    list(APPEND CXX_FLAGS
+      -Wno-unknown-warning-option
+      -Wno-nullability-extension
+      -Wno-unused-lambda-capture
+      -Wno-missing-braces #!
+    )
   endif()
 
   # Features.

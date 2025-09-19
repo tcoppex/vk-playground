@@ -443,7 +443,7 @@ void ExtractMeshes(
     cgltf_node const& node = data->nodes[mesh_node_index];
 
     std::vector<uint32_t> valid_prim_indices{};
-    uint32_t total_vertex_count{0u};
+    // uint32_t total_vertex_count{0u};
 
     // -----------------
     // A. Preprocess primitives.
@@ -478,7 +478,7 @@ void ExtractMeshes(
         continue;
       }
 
-      total_vertex_count += prim.attributes[0].data->count;
+      // total_vertex_count += prim.attributes[0].data->count;
       valid_prim_indices.push_back(prim_index);
     }
 

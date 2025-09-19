@@ -105,12 +105,10 @@ class SampleApp final : public Application {
           .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
           .descriptorCount = 1u,
           .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
-          .bindingFlags = {
-              VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT
-            | VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT
-            | VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT
-            ,
-          },
+          .bindingFlags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT
+                        | VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT
+                        | VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT
+                        ,
         },
       });
 
@@ -157,12 +155,12 @@ class SampleApp final : public Application {
                   {
                     .location = AttributeLocation::Position,
                     .format = VK_FORMAT_R32G32B32A32_SFLOAT,
-                    .offset = offsetof(Vertex_t, Vertex_t::Position),
+                    .offset = offsetof(Vertex_t, Position),
                   },
                   {
                     .location = AttributeLocation::Normal,
                     .format = VK_FORMAT_R32G32B32_SFLOAT,
-                    .offset = offsetof(Vertex_t, Vertex_t::Normal),
+                    .offset = offsetof(Vertex_t, Normal),
                   },
                 }
               }

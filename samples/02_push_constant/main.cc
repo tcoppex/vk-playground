@@ -95,12 +95,12 @@ class SampleApp final : public Application {
                   {
                     .location = AttributeLocation::Position,
                     .format = VK_FORMAT_R32G32B32A32_SFLOAT,
-                    .offset = offsetof(Vertex_t, Vertex_t::Position),
+                    .offset = offsetof(Vertex_t, Position),
                   },
                   {
                     .location = AttributeLocation::Color,
                     .format = VK_FORMAT_R32G32B32A32_SFLOAT,
-                    .offset = offsetof(Vertex_t, Vertex_t::Color),
+                    .offset = offsetof(Vertex_t, Color),
                   },
                 }
               }

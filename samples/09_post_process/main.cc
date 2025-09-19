@@ -75,8 +75,8 @@ class SceneFx final : public RenderTargetFx {
     });
 
     // Set the clear values for color attachments.
-    render_target_->set_color_clear_value({ 0.67f, 0.82f, 0.69f, 0.0f }, 0u);
-    render_target_->set_color_clear_value({ 0.0f, 0.0f, -1.0f, 0.0f }, 1u);
+    render_target_->set_color_clear_value({{ 0.67f, 0.82f, 0.69f, 0.0f }}, 0u);
+    render_target_->set_color_clear_value({{ 0.0f, 0.0f, -1.0f, 0.0f }}, 1u);
   }
 
   DescriptorSetLayoutParamsBuffer getDescriptorSetLayoutParams() const final {

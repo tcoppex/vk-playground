@@ -12,7 +12,7 @@
  * There are some similarities with MaterialFx but the both of them are
  * decorrelated as for now.
  */
-class RayTracingFx : public virtual PostGenericFx {
+class RayTracingFx : public PostGenericFx {
  public:
   // -------------------------------
   static constexpr uint kDescriptorSetBinding_ImageOutput      = 0;
@@ -20,14 +20,14 @@ class RayTracingFx : public virtual PostGenericFx {
   // -------------------------------
 
  public:
-  virtual void release() {
+  void release() override {
     allocator_ptr_->destroy_buffer(material_storage_buffer_);
     allocator_ptr_->destroy_buffer(sbt_storage_buffer_);
     releaseOutputImagesAndBuffers();
     GenericFx::release();
   }
 
-  virtual void setup(VkExtent2D const dimension) override {
+  void setup(VkExtent2D const dimension) override {
     PostGenericFx::setup(dimension);
     
     context_ptr_->update_descriptor_set(descriptor_set_, {
@@ -139,7 +139,7 @@ class RayTracingFx : public virtual PostGenericFx {
 
   virtual RayTracingPipelineDescriptor_t pipelineDescriptor(backend::ShadersMap const& shaders_map) = 0;
 
-  virtual void createPipeline();
+  void createPipeline() override;
 
   virtual void buildShaderBindingTable(RayTracingPipelineDescriptor_t const& desc);
 

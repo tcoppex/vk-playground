@@ -193,7 +193,7 @@ void ArcBallController::eventMouseMoved(
   last_mouse_x_ = mouseX;
   last_mouse_y_ = mouseY;
 
-  if ((std::abs(dv_x) + std::abs(dv_y)) < kRotateEpsilon) {
+  if ((std::fabs(dv_x) + std::fabs(dv_y)) < kRotateEpsilon) {
     return;
   }
 
@@ -223,7 +223,7 @@ void ArcBallController::eventMouseMoved(
 // ----------------------------------------------------------------------------
 
 void ArcBallController::eventWheel(double const dx) {
-  auto const sign{ (abs(dx) > 1.e-5) ? ((dx > 0.0) ? -1.0 : 1.0) : 0.0 };
+  auto const sign{ (std::fabs(dx) > 1.e-5) ? ((dx > 0.0) ? -1.0 : 1.0) : 0.0 };
   dolly2_ *= (1.0 + sign * kMouseWAcceleration); //
 }
 
@@ -232,7 +232,7 @@ void ArcBallController::eventWheel(double const dx) {
 float convergeEaseIn(float current, float target, float alpha)
 {
   float d = target - current;
-  float step = d * pow(abs(d), alpha);
+  float step = d * pow(std::fabs(d), alpha);
   return current + step;
 }
 
