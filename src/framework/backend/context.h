@@ -83,10 +83,10 @@ class Context {
 
   // --- Shader Module ---
 
-  backend::ShaderModule create_shader_module(std::string_view const& directory, std::string_view const& shader_name) const;
-  backend::ShaderModule create_shader_module(std::string_view const& filepath) const;
+  backend::ShaderModule create_shader_module(std::string_view directory, std::string_view shader_name) const;
+  backend::ShaderModule create_shader_module(std::string_view filepath) const;
 
-  std::vector<backend::ShaderModule> create_shader_modules(std::string_view const& directory, std::vector<std::string_view> const& shader_names) const;
+  std::vector<backend::ShaderModule> create_shader_modules(std::string_view directory, std::vector<std::string_view> const& shader_names) const;
   std::vector<backend::ShaderModule> create_shader_modules(std::vector<std::string_view> const& filepaths) const;
 
   void release_shader_module(backend::ShaderModule const& shader) const;
