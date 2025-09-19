@@ -9,9 +9,9 @@ using namespace std::chrono_literals;
 #include "framework/core/common.h"
 #include "framework/backend/context.h"
 #include "framework/renderer/renderer.h"
-#include "framework/core/platform/ui_controller.h"
 #include "framework/core/platform/event_callbacks.h"
 #include "framework/core/platform/wm_interface.h"
+#include "framework/core/platform/ui_controller.h"
 
 /* -------------------------------------------------------------------------- */
 
@@ -33,9 +33,11 @@ class Application : public EventCallbacks {
     return frame_time_ - last_frame_time_;
   }
 
- protected:
+  //-------------------------------------------------
+ public:
+ // protected:
   virtual bool setup() { return true; }
-  virtual void release() {}
+  virtual void release() {} //(rename shutdown ?)
   virtual void build_ui() {}
 
   virtual void update(float const dt) {}
@@ -46,9 +48,11 @@ class Application : public EventCallbacks {
     draw();
   }
 
- private:
+ // private:
   bool presetup();
   void shutdown();
+  //-------------------------------------------------
+  
 
  protected:
   std::unique_ptr<WMInterface> wm_{}; //

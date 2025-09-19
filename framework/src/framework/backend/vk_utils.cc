@@ -1,8 +1,9 @@
 #include "framework/backend/vk_utils.h"
 
-#include "framework/core/utils.h"
-#include <vulkan/vk_enum_string_helper.h>
 #include <filesystem>
+#include <vulkan/vk_enum_string_helper.h>
+
+#include "framework/core/utils.h"
 
 /* -------------------------------------------------------------------------- */
 
