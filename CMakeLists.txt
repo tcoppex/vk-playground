@@ -209,12 +209,9 @@ if(USE_GCC OR USE_CLANG)
     -Woverloaded-virtual
     -Wmisleading-indentation
     -Wduplicated-cond
-    # -Wdouble-promotion
-    # -Wuseless-cast
     -Wcast-align
     -Wlogical-op
     -Wnull-dereference
-    # -Wzero-as-null-pointer-constant
     -Wdisabled-optimization
     -Wvector-operation-performance
     -Wformat=2 -Wformat-truncation -Wformat-overflow
@@ -223,6 +220,9 @@ if(USE_GCC OR USE_CLANG)
     -Wno-unused-parameter
     -Wno-missing-field-initializers
     -Wno-invalid-offsetof
+    # -Wdouble-promotion
+    # -Wuseless-cast
+    # -Wzero-as-null-pointer-constant
     # -Wundef
   )
 
@@ -297,7 +297,6 @@ if(ANDROID)
   find_library(ANDROID_LIBRARY NAMES android)
   find_library(ANDROID_LOG_LIBRARY NAMES log)
 
-
   # [OBJECT] Android Native App Glue.
   find_path(
     ANDROID_NATIVE_APP_GLUE_PATH
@@ -335,7 +334,7 @@ if(ANDROID)
 
 else() # DESKTOP
 
-  # Include GLFW
+  # GLFW
   CPMAddPackage(
     NAME glfw
     GITHUB_REPOSITORY glfw/glfw
@@ -387,7 +386,7 @@ if(FRAMEWORK_HAS_DRACO)
   list(APPEND SharedLibs draco)
 endif()
 
-# Include Volk
+# Volk
 CPMAddPackage(
   NAME volk
   GITHUB_REPOSITORY zeux/volk
@@ -395,7 +394,7 @@ CPMAddPackage(
 )
 set(VOLK_INCLUDE_DIR ${volk_SOURCE_DIR})
 
-# Include VMA
+# VulkanMemoryAlloc
 CPMAddPackage(
   NAME VulkanMemoryAllocator
   GITHUB_REPOSITORY GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator
@@ -403,7 +402,7 @@ CPMAddPackage(
 )
 set(VMA_INCLUDE_DIR  ${VulkanMemoryAllocator_SOURCE_DIR}/include)
 
-# Include linalg
+# linalg
 CPMAddPackage(
   NAME linalg
   GITHUB_REPOSITORY sgorsten/linalg
@@ -412,7 +411,7 @@ CPMAddPackage(
 )
 set(LINALG_INCLUDE_DIR ${linalg_SOURCE_DIR})
 
-# Include MikkTSpace
+# MikkTSpace as Static Lib
 CPMAddPackage(
   NAME MikkTSpace
   GITHUB_REPOSITORY mmikk/MikkTSpace
