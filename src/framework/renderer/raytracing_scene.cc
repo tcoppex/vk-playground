@@ -145,9 +145,9 @@ bool RayTracingScene::build_blas(scene::Mesh::SubMesh const& submesh) {
       .geometry = {
         .triangles = tri
       },
-      .flags = is_opaque ? VK_GEOMETRY_OPAQUE_BIT_KHR
-                         : VkGeometryFlagsKHR(0)
-                         ,
+      .flags = VkGeometryFlagsKHR(
+        is_opaque ? VK_GEOMETRY_OPAQUE_BIT_KHR : 0
+      ),
     },
     .build_range_info = {
       .primitiveCount  = primitiveCount,
