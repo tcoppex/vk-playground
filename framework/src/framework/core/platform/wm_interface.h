@@ -25,6 +25,10 @@ struct WMInterface {
 
   virtual void* get_handle() const noexcept = 0;
 
+  virtual bool isActive() const noexcept {
+    return true;
+  }
+
  public:
   virtual std::vector<char const*> getVulkanInstanceExtensions() const noexcept = 0;
 
