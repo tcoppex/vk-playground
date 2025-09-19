@@ -5,16 +5,13 @@
 namespace {
 
 static
-VkTransformMatrixKHR ToVkTransformMatrix(mat4 const& m) {
-  VkTransformMatrixKHR out{};
-
+void ToVkTransformMatrix(mat4 const& m, VkTransformMatrixKHR &out) {
   // Vulkan expects row-major order [3][4]
   for (int row = 0; row < 3; ++row) {
     for (int col = 0; col < 4; ++col) {
       out.matrix[row][col] = static_cast<float>(m[col][row]);
     }
   }
-  return out;
 }
 
 }
@@ -81,16 +78,15 @@ void RayTracingScene::build(
 
       if (build_blas(submesh)) {
         // (simply instanciate the BLAS we just built)
-        tlas_.instances.push_back({
-          .transform = {
-            .matrix = ToVkTransformMatrix(mesh->world_matrix())
-          },
+        VkAccelerationStructureInstanceKHR instance{
           .instanceCustomIndex = custom_index & 0x00FFFFFF,
           .mask = 0xFF,
           .instanceShaderBindingTableRecordOffset = 0,
           .flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR, //
           .accelerationStructureReference = blas_.back().accelerationStructAddress,
-        });
+        };
+        ToVkTransformMatrix(mesh->world_matrix(), instance.transform);
+        tlas_.instances.push_back(instance);
       }
     }
   }
@@ -149,7 +145,9 @@ bool RayTracingScene::build_blas(scene::Mesh::SubMesh const& submesh) {
       .geometry = {
         .triangles = tri
       },
-      .flags = (is_opaque ? VK_GEOMETRY_OPAQUE_BIT_KHR : VkGeometryFlagBitsKHR{}),
+      .flags = VkGeometryFlagsKHR(
+        is_opaque ? VK_GEOMETRY_OPAQUE_BIT_KHR : 0
+      ),
     },
     .build_range_info = {
       .primitiveCount  = primitiveCount,

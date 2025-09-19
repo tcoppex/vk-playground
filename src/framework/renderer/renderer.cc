@@ -589,6 +589,7 @@ void Renderer::create_graphics_pipelines(
   std::vector<GraphicsPipelineDescriptor_t> const& descs,
   std::vector<Pipeline> *out_pipelines
 ) const {
+  LOG_CHECK( out_pipelines != nullptr && !out_pipelines->empty() );
   LOG_CHECK( pipeline_layout != VK_NULL_HANDLE );
   LOG_CHECK( !descs.empty() );
 

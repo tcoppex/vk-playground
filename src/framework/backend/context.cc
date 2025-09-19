@@ -133,8 +133,8 @@ backend::Image Context::create_image_2d(
 // ----------------------------------------------------------------------------
 
 backend::ShaderModule Context::create_shader_module(
-  std::string_view const& directory,
-  std::string_view const& shader_name
+  std::string_view directory,
+  std::string_view shader_name
 ) const {
   return {
     .module = vkutils::CreateShaderModule(device_, directory.data(), shader_name.data()),
@@ -142,23 +142,24 @@ backend::ShaderModule Context::create_shader_module(
   };
 }
 
-backend::ShaderModule Context::create_shader_module(std::string_view const& filepath) const {
+// ----------------------------------------------------------------------------
+
+backend::ShaderModule Context::create_shader_module(std::string_view filepath) const {
   return create_shader_module("", filepath); //
 }
 
 // ----------------------------------------------------------------------------
 
-std::vector<backend::ShaderModule> Context::create_shader_modules(std::string_view const& directory, std::vector<std::string_view> const& shader_names) const {
-  std::vector<backend::ShaderModule> shaders{};
+std::vector<backend::ShaderModule> Context::create_shader_modules(
+  std::string_view directory, 
+  std::vector<std::string_view> const& shader_names
+) const {
+  std::vector<backend::ShaderModule> shaders;
   shaders.reserve(shader_names.size());
-  std::transform(
-    shader_names.begin(),
-    shader_names.end(),
-    std::back_inserter(shaders),
-    [&](std::string_view const& name) {
-      return create_shader_module(directory, name);
-    }
-  );
+
+  for (auto name : shader_names) {
+    shaders.push_back(create_shader_module(directory, name));
+  }
 
   return shaders;
 }
