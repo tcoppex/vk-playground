@@ -74,7 +74,7 @@ void main() {
   const vec4 origin = uFrame.invViewMatrix * vec4(0, 0, 0, 1);
 
   const int numSamples = pushConstant.num_samples;
-  const int maxDepth = 32; //
+  const int maxDepth = 16; //
 
   vec3 color = vec3(0.0);
   for (int s = 0; s < numSamples; s++)
@@ -107,7 +107,7 @@ void main() {
         tmax,
         0
       );
-      // russianRoulette();
+      russianRoulette();
 
       if ((payload.done == 1)
        || (dot(payload.throughput, payload.throughput) < 0.001)

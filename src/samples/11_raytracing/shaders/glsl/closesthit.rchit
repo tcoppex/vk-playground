@@ -128,7 +128,7 @@ void main() {
                             localDir.y * bitangent +
                             localDir.z * v.normal);
 
-    payload.origin = v.position; // + v.normal * 1e-3;
+    payload.origin = v.position + v.normal * 1e-3;
     payload.direction = newDir;
     payload.throughput *= color.rgb;
   }

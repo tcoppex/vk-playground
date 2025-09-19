@@ -23,7 +23,7 @@ class BasicRayTracingFx : public RayTracingFx {
   BasicRayTracingFx() = default;
 
   void resetFrameAccumulation() override {
-    push_constant_.accumulation_frame_count = 0u;
+    push_constant_.accumulation_frame_count = 0;
   }
 
   void setupUI() override {
@@ -31,14 +31,11 @@ class BasicRayTracingFx : public RayTracingFx {
 
     changed |= ImGui::Checkbox("Enable", &enabled_);
 
-
-    int value = max_accumulation_frame_count_;
     ImGui::SliderInt(
       "Max Accumulation Frame",
-      &value,
+      &max_accumulation_frame_count_,
       1, 256
     );
-    max_accumulation_frame_count_ = value;
 
     changed |= ImGui::SliderInt(
       "Samples",
@@ -64,7 +61,7 @@ class BasicRayTracingFx : public RayTracingFx {
       0.0f, 5.0f, "%.1f"
     );
 
-    ImGui::Text("Accumulation frame count: %u", push_constant_.accumulation_frame_count);
+    ImGui::Text("Accumulation frame count: %d", push_constant_.accumulation_frame_count);
 
     if (changed) {
       resetFrameAccumulation();
@@ -194,9 +191,7 @@ class BasicRayTracingFx : public RayTracingFx {
         .orm_texture_id       = proxy.bindings.roughness_metallic,
         .metallic_factor      = proxy.pbr_mr.metallic_factor,
         .roughness_factor     = proxy.pbr_mr.roughness_factor,
-        // .normal_texture_id = proxy.bindings.normal,
-        // .occlusion_texture_id = proxy.bindings.occlusion,
-        .alpha_cutoff = proxy.alpha_cutoff,
+        .alpha_cutoff         = proxy.alpha_cutoff,
         // .double_sided = proxy.double_sided,
       });
     }
@@ -213,13 +208,13 @@ class BasicRayTracingFx : public RayTracingFx {
   }
 
  private:
-  uint32_t max_accumulation_frame_count_{64};
+  int32_t max_accumulation_frame_count_{100};
 
   mutable shader_interop::PushConstant push_constant_{
-    .num_samples = 4,
-    .jitter_factor = 1.0f,
-    .light_intensity = 8.0f,
-    .sky_intensity = 1.6f,
+    .num_samples      = 8,
+    .jitter_factor    = 2.0f,
+    .light_intensity  = 40.0f,
+    .sky_intensity    = 0.6f,
   };
 
   std::vector<shader_interop::RayTracingMaterial> materials_{};

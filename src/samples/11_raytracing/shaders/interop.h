@@ -21,7 +21,7 @@ struct HitPayload_t {
 // -----------------------------------------------------------------------------
 
 struct PushConstant {
-  uint accumulation_frame_count;
+  int accumulation_frame_count;
   int num_samples;
   float jitter_factor;
   float light_intensity;
