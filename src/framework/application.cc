@@ -3,6 +3,10 @@
 #include "framework/core/platform/window/events.h"
 #include "framework/core/platform/window/window.h"
 
+#if defined(_WIN32)
+  #include <windows.h> // for SetConsoleOutputCP
+#endif
+
 /* -------------------------------------------------------------------------- */
 
 int Application::run() {
@@ -52,6 +56,11 @@ float Application::elapsed_time() const {
 }
 
 bool Application::presetup() {
+#if defined(_WIN32)
+    // Switch Windows console to UTF-8
+    SetConsoleOutputCP(CP_UTF8);
+#endif
+
   /* Singletons. */
   {
     Events::Initialize();
