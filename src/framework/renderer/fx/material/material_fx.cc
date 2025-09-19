@@ -37,8 +37,7 @@ void MaterialFx::createPipelines(std::vector<scene::MaterialStates> const& state
   }
 
   // Batch create the pipelines.
-  std::vector<Pipeline> pipelines{};
-  pipelines.reserve(states.size());
+  std::vector<Pipeline> pipelines(states.size());
   renderer_ptr_->create_graphics_pipelines(pipeline_layout_, descs, &pipelines);
 
   // Store them into the pipeline map.
