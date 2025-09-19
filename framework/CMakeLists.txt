@@ -22,7 +22,7 @@ compile_shaders(
 file(GLOB_RECURSE
   Sources
   # LIST_DIRECTORIES FALSE
-  ${FRAMEWORK_ROOT_PATH}/*.cc
+  ${FRAMEWORK_ROOT_PATH}/src/*.cc
 )
 
 add_library(

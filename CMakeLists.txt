@@ -24,6 +24,7 @@ endif()
 # -----------------------------------------------------------------------------
 
 set(PROJECT_NAME hello_vk)
+
 project(${PROJECT_NAME} VERSION 0.1 LANGUAGES CXX C)
 
 # -----------------------------------------------------------------------------
@@ -32,15 +33,15 @@ project(${PROJECT_NAME} VERSION 0.1 LANGUAGES CXX C)
 
 set(PROJECT_ROOT_PATH               ${CMAKE_CURRENT_SOURCE_DIR})
 
-set(PROJECT_THIRD_PARTY_DIR         ${PROJECT_ROOT_PATH}/third_party)
-set(PROJECT_SOURCE_DIR              ${PROJECT_ROOT_PATH}/src)
-set(PROJECT_BINARY_DIR              ${PROJECT_ROOT_PATH}/bin)
+set(FRAMEWORK_PATH                  ${PROJECT_ROOT_PATH}/framework)
+set(FRAMEWORK_SOURCE_DIR            ${FRAMEWORK_PATH}/src) # [wip] !
+set(FRAMEWORK_SHADERS_DIR           ${FRAMEWORK_SOURCE_DIR}/framework/shaders) #!
+
+set(SAMPLES_PATH                    ${PROJECT_ROOT_PATH}/samples)
 set(PROJECT_ASSETS_DIR              ${PROJECT_ROOT_PATH}/assets)
+set(PROJECT_THIRD_PARTY_DIR         ${PROJECT_ROOT_PATH}/third_party)
+set(PROJECT_BINARY_DIR              ${PROJECT_ROOT_PATH}/bin)
 
-set(FRAMEWORK_PATH                  ${PROJECT_SOURCE_DIR}/framework)
-set(SAMPLES_PATH                    ${PROJECT_SOURCE_DIR}/samples)
-
-set(FRAMEWORK_SHADERS_DIR           ${FRAMEWORK_PATH}/shaders)
 set(FRAMEWORK_COMPILED_SHADERS_DIR  ${PROJECT_BINARY_DIR}/spirv)
 
 # -----------------------------------------------------------------------------
