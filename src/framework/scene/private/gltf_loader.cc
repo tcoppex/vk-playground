@@ -1,6 +1,8 @@
 #define CGLTF_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION
 
+#include <string>
+
 #include "framework/scene/private/gltf_loader.h"
 #include "framework/scene/vertex_internal.h"
 
@@ -791,7 +793,7 @@ void ExtractAnimations(
   std::unordered_map<std::string, std::string> animationName_to_SkeletonName;
   for (cgltf_size i = 0; i < data->skins_count; ++i) {
     cgltf_skin* skin = &data->skins[i];
-    auto const skeletonName = skin->name ? skin->name
+    auto const skeletonName = (skin->name != nullptr) ? std::string(skin->name)
                             : basename + "::Skeleton_" + std::to_string(i);
     for (size_t j = 0; j < skin->joints_count; ++j) {
       cgltf_node* joint_node = skin->joints[j];
