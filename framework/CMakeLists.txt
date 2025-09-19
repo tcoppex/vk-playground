@@ -1,14 +1,35 @@
 # -----------------------------------------------------------------------------
 # 
+# Framework
 # 
 # -----------------------------------------------------------------------------
 
 set(target vkframework)
 
-set(FRAMEWORK_ROOT_PATH             ${CMAKE_CURRENT_SOURCE_DIR})
+set(FRAMEWORK_ROOT_PATH          ${CMAKE_CURRENT_SOURCE_DIR})
+set(FRAMEWORK_SOURCE_DIR         ${FRAMEWORK_ROOT_PATH}/src)
+
+set(FRAMEWORK_PLATFORM_SRC_DIR   ${FRAMEWORK_SOURCE_DIR}/framework/core/platform)
 
 # -----------------------------------------------------------------------------
+# Generic Dependencies.
+# -----------------------------------------------------------------------------
 
+# Libraries.
+list(APPEND FrameworkLibs
+  ${SharedLibs}
+  ${MikkTSpace}
+  VulkanMemoryAllocator
+)
+
+# Sources.
+file(GLOB_RECURSE Sources CONFIGURE_DEPENDS
+  LIST_DIRECTORIES FALSE
+  ${FRAMEWORK_SOURCE_DIR}/*.cc
+  ${FRAMEWORK_SOURCE_DIR}/*.h
+)
+
+# SPIR-V Shaders.
 compile_shaders(
   ${FRAMEWORK_SHADERS_DIR}
   ${FRAMEWORK_COMPILED_SHADERS_DIR}
@@ -18,12 +39,43 @@ compile_shaders(
 )
 
 # -----------------------------------------------------------------------------
+# Platform specific dependencies.
+# -----------------------------------------------------------------------------
 
-file(GLOB_RECURSE
-  Sources
-  # LIST_DIRECTORIES FALSE
-  ${FRAMEWORK_ROOT_PATH}/src/*.cc
+if (OS_ANDROID)
+  set(FRAMEWORK_PLATFORM_SRC_DIR   ${FRAMEWORK_PLATFORM_SRC_DIR}/android)
+else()
+  set(FRAMEWORK_PLATFORM_SRC_DIR   ${FRAMEWORK_PLATFORM_SRC_DIR}/desktop)
+
+  if (OS_LINUX)
+    # Required to build imgui_glfw_impl
+    find_package(X11 REQUIRED)
+    list(APPEND FrameworkLibs ${X11_LIBRARIES})
+  endif()
+endif()
+
+# Exclude all platform specific codes.
+list(FILTER Sources EXCLUDE REGEX "${FRAMEWORK_PLATFORM_SRC_DIR}/.*")
+
+# But keep those at the root..
+file(GLOB PlatformCommonSources CONFIGURE_DEPENDS
+  LIST_DIRECTORIES FALSE
+  ${FRAMEWORK_PLATFORM_SRC_DIR}/*.cc
+  ${FRAMEWORK_PLATFORM_SRC_DIR}/*.h
 )
+
+# Add Platform specifics sources.
+file(GLOB_RECURSE PlatformSources CONFIGURE_DEPENDS
+  LIST_DIRECTORIES FALSE
+  ${FRAMEWORK_PLATFORM_SRC_DIR}/*.cc
+  ${FRAMEWORK_PLATFORM_SRC_DIR}/*.h
+)
+
+list(APPEND Sources ${PlatformCommonSources} ${PlatformSources})
+
+# -----------------------------------------------------------------------------
+# Target library compilation.
+# -----------------------------------------------------------------------------
 
 add_library(
   ${target}
@@ -34,19 +86,8 @@ add_library(
 )
 
 # -----------------------------------------------------------------------------
-
-list(APPEND FrameworkLibs
-  ${SharedLibs}
-  ${MikkTSpace}
-  VulkanMemoryAllocator
-)
-
-if (OS_LINUX)
-  # Required to build imgui_glfw_impl
-  find_package(X11 REQUIRED)
-  list(APPEND FrameworkLibs ${X11_LIBRARIES})
-endif()
-
+# Target properties.
+# -----------------------------------------------------------------------------
 
 target_link_libraries(${target} PRIVATE ${FrameworkLibs})
 
@@ -87,6 +128,12 @@ set_target_properties(${target}
 
 set_target_output_directory(${target} ${PROJECT_BINARY_DIR})
 
+if (OS_ANDROID)
+  helpers_addNativeAppGlue(${target})
+endif()
+
+# -----------------------------------------------------------------------------
+# Global variables.
 # -----------------------------------------------------------------------------
 
 set(FRAMEWORK_LIBRARIES ${target} CACHE INTERNAL "")

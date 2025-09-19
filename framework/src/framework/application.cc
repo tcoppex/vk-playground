@@ -1,7 +1,7 @@
 #include "framework/application.h"
+#include "framework/core/platform/events.h"
 
-#include "framework/core/platform/window/events.h"
-#include "framework/core/platform/window/window.h"
+#include "framework/core/platform/desktop/window/window.h" //
 
 #if defined(_WIN32)
   #include <windows.h> // for SetConsoleOutputCP
@@ -29,16 +29,7 @@ int Application::run() {
 
     /* User Interface */
     ui_->beginFrame();
-    {
-      // [todo] OnViewportSizeChange
-      {
-        float xscale, yscale;
-        glfwGetWindowContentScale(reinterpret_cast<GLFWwindow*>(wm_->get_handle()), &xscale, &yscale);
-        ImGui::GetIO().FontGlobalScale = xscale;
-      }
-      build_ui();
-      ImGui::Render();
-    }
+    build_ui();
     ui_->endFrame();
 
     /* User frame */
@@ -50,10 +41,14 @@ int Application::run() {
   return EXIT_SUCCESS;
 }
 
+// ----------------------------------------------------------------------------
+
 float Application::elapsed_time() const {
   auto now{ std::chrono::high_resolution_clock::now() };
   return std::chrono::duration<float>(now - chrono_).count();
 }
+
+// ----------------------------------------------------------------------------
 
 bool Application::presetup() {
 #if defined(_WIN32)
@@ -104,6 +99,8 @@ bool Application::presetup() {
 
   return true;
 }
+
+// ----------------------------------------------------------------------------
 
 void Application::shutdown() {
   CHECK_VK(vkDeviceWaitIdle(context_.device()));

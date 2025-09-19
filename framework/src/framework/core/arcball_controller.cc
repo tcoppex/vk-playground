@@ -1,6 +1,5 @@
 #include "framework/core/arcball_controller.h"
-
-#include "framework/core/platform/window/events.h" //
+#include "framework/core/platform/events.h" //
 
 /* -------------------------------------------------------------------------- */
 
@@ -87,6 +86,8 @@ bool ArcBallController::update(float dt) {
 
   return is_dirty || is_dirty2;
 }
+
+// ----------------------------------------------------------------------------
 
 bool ArcBallController::update(
   double const deltatime,

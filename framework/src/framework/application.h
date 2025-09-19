@@ -9,10 +9,9 @@ using namespace std::chrono_literals;
 #include "framework/core/common.h"
 #include "framework/backend/context.h"
 #include "framework/renderer/renderer.h"
-#include "framework/core/platform/window/event_callbacks.h"
-#include "framework/core/platform/window/wm_interface.h"
-
-#include "framework/core/platform/ui/ui_controller.h"
+#include "framework/core/platform/ui_controller.h"
+#include "framework/core/platform/event_callbacks.h"
+#include "framework/core/platform/wm_interface.h"
 
 /* -------------------------------------------------------------------------- */
 
@@ -52,13 +51,13 @@ class Application : public EventCallbacks {
   void shutdown();
 
  protected:
-  std::unique_ptr<WMInterface> wm_{};
+  std::unique_ptr<WMInterface> wm_{}; //
+
   Context context_{};
   Renderer renderer_{};
-
   VkExtent2D viewport_size_{};
 
-  std::unique_ptr<UIController> ui_{};
+  std::unique_ptr<UIController> ui_{}; //
 
  private:
   VkSurfaceKHR surface_{};

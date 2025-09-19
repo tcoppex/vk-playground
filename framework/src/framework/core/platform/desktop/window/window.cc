@@ -1,5 +1,5 @@
-#include "framework/core/platform/window/window.h"
-#include "framework/core/platform/window/events.h"
+#include "framework/core/platform/desktop/window/window.h"
+#include "framework/core/platform/events.h"
 
 /* -------------------------------------------------------------------------- */
 

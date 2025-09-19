@@ -4,7 +4,6 @@
 #include <imgui.h>
 
 #if defined(IMGUI_WRAPPER_IMPL)
-#include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_vulkan.h>
 #endif
 

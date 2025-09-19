@@ -349,41 +349,20 @@ else() # DESKTOP
   )
   set(GLFW_INCLUDE_DIR ${glfw_SOURCE_DIR}/include)
 
-  #include ImGui
-  CPMAddPackage(
-    NAME imgui
-    GITHUB_REPOSITORY ocornut/imgui
-    GIT_TAG docking
-  )
-  set(IMGUI_SOURCES
-    ${imgui_SOURCE_DIR}/imgui.cpp
-    ${imgui_SOURCE_DIR}/imgui.h
-    ${imgui_SOURCE_DIR}/imgui_demo.cpp
-    ${imgui_SOURCE_DIR}/imgui_draw.cpp
-    ${imgui_SOURCE_DIR}/imgui_tables.cpp
-    ${imgui_SOURCE_DIR}/imgui_widgets.cpp
-    ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.cpp
-    ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.h
-    ${imgui_SOURCE_DIR}/backends/imgui_impl_vulkan.cpp
-    ${imgui_SOURCE_DIR}/backends/imgui_impl_vulkan.h
-  )
-  source_group("Imgui" FILES ${IMGUI_SOURCES})
-
   list(APPEND SharedLibs
     glfw
   )
 
   list(APPEND SharedIncludeDirs
     ${GLFW_INCLUDE_DIR}
-    ${imgui_SOURCE_DIR}
   )
 
 endif()
 
-
+# Vulkan
 find_package(Vulkan 1.1 REQUIRED)
 
-# Include CGLTF
+# CGLTF
 CPMAddPackage(
   NAME cgltf
   GITHUB_REPOSITORY jkuhlmann/cgltf
@@ -391,10 +370,9 @@ CPMAddPackage(
 )
 set(CGLTF_INCLUDE_DIR ${cgltf_SOURCE_DIR})
 
-# Include Draco
+# [WIP] Draco
 # see https://github.com/google/draco/blob/1.5.7/BUILDING.md#cmake-build-configuration
 option(FRAMEWORK_HAS_DRACO OFF)
-
 if(FRAMEWORK_HAS_DRACO)
   CPMAddPackage(
     NAME Draco
@@ -448,12 +426,37 @@ add_library(
   ${MikkTSpace_SOURCE_DIR}/mikktspace.h
 )
 
-# Sometimes we need to link libm.
+# ImGui
+if (TRUE)
+  CPMAddPackage(
+    NAME imgui
+    GITHUB_REPOSITORY ocornut/imgui
+    GIT_TAG docking
+  )
+
+  set(IMGUI_SOURCES
+    ${imgui_SOURCE_DIR}/imgui.cpp
+    ${imgui_SOURCE_DIR}/imgui.h
+    ${imgui_SOURCE_DIR}/imgui_demo.cpp
+    ${imgui_SOURCE_DIR}/imgui_draw.cpp
+    ${imgui_SOURCE_DIR}/imgui_tables.cpp
+    ${imgui_SOURCE_DIR}/imgui_widgets.cpp
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.cpp
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.h
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_vulkan.cpp
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_vulkan.h
+  )
+  source_group("Imgui" FILES ${IMGUI_SOURCES})
+endif()
+
+# Sometimes we need to link libm too.
 helpers_findLibM()
 
+# -----------------------------------------------------------------------------
+
 list(APPEND SharedLibs
-  ${LIBM_LIBRARIES}
   volk
+  ${LIBM_LIBRARIES}
 )
 
 list(APPEND SharedIncludeDirs
@@ -461,11 +464,13 @@ list(APPEND SharedIncludeDirs
   ${FRAMEWORK_SHADERS_DIR} #!
 
   ${PROJECT_THIRD_PARTY_DIR}
+
+  ${Vulkan_INCLUDE_DIR}
+  ${VOLK_INCLUDE_DIR}
+  ${VMA_INCLUDE_DIR}
   ${CGLTF_INCLUDE_DIR}
   ${LINALG_INCLUDE_DIR}
-  ${VMA_INCLUDE_DIR}
-  ${VOLK_INCLUDE_DIR}
-  ${Vulkan_INCLUDE_DIR}
+  ${imgui_SOURCE_DIR}
 )
 
 # -----------------------------------------------------------------------------

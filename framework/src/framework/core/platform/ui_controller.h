@@ -5,8 +5,9 @@
 
 #include "framework/core/common.h"
 #include "framework/backend/context.h"
-#include "framework/core/platform/ui/imgui_wrapper.h"
-#include "framework/core/platform/window/wm_interface.h"
+
+#include "framework/core/platform/wm_interface.h"
+#include "framework/core/platform/imgui_wrapper.h" //
 
 class Context;
 class Renderer;
@@ -28,7 +29,8 @@ class UIController {
   virtual void setupStyles();
 
  private:
-  VkDescriptorPool imgui_descriptor_pool_{};
+  WMInterface const* wm_ptr_{};
+  VkDescriptorPool imgui_descriptor_pool_{}; //
 };
 
 /* -------------------------------------------------------------------------- */

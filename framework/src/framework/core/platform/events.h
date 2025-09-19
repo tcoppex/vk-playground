@@ -9,7 +9,7 @@
 #include <vector>
 
 #include "framework/core/singleton.h"
-#include "framework/core/platform/window/event_callbacks.h"
+#include "framework/core/platform/event_callbacks.h"
 
 // ----------------------------------------------------------------------------
 

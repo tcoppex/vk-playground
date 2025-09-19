@@ -12,7 +12,9 @@
 #endif
 
 #define IMGUI_WRAPPER_IMPL
-#include "framework/core/platform/ui/imgui_wrapper.h"
+#include "framework/core/platform/ui_controller.h" //
+
+#include <backends/imgui_impl_glfw.h>
 #include <imgui_internal.h>
 
 #ifdef __clang__
@@ -23,16 +25,17 @@
 #pragma warning(pop)
 #endif
 
-
-#include "framework/core/platform/ui/ui_controller.h"
-
 #include "framework/renderer/renderer.h"
 #include "framework/backend/context.h"
+
+#include "framework/core/platform/desktop/window/window.h" // for glfwGetWindowContentScale
 
 /* -------------------------------------------------------------------------- */
 
 bool UIController::init(Renderer const& renderer, WMInterface const& wm) {
   IMGUI_CHECKVERSION();
+
+  wm_ptr_ = &wm;
 
   ImGui::CreateContext();
   ImGui::StyleColorsDark();
@@ -107,11 +110,20 @@ void UIController::beginFrame() {
   ImGui_ImplGlfw_NewFrame();
   ImGui::NewFrame();
   setupStyles();
+
+  // [todo] OnViewportSizeChange
+  {
+    float xscale, yscale;
+    glfwGetWindowContentScale(reinterpret_cast<GLFWwindow*>(wm_ptr_->get_handle()), &xscale, &yscale);
+    ImGui::GetIO().FontGlobalScale = xscale;
+  }
 }
 
 // ----------------------------------------------------------------------------
 
 void UIController::endFrame() {
+  ImGui::Render();
+
   if ((ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) != 0) {
     ImGui::UpdatePlatformWindows();
     ImGui::RenderPlatformWindowsDefault();
