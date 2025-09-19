@@ -42,6 +42,16 @@ compile_shaders(
 # Platform specific dependencies.
 # -----------------------------------------------------------------------------
 
+# Exclude all platform specific codes.
+list(FILTER Sources EXCLUDE REGEX "${FRAMEWORK_PLATFORM_SRC_DIR}/.*")
+
+# But keep those at the root..
+file(GLOB PlatformCommonSources CONFIGURE_DEPENDS
+  LIST_DIRECTORIES FALSE
+  ${FRAMEWORK_PLATFORM_SRC_DIR}/*.cc
+  ${FRAMEWORK_PLATFORM_SRC_DIR}/*.h
+)
+
 if (OS_ANDROID)
   set(FRAMEWORK_PLATFORM_SRC_DIR   ${FRAMEWORK_PLATFORM_SRC_DIR}/android)
 else()
@@ -53,16 +63,6 @@ else()
     list(APPEND FrameworkLibs ${X11_LIBRARIES})
   endif()
 endif()
-
-# Exclude all platform specific codes.
-list(FILTER Sources EXCLUDE REGEX "${FRAMEWORK_PLATFORM_SRC_DIR}/.*")
-
-# But keep those at the root..
-file(GLOB PlatformCommonSources CONFIGURE_DEPENDS
-  LIST_DIRECTORIES FALSE
-  ${FRAMEWORK_PLATFORM_SRC_DIR}/*.cc
-  ${FRAMEWORK_PLATFORM_SRC_DIR}/*.h
-)
 
 # Add Platform specifics sources.
 file(GLOB_RECURSE PlatformSources CONFIGURE_DEPENDS
