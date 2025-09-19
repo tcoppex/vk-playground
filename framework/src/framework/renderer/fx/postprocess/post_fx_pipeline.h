@@ -33,11 +33,17 @@ class PostFxPipeline : public PostFxInterface {
 
   template<typename T>
   requires DerivedFrom<T, PostFxInterface>
-  std::shared_ptr<T> add(PostFxDependencies const& dependencies = {}) {
+  std::shared_ptr<T> add(PostFxDependencies const& dependencies) {
     auto fx = std::make_shared<T>();
     effects_.push_back(fx);
     dependencies_.push_back(dependencies);
     return fx;
+  }
+
+  template<typename T>
+  requires DerivedFrom<T, PostFxInterface>
+  std::shared_ptr<T> add() {
+    return add<T>({});
   }
 
   template<typename T>
@@ -193,6 +199,7 @@ class TPostFxPipeline : public PostFxPipeline {
 // Blank Fx used to pass data to a specialized pipeline
 class PassDataNoFx final : public PostFxInterface {
  public:
+  void init(Renderer const& renderer) final {}
   void setup(VkExtent2D const dimension) final {}
   bool resize(VkExtent2D const dimension) final { return false; }
   void execute(CommandEncoder& cmd) const final {}
