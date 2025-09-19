@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.21)
+cmake_minimum_required(VERSION 3.22.1)
 
 # -----------------------------------------------------------------------------
 # CMake policies.
@@ -64,6 +64,25 @@ set(CMAKE_C_STANDARD                11)
 set(CMAKE_CXX_STANDARD              20)
 set(CMAKE_CXX_STANDARD_REQUIRED     ON)
 set(CMAKE_CXX_EXTENSIONS            OFF)
+
+
+# Android specifics.
+if(ANDROID)
+  # Force targetting 32-bit ARM processors on armeabi.
+  set(CMAKE_ANDROID_ARM_MODE        ON)
+  # Force targetting ARM NEON devices on armeabi-v7a.
+  set(CMAKE_ANDROID_ARM_NEON        ON)
+  # [tmp] Capture renamed definitions.
+  if(NOT DEFINED ANDROID_ABI)
+    set(ANDROID_ABI ${CMAKE_ANDROID_ARCH_ABI})
+  endif()
+  if(NOT DEFINED ANDROID_NDK)
+    set(ANDROID_NDK ${CMAKE_ANDROID_NDK})
+  endif()
+  if (${ANDROID_PLATFORM_LEVEL} LESS 29)
+    message(FATAL_ERROR "Android is not supported before API level 29.")
+  endif()
+endif()
 
 # -----------------------------------------------------------------------------
 # Custom functions
@@ -234,6 +253,13 @@ if(USE_GCC OR USE_CLANG)
     -Wl,--build-id
     # -Wl,--gc-sections
   )
+
+  # Definitions.
+  if (ANDROID)
+    list(APPEND CustomDefinitions
+      ANDROID_NDK=1
+    )
+  endif()
 endif()
 
 # Transform linker flags from a list to a string.
@@ -264,21 +290,98 @@ include(${CPM_DOWNLOAD_LOCATION})
 # Dependencies
 # -----------------------------------------------------------------------------
 
-find_package(Vulkan 1.1 REQUIRED)
+if(ANDROID)
+  # minimum version required: Android23 for gles32, Android24 for Vulkan.
 
-# Include GLFW
-CPMAddPackage(
-  NAME glfw
-  GITHUB_REPOSITORY glfw/glfw
-  GIT_TAG 3.4
-  OPTIONS
-    "GLFW_BUILD_DOCS OFF"
-    "GLFW_BUILD_EXAMPLES OFF"
-    "GLFW_BUILD_TESTS OFF"
-    "GLFW_BUILD_WAYLAND OFF"
-    "GLFW_INSTALL OFF"
-)
-set(GLFW_INCLUDE_DIR ${glfw_SOURCE_DIR}/include)
+  # [SHARED] Android specifics.
+  find_library(ANDROID_LIBRARY NAMES android)
+  find_library(ANDROID_LOG_LIBRARY NAMES log)
+
+
+  # [OBJECT] Android Native App Glue.
+  find_path(
+    ANDROID_NATIVE_APP_GLUE_PATH
+      android_native_app_glue.h
+    PATHS
+      "${ANDROID_NDK}/sources/android/native_app_glue"
+  )
+  add_library(
+    android_native_app_glue
+    OBJECT
+    "${ANDROID_NATIVE_APP_GLUE_PATH}/android_native_app_glue.c"
+  )
+  target_include_directories(
+    android_native_app_glue
+    PUBLIC
+    "${ANDROID_NATIVE_APP_GLUE_PATH}"
+  )
+  target_compile_options(
+    android_native
+  )
+
+  ## {MACRO} Properly add the Native App Glue dependencies to its consuming target.
+  macro(helpers_addNativeAppGlue TargetName)
+    target_include_directories(${TargetName} PUBLIC ${ANDROID_NATIVE_APP_GLUE_PATH})
+    target_link_libraries(${TargetName} PUBLIC $<TARGET_OBJECTS:android_native_app_glue>)
+  endmacro()
+
+  # (Alternatively just uncomment the following line.)
+  # set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -u ANativeActivity_onCreate")
+
+  list(APPEND SharedLibs #FRAMEWORK_ANDROID_LIBRARIES
+    ${ANDROID_LIBRARY}
+    ${ANDROID_LOG_LIBRARY}
+  )
+
+else() # DESKTOP
+
+  # Include GLFW
+  CPMAddPackage(
+    NAME glfw
+    GITHUB_REPOSITORY glfw/glfw
+    GIT_TAG 3.4
+    OPTIONS
+      "GLFW_BUILD_DOCS OFF"
+      "GLFW_BUILD_EXAMPLES OFF"
+      "GLFW_BUILD_TESTS OFF"
+      "GLFW_BUILD_WAYLAND OFF"
+      "GLFW_INSTALL OFF"
+  )
+  set(GLFW_INCLUDE_DIR ${glfw_SOURCE_DIR}/include)
+
+  #include ImGui
+  CPMAddPackage(
+    NAME imgui
+    GITHUB_REPOSITORY ocornut/imgui
+    GIT_TAG docking
+  )
+  set(IMGUI_SOURCES
+    ${imgui_SOURCE_DIR}/imgui.cpp
+    ${imgui_SOURCE_DIR}/imgui.h
+    ${imgui_SOURCE_DIR}/imgui_demo.cpp
+    ${imgui_SOURCE_DIR}/imgui_draw.cpp
+    ${imgui_SOURCE_DIR}/imgui_tables.cpp
+    ${imgui_SOURCE_DIR}/imgui_widgets.cpp
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.cpp
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.h
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_vulkan.cpp
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_vulkan.h
+  )
+  source_group("Imgui" FILES ${IMGUI_SOURCES})
+
+  list(APPEND SharedLibs
+    glfw
+  )
+
+  list(APPEND SharedIncludeDirs
+    ${GLFW_INCLUDE_DIR}
+    ${imgui_SOURCE_DIR}
+  )
+
+endif()
+
+
+find_package(Vulkan 1.1 REQUIRED)
 
 # Include CGLTF
 CPMAddPackage(
@@ -287,7 +390,6 @@ CPMAddPackage(
   GIT_TAG v1.14
 )
 set(CGLTF_INCLUDE_DIR ${cgltf_SOURCE_DIR})
-
 
 # Include Draco
 # see https://github.com/google/draco/blob/1.5.7/BUILDING.md#cmake-build-configuration
@@ -323,26 +425,6 @@ CPMAddPackage(
 )
 set(VMA_INCLUDE_DIR  ${VulkanMemoryAllocator_SOURCE_DIR}/include)
 
-#include ImGui
-CPMAddPackage(
-  NAME imgui
-  GITHUB_REPOSITORY ocornut/imgui
-  GIT_TAG docking
-)
-set(IMGUI_SOURCES
-  ${imgui_SOURCE_DIR}/imgui.cpp
-  ${imgui_SOURCE_DIR}/imgui.h
-  ${imgui_SOURCE_DIR}/imgui_demo.cpp
-  ${imgui_SOURCE_DIR}/imgui_draw.cpp
-  ${imgui_SOURCE_DIR}/imgui_tables.cpp
-  ${imgui_SOURCE_DIR}/imgui_widgets.cpp
-  ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.cpp
-  ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.h
-  ${imgui_SOURCE_DIR}/backends/imgui_impl_vulkan.cpp
-  ${imgui_SOURCE_DIR}/backends/imgui_impl_vulkan.h
-)
-source_group("Imgui" FILES ${IMGUI_SOURCES})
-
 # Include linalg
 CPMAddPackage(
   NAME linalg
@@ -372,21 +454,18 @@ helpers_findLibM()
 list(APPEND SharedLibs
   ${LIBM_LIBRARIES}
   volk
-  glfw
 )
 
 list(APPEND SharedIncludeDirs
+  ${FRAMEWORK_SOURCE_DIR} #!
   ${FRAMEWORK_SHADERS_DIR} #!
 
-  ${GLFW_INCLUDE_DIR}
+  ${PROJECT_THIRD_PARTY_DIR}
   ${CGLTF_INCLUDE_DIR}
   ${LINALG_INCLUDE_DIR}
-  ${PROJECT_SOURCE_DIR}
-  ${PROJECT_THIRD_PARTY_DIR}
   ${VMA_INCLUDE_DIR}
   ${VOLK_INCLUDE_DIR}
   ${Vulkan_INCLUDE_DIR}
-  ${imgui_SOURCE_DIR}
 )
 
 # -----------------------------------------------------------------------------
