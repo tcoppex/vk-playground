@@ -138,8 +138,8 @@ PBRMetallicRoughness_Material_t calculate_pbr_material_data(
   // Roughness + Metallic.
   {
     const vec4 orm = texture(TEXTURE_ATLAS(mat.orm_texture_id), frag.uv);
-    data.roughness = mat.roughness_factor * mix(1.0, max(orm.y, 1e-3f), orm.w);
-    data.metallic = mat.metallic_factor * mix(1.0, orm.z, orm.w);
+    data.roughness = mat.roughness_factor * max(orm.y, 1e-3f);
+    data.metallic = mat.metallic_factor * orm.z;
   }
 
 
@@ -154,7 +154,7 @@ PBRMetallicRoughness_Material_t calculate_pbr_material_data(
     if ((pushConstant.dynamic_states & kIrradianceBit) == kIrradianceBit) //
     {
       irradiance = texture(uEnvMapIrradiance, frag.N).rgb;
-      // irradiance *= 0.5; //
+      irradiance *= 0.5; //
     }
     data.irradiance = irradiance;
 
