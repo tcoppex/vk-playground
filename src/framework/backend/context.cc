@@ -311,11 +311,11 @@ void Context::update_descriptor_set(
 /* -------------------------------------------------------------------------- */
 
 void Context::init_instance(std::vector<char const*> const& instance_extensions) {
-
 #ifndef NDEBUG
   if constexpr (kEnableDebugValidationLayer) {
     instance_layer_names_.push_back("VK_LAYER_KHRONOS_validation");
   }
+  instance_extension_names_.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 #endif
 
   uint32_t extension_count{0u};
@@ -328,10 +328,6 @@ void Context::init_instance(std::vector<char const*> const& instance_extensions)
     instance_extension_names_.begin(), instance_extensions.begin(), instance_extensions.end()
   );
 
-  if (auto ext_name = "VK_EXT_debug_utils"; has_extension(ext_name, available_instance_extensions_)) {
-    instance_extension_names_.push_back(ext_name);
-  }
-
   VkApplicationInfo const application_info{
     .pApplicationName = "hello_vulkan_sample_app", //
     .applicationVersion = VK_MAKE_VERSION(1, 0, 0),
@@ -339,8 +335,10 @@ void Context::init_instance(std::vector<char const*> const& instance_extensions)
     .engineVersion = VK_MAKE_VERSION(1, 0, 0),
     .apiVersion = VK_API_VERSION_1_1,
   };
+
   VkInstanceCreateInfo const instance_create_info{
     .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+    .pNext = nullptr,
     .pApplicationInfo = &application_info,
     .enabledLayerCount = static_cast<uint32_t>(instance_layer_names_.size()),
     .ppEnabledLayerNames = instance_layer_names_.data(),
