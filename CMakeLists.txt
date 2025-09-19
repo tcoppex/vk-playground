@@ -320,7 +320,7 @@ if(ANDROID)
     "${ANDROID_NATIVE_APP_GLUE_PATH}"
   )
   target_compile_options(
-    android_native
+    android_native_app_glue PRIVATE -Wno-unused-parameter
   )
 
   ## {MACRO} Properly add the Native App Glue dependencies to its consuming target.
