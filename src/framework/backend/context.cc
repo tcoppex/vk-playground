@@ -1,5 +1,8 @@
 #include "framework/backend/context.h"
 
+#include "framework/backend/vk_utils.h"
+#include "framework/core/utils.h" // for ExtractBasename
+
 /* -------------------------------------------------------------------------- */
 
 bool Context::init(std::vector<char const*> const& instance_extensions) {
@@ -21,7 +24,7 @@ bool Context::init(std::vector<char const*> const& instance_extensions) {
 
     for (uint32_t i = 0u; i < static_cast<uint32_t>(TargetQueue::kCount); ++i) {
       auto const target = static_cast<TargetQueue>(i);
-      command_pool_create_info.queueFamilyIndex = get_queue(target).family_index;
+      command_pool_create_info.queueFamilyIndex = queue(target).family_index;
       CHECK_VK(vkCreateCommandPool(
         device_, &command_pool_create_info, nullptr, &transient_command_pools_[target]
       ));
@@ -35,6 +38,8 @@ bool Context::init(std::vector<char const*> const& instance_extensions) {
     .instance = instance_,
   });
 
+  LOGD("--------------------------------------------\n");
+
   return true;
 }
 
@@ -45,13 +50,20 @@ void Context::deinit() {
   resource_allocator_->deinit();
   vkDestroyCommandPool(device_, transient_command_pools_[TargetQueue::Main], nullptr);
   vkDestroyCommandPool(device_, transient_command_pools_[TargetQueue::Transfer], nullptr);
+  vkDestroyCommandPool(device_, transient_command_pools_[TargetQueue::Compute], nullptr);
   vkDestroyDevice(device_, nullptr);
   vkDestroyInstance(instance_, nullptr);
 }
 
 // ----------------------------------------------------------------------------
 
-backend::Image Context::create_image_2d(uint32_t width, uint32_t height, VkFormat const format, VkImageUsageFlags const extra_usage) const {
+backend::Image Context::create_image_2d(
+  uint32_t width,
+  uint32_t height,
+  VkFormat const format,
+  VkImageUsageFlags const extra_usage,
+  std::string_view debugName
+) const {
   VkImageUsageFlags usage{
       VK_IMAGE_USAGE_SAMPLED_BIT
     | extra_usage
@@ -109,14 +121,24 @@ backend::Image Context::create_image_2d(uint32_t width, uint32_t height, VkForma
   backend::Image image;
   resource_allocator_->create_image_with_view(image_info, view_info, &image);
 
+  vkutils::SetDebugObjectName(
+    device_,
+    image.image,
+    debugName.empty() ? "Image2d::NoName" : debugName
+  );
+
   return image;
 }
 
 // ----------------------------------------------------------------------------
 
-backend::ShaderModule Context::create_shader_module(std::string_view const& directory, std::string_view const& shader_name) const {
+backend::ShaderModule Context::create_shader_module(
+  std::string_view const& directory,
+  std::string_view const& shader_name
+) const {
   return {
     .module = vkutils::CreateShaderModule(device_, directory.data(), shader_name.data()),
+    .basename = utils::ExtractBasename(shader_name, true),
   };
 }
 
@@ -201,7 +223,7 @@ void Context::finish_transient_command_encoder(CommandEncoder const& encoder) co
     static_cast<TargetQueue>(encoder.get_target_queue_index())
   };
 
-  CHECK_VK( vkQueueSubmit2(get_queue(target_queue).queue, 1u, &submit_info_2, fence) );
+  CHECK_VK( vkQueueSubmit2(queue(target_queue).queue, 1u, &submit_info_2, fence) );
 
   CHECK_VK( vkWaitForFences(device_, 1u, &fence, VK_TRUE, UINT64_MAX) );
   vkDestroyFence(device_, fence, nullptr);
@@ -211,66 +233,75 @@ void Context::finish_transient_command_encoder(CommandEncoder const& encoder) co
 
 // ----------------------------------------------------------------------------
 
-void Context::update_descriptor_set(VkDescriptorSet const& descriptor_set, std::vector<DescriptorSetWriteEntry> const& entries) const {
+void Context::transition_images_layout(
+  std::vector<backend::Image> const& images,
+  VkImageLayout const src_layout,
+  VkImageLayout const dst_layout
+) const {
+  auto cmd{ create_transient_command_encoder(TargetQueue::Transfer) };
+  cmd.transition_images_layout(images, src_layout, dst_layout);
+  finish_transient_command_encoder(cmd);
+}
+
+// ----------------------------------------------------------------------------
+
+backend::Buffer Context::create_buffer_and_upload(
+  void const* host_data,
+  size_t const host_data_size,
+  VkBufferUsageFlags2KHR const usage,
+  size_t device_buffer_offset,
+  size_t const device_buffer_size
+) const {
+  auto cmd{ create_transient_command_encoder(TargetQueue::Transfer) };
+  backend::Buffer buffer{
+    cmd.create_buffer_and_upload(host_data, host_data_size, usage, device_buffer_offset, device_buffer_size)
+  };
+  finish_transient_command_encoder(cmd);
+  return buffer;
+}
+
+// ----------------------------------------------------------------------------
+
+void Context::transfer_host_to_device(
+  void const* host_data,
+  size_t const host_data_size,
+  backend::Buffer const& device_buffer,
+  size_t const device_buffer_offset
+) const {
+  auto cmd{ create_transient_command_encoder(TargetQueue::Transfer) };
+  cmd.transfer_host_to_device(host_data, host_data_size, device_buffer, device_buffer_offset);
+  finish_transient_command_encoder(cmd);
+}
+
+// ----------------------------------------------------------------------------
+
+void Context::copy_buffer(
+  backend::Buffer const& src,
+  backend::Buffer const& dst,
+  size_t const buffersize
+) const {
+  auto cmd{ create_transient_command_encoder(Context::TargetQueue::Transfer) };
+  cmd.copy_buffer(src, dst, buffersize);
+  finish_transient_command_encoder(cmd);
+}
+
+// ----------------------------------------------------------------------------
+
+void Context::update_descriptor_set(
+  VkDescriptorSet const& descriptor_set,
+  std::vector<DescriptorSetWriteEntry> const& entries
+) const {
   if (entries.empty()) {
     return;
   }
 
-  std::vector<VkWriteDescriptorSet> write_descriptor_sets{};
-  write_descriptor_sets.reserve(entries.size());
-
-  std::vector<DescriptorSetWriteEntry> updated_entries{entries};
-
-  for (auto& entry : updated_entries) {
-    VkWriteDescriptorSet write_descriptor_set{
-      .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-      .dstSet = descriptor_set,
-      .dstBinding = entry.binding,
-      .dstArrayElement = 0u,
-      .descriptorType = entry.type,
-    };
-
-    switch (entry.type) {
-      case VK_DESCRIPTOR_TYPE_SAMPLER:
-      case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
-      case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
-      case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
-        LOG_CHECK(entry.buffers.empty() && entry.bufferViews.empty());
-
-        write_descriptor_set.pImageInfo = entry.images.data();
-        write_descriptor_set.descriptorCount = static_cast<uint32_t>(entry.images.size());
-      break;
-
-      case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
-      case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
-      case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
-      case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
-        LOG_CHECK(entry.images.empty() && entry.bufferViews.empty());
-        for (auto &buf : entry.buffers) {
-          buf.range = (buf.range == 0) ? VK_WHOLE_SIZE : buf.range;
-        }
-        write_descriptor_set.pBufferInfo = entry.buffers.data();
-        write_descriptor_set.descriptorCount = static_cast<uint32_t>(entry.buffers.size());
-      break;
-
-      case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
-        LOG_CHECK(entry.images.empty() && entry.buffers.empty());
-        write_descriptor_set.pTexelBufferView = entry.bufferViews.data();
-        write_descriptor_set.descriptorCount = static_cast<uint32_t>(entry.bufferViews.size());
-      break;
-
-      default:
-        LOGE("Unknown descriptor type: %d", static_cast<int>(entry.type));
-        continue;
-    }
-
-    write_descriptor_sets.push_back(write_descriptor_set);
-  }
+  DescriptorSetWriteEntry::Result result{};
+  vkutils::TransformDescriptorSetWriteEntries(descriptor_set, entries, result);
 
   vkUpdateDescriptorSets(
     device_,
-    static_cast<uint32_t>(write_descriptor_sets.size()),
-    write_descriptor_sets.data(),
+    static_cast<uint32_t>(result.write_descriptor_sets.size()),
+    result.write_descriptor_sets.data(),
     0u,
     nullptr
   );
@@ -280,11 +311,11 @@ void Context::update_descriptor_set(VkDescriptorSet const& descriptor_set, std::
 /* -------------------------------------------------------------------------- */
 
 void Context::init_instance(std::vector<char const*> const& instance_extensions) {
-
 #ifndef NDEBUG
   if constexpr (kEnableDebugValidationLayer) {
     instance_layer_names_.push_back("VK_LAYER_KHRONOS_validation");
   }
+  instance_extension_names_.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 #endif
 
   uint32_t extension_count{0u};
@@ -297,19 +328,17 @@ void Context::init_instance(std::vector<char const*> const& instance_extensions)
     instance_extension_names_.begin(), instance_extensions.begin(), instance_extensions.end()
   );
 
-  if (auto ext_name = "VK_EXT_debug_utils"; has_extension(ext_name, available_instance_extensions_)) {
-    instance_extension_names_.push_back(ext_name);
-  }
-
   VkApplicationInfo const application_info{
     .pApplicationName = "hello_vulkan_sample_app", //
     .applicationVersion = VK_MAKE_VERSION(1, 0, 0),
-    .pEngineName = "hello_vulkan_framework",
+    .pEngineName = "vk_framework",
     .engineVersion = VK_MAKE_VERSION(1, 0, 0),
     .apiVersion = VK_API_VERSION_1_1,
   };
+
   VkInstanceCreateInfo const instance_create_info{
     .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+    .pNext = nullptr,
     .pApplicationInfo = &application_info,
     .enabledLayerCount = static_cast<uint32_t>(instance_layer_names_.size()),
     .ppEnabledLayerNames = instance_layer_names_.data(),
@@ -319,6 +348,21 @@ void Context::init_instance(std::vector<char const*> const& instance_extensions)
   CHECK_VK( vkCreateInstance(&instance_create_info, nullptr, &instance_) );
 
   volkLoadInstance(instance_);
+
+  // ------------------------------------------
+
+  LOGD("Vulkan version required: %d.%d.%d",
+    VK_API_VERSION_MAJOR(application_info.apiVersion),
+    VK_API_VERSION_MINOR(application_info.apiVersion),
+    VK_API_VERSION_PATCH(application_info.apiVersion)
+  );
+  LOGD(" ");
+
+  LOGD("Used Instance layers:");
+  for (auto const& name : instance_extension_names_) {
+    LOGD(" > %s", name);
+  }
+  LOGD(" ");
 }
 
 // ----------------------------------------------------------------------------
@@ -352,6 +396,20 @@ void Context::select_gpu() {
   vkGetPhysicalDeviceQueueFamilyProperties2(gpu_, &queue_family_count, nullptr);
   properties_.queue_families2.resize(queue_family_count, {.sType = VK_STRUCTURE_TYPE_QUEUE_FAMILY_PROPERTIES_2});
   vkGetPhysicalDeviceQueueFamilyProperties2(gpu_, &queue_family_count, properties_.queue_families2.data());
+
+  LOGD("Selected Device:");
+  LOGD(" - Device Name    : %s", properties_.gpu2.properties.deviceName);
+  LOGD(" - Driver version : %d.%d.%d",
+    VK_API_VERSION_MAJOR(properties_.gpu2.properties.driverVersion),
+    VK_API_VERSION_MINOR(properties_.gpu2.properties.driverVersion),
+    VK_API_VERSION_PATCH(properties_.gpu2.properties.driverVersion)
+  );
+  LOGD(" - API version    : %d.%d.%d",
+    VK_API_VERSION_MAJOR(properties_.gpu2.properties.apiVersion),
+    VK_API_VERSION_MINOR(properties_.gpu2.properties.apiVersion),
+    VK_API_VERSION_PATCH(properties_.gpu2.properties.apiVersion)
+  );
+  LOGD(" ");
 }
 
 // ----------------------------------------------------------------------------
@@ -375,6 +433,12 @@ bool Context::init_device() {
       VK_KHR_INDEX_TYPE_UINT8_EXTENSION_NAME,
       feature_.index_type_uint8,
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INDEX_TYPE_UINT8_FEATURES_KHR
+    );
+
+    add_device_feature(
+      VK_KHR_16BIT_STORAGE_EXTENSION_NAME,
+      feature_.storage_16bit,
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES_KHR
     );
 
     add_device_feature(
@@ -449,6 +513,18 @@ bool Context::init_device() {
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_VIEW_MIN_LOD_FEATURES_EXT
     );
 
+    add_device_feature(
+      VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
+      feature_.acceleration_structure,
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR
+    );
+
+    add_device_feature(
+      VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
+      feature_.ray_tracing_pipeline,
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR
+    );
+
     vkGetPhysicalDeviceFeatures2(gpu_, &feature_.base);
   }
   LOG_CHECK(feature_.dynamic_rendering.dynamicRendering);
@@ -458,13 +534,16 @@ bool Context::init_device() {
   LOG_CHECK(feature_.descriptor_indexing.runtimeDescriptorArray);
   LOG_CHECK(feature_.descriptor_indexing.shaderSampledImageArrayNonUniformIndexing);
   LOG_CHECK(feature_.vertex_input_dynamic_state.vertexInputDynamicState);
+  LOG_CHECK(feature_.acceleration_structure.accelerationStructure);
+  LOG_CHECK(feature_.ray_tracing_pipeline.rayTracingPipeline);
 
   // --------------------
 
   /* Find specific Queues Family */
-  std::array<float, 2u> constexpr priorities{
+  std::array<float, 3u> constexpr priorities{
     1.0f,     // MAIN Queue        (Graphics, Transfer, Compute)
-    0.75f     // TRANSFERT Queue   (Transfer)
+    0.75f,    // TRANSFERT Queue   (Transfer)
+    0.75f,    // COMPUTE Queue     (Compute)
   };
   std::vector<std::pair<backend::Queue*, VkQueueFlags>> const queues{
     { &queues_[TargetQueue::Main],      VK_QUEUE_GRAPHICS_BIT
@@ -472,6 +551,7 @@ bool Context::init_device() {
                                       | VK_QUEUE_COMPUTE_BIT  },
 
     { &queues_[TargetQueue::Transfer],  VK_QUEUE_TRANSFER_BIT },
+    { &queues_[TargetQueue::Compute],  VK_QUEUE_COMPUTE_BIT },
   };
 
   std::vector<VkDeviceQueueCreateInfo> queue_create_infos{};
@@ -488,7 +568,6 @@ bool Context::init_device() {
 
     for (size_t j = 0u; j < queues.size(); ++j) {
       auto& pair = queues[j];
-
 
       for (uint32_t i = 0u; i < queue_family_count; ++i) {
         auto const& queue_family_props = properties_.queue_families2[i].queueFamilyProperties;
@@ -540,14 +619,20 @@ bool Context::init_device() {
   /* Use aliases without suffixes. */
   {
     auto bind_func{ [](auto & f1, auto & f2) { if (!f1) { f1 = f2; } } };
-    bind_func(vkWaitSemaphores, vkWaitSemaphoresKHR);
-    bind_func(vkCmdPipelineBarrier2, vkCmdPipelineBarrier2KHR);
-    bind_func(vkQueueSubmit2, vkQueueSubmit2KHR);
-    bind_func(vkCmdBeginRendering, vkCmdBeginRenderingKHR);
-    bind_func(vkCmdEndRendering, vkCmdEndRenderingKHR);
-    bind_func(vkCmdBindVertexBuffers2, vkCmdBindVertexBuffers2EXT);
-    bind_func(vkCmdBindIndexBuffer2, vkCmdBindIndexBuffer2KHR);
+    bind_func(         vkWaitSemaphores, vkWaitSemaphoresKHR);
+    bind_func(    vkCmdPipelineBarrier2, vkCmdPipelineBarrier2KHR);
+    bind_func(           vkQueueSubmit2, vkQueueSubmit2KHR);
+    bind_func(      vkCmdBeginRendering, vkCmdBeginRenderingKHR);
+    bind_func(        vkCmdEndRendering, vkCmdEndRenderingKHR);
+    bind_func(  vkCmdBindVertexBuffers2, vkCmdBindVertexBuffers2EXT);
+    bind_func(    vkCmdBindIndexBuffer2, vkCmdBindIndexBuffer2KHR);
   }
+
+  LOGD("Used Device Extensions:");
+  for (auto const& name : device_extension_names_) {
+    LOGD(" > %s", name);
+  }
+  LOGD(" ");
 
   /* Retrieved requested queues. */
   for (auto& pair : queues) {

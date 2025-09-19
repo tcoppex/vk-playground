@@ -18,8 +18,9 @@ void Mesh::initialize_submesh_descriptors(AttributeLocationMap const& attribute_
 
     submesh.draw_descriptor = {
       .vertexInput = create_vertex_input_descriptors(prim.bufferOffsets, attribute_to_location),
-      .indexOffset = buffer_info_.index_offset + prim.indexOffset, //
       .indexType = vk_index_type(),
+      .indexOffset = buffer_info_.index_offset + prim.indexOffset, //
+      .vertexOffset = buffer_info_.vertex_offset + prim.bufferOffsets.at(AttributeType::Position), //
       .indexCount = prim.indexCount,
       .vertexCount = prim.vertexCount,
       .instanceCount = 1u, //

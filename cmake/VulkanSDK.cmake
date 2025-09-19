@@ -48,20 +48,30 @@ function(glsl2spirv input_glsl output_spirv shader_dir deps extra_args)
     set(stage "comp")
   elseif(${fn} MATCHES "((mesh|ms)_.+\\.glsl)|(.+\\.(mesh|ms)(\\.glsl)?)")
     set(stage "mesh")
+  elseif(${fn} MATCHES "(.+\\.rgen)")
+  elseif(${fn} MATCHES "(.+\\.rmiss)")
+  elseif(${fn} MATCHES "(.+\\.rchit)")
+  elseif(${fn} MATCHES "(.+\\.rahit)")
   else()
     message(WARNING "Unknown shader type for ${fn}")
-    return()
+    # return()
   endif()
 
   get_filename_component(output_dir ${output_spirv} DIRECTORY)
   file(MAKE_DIRECTORY ${output_dir})
+
+  if(NOT stage OR stage STREQUAL "")
+    set(command "")
+  else()
+    set(command "-fshader-stage=${stage}")
+  endif()
 
   # Compile to SPIR-V with include directory set to shaderdir
   add_custom_command(
     OUTPUT
       ${output_spirv}
     COMMAND
-      ${GLSLC} -fshader-stage=${stage} -o ${output_spirv} ${input_glsl} -I ${shader_dir} ${extra_args}
+      ${GLSLC} --target-spv=spv1.4 ${command} -o ${output_spirv} ${input_glsl} -I ${shader_dir} ${extra_args}
     DEPENDS
       ${input_glsl}
       ${GLSLC}
@@ -84,33 +94,38 @@ endfunction(glsl2spirv)
 
 # Compile all shader from one directory to another
 function(compile_shaders GLOBAL_GLSL_DIR GLOBAL_SPIRV_DIR binaries sources extra_dir)
+
   # retrieve all SOURCE glsl shaders
-  file(GLOB_RECURSE g_ShadersGLSL ${GLOBAL_GLSL_DIR}/*.glsl)
+  file(GLOB_RECURSE g_ShadersGLSL ${GLOBAL_GLSL_DIR}/*.*)
 
   # Only keep shaders of the form "filename.stage.glsl"
+  set(RaytraceShadersREGEX ".+\\.rgen$|.+\\.rmiss$|.+\\.rchit|.+\\.rahit$")
   list(
     FILTER
       g_ShadersGLSL
     INCLUDE
     REGEX
-    ".+\\..+\\.glsl$"
+    ".+\\..+\\.glsl$|${RaytraceShadersREGEX}"
   )
 
-  file(GLOB ShadersDependencies
-    ${GLOBAL_GLSL_DIR}/../*.h ##
+
+  file(GLOB_RECURSE ShadersDependencies
+    ${GLOBAL_GLSL_DIR}/../interop.h ##
     ${GLOBAL_GLSL_DIR}/../*.glsl
   )
-  file(GLOB_RECURSE ShadersDependencies
-    ${GLOBAL_GLSL_DIR}/*.h ##
-  )
+  # file(GLOB_RECURSE ShadersDependencies
+  #   ${GLOBAL_GLSL_DIR}/*.h ##
+  # )
+  # foreach(dep IN LISTS ShadersDependencies)
+  #   message(STATUS "dep ${dep}")
+  # endforeach()
 
   file(GLOB_RECURSE ShadersDependencies_bis
     ${extra_dir}/*.h
     ${extra_dir}/*.glsl
   )
   list(APPEND ShadersDependencies ${ShadersDependencies_bis})
-  # foreach(dep IN LISTS ShadersDependencies_bis)
-  # endforeach()
+
 
   # transform shader path to relative
   foreach(glslshader IN LISTS g_ShadersGLSL)

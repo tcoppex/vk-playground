@@ -6,6 +6,7 @@
     fprintf(stderr, "\n");                      \
   }
 #include "framework/backend/allocator.h"
+#include "framework/backend/vk_utils.h"
 #include "framework/core/utils.h"
 
 /* -------------------------------------------------------------------------- */
@@ -74,8 +75,8 @@ backend::Buffer ResourceAllocator::create_buffer(
   );
 
   // Get its GPU address.
-  VkBufferDeviceAddressInfo const buffer_device_addr_info{
-    .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
+  VkBufferDeviceAddressInfoKHR const buffer_device_addr_info{
+    .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO_KHR,
     .buffer = buffer.buffer,
   };
   buffer.address = vkGetBufferDeviceAddressKHR(device_, &buffer_device_addr_info);
@@ -135,7 +136,7 @@ size_t ResourceAllocator::write_buffer(
 
 // ----------------------------------------------------------------------------
 
-void ResourceAllocator::clear_staging_buffers() {
+void ResourceAllocator::clear_staging_buffers() const {
   for (auto const& staging_buffer : staging_buffers_) {
     destroy_buffer(staging_buffer);
   }

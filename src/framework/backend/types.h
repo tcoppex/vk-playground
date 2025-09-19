@@ -3,8 +3,8 @@
 
 /* -------------------------------------------------------------------------- */
 
+#include "framework/core/common.h"
 #include <map>
-#include "framework/backend/vk_utils.h"
 
 #define VMA_DYNAMIC_VULKAN_FUNCTIONS 1
 
@@ -15,12 +15,16 @@
 #pragma clang diagnostic ignored "-Wmissing-field-initializers"
 #pragma clang diagnostic ignored "-Wunused-variable"
 #pragma clang diagnostic ignored "-Wunused-function"
+#pragma clang diagnostic ignored "-Wuseless-cast"
+#pragma clang diagnostic ignored "-Wundef"
 #elif defined(__GNUC__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 #pragma GCC diagnostic ignored "-Wunused-variable"
 #pragma GCC diagnostic ignored "-Wunused-function"
-#endif
+#pragma GCC diagnostic ignored "-Wuseless-cast"
+#pragma GCC diagnostic ignored "-Wundef"
+#else
 #pragma warning(push)
 #pragma warning(disable : 4100)  // Unreferenced formal parameter
 #pragma warning(disable : 4189)  // Local variable is initialized but not referenced
@@ -28,17 +32,19 @@
 #pragma warning(disable : 4324)  // Structure was padded due to alignment specifier
 #pragma warning(disable : 4505)  // Unreferenced function with internal linkage has been removed
 #endif
+#endif // VMA_IMPLEMENTATION
 
 #include "vk_mem_alloc.h"
 
 #ifdef VMA_IMPLEMENTATION
-#pragma warning(pop)
 #ifdef __clang__
 #pragma clang diagnostic pop
 #elif defined(__GNUC__)
 #pragma GCC diagnostic pop
+#else
+#pragma warning(pop)
 #endif
-#endif
+#endif // VMA_IMPLEMENTATION
 
 namespace backend {
 
@@ -91,19 +97,32 @@ struct Queue {
   uint32_t queue_index{UINT32_MAX};
 };
 
+// ----------------------------------------------------------------------------
+
+// Shader
+
 struct ShaderModule {
-  VkShaderModule module;
+  VkShaderModule module{};
+  std::string basename{};
 };
 
 enum class ShaderStage {
-  None = 0,
-  Vertex = VK_SHADER_STAGE_VERTEX_BIT,
-  Fragment = VK_SHADER_STAGE_FRAGMENT_BIT,
-  Compute = VK_SHADER_STAGE_COMPUTE_BIT,
+  Vertex        ,
+  Fragment      ,
+  Compute       ,
+  // ---------------------------------------
+  Raygen        ,
+  AnyHit        ,
+  ClosestHit    ,
+  Miss          ,
+  Intersection  ,
+  Callable      ,
+  // ---------------------------------------
   kCount,
 };
 
 using ShaderMap = std::map<ShaderStage, ShaderModule>;
+using ShadersMap = std::map<ShaderStage, std::vector<ShaderModule>>;
 
 // ----------------------------------------------------------------------------
 
@@ -137,6 +156,17 @@ class PipelineInterface {
   VkPipelineLayout pipeline_layout_{}; //
   VkPipeline pipeline_{};
   VkPipelineBindPoint bind_point_{};
+};
+
+// ----------------------------------------------------------------------------
+
+// RayTracing
+
+struct RayTracingAddressRegion {
+  VkStridedDeviceAddressRegionKHR raygen{};
+  VkStridedDeviceAddressRegionKHR miss{};
+  VkStridedDeviceAddressRegionKHR hit{};
+  VkStridedDeviceAddressRegionKHR callable{};
 };
 
 // ----------------------------------------------------------------------------
@@ -215,6 +245,7 @@ struct DescriptorSetLayoutParams {
   VkSampler const* pImmutableSamplers{};
   VkDescriptorBindingFlags bindingFlags{};
 };
+using DescriptorSetLayoutParamsBuffer = std::vector<DescriptorSetLayoutParams>;
 
 struct DescriptorSetWriteEntry {
   uint32_t binding{};
@@ -222,6 +253,19 @@ struct DescriptorSetWriteEntry {
   std::vector<VkDescriptorImageInfo> images{};
   std::vector<VkDescriptorBufferInfo> buffers{};
   std::vector<VkBufferView> bufferViews{};
+
+  // ---------------------------------------
+  std::vector<VkAccelerationStructureKHR> accelerationStructures{};
+
+  struct Extensions {
+    VkWriteDescriptorSetAccelerationStructureKHR accelerationStructureInfo{};
+  };
+  // ---------------------------------------
+
+  struct Result {
+    Extensions ext{};
+    std::vector<VkWriteDescriptorSet> write_descriptor_sets{};
+  };
 };
 
 struct VertexInputDescriptor {
@@ -235,9 +279,10 @@ struct DrawDescriptor {
   VertexInputDescriptor vertexInput{};
 
   //VkPrimitiveTopology topology{};
+  VkIndexType indexType{};
 
   uint64_t indexOffset{};
-  VkIndexType indexType{};
+  uint64_t vertexOffset{};
 
   uint32_t indexCount{};
   uint32_t vertexCount{};

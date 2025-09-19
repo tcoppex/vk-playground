@@ -11,11 +11,13 @@
 
 /* -------------------------------------------------------------------------- */
 
-void Skybox::init(Context const& context, Renderer& renderer) {
-  envmap_.init(context, renderer);
+void Skybox::init(Renderer& renderer) {
+  renderer_ptr_ = &renderer;
+
+  envmap_.init(renderer);
 
   /* Precalculate the BRDF LUT. */
-  compute_specular_brdf_lut(context, renderer); //
+  compute_specular_brdf_lut(renderer); //
 
   /* Internal sampler */
   sampler_LinearClampMipMap_ = renderer.sampler_pool().get({
@@ -28,6 +30,8 @@ void Skybox::init(Context const& context, Renderer& renderer) {
     .anisotropyEnable = VK_FALSE,
     .maxLod = VK_LOD_CLAMP_NONE,
   });
+
+  Context const& context = renderer.context();
 
   /* Create the skybox geometry on the device. */
   {
@@ -133,8 +137,8 @@ void Skybox::init(Context const& context, Renderer& renderer) {
 
 // ----------------------------------------------------------------------------
 
-void Skybox::release(Context const& context, Renderer const& renderer) {
-  auto allocator = context.allocator();
+void Skybox::release(Renderer const& renderer) {
+  auto allocator = renderer.context().allocator();
 
   allocator.destroy_image(&specular_brdf_lut_);
 
@@ -152,6 +156,11 @@ void Skybox::release(Context const& context, Renderer const& renderer) {
 
 bool Skybox::setup(std::string_view hdr_filename) {
   setuped_ = envmap_.setup(hdr_filename);
+
+  if (setuped_) {
+    renderer_ptr_->descriptor_set_registry().update_scene_ibl();
+  }
+
   return setuped_;
 }
 
@@ -178,7 +187,7 @@ void Skybox::render(RenderPassEncoder & pass, Camera const& camera) const {
 
 // ----------------------------------------------------------------------------
 
-void Skybox::compute_specular_brdf_lut(Context const& context, Renderer const& renderer) {
+void Skybox::compute_specular_brdf_lut(Renderer const& renderer) {
   class IntegrateBRDF final : public ComputeFx {
     const uint32_t kNumSamples{ 1024u };
 
@@ -233,7 +242,7 @@ void Skybox::compute_specular_brdf_lut(Context const& context, Renderer const& r
       };
     }
 
-    void pushConstant(GenericCommandEncoder const &cmd) final {
+    void pushConstant(GenericCommandEncoder const &cmd) const final {
       cmd.push_constant(push_constant_, pipeline_layout_, VK_SHADER_STAGE_COMPUTE_BIT);
     }
 
@@ -243,14 +252,14 @@ void Skybox::compute_specular_brdf_lut(Context const& context, Renderer const& r
   };
 
   TPostFxPipeline<IntegrateBRDF> brdf_pipeline{};
-  brdf_pipeline.init(context, renderer);
+  brdf_pipeline.init(renderer);
   brdf_pipeline.setup({ kBRDFLutResolution, kBRDFLutResolution });
 
-  auto cmd = context.create_transient_command_encoder();
+  auto cmd = renderer.context().create_transient_command_encoder(Context::TargetQueue::Compute);
   {
     brdf_pipeline.execute(cmd);
   }
-  context.finish_transient_command_encoder(cmd);
+  renderer.context().finish_transient_command_encoder(cmd);
 
   specular_brdf_lut_ = brdf_pipeline.getImageOutput();
   brdf_pipeline.release();

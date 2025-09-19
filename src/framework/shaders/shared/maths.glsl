@@ -53,11 +53,22 @@ mat3 rotationZ(float radians) {
 
 mat3 basis_from_view(in vec3 z_axis) {
   // Check Y & Z are not colinears.
-  vec3 y_axis = abs(z_axis.y) < (1.0 - Epsilon()) ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0);
+  vec3 y_axis = abs(z_axis.y) < (1.0 - Epsilon()) ? vec3(0.0, 1.0, 0.0)
+                                                  : vec3(1.0, 0.0, 0.0)
+                                                  ;
   vec3 x_axis = normalize(cross(y_axis, z_axis));
        y_axis = normalize(cross(z_axis, x_axis));
        z_axis = normalize(z_axis);
   return mat3(x_axis, y_axis, z_axis);
+}
+
+void build_tangent_basis(in vec3 N, out vec3 T, out vec3 B) {
+  if (abs(N.z) < 0.999) {
+    T = normalize(cross(N, vec3(0,0,1)));
+  } else {
+    T = normalize(cross(N, vec3(0,1,0)));
+  }
+  B = cross(N, T);
 }
 
 // ----------------------------------------------------------------------------
@@ -197,7 +208,6 @@ vec3 sample_sphere_out(float radius, vec2 rn) {
 // Samples points on an hemisphere using the Hammersley point set.
 // ref : https://web.archive.org/web/20240707031450/ +
 //       http://holger.dammertz.org/stuff/notes_HammersleyOnHemisphere.html
-
 float radicalInverse_VdC(uint bits) {
   bits = (bits << 16u) | (bits >> 16u);
   bits = ((bits & 0x55555555u) << 1u) | ((bits & 0xAAAAAAAAu) >> 1u);
@@ -208,25 +218,20 @@ float radicalInverse_VdC(uint bits) {
 }
 
 vec2 hammersley2d(int i, float inv_N) {
-  return vec2(float(i) * inv_N, radicalInverse_VdC(uint(i)));
+  return vec2(float(i+0.5) * inv_N, radicalInverse_VdC(uint(i+1)));
 }
 
-// vec2 hammersley2d(int i, int N) {
-//   return hammersley2d(i, 1.0f / float(N));
-// }
-
-vec3 sample_hemisphere_uniform(float u, float v) {
- const float phi = v * TwoPi();
- const float cosTheta = 1.0 - u;
+vec3 sample_hemisphere_uniform(vec2 u) {
+ const float cosTheta = 1.0 - u.x;
  const float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
+ const float phi = TwoPi() * u.y;
  return vec3(cos(phi) * sinTheta, sin(phi) * sinTheta, cosTheta);
 }
-  
-vec3 sample_hemisphere_cos(float u, float v) {
- const float phi = v * TwoPi();
- const float cosTheta = sqrt(1.0 - u);
- const float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
- return vec3(cos(phi) * sinTheta, sin(phi) * sinTheta, cosTheta);
+
+vec3 sample_hemisphere_cosine(vec2 u) {
+  float r = sqrt(u.x);
+  float theta = TwoPi() * u.y;
+  return vec3(r * cos(theta), r * sin(theta), sqrt(max(0.0, 1.0 - u.x)));
 }
 
 // ----------------------------------------------------------------------------
@@ -238,7 +243,7 @@ vec3 fast_importance_sample_GGX(in mat3 basis_ws, in vec2 pt, float roughness_sq
   const float a = roughness_sqr * roughness_sqr * pt.y; //
   const float u = a / (1.0 + a - pt.y);
   const float v = pt.x;
-  return normalize(basis_ws * sample_hemisphere_cos( u, v ));
+  return normalize(basis_ws * sample_hemisphere_cosine(vec2(u, v)));
 }
 
 // [flatten up version]

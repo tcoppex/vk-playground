@@ -28,9 +28,9 @@ void HostResources::setup() {
     auto &bindings = default_texture_binding_;
     bindings.basecolor          = push_default_texture({255, 255, 255, 255});
     bindings.normal             = push_default_texture({128, 128, 255, 255});
-    bindings.roughness_metallic = push_default_texture({  0, 255,   0, 255});
+    bindings.roughness_metallic = push_default_texture({  0, 255,   0,   0});
     bindings.occlusion          = push_default_texture({255, 255, 255, 255});
-    bindings.emissive           = push_default_texture({  0,   0,   0, 255});
+    bindings.emissive           = push_default_texture({  0,   0,   0,   0});
   }
 }
 
@@ -79,8 +79,8 @@ bool HostResources::load_file(std::string_view filename) {
     {
       /* --- Async tasks version --- */
 
-      auto run_task = utils::RunTaskGeneric<void>;
-      auto run_task_ret = utils::RunTaskGeneric<PointerToIndexMap_t>;
+      auto run_task         = utils::RunTaskGeneric<void>;
+      auto run_task_ret     = utils::RunTaskGeneric<PointerToIndexMap_t>;
       auto run_task_sampler = utils::RunTaskGeneric<PointerToSamplerMap_t>;
 
       auto taskSamplers = run_task_sampler([data, &samplers = this->samplers] {
@@ -139,7 +139,9 @@ bool HostResources::load_file(std::string_view filename) {
           data,
           materials_indices, material_refs,
           skeletons_indices, skeletons,
-          meshes, transforms, kRestructureAttribs
+          meshes, transforms,
+          kRestructureAttribs,
+          kForce32BitsIndexing
         );
       });
 
@@ -166,7 +168,9 @@ bool HostResources::load_file(std::string_view filename) {
         data,
         materials_indices, material_refs,
         skeletons_indices, skeletons,
-        meshes, transforms, kRestructureAttribs
+        meshes, transforms,
+        kRestructureAttribs,
+        kForce32BitsIndexing
       );
     }
 

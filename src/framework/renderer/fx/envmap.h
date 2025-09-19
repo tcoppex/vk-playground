@@ -55,7 +55,7 @@ class Envmap {
  public:
   Envmap() = default;
 
-  void init(Context const& context, Renderer const& renderer);
+  void init(Renderer const& renderer);
 
   void release();
 

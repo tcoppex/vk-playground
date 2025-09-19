@@ -1,16 +1,14 @@
 /* -------------------------------------------------------------------------- */
 
 #include "framework/renderer/fx/envmap.h"
-
-#include "framework/backend/context.h"
 #include "framework/renderer/renderer.h"
 
 /* -------------------------------------------------------------------------- */
 
-void Envmap::init(Context const& context, Renderer const& renderer) {
-  context_ = &context;
+void Envmap::init(Renderer const& renderer) {
+  context_ = &renderer.context();
   renderer_ = &renderer;
-  allocator_ptr_ = context.allocator_ptr();
+  allocator_ptr_ = context_->allocator_ptr();
 
   irradiance_matrices_buffer_ = allocator_ptr_->create_buffer(
     sizeof(shader_interop::envmap::SHMatrices),
@@ -148,7 +146,7 @@ void Envmap::init(Context const& context, Renderer const& renderer) {
 
   /* Create the compute pipelines. */
   {
-    auto shaders{context.create_shader_modules(FRAMEWORK_COMPILED_SHADERS_DIR "envmap", {
+    auto shaders{context_->create_shader_modules(FRAMEWORK_COMPILED_SHADERS_DIR "envmap", {
       "spherical_to_cubemap.comp.glsl",
       "irradiance_calculate_coeff.comp.glsl",
       "irradiance_reduce_step.comp.glsl",
@@ -157,7 +155,7 @@ void Envmap::init(Context const& context, Renderer const& renderer) {
       "specular_convolution.comp.glsl",
     })};
     renderer.create_compute_pipelines(pipeline_layout_, shaders, compute_pipelines_.data());
-    context.release_shader_modules(shaders);
+    context_->release_shader_modules(shaders);
   }
 
   /* internal sampler */
@@ -173,7 +171,7 @@ void Envmap::init(Context const& context, Renderer const& renderer) {
       .anisotropyEnable = VK_FALSE,
       .maxLod = 0,
     };
-    CHECK_VK( vkCreateSampler(context.get_device(), &sampler_create_info, nullptr, &sampler_) );
+    CHECK_VK( vkCreateSampler(context_->device(), &sampler_create_info, nullptr, &sampler_) );
   }
 }
 
@@ -181,7 +179,7 @@ void Envmap::init(Context const& context, Renderer const& renderer) {
 
 void Envmap::release() {
   allocator_ptr_->destroy_buffer(irradiance_matrices_buffer_);
-  vkDestroySampler(context_->get_device(), sampler_, nullptr); //
+  vkDestroySampler(context_->device(), sampler_, nullptr); //
   for (auto &image : images_) {
     allocator_ptr_->destroy_image(&image);
   }
@@ -246,7 +244,7 @@ bool Envmap::load_diffuse_envmap(std::string_view hdr_filename) {
   auto const& diffuse = images_[ImageType::Diffuse];
 
   /* Transform the spherical texture into a cubemap. */
-  auto cmd = context_->create_transient_command_encoder();
+  auto cmd = context_->create_transient_command_encoder(Context::TargetQueue::Compute);
   {
     cmd.pipeline_image_barriers({
       {
@@ -326,7 +324,7 @@ void Envmap::compute_irradiance_sh_coeff() {
 
   // --------------------
 
-  auto cmd = context_->create_transient_command_encoder();
+  auto cmd = context_->create_transient_command_encoder(Context::TargetQueue::Compute);
   {
     cmd.bind_descriptor_set(descriptor_set_, pipeline_layout_, VK_SHADER_STAGE_COMPUTE_BIT);
 
@@ -439,7 +437,7 @@ void Envmap::compute_irradiance() {
     }
   });
 
-  auto cmd = context_->create_transient_command_encoder();
+  auto cmd = context_->create_transient_command_encoder(Context::TargetQueue::Compute);
   {
     cmd.pipeline_image_barriers({
       {
@@ -508,7 +506,7 @@ void Envmap::compute_specular() {
   for (uint32_t level = 0u; level < kSpecularLevelCount; ++level) {
     view_info.subresourceRange.baseMipLevel = level;
     CHECK_VK(vkCreateImageView(
-      context_->get_device(), &view_info, nullptr, &desc_image_infos[level].imageView
+      context_->device(), &view_info, nullptr, &desc_image_infos[level].imageView
     ));
   }
 
@@ -520,7 +518,7 @@ void Envmap::compute_specular() {
     }
   });
 
-  auto cmd = context_->create_transient_command_encoder();
+  auto cmd = context_->create_transient_command_encoder(Context::TargetQueue::Compute);
   {
     cmd.pipeline_image_barriers({
       {
@@ -569,7 +567,7 @@ void Envmap::compute_specular() {
   context_->finish_transient_command_encoder(cmd);
 
   for (auto const& desc_image_info : desc_image_infos) {
-    vkDestroyImageView(context_->get_device(), desc_image_info.imageView, nullptr);
+    vkDestroyImageView(context_->device(), desc_image_info.imageView, nullptr);
   }
 }
 

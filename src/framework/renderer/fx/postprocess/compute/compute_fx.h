@@ -28,13 +28,12 @@ class ComputeFx : public PostGenericFx {
       return false;
     }
     dimension_ = dimension;
-
     return true;
   }
 
   void release() override;
 
-  void execute(CommandEncoder& cmd) override;
+  void execute(CommandEncoder& cmd) const override;
 
   // --- Setters ---
 
@@ -68,8 +67,11 @@ class ComputeFx : public PostGenericFx {
 
  protected:
   virtual void releaseImagesAndBuffers();
+  
+  // [deprecated]
+  virtual std::string getShaderName() const = 0; //
 
-  std::vector<DescriptorSetLayoutParams> getDescriptorSetLayoutParams() const override {
+  DescriptorSetLayoutParamsBuffer getDescriptorSetLayoutParams() const override {
     return {
       // INPUTS
       {

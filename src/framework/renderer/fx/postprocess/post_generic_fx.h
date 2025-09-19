@@ -12,14 +12,19 @@ class PostGenericFx : public virtual GenericFx
   void setup(VkExtent2D const dimension) override {
     resize(dimension);
     GenericFx::setup(dimension);
+    enabled_ = true;
   }
 
  public:
-  bool isEnabled() const {
+  bool enabled() const {
     return enabled_;
   }
 
-  bool enabled_{true};
+  void setEnabled(bool enabled) {
+    enabled_ = enabled;
+  }
+
+  bool enabled_{false};
 };
 
 /* -------------------------------------------------------------------------- */

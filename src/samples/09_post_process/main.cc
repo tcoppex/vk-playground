@@ -71,7 +71,7 @@ class SceneFx final : public RenderTargetFx {
       },
       .depth_stencil_format = VK_FORMAT_D24_UNORM_S8_UINT,
       .size = dimension,
-      .sampler = renderer_ptr_->get_default_sampler(),
+      .sampler = renderer_ptr_->default_sampler(),
     });
 
     // Set the clear values for color attachments.
@@ -79,7 +79,7 @@ class SceneFx final : public RenderTargetFx {
     render_target_->set_color_clear_value({ 0.0f, 0.0f, -1.0f, 0.0f }, 1u);
   }
 
-  std::vector<DescriptorSetLayoutParams> getDescriptorSetLayoutParams() const final {
+  DescriptorSetLayoutParamsBuffer getDescriptorSetLayoutParams() const final {
     return {
       {
         .binding = shader_interop::kDescriptorSetBinding_UniformBuffer,
@@ -109,7 +109,7 @@ class SceneFx final : public RenderTargetFx {
     };
   }
 
-  void pushConstant(GenericCommandEncoder const &cmd) final {
+  void pushConstant(GenericCommandEncoder const &cmd) const final {
     cmd.push_constant(push_constant_, pipeline_layout_, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
   }
 
@@ -140,7 +140,7 @@ class SceneFx final : public RenderTargetFx {
     };
   }
 
-  void draw(RenderPassEncoder const& pass) final {
+  void draw(RenderPassEncoder const& pass) const final {
     uint32_t instance_index = 0u;
     for (auto const& mesh : scene_->meshes) {
       pass.set_primitive_topology(mesh->vk_primitive_topology());
@@ -169,7 +169,11 @@ class SceneFx final : public RenderTargetFx {
 
     /* Update the Sampler Atlas descriptor with the currently loaded textures. */
     context_ptr_->update_descriptor_set(descriptor_set_, {
-      scene_->descriptor_set_texture_atlas_entry( shader_interop::kDescriptorSetBinding_Sampler )
+      {
+        .binding = shader_interop::kDescriptorSetBinding_Sampler,
+        .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+        .images = scene_->descriptor_image_infos()
+      }
     });
   }
 
@@ -196,7 +200,7 @@ class SceneFx final : public RenderTargetFx {
   }
 
  private:
-  shader_interop::PushConstant push_constant_{};
+  mutable shader_interop::PushConstant push_constant_{};
 
   shader_interop::UniformData host_data_{};
   backend::Buffer uniform_buffer_{};
@@ -220,11 +224,7 @@ class ToonFxPipeline final : public TPostFxPipeline<SceneFx> {
   };
 
  public:
-  std::string name() const final {
-    return "ToonFxPipeline";
-  }
-
-  void init(Context const& context, Renderer const& renderer) final {
+  void init(Renderer const& renderer) final {
     auto entry_fx = getEntryFx();
 
     auto depth_minmax = add<fx::compute::DepthMinMax>({
@@ -248,7 +248,7 @@ class ToonFxPipeline final : public TPostFxPipeline<SceneFx> {
       },
     });
 
-    PostFxPipeline::init(context, renderer);
+    TPostFxPipeline<SceneFx>::init(renderer);
   }
 };
 
@@ -290,7 +290,7 @@ class SampleApp final : public Application {
     });
 
     /* Fx Pipeline. */
-    toon_pipeline_.init(context_, renderer_);
+    toon_pipeline_.init(renderer_);
     toon_pipeline_.setup(renderer_.get_surface_size());
 
     if (auto sceneFx = toon_pipeline_.getEntryFx(); sceneFx) {

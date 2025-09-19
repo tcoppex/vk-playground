@@ -15,7 +15,7 @@ class RenderTargetFx : public FragmentFx
  public:
   void release() override;
 
-  void execute(CommandEncoder& cmd) override; //
+  void execute(CommandEncoder& cmd) const override; //
 
  public:
   bool resize(VkExtent2D const dimension) override;
@@ -37,36 +37,20 @@ class RenderTargetFx : public FragmentFx
     return GetMapScreenVertexShaderName();
   }
 
-  GraphicsPipelineDescriptor_t getGraphicsPipelineDescriptor(std::vector<backend::ShaderModule> const& shaders) const override {
-     return {
-      .vertex = {
-        .module = shaders[0u].module,
-      },
-      .fragment = {
-        .module = shaders[1u].module,
-        .targets = {
-          { .format = render_target_->get_color_attachment().format },
-        }
-      },
-      .primitive = {
-        .topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
-        .cullMode = VK_CULL_MODE_BACK_BIT,
-      },
-    };
-  }
+  GraphicsPipelineDescriptor_t getGraphicsPipelineDescriptor(
+    std::vector<backend::ShaderModule> const& shaders
+  ) const override;
 
-  VkExtent2D getRenderSurfaceSize() const override {
-    return render_target_->get_surface_size();
-  }
+  VkExtent2D getRenderSurfaceSize() const override;
 
-  void draw(RenderPassEncoder const& pass) override {
+  void draw(RenderPassEncoder const& pass) const override {
     pass.draw(3u);
   }
 
   virtual void createRenderTarget(VkExtent2D const dimension);
 
  protected:
-  std::shared_ptr<RenderTarget> render_target_{};
+  std::shared_ptr<RenderTarget> render_target_{}; //
   std::vector<backend::Buffer> unused_buffers_{};
 };
 

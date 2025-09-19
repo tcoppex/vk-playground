@@ -124,7 +124,7 @@ class SampleApp final : public Application {
           .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
           .images = {
             {
-              .sampler = renderer_.get_default_sampler(),
+              .sampler = renderer_.default_sampler(),
               .imageView = image_.view,
               .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             }

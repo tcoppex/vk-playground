@@ -10,14 +10,14 @@
 
 // ----------------------------------------------------------------------------
 
-layout(scalar, set = 0, binding = kDescriptorSetBinding_FrameUBO)
-uniform FrameUBO_ {
-  FrameData uFrame;
-};
-
-layout(scalar, set = 0, binding = kDescriptorSetBinding_MaterialSSBO)
+layout(scalar, set = kDescriptorSet_Internal, binding = kDescriptorSet_Internal_MaterialSBO)
 buffer MaterialSSBO_ {
   Material materials[];
+};
+
+layout(scalar, set = kDescriptorSet_Frame, binding = kDescriptorSet_Frame_FrameUBO)
+uniform FrameUBO_ {
+  FrameData uFrame;
 };
 
 layout(push_constant, scalar) uniform PushConstant_ {

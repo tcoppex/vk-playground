@@ -4,6 +4,7 @@
 #include "framework/renderer/renderer.h"
 #include "framework/renderer/fx/material/material_fx.h"
 
+#include "framework/renderer/fx/postprocess/ray_tracing/ray_tracing_fx.h" //
 #include "framework/shaders/material/interop.h" //
 
 using namespace scene;
@@ -13,12 +14,26 @@ using namespace scene;
 GPUResources::GPUResources(Renderer const& renderer)
   : renderer_ptr_(&renderer)
   , context_ptr_(&renderer.context())
-{}
+{
+  // ---------------------------------------
+  rt_scene_ = std::make_unique<RayTracingScene>();
+  rt_scene_->init(*context_ptr_); //
+  // ---------------------------------------
+}
 
 // ----------------------------------------------------------------------------
 
 GPUResources::~GPUResources() {
+  context_ptr_->wait_device_idle();
+
+  if (material_fx_registry_) {
+    material_fx_registry_->release();
+  }
   if (allocator_ptr_ != nullptr) {
+    // ---------------------------------------
+    rt_scene_.reset();
+    // ---------------------------------------
+
     for (auto& img : device_images) {
       allocator_ptr_->destroy_image(&img);
     }
@@ -26,9 +41,6 @@ GPUResources::~GPUResources() {
     allocator_ptr_->destroy_buffer(frame_ubo_);
     allocator_ptr_->destroy_buffer(index_buffer);
     allocator_ptr_->destroy_buffer(vertex_buffer);
-  }
-  if (material_fx_registry_) {
-    material_fx_registry_->release();
   }
 }
 
@@ -69,6 +81,9 @@ void GPUResources::upload_to_device(bool const bReleaseHostDataOnUpload) {
     allocator_ptr_ = context_ptr_->allocator_ptr();
   }
 
+  /* Transfer Materials */
+  material_fx_registry_->push_material_storage_buffers();
+
   /* Create the shared Frame UBO */
   frame_ubo_ = allocator_ptr_->create_buffer(
     sizeof(FrameData),
@@ -78,23 +93,41 @@ void GPUResources::upload_to_device(bool const bReleaseHostDataOnUpload) {
       VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
     | VMA_ALLOCATION_CREATE_MAPPED_BIT
   );
-  material_fx_registry_->update_frame_ubo(frame_ubo_);
-
-  /* Transfer Materials */
-  material_fx_registry_->push_material_storage_buffers();
 
   /* Transfer Textures */
   if (total_image_size > 0) {
     upload_images(*context_ptr_);
-
-    material_fx_registry_->update_texture_atlas([this](uint32_t binding) {
-      return this->descriptor_set_texture_atlas_entry(binding);
-    });
   }
 
   /* Transfer Buffers */
   if (vertex_buffer_size > 0) {
     upload_buffers(*context_ptr_);
+
+    // ---------------------------------------
+    /* Build the Raytracing acceleration structures. */
+    if (rt_scene_) {
+      rt_scene_->build(meshes, vertex_buffer, index_buffer);
+    }
+    // ---------------------------------------
+  }
+
+  /* Update Global Descriptor Set bindings. */
+  {
+    auto const& DSR = renderer_ptr_->descriptor_set_registry();
+
+    DSR.update_frame_ubo(frame_ubo_);
+
+    if (total_image_size > 0) {
+      DSR.update_scene_textures(descriptor_image_infos());
+    }
+
+    DSR.update_scene_transforms(transforms_ssbo_);
+
+    // ---------------------------------------
+    if (rt_scene_) {
+      DSR.update_ray_tracing_scene(rt_scene_.get());
+    }
+    // ---------------------------------------
   }
 
   /* Clear host data once uploaded */
@@ -109,45 +142,38 @@ void GPUResources::upload_to_device(bool const bReleaseHostDataOnUpload) {
 
 // ----------------------------------------------------------------------------
 
-DescriptorSetWriteEntry GPUResources::descriptor_set_texture_atlas_entry(uint32_t const binding) const {
-  DescriptorSetWriteEntry texture_atlas_entry{
-    .binding = binding,
-    .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-  };
+std::vector<VkDescriptorImageInfo> GPUResources::descriptor_image_infos() const {
+  std::vector<VkDescriptorImageInfo> image_infos{};
 
   if (textures.empty()) {
-    return texture_atlas_entry;
+    return image_infos;
   }
-  LOG_CHECK( !device_images.empty() );
+  image_infos.reserve(textures.size());
 
   auto const& sampler_pool = renderer_ptr_->sampler_pool();
   for (auto const& texture : textures) {
     auto const& img = device_images.at(texture.channel_index());
-    texture_atlas_entry.images.push_back({
+    image_infos.push_back({
       .sampler = sampler_pool.convert(texture.sampler),
       .imageView = img.view,
       .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
     });
   }
-
-  return texture_atlas_entry;
+  return image_infos;
 }
 
 // ----------------------------------------------------------------------------
 
-void GPUResources::update(Camera const& camera, VkExtent2D const& surfaceSize, float elapsedTime) {
-  // Update the shared Frame UBO.
-  FrameData const frame_data{
-    .projectionMatrix = camera.proj(),
-    .viewMatrix = camera.view(),
-    .viewProjMatrix = camera.viewproj(),
-    .cameraPos_Time = vec4(camera.position(), elapsedTime),
-    .resolution = vec2(surfaceSize.width, surfaceSize.height),
-  };
+void GPUResources::update(
+  Camera const& camera,
+  VkExtent2D const& surfaceSize,
+  float elapsedTime
+) {
+  update_frame_data(camera, surfaceSize, elapsedTime);
 
-  context_ptr_->transfer_host_to_device(
-    &frame_data, sizeof(frame_data), frame_ubo_
-  );
+  if (ray_tracing_fx_ && ray_tracing_fx_->enabled()) {
+    return;
+  }
 
   /// ---------------------------------------
   ///
@@ -228,6 +254,11 @@ void GPUResources::update(Camera const& camera, VkExtent2D const& surfaceSize, f
 
 void GPUResources::render(RenderPassEncoder const& pass) {
   LOG_CHECK( material_fx_registry_ != nullptr );
+
+  if (ray_tracing_fx_ && ray_tracing_fx_->enabled()) {
+    return;
+  }
+
   // Render each Fx.
   uint32_t instance_index = 0u;
   for (auto& lookup : lookups_) {
@@ -253,6 +284,16 @@ void GPUResources::render(RenderPassEncoder const& pass) {
       }
     }
   }
+}
+
+// ----------------------------------------------------------------------------
+
+void GPUResources::set_ray_tracing_fx(RayTracingFx* fx) {
+  LOG_CHECK(fx != nullptr);
+
+  fx->buildMaterialStorageBuffer(material_proxies); //
+
+  ray_tracing_fx_ = fx;
 }
 
 // ----------------------------------------------------------------------------
@@ -306,11 +347,26 @@ void GPUResources::upload_images(Context const& context) {
   {
     VkImageLayout const transfer_layout{ VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL };
 
-    cmd.transition_images_layout(device_images, VK_IMAGE_LAYOUT_UNDEFINED, transfer_layout);
+    cmd.transition_images_layout(
+      device_images,
+      VK_IMAGE_LAYOUT_UNDEFINED,
+      transfer_layout
+    );
     for (uint32_t i = 0u; i < device_images.size(); ++i) {
-      vkCmdCopyBufferToImage(cmd.get_handle(), staging_buffer.buffer, device_images[i].image, transfer_layout, 1u, &copies[i]);
+      vkCmdCopyBufferToImage(
+        cmd.get_handle(),
+        staging_buffer.buffer,
+        device_images[i].image,
+        transfer_layout,
+        1u,
+        &copies[i]
+      );
     }
-    cmd.transition_images_layout(device_images, transfer_layout, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    cmd.transition_images_layout(
+      device_images,
+      transfer_layout,
+      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+    );
   }
   context.finish_transient_command_encoder(cmd);
 }
@@ -321,17 +377,37 @@ void GPUResources::upload_buffers(Context const& context) {
   LOG_CHECK(vertex_buffer_size > 0);
   LOG_CHECK(allocator_ptr_ != nullptr);
 
+  VkBufferUsageFlags extra_flags{};
+
+  // ---------------------------------------
+  if (rt_scene_) {
+    extra_flags = extra_flags
+                // Position & Indices are needed for the BLAS.
+                | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR
+                // Attributes & Indices are fetched by the closeshit shaders.
+                | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT
+                | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
+                ;
+  }
+  // ---------------------------------------
+
   /* Allocate device buffers for meshes & their transforms. */
   vertex_buffer = allocator_ptr_->create_buffer(
     vertex_buffer_size,
-    VK_BUFFER_USAGE_2_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_2_TRANSFER_DST_BIT_KHR,
+      VK_BUFFER_USAGE_2_VERTEX_BUFFER_BIT
+    | VK_BUFFER_USAGE_2_TRANSFER_DST_BIT_KHR
+    | extra_flags
+    ,
     VMA_MEMORY_USAGE_GPU_ONLY
   );
 
   if (index_buffer_size > 0) {
     index_buffer = allocator_ptr_->create_buffer(
       index_buffer_size,
-      VK_BUFFER_USAGE_2_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_2_TRANSFER_DST_BIT_KHR,
+        VK_BUFFER_USAGE_2_INDEX_BUFFER_BIT
+      | VK_BUFFER_USAGE_2_TRANSFER_DST_BIT_KHR
+      | extra_flags
+      ,
       VMA_MEMORY_USAGE_GPU_ONLY
     );
   }
@@ -345,8 +421,6 @@ void GPUResources::upload_buffers(Context const& context) {
       VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
       VMA_MEMORY_USAGE_GPU_ONLY
     );
-    // Update the transform SSBO DescriptorSet entry for all MaterialFx.
-    material_fx_registry_->update_transforms_ssbo(transforms_ssbo_);
   }
 
   /* Copy host mesh data to the staging buffer. */
@@ -414,7 +488,7 @@ void GPUResources::upload_buffers(Context const& context) {
       },
     };
     if (index_buffer_size > 0) {
-      barriers.emplace_back(VkBufferMemoryBarrier2{
+      barriers.push_back({
         .srcStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT,
         .srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
         .dstStageMask = VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
@@ -425,8 +499,30 @@ void GPUResources::upload_buffers(Context const& context) {
     }
     cmd.pipeline_buffer_barriers(barriers);
   }
-
   context.finish_transient_command_encoder(cmd);
+}
+
+// ----------------------------------------------------------------------------
+
+void GPUResources::update_frame_data(
+  Camera const& camera,
+  VkExtent2D const& surfaceSize,
+  float elapsedTime
+) {
+  FrameData frame_data{
+    .projectionMatrix = camera.proj(),
+    .invProjectionMatrix = linalg::inverse(camera.proj()),
+    .viewMatrix = camera.view(),
+    .invViewMatrix = camera.world(),
+    .viewProjMatrix = camera.viewproj(),
+    .cameraPos_Time = vec4(camera.position(), elapsedTime),
+    .resolution = vec2(surfaceSize.width, surfaceSize.height),
+    .frame = frame_index_++,
+  };
+
+  context_ptr_->transfer_host_to_device(
+    &frame_data, sizeof(frame_data), frame_ubo_
+  );
 }
 
 /* -------------------------------------------------------------------------- */

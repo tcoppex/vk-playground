@@ -4,10 +4,10 @@
 
 /* -------------------------------------------------------------------------- */
 
-void ArcBallController::update(float dt) {
+bool ArcBallController::update(float dt) {
   auto const& e{ Events::Get() };
 
-  update(
+  bool is_dirty = update(
     dt,
     e.mouseMoved(),
     e.buttonDown(2) || e.keyDown(342),  //   e.bMiddleMouse || e.bLeftAlt,
@@ -30,6 +30,7 @@ void ArcBallController::update(float dt) {
   // if (!e.bKeypad) {
   //   return;
   // }
+  bool is_dirty2 = true;
   switch (e.lastInputChar()) {
     // "Default" view.
     case '0': //GLFW_KEY_0:
@@ -80,8 +81,39 @@ void ArcBallController::update(float dt) {
     break;
 
     default:
+      is_dirty2 = false;
     break;
   }
+
+  return is_dirty || is_dirty2;
+}
+
+bool ArcBallController::update(
+  double const deltatime,
+  bool const bMoving,
+  bool const btnTranslate,
+  bool const btnRotate,
+  double const mouseX,
+  double const mouseY,
+  double const wheelDelta
+) {
+  if (bMoving) {
+    eventMouseMoved(btnTranslate, btnRotate, mouseX, mouseY);
+  }
+  eventWheel(wheelDelta);
+  smoothTransition(deltatime);
+
+  bool is_dirty = (bMoving && (btnTranslate || btnRotate))
+    || !lina::almost_equal<float>(yaw_, yaw2_, 0.01f)
+    || !lina::almost_equal<float>(pitch_, pitch2_, 0.01f)
+    || !lina::almost_equal<float>(dolly_, dolly2_, 0.01f)
+    || !lina::almost_equal(target_, target2_, 0.0001f)
+    ;
+
+  RegulateAngle(pitch_, pitch2_);
+  RegulateAngle(yaw_, yaw2_);
+
+  return is_dirty;
 }
 
 // ----------------------------------------------------------------------------
@@ -92,7 +124,7 @@ void ArcBallController::getViewMatrix(mat4 *m) {
 #if ABC_USE_CUSTOM_TARGET
   // This matrix will orbit around the front of the camera.
 
-  auto const dolly = vec3( 0.0f, 0.0f, - static_cast<double>(dolly_));
+  auto const dolly = vec3( 0.0f, 0.0f, - static_cast<float>(dolly_));
   auto const Tdolly = linalg::translation_matrix(dolly);
 
   auto const Tpan = linalg::translation_matrix(target_);
@@ -145,6 +177,74 @@ void ArcBallController::getViewMatrix(mat4 *m) {
   mm[ 3].z = static_cast<double>(-dolly_);
   mm[ 3].w = 1.0f;
 #endif
+}
+
+// ----------------------------------------------------------------------------
+
+void ArcBallController::eventMouseMoved(
+  bool const btnTranslate,
+  bool const btnRotate,
+  double const mouseX,
+  double const mouseY
+) {
+  auto const dv_x{ mouseX - last_mouse_x_ };
+  auto const dv_y{ mouseY - last_mouse_y_ };
+  last_mouse_x_ = mouseX;
+  last_mouse_y_ = mouseY;
+
+  if ((std::abs(dv_x) + std::abs(dv_y)) < kRotateEpsilon) {
+    return;
+  }
+
+  if (btnRotate) {
+    pitch2_ += dv_x * kMouseRAcceleration; //
+    yaw2_ += dv_y * kMouseRAcceleration; //
+    bSideViewSet_ = false;
+  }
+
+  if (btnTranslate) {
+    auto const acc{ dolly2_ * kMouseTAcceleration }; //
+
+    double const tx = + dv_x * acc;
+    double const ty = - dv_y * acc;
+
+#if ABC_USE_CUSTOM_TARGET
+    auto t = lina::mul(vec4(tx, ty, 0.0f, 0.0f), Rmatrix_);
+    target_ += t.xyz();
+    target2_ = target_;
+#else
+    target2_.x += tx;
+    target2_.y += ty;
+#endif
+  }
+}
+
+// ----------------------------------------------------------------------------
+
+void ArcBallController::eventWheel(double const dx) {
+  auto const sign{ (abs(dx) > 1.e-5) ? ((dx > 0.0) ? -1.0 : 1.0) : 0.0 };
+  dolly2_ *= (1.0 + sign * kMouseWAcceleration); //
+}
+
+// ----------------------------------------------------------------------------
+
+float convergeEaseIn(float current, float target, float alpha)
+{
+  float d = target - current;
+  float step = d * pow(abs(d), alpha);
+  return current + step;
+}
+
+
+void ArcBallController::smoothTransition(double const deltatime) {
+  // should filter / bias the final signal as it will keep a small jittering aliasing value
+  // due to temporal composition, or better yet : keep an anim timecode for smoother control.
+  auto k{ kSmoothingCoeff * deltatime };
+  k = (k > 1.0) ? 1.0 : k;
+  yaw_   = linalg::lerp(yaw_, yaw2_, k);
+  pitch_ = linalg::lerp(pitch_, pitch2_, k);
+  dolly_ = linalg::lerp(dolly_, dolly2_, k);
+  target_ = linalg::lerp(target_, target2_, static_cast<float>(k));
 }
 
 /* -------------------------------------------------------------------------- */

@@ -10,14 +10,14 @@
 
 // ----------------------------------------------------------------------------
 
-layout(scalar, set = 0, binding = kDescriptorSetBinding_FrameUBO)
+layout(scalar, set = kDescriptorSet_Frame, binding = kDescriptorSet_Frame_FrameUBO)
 uniform FrameUBO_ {
   FrameData uFrame;
 };
 
-layout(scalar, set = 0, binding = kDescriptorSetBinding_TransformSSBO)
-buffer TransformSSBO_ {
-  TransformSSBO transforms[];
+layout(scalar, set = kDescriptorSet_Scene, binding = kDescriptorSet_Scene_TransformSBO)
+buffer TransformSBO_ {
+  TransformSBO transforms[];
 };
 
 layout(scalar, push_constant) uniform PushConstant_ {
@@ -32,7 +32,7 @@ layout(location = 0) out vec3 vPositionWS;
 // ----------------------------------------------------------------------------
 
 void main() {
-  TransformSSBO transform = transforms[nonuniformEXT(pushConstant.transform_index)];
+  TransformSBO transform = transforms[nonuniformEXT(pushConstant.transform_index)];
   mat4 worldMatrix = transform.worldMatrix;
   vec4 worldPos = worldMatrix * vec4(inPosition, 1.0);
 

@@ -18,7 +18,7 @@ class UIController {
   UIController() = default;
   virtual ~UIController() {}
 
-  bool init(Context const& context, Renderer const& renderer, WMInterface const& wm);
+  bool init(Renderer const& renderer, WMInterface const& wm);
   void release(Context const& context);
 
   void beginFrame();

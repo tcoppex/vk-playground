@@ -14,40 +14,36 @@
 
 layout(constant_id = 0) const bool constant_kUseAlphaCutoff = false;
 
-// -- Frame & Scene --
+layout(scalar, set = kDescriptorSet_Internal, binding = kDescriptorSet_Internal_MaterialSBO)
+buffer MaterialSSBO_ {
+  Material materials[];
+};
 
-layout(scalar, set = 0, binding = kDescriptorSetBinding_FrameUBO)
+// -- Frame --
+
+layout(scalar, set = kDescriptorSet_Frame, binding = kDescriptorSet_Frame_FrameUBO)
 uniform FrameUBO_ {
   FrameData uFrame;
 };
 
-// -- Image Based Lighting --
+// -- Scene resource (Textures & Image Based Lighting) --
 
-layout(set = 0, binding = kDescriptorSetBinding_IBL_Prefiltered)
+layout(set = kDescriptorSet_Scene, binding = kDescriptorSet_Scene_Textures)
+uniform sampler2D[] uTextureChannels;
+
+layout(set = kDescriptorSet_Scene, binding = kDescriptorSet_Scene_IBL_Prefiltered)
 uniform samplerCube uEnvMapPrefilterd;
 
-layout(set = 0, binding = kDescriptorSetBinding_IBL_Irradiance)
+layout(set = kDescriptorSet_Scene, binding = kDescriptorSet_Scene_IBL_Irradiance)
 uniform samplerCube uEnvMapIrradiance;
 
-layout(set = 0, binding = kDescriptorSetBinding_IBL_SpecularBRDF)
+layout(set = kDescriptorSet_Scene, binding = kDescriptorSet_Scene_IBL_SpecularBRDF)
 uniform sampler2D uSpecularBRDF;
 
-// -- Lighting --
-
-// layout(set = 0, binding = kDescriptorSetBinding_LightSSBO)
+// layout(set = kDescriptorSet_Scene, binding = kDescriptorSet_Scene_LightSSBO)
 // buffer LightSSBO_ {
 //   LightInfo_t lights[];
 // };
-
-// -- Material & Textures --
-
-layout(set = 0, binding = kDescriptorSetBinding_TextureAtlas)
-uniform sampler2D[] uTextureChannels;
-
-layout(scalar, set = 0, binding = kDescriptorSetBinding_MaterialSSBO)
-buffer MaterialSSBO_ {
-  Material materials[];
-};
 
 // -- Instance PushConstant --
 
@@ -132,16 +128,20 @@ PBRMetallicRoughness_Material_t calculate_pbr_material_data(
   data.color = mainColor;
 
   // Emissive.
-  data.emissive = texture(TEXTURE_ATLAS(mat.emissive_texture_id), frag.uv).rgb;
-  data.emissive *= mat.emissive_factor;
-
-  float flickering = pow(sin(1.4 * uFrame.cameraPos_Time.w), 2) + cos(0.7 * uFrame.cameraPos_Time.w);
-  data.emissive *= abs(flickering);
+  vec4 emissive_base = texture(TEXTURE_ATLAS(mat.emissive_texture_id), frag.uv);
+  data.emissive = mix(vec3(1.0f), emissive_base.xyz, emissive_base.a)
+                * mat.emissive_factor
+                ;
+  // float flickering = pow(sin(1.4 * uFrame.cameraPos_Time.w), 2) + cos(0.7 * uFrame.cameraPos_Time.w);
+  // data.emissive *= abs(flickering);
 
   // Roughness + Metallic.
-  const vec3 orm = texture(TEXTURE_ATLAS(mat.orm_texture_id), frag.uv).xyz; //
-  data.roughness = max(orm.y, 1e-3) * mat.roughness_factor;
-  data.metallic = orm.z * mat.metallic_factor;
+  {
+    const vec4 orm = texture(TEXTURE_ATLAS(mat.orm_texture_id), frag.uv);
+    data.roughness = mat.roughness_factor * max(orm.y, 1e-3f);
+    data.metallic = mat.metallic_factor * orm.z;
+  }
+
 
   // Ambient Occlusion.
   const float ao = texture(TEXTURE_ATLAS(mat.occlusion_texture_id), frag.uv).x;
@@ -154,7 +154,7 @@ PBRMetallicRoughness_Material_t calculate_pbr_material_data(
     if ((pushConstant.dynamic_states & kIrradianceBit) == kIrradianceBit) //
     {
       irradiance = texture(uEnvMapIrradiance, frag.N).rgb;
-      // irradiance *= 0.5; //
+      irradiance *= 0.5; //
     }
     data.irradiance = irradiance;
 
@@ -181,7 +181,9 @@ void main() {
   Material mat = materials[nonuniformEXT(pushConstant.material_index)];
 
   /* Diffuse. */
-  const vec4 mainColor = sample_DiffuseColor(mat);
+  const vec4 mainColor = sample_DiffuseColor(mat)
+                       * mat.diffuse_factor
+                       ;
 
   /* Early Alpha Test. */
   if (constant_kUseAlphaCutoff)

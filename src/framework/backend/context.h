@@ -14,6 +14,7 @@ class Context {
   enum class TargetQueue {
     Main,
     Transfer,
+    Compute,
     kCount,
   };
 
@@ -27,25 +28,26 @@ class Context {
   ~Context() {}
 
   bool init(std::vector<char const*> const& instance_extensions);
+
   void deinit();
 
-  VkInstance get_instance() const {
+  VkInstance instance() const {
     return instance_;
   }
 
-  VkPhysicalDevice get_gpu() const {
+  VkPhysicalDevice physical_device() const {
     return gpu_;
   }
 
-  VkDevice get_device() const {
+  VkDevice device() const {
     return device_;
   }
 
-  backend::Queue const& get_queue(TargetQueue const target = TargetQueue::Main) const {
+  backend::Queue const& queue(TargetQueue const target = TargetQueue::Main) const {
     return queues_[target];
   }
 
-  backend::GPUProperties const& get_gpu_properties() const {
+  backend::GPUProperties const& gpu_properties() const {
     return properties_;
   }
 
@@ -71,7 +73,13 @@ class Context {
 
   // --- Image ---
 
-  backend::Image create_image_2d(uint32_t width, uint32_t height, VkFormat const format, VkImageUsageFlags const extra_usage = {}) const;
+  backend::Image create_image_2d(
+    uint32_t width,
+    uint32_t height,
+    VkFormat const format,
+    VkImageUsageFlags const extra_usage = {},
+    std::string_view debugName = ""
+  ) const;
 
   // --- Shader Module ---
 
@@ -90,38 +98,60 @@ class Context {
 
   void finish_transient_command_encoder(CommandEncoder const& encoder) const;
 
-  /* Shortcut to transition image layouts. */
-  void transition_images_layout(std::vector<backend::Image> const& images, VkImageLayout const src_layout, VkImageLayout const dst_layout) const {
-    auto cmd{ create_transient_command_encoder(TargetQueue::Transfer) };
-    cmd.transition_images_layout(images, src_layout, dst_layout);
-    finish_transient_command_encoder(cmd);
-  }
+  // --- Transient Command Encoder Wrappers ---
+
+  void transition_images_layout(
+    std::vector<backend::Image> const& images,
+    VkImageLayout const src_layout,
+    VkImageLayout const dst_layout
+  ) const;
 
   template<typename T> requires (SpanConvertible<T>)
-  backend::Buffer create_buffer_and_upload(T const& host_data, VkBufferUsageFlags2KHR const usage, size_t device_buffer_offset = 0u, size_t const device_buffer_size = 0u) const {
+  backend::Buffer create_buffer_and_upload(
+    T const& host_data,
+    VkBufferUsageFlags2KHR const usage,
+    size_t const device_buffer_offset = 0u,
+    size_t const device_buffer_size = 0u
+  ) const {
     auto const host_span{ std::span(host_data) };
     size_t const bytesize{ sizeof(typename decltype(host_span)::element_type) * host_span.size() };
     return create_buffer_and_upload(host_span.data(), bytesize, usage, device_buffer_offset, device_buffer_size);
   }
 
-  backend::Buffer create_buffer_and_upload(void const* host_data, size_t const host_data_size, VkBufferUsageFlags2KHR const usage, size_t device_buffer_offset = 0u, size_t const device_buffer_size = 0u) const {
-    auto cmd{ create_transient_command_encoder(TargetQueue::Transfer) };
-    backend::Buffer buffer{
-      cmd.create_buffer_and_upload(host_data, host_data_size, usage, device_buffer_offset, device_buffer_size)
-    };
-    finish_transient_command_encoder(cmd);
-    return buffer;
-  }
+  backend::Buffer create_buffer_and_upload(
+    void const* host_data,
+    size_t const host_data_size,
+    VkBufferUsageFlags2KHR const usage,
+    size_t device_buffer_offset = 0u,
+    size_t const device_buffer_size = 0u
+  ) const;
 
-  void transfer_host_to_device(void const* host_data, size_t const host_data_size, backend::Buffer const& device_buffer, size_t const device_buffer_offset = 0u) const {
-    auto cmd{ create_transient_command_encoder(TargetQueue::Transfer) };
-    cmd.transfer_host_to_device(host_data, host_data_size, device_buffer, device_buffer_offset);
-    finish_transient_command_encoder(cmd);
-  }
+  void transfer_host_to_device(
+    void const* host_data,
+    size_t const host_data_size,
+    backend::Buffer const& device_buffer,
+    size_t const device_buffer_offset = 0u
+  ) const;
+
+  void copy_buffer(
+    backend::Buffer const& src,
+    backend::Buffer const& dst,
+    size_t const buffersize
+  ) const;
 
   // --- Descriptor set ---
 
-  void update_descriptor_set(VkDescriptorSet const& descriptor_set, std::vector<DescriptorSetWriteEntry> const& entries) const;
+  void update_descriptor_set(
+    VkDescriptorSet const& descriptor_set,
+    std::vector<DescriptorSetWriteEntry> const& entries
+  ) const;
+
+  // --- Utils ---
+
+  template <typename T>
+  void setDebugObjectName(T object, std::string const& name) const {
+    return vkutils::SetDebugObjectName(device_, object, name);
+  }
 
  private:
   bool has_extension(std::string_view const& name, std::vector<VkExtensionProperties> const& extensions) const {
@@ -173,11 +203,19 @@ class Context {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME,
     VK_KHR_DEPTH_STENCIL_RESOLVE_EXTENSION_NAME,
     VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME,
+    VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME,
+
+    // -------------------------------
+    VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
+    VK_KHR_SPIRV_1_4_EXTENSION_NAME,
+    VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME,
+    // -------------------------------
   };
 
   struct {
     VkPhysicalDeviceFeatures2 base{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
     VkPhysicalDeviceIndexTypeUint8FeaturesKHR index_type_uint8{};
+    VkPhysicalDevice16BitStorageFeaturesKHR storage_16bit{};
     VkPhysicalDeviceBufferDeviceAddressFeaturesKHR buffer_device_address{};
     VkPhysicalDeviceDynamicRenderingFeaturesKHR dynamic_rendering{};
     VkPhysicalDeviceMaintenance4FeaturesKHR maintenance4{};
@@ -191,6 +229,12 @@ class Context {
     VkPhysicalDeviceExtendedDynamicState3FeaturesEXT extended_dynamic_state3{};
     VkPhysicalDeviceVertexInputDynamicStateFeaturesEXT vertex_input_dynamic_state{};
     VkPhysicalDeviceImageViewMinLodFeaturesEXT image_view_min_lod{};
+    VkPhysicalDeviceAccelerationStructureFeaturesKHR acceleration_structure{};
+    // VkPhysicalDeviceRayQueryFeaturesKHR ray_query{};
+
+    // -------------------------------
+    VkPhysicalDeviceRayTracingPipelineFeaturesKHR ray_tracing_pipeline{};
+    // -------------------------------
   } feature_;
 
   VkInstance instance_{};

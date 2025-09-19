@@ -37,17 +37,36 @@ class GenericCommandEncoder {
 
   // --- Descriptor Sets ---
 
-  void bind_descriptor_set(VkDescriptorSet const descriptor_set, VkPipelineLayout const pipeline_layout, VkShaderStageFlags const stage_flags) const;
+  void bind_descriptor_set(
+    VkDescriptorSet const descriptor_set,
+    VkPipelineLayout const pipeline_layout,
+    VkShaderStageFlags const stage_flags,
+    uint32_t first_set = 0u
+  ) const;
 
-  void bind_descriptor_set(VkDescriptorSet const descriptor_set, VkShaderStageFlags const stage_flags) const {
+  void bind_descriptor_set(
+    VkDescriptorSet const descriptor_set,
+    VkShaderStageFlags const stage_flags
+  ) const {
     LOG_CHECK(VK_NULL_HANDLE != currently_bound_pipeline_layout_);
     bind_descriptor_set(descriptor_set, currently_bound_pipeline_layout_, stage_flags);
   }
 
+  void push_descriptor_set(
+    backend::PipelineInterface const& pipeline,
+    uint32_t set,
+    std::vector<DescriptorSetWriteEntry> const& entries
+  ) const;
+
   // --- Push Constants ---
 
   template<typename T> requires (!SpanConvertible<T>)
-  void push_constant(T const& value, VkPipelineLayout const pipeline_layout, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS, uint32_t const offset = 0u) const {
+  void push_constant(
+    T const& value,
+    VkPipelineLayout const pipeline_layout,
+    VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS,
+    uint32_t const offset = 0u
+  ) const {
     VkPushConstantsInfoKHR const push_info{
       .sType = VK_STRUCTURE_TYPE_PUSH_CONSTANTS_INFO_KHR,
       .layout = pipeline_layout,
@@ -60,7 +79,12 @@ class GenericCommandEncoder {
   }
 
   template<typename T> requires (SpanConvertible<T>)
-  void push_constants(T const& values, VkPipelineLayout const pipeline_layout, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS, uint32_t const offset = 0u) const {
+  void push_constants(
+    T const& values,
+    VkPipelineLayout const pipeline_layout,
+    VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS,
+    uint32_t const offset = 0u
+  ) const {
     auto const span_values{ std::span(values) };
     VkPushConstantsInfoKHR const push_info{
       .sType = VK_STRUCTURE_TYPE_PUSH_CONSTANTS_INFO_KHR,
@@ -114,6 +138,21 @@ class GenericCommandEncoder {
       vkutils::GetKernelGridDim(x, tX),
       vkutils::GetKernelGridDim(y, tY),
       vkutils::GetKernelGridDim(z, tZ)
+    );
+  }
+
+  // --- Ray Tracing ---
+
+  void trace_rays(backend::RayTracingAddressRegion const& region, uint32_t width, uint32_t height, uint32_t depth = 1u) {
+    vkCmdTraceRaysKHR(
+      command_buffer_,
+      &region.raygen,
+      &region.miss,
+      &region.hit,
+      &region.callable,
+      width,
+      height,
+      depth
     );
   }
 

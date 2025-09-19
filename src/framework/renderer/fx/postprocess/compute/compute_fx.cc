@@ -1,5 +1,5 @@
 #include "framework/renderer/fx/postprocess/compute/compute_fx.h"
-#include "framework/backend/context.h"
+#include "framework/renderer/renderer.h"
 
 /* -------------------------------------------------------------------------- */
 
@@ -43,8 +43,8 @@ void ComputeFx::setBufferInputs(std::vector<backend::Buffer> const& inputs) {
 
 // ----------------------------------------------------------------------------
 
-void ComputeFx::execute(CommandEncoder& cmd) {
-  if (!isEnabled()) {
+void ComputeFx::execute(CommandEncoder& cmd) const {
+  if (!enabled()) {
     return;
   }
 

@@ -1,6 +1,29 @@
 /* -------------------------------------------------------------------------- */
 
+
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wuseless-cast"
+#elif defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wuseless-cast"
+#else
+#pragma warning(push)
+#endif
+
 #define IMGUI_WRAPPER_IMPL
+#include "framework/core/platform/ui/imgui_wrapper.h"
+#include <imgui_internal.h>
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#elif defined(__GNUC__)
+#pragma GCC diagnostic pop
+#else
+#pragma warning(pop)
+#endif
+
+
 #include "framework/core/platform/ui/ui_controller.h"
 
 #include "framework/renderer/renderer.h"
@@ -8,7 +31,7 @@
 
 /* -------------------------------------------------------------------------- */
 
-bool UIController::init(Context const& context, Renderer const& renderer, WMInterface const& wm) {
+bool UIController::init(Renderer const& renderer, WMInterface const& wm) {
   IMGUI_CHECKVERSION();
 
   ImGui::CreateContext();
@@ -17,6 +40,8 @@ bool UIController::init(Context const& context, Renderer const& renderer, WMInte
   if (!ImGui_ImplGlfw_InitForVulkan(reinterpret_cast<GLFWwindow*>(wm.get_handle()), true)) {
     return false;
   }
+
+  auto const& context = renderer.context();
 
   VkDescriptorPoolSize const pool_sizes[]{
     { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 512u },
@@ -30,7 +55,7 @@ bool UIController::init(Context const& context, Renderer const& renderer, WMInte
     .poolSizeCount = 1u,
     .pPoolSizes = pool_sizes,
   };
-  CHECK_VK(vkCreateDescriptorPool(context.get_device(), &desc_pool_info, nullptr, &imgui_descriptor_pool_));
+  CHECK_VK(vkCreateDescriptorPool(context.device(), &desc_pool_info, nullptr, &imgui_descriptor_pool_));
 
   VkFormat const formats[]{
     renderer.get_color_attachment().format
@@ -38,16 +63,16 @@ bool UIController::init(Context const& context, Renderer const& renderer, WMInte
   VkFormat const depth_stencil_format{
     renderer.get_depth_stencil_attachment().format
   };
-  auto const main_queue{ context.get_queue() };
+  auto const main_queue{ context.queue() };
   ImGui_ImplVulkan_InitInfo info{
-    .Instance = context.get_instance(),
-    .PhysicalDevice = context.get_gpu(),
-    .Device = context.get_device(),
+    .Instance = context.instance(),
+    .PhysicalDevice = context.physical_device(),
+    .Device = context.device(),
     .QueueFamily = main_queue.family_index,
     .Queue = main_queue.queue,
     .DescriptorPool = imgui_descriptor_pool_,
     .MinImageCount = 2,
-    .ImageCount = renderer.get_swapchain().get_image_count(),
+    .ImageCount = renderer.swapchain().get_image_count(),
     .UseDynamicRendering = true,
     .PipelineRenderingCreateInfo = {
       .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
@@ -72,7 +97,7 @@ void UIController::release(Context const& context) {
   ImGui_ImplVulkan_Shutdown();
   ImGui_ImplGlfw_Shutdown();
   ImGui::DestroyContext();
-  vkDestroyDescriptorPool(context.get_device(), imgui_descriptor_pool_, nullptr);
+  vkDestroyDescriptorPool(context.device(), imgui_descriptor_pool_, nullptr);
 }
 
 // ----------------------------------------------------------------------------

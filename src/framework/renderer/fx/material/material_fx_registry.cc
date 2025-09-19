@@ -49,7 +49,6 @@ void MaterialFxRegistry::setup(
   }
 
   // ----------------------
-
   // Create associated pipelines and internal buffers for each active MaterialFx.
   active_fx_.clear();
   for (auto const& [model, states_set] : states_map_) {
@@ -62,7 +61,6 @@ void MaterialFxRegistry::setup(
   }
   // Clear the states for possible future setup.
   states_map_.clear();
-
   // ----------------------
 
   // Create internal material for each MaterialFx.
@@ -78,32 +76,6 @@ void MaterialFxRegistry::setup(
 void MaterialFxRegistry::push_material_storage_buffers() const {
   for (auto fx : active_fx_) {
     fx->pushMaterialStorageBuffer();
-  }
-}
-
-// ----------------------------------------------------------------------------
-
-void MaterialFxRegistry::update_texture_atlas(std::function<DescriptorSetWriteEntry(uint32_t)> update_fn) {
-  for (auto fx : active_fx_) {
-    if (uint binding = fx->getTextureAtlasBinding(); binding != kInvalidIndexU32) {
-      fx->updateDescriptorSetTextureAtlasEntry(update_fn(binding));
-    }
-  }
-}
-
-// ----------------------------------------------------------------------------
-
-void MaterialFxRegistry::update_frame_ubo(backend::Buffer const& buffer) const {
-  for (auto fx : active_fx_) {
-    fx->updateDescriptorSetFrameUBO(buffer);
-  }
-}
-
-// ----------------------------------------------------------------------------
-
-void MaterialFxRegistry::update_transforms_ssbo(backend::Buffer const& buffer) const {
-  for (auto fx : active_fx_) {
-    fx->updateDescriptorSetTransformsSSBO(buffer);
   }
 }
 

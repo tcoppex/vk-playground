@@ -14,6 +14,8 @@
 #include "framework/renderer/gpu_resources.h" // (for GLTFScene)
 #include "framework/renderer/fx/skybox.h"
 
+#include "framework/renderer/descriptor_set_registry.h" //
+
 class Context;
 
 /* -------------------------------------------------------------------------- */
@@ -35,6 +37,7 @@ class Context;
 class Renderer : public backend::RTInterface {
  public:
   static constexpr VkClearValue kDefaultColorClearValue{{{1.0f, 0.25f, 0.75f, 1.0f}}};
+  static constexpr uint32_t kMaxDescriptorPoolSets{ 256u };
 
  public:
   Renderer() = default;
@@ -48,7 +51,7 @@ class Renderer : public backend::RTInterface {
 
   void end_frame();
 
-  Swapchain const& get_swapchain() const {
+  Swapchain const& swapchain() const {
     return swapchain_;
   }
 
@@ -87,7 +90,11 @@ class Renderer : public backend::RTInterface {
 
   void destroy_pipeline_layout(VkPipelineLayout layout) const;
 
-  // --- Pipeline ---
+  // --- Pipelines ---
+
+  void destroy_pipeline(Pipeline const& pipeline) const;
+
+  // --- Graphics Pipelines ---
 
   VkGraphicsPipelineCreateInfo get_graphics_pipeline_create_info(
     GraphicsPipelineCreateInfoData_t &data,
@@ -95,34 +102,62 @@ class Renderer : public backend::RTInterface {
     GraphicsPipelineDescriptor_t const& desc
   ) const;
 
+  // Batch create graphics pipelines from a common layout.
   void create_graphics_pipelines(
     VkPipelineLayout pipeline_layout,
     std::vector<GraphicsPipelineDescriptor_t> const& descs,
     std::vector<Pipeline> *out_pipelines
   ) const;
 
-  Pipeline create_graphics_pipeline(VkPipelineLayout pipeline_layout, GraphicsPipelineDescriptor_t const& desc) const;
+  // Create a graphics pipeline with a pre-defined layout.
+  Pipeline create_graphics_pipeline(
+    VkPipelineLayout pipeline_layout,
+    GraphicsPipelineDescriptor_t const& desc
+  ) const;
 
-  // Specialized version that create the layout internally.
-  Pipeline create_graphics_pipeline(PipelineLayoutDescriptor_t const& layout_desc, GraphicsPipelineDescriptor_t const& desc) const;
+  // Create a graphics pipeline and a layout based on description.
+  Pipeline create_graphics_pipeline(
+    PipelineLayoutDescriptor_t const& layout_desc,
+    GraphicsPipelineDescriptor_t const& desc
+  ) const;
 
-  Pipeline create_graphics_pipeline(GraphicsPipelineDescriptor_t const& desc) const;
+  // Create a graphics pipeline with a default empty layout.
+  Pipeline create_graphics_pipeline(
+    GraphicsPipelineDescriptor_t const& desc
+  ) const;
 
-  void create_compute_pipelines(VkPipelineLayout pipeline_layout, std::vector<backend::ShaderModule> const& modules, Pipeline *pipelines) const;
+  // --- Compute Pipelines ---
 
-  Pipeline create_compute_pipeline(VkPipelineLayout pipeline_layout, backend::ShaderModule const& module) const;
+  void create_compute_pipelines(
+    VkPipelineLayout pipeline_layout,
+    std::vector<backend::ShaderModule> const& modules,
+    Pipeline *pipelines
+  ) const;
 
-  void destroy_pipeline(Pipeline const& pipeline) const;
+  Pipeline create_compute_pipeline(
+    VkPipelineLayout pipeline_layout,
+    backend::ShaderModule const& module
+  ) const;
 
-  // --- Descriptor Set Layout ---
+  // --- Ray Tracing Pipelines ---
 
-  VkDescriptorSetLayout create_descriptor_set_layout(std::vector<DescriptorSetLayoutParams> const& params) const;
+  Pipeline create_raytracing_pipeline(
+    VkPipelineLayout pipeline_layout,
+    RayTracingPipelineDescriptor_t const& desc
+  ) const;
+
+  // --- Descriptor Set Registry ---
+
+  DescriptorSetRegistry const& descriptor_set_registry() const {
+    return descriptor_set_registry_;
+  }
+
+  VkDescriptorSetLayout create_descriptor_set_layout(
+    DescriptorSetLayoutParamsBuffer const& params,
+    VkDescriptorSetLayoutCreateFlags flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT
+  ) const;
 
   void destroy_descriptor_set_layout(VkDescriptorSetLayout& layout) const;
-
-  // --- Descriptor Set ---
-
-  std::vector<VkDescriptorSet> create_descriptor_sets(std::vector<VkDescriptorSetLayout> const& layouts) const;
 
   VkDescriptorSet create_descriptor_set(VkDescriptorSetLayout const layout) const;
 
@@ -136,8 +171,8 @@ class Renderer : public backend::RTInterface {
 
   // --- Sampler ---
 
-  VkSampler get_default_sampler() const {
-    return sampler_pool_.default_sampler(); //
+  VkSampler default_sampler() const {
+    return sampler_pool_.default_sampler();
   }
 
   SamplerPool& sampler_pool() {
@@ -173,8 +208,7 @@ class Renderer : public backend::RTInterface {
   }
 
   std::vector<backend::Image> const& get_color_attachments() const final {
-    // (special behavior, just used here, updating it elsewhere is non practical)
-    const_cast<Renderer*>(this)->proxy_swap_attachment_ = { get_color_attachment() };
+    proxy_swap_attachment_ = { get_color_attachment() };
     return proxy_swap_attachment_;
   }
 
@@ -242,20 +276,23 @@ class Renderer : public backend::RTInterface {
 
   /* Swapchain. */
   Swapchain swapchain_{};
-  std::vector<backend::Image> proxy_swap_attachment_{};
+  mutable std::vector<backend::Image> proxy_swap_attachment_{};
 
   /* Pipeline Cache */
-  VkPipelineCache pipeline_cache_;
+  VkPipelineCache pipeline_cache_{};
 
   /* Default depth-stencil buffer. */
   backend::Image depth_stencil_{};
 
   /* Timeline frame resources */
-  Timeline_t timeline_;
+  Timeline_t timeline_{};
 
-  /* Main descriptor pool. */
-  std::vector<VkDescriptorPoolSize> descriptor_pool_sizes_{};
-  VkDescriptorPool descriptor_pool_{};
+  /* Descriptor registry and allocator */
+  DescriptorSetRegistry descriptor_set_registry_{};
+
+  /* Utils */
+  SamplerPool sampler_pool_{};
+  Skybox skybox_{};
 
   /* Miscs resources */
   VkClearValue color_clear_value_{kDefaultColorClearValue};
@@ -264,10 +301,6 @@ class Renderer : public backend::RTInterface {
 
   // Reference to the current CommandEncoder returned by 'begin_frame'
   CommandEncoder cmd_{}; //
-
-  /* Utils */
-  SamplerPool sampler_pool_{};
-  Skybox skybox_{};
 };
 
 /* -------------------------------------------------------------------------- */

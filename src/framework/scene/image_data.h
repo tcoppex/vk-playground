@@ -1,9 +1,29 @@
 #ifndef VKFRAMEWORK_SCENE_IMAGE_DATA_H_
 #define VKFRAMEWORK_SCENE_IMAGE_DATA_H_
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wuseless-cast"
+#pragma clang diagnostic ignored "-Wzero-as-null-pointer-constant"
+#elif defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wuseless-cast"
+#pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
+#else
+#pragma warning(push)
+#endif
+
 extern "C" {
 #include <stb/stb_image.h>
 }
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#elif defined(__GNUC__)
+#pragma GCC diagnostic pop
+#else
+#pragma warning(pop)
+#endif
 
 #include "framework/core/common.h"
 #include "framework/core/utils.h"

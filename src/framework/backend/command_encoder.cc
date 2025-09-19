@@ -5,17 +5,49 @@
 
 /* -------------------------------------------------------------------------- */
 
-void GenericCommandEncoder::bind_descriptor_set(VkDescriptorSet const descriptor_set, VkPipelineLayout const pipeline_layout, VkShaderStageFlags const stage_flags) const {
+void GenericCommandEncoder::bind_descriptor_set(
+  VkDescriptorSet const descriptor_set,
+  VkPipelineLayout const pipeline_layout,
+  VkShaderStageFlags const stage_flags,
+  uint32_t first_set
+) const {
   VkBindDescriptorSetsInfoKHR const bind_desc_sets_info{
     .sType = VK_STRUCTURE_TYPE_BIND_DESCRIPTOR_SETS_INFO_KHR,
     .stageFlags = stage_flags,
     .layout = pipeline_layout,
-    .firstSet = 0u,
+    .firstSet = first_set,
     .descriptorSetCount = 1u, //
     .pDescriptorSets = &descriptor_set,
   };
   // (requires VK_KHR_maintenance6 or VK_VERSION_1_4)
+  LOG_CHECK(vkCmdBindDescriptorSets2KHR != nullptr);
   vkCmdBindDescriptorSets2KHR(command_buffer_, &bind_desc_sets_info);
+}
+
+// ----------------------------------------------------------------------------
+
+void GenericCommandEncoder::push_descriptor_set(
+  backend::PipelineInterface const& pipeline,
+  uint32_t set,
+  std::vector<DescriptorSetWriteEntry> const& entries
+) const {
+  DescriptorSetWriteEntry::Result out{};
+  vkutils::TransformDescriptorSetWriteEntries(
+    VK_NULL_HANDLE,
+    entries,
+    out
+  );
+
+  // (requires VK_KHR_get_physical_device_properties2 or VK_VERSION_1_4)
+  LOG_CHECK(vkCmdPushDescriptorSetKHR != nullptr);
+  vkCmdPushDescriptorSetKHR(
+    command_buffer_,
+    pipeline.get_bind_point(),
+    pipeline.get_layout(),
+    set,
+    static_cast<uint32_t>(out.write_descriptor_sets.size()),
+    out.write_descriptor_sets.data()
+  );
 }
 
 // ----------------------------------------------------------------------------
@@ -76,9 +108,9 @@ size_t CommandEncoder::copy_buffer(backend::Buffer const& src, size_t src_offset
   LOG_CHECK(size > 0);
   copy_buffer(src, dst, {
     {
-      .srcOffset = static_cast<VkDeviceSize>(src_offset),
-      .dstOffset = static_cast<VkDeviceSize>(dst_offet),
-      .size = static_cast<VkDeviceSize>(size),
+      .srcOffset = src_offset,
+      .dstOffset = dst_offet,
+      .size = size,
     }
   });
   return src_offset + size;
@@ -175,6 +207,7 @@ void CommandEncoder::blit_image_2d(backend::Image const& src, VkImageLayout src_
 // ----------------------------------------------------------------------------
 
 void CommandEncoder::blit(PostFxInterface const& fx_src, backend::RTInterface const& rt_dst) const {
+  LOG_CHECK(false == fx_src.getImageOutputs().empty());
   blit_image_2d(
     fx_src.getImageOutput(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
     rt_dst.get_color_attachment(), VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
@@ -184,18 +217,30 @@ void CommandEncoder::blit(PostFxInterface const& fx_src, backend::RTInterface co
 
 // ----------------------------------------------------------------------------
 
-void CommandEncoder::transfer_host_to_device(void const* host_data, size_t const host_data_size, backend::Buffer const& device_buffer, size_t const device_buffer_offset) const {
-  assert(host_data != nullptr);
-  assert(host_data_size > 0u);
+void CommandEncoder::transfer_host_to_device(
+  void const* host_data,
+  size_t const host_data_size,
+  backend::Buffer const& device_buffer,
+  size_t const device_buffer_offset
+) const {
+  LOG_CHECK(host_data != nullptr);
+  LOG_CHECK(host_data_size > 0u);
 
-  // ----------------
-  // [TODO] Staging buffers need cleaning / garbage collection !
-  auto staging_buffer{
-    allocator_ptr_->create_staging_buffer(host_data_size, host_data)   //
-  };
-  // ----------------
-
-  copy_buffer(staging_buffer, 0u, device_buffer, device_buffer_offset, host_data_size);
+  if (host_data_size < 65536u) {
+    vkCmdUpdateBuffer(
+      command_buffer_,
+      device_buffer.buffer,
+      device_buffer_offset,
+      host_data_size,
+      host_data
+    );
+  } else {
+    // [TODO] Staging buffers need better cleaning / garbage collection !
+    auto staging_buffer{
+      allocator_ptr_->create_staging_buffer(host_data_size, host_data)   //
+    };
+    copy_buffer(staging_buffer, 0u, device_buffer, device_buffer_offset, host_data_size);
+  }
 }
 
 // ----------------------------------------------------------------------------
@@ -413,7 +458,11 @@ void RenderPassEncoder::set_viewport_scissor(VkRect2D const rect, bool flip_y) c
 
 // ----------------------------------------------------------------------------
 
-void RenderPassEncoder::draw(DrawDescriptor const& desc, backend::Buffer const& vertex_buffer, backend::Buffer const& index_buffer) const {
+void RenderPassEncoder::draw(
+  DrawDescriptor const& desc,
+  backend::Buffer const& vertex_buffer,
+  backend::Buffer const& index_buffer
+) const {
   // Vertex Input.
   {
     auto const& vi{desc.vertexInput};

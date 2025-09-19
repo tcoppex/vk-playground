@@ -65,10 +65,9 @@ struct Mesh : Geometry {
   PipelineVertexBufferDescriptors pipeline_vertex_buffer_descriptors() const;
   VkIndexType vk_index_type() const;
   VkPrimitiveTopology vk_primitive_topology() const;
-
- private:
   VkFormat vk_format(AttributeType const attrib_type) const;
 
+ private:
   VertexInputDescriptor create_vertex_input_descriptors(
     AttributeOffsetMap const& attribute_to_offset,
     AttributeLocationMap const& attribute_to_location

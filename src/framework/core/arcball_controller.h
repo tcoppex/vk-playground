@@ -28,26 +28,17 @@ class ArcBallController : public Camera::ViewController {
       dolly2_(dolly_)
   {}
 
-  void update(float dt) override;
+  bool update(float dt) override;
 
-  void getViewMatrix(mat4 *m) final;
-
-  void update(double const deltatime,
+  bool update(double const deltatime,
               bool const bMoving,
               bool const btnTranslate,
               bool const btnRotate,
               double const mouseX,
               double const mouseY,
-              double const wheelDelta)
-  {
-    if (bMoving) {
-      eventMouseMoved(btnTranslate, btnRotate, mouseX, mouseY);
-    }
-    eventWheel(wheelDelta);
-    smoothTransition(deltatime);
-    RegulateAngle(pitch_, pitch2_);
-    RegulateAngle(yaw_, yaw2_);
-  }
+              double const wheelDelta);
+
+  void getViewMatrix(mat4 *m) final;
 
   double yaw() const {
     return yaw_;
@@ -106,6 +97,10 @@ class ArcBallController : public Camera::ViewController {
       target_ = target2_;
     }
   }
+
+  void moveTarget(vec3 const& v, bool const bSmooth = kDefaultSmoothTransition) {
+    setTarget(v - target2_, bSmooth);
+  }
   //---------------
 
   void resetTarget() {
@@ -136,55 +131,11 @@ class ArcBallController : public Camera::ViewController {
   void eventMouseMoved(bool const btnTranslate,
                        bool const btnRotate,
                        double const mouseX,
-                       double const mouseY)
-  {
-    auto const dv_x{ mouseX - last_mouse_x_ };
-    auto const dv_y{ mouseY - last_mouse_y_ };
-    last_mouse_x_ = mouseX;
-    last_mouse_y_ = mouseY;
+                       double const mouseY);
 
-    if ((std::abs(dv_x) + std::abs(dv_y)) < kRotateEpsilon) {
-      return;
-    }
+  void eventWheel(double const dx);
 
-    if (btnRotate) {
-      pitch2_ += dv_x * kMouseRAcceleration; //
-      yaw2_ += dv_y * kMouseRAcceleration; //
-      bSideViewSet_ = false;
-    }
-
-    if (btnTranslate) {
-      auto const acc{ dolly2_ * kMouseTAcceleration }; //
-      
-      double const tx = static_cast<double>(+ dv_x * acc);
-      double const ty = static_cast<double>(- dv_y * acc);
-
-#if ABC_USE_CUSTOM_TARGET
-      auto t = lina::mul(vec4(tx, ty, 0.0f, 0.0f), Rmatrix_);
-      target_ += t.xyz();
-      target2_ = target_;
-#else
-      target2_.x += tx;
-      target2_.y += ty;
-#endif
-    }
-  }
-
-  void eventWheel(double const dx) {
-    auto const sign{ (abs(dx) > 1.e-5) ? ((dx > 0.0) ? -1.0 : 1.0) : 0.0 };
-    dolly2_ *= (1.0 + sign * kMouseWAcceleration); //
-  }
-
-  void smoothTransition(double const deltatime) {
-    // should filter / bias the final signal as it will keep a small jittering aliasing value
-    // due to temporal composition, or better yet : keep an anim timecode for smoother control.
-    auto k{ kSmoothingCoeff * deltatime };
-    k = (k > 1.0) ? 1.0 : k;
-    yaw_   = linalg::lerp(yaw_, yaw2_, k);
-    pitch_ = linalg::lerp(pitch_, pitch2_, k);
-    dolly_ = linalg::lerp(dolly_, dolly2_, k);
-    target_ = linalg::lerp(target_, target2_, static_cast<float>(k));
-  }
+  void smoothTransition(double const deltatime);
 
 
  private:

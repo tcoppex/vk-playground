@@ -9,7 +9,7 @@
 void Framebuffer::release() {
   release_buffers();
 
-  vkDestroyRenderPass(context_ptr_->get_device(), render_pass_, nullptr);
+  vkDestroyRenderPass(context_ptr_->device(), render_pass_, nullptr);
   render_pass_ = VK_NULL_HANDLE;
 }
 
@@ -69,7 +69,7 @@ void Framebuffer::resize(VkExtent2D const dimension) {
     attachments[BufferName::Color] = outputs_[BufferName::Color][i].view;
     attachments[BufferName::DepthStencil] = outputs_[BufferName::DepthStencil][i].view;
     CHECK_VK(vkCreateFramebuffer(
-      context_ptr_->get_device(), &framebuffer_create_info, nullptr, &framebuffers_[i]
+      context_ptr_->device(), &framebuffer_create_info, nullptr, &framebuffers_[i]
     ));
   }
 }
@@ -84,7 +84,7 @@ Framebuffer::Framebuffer(Context const& context, Swapchain const& swapchain)
 // ----------------------------------------------------------------------------
 
 void Framebuffer::release_buffers() {
-  VkDevice const device = context_ptr_->get_device();
+  VkDevice const device = context_ptr_->device();
   for (auto &framebuffer : framebuffers_) {
     vkDestroyFramebuffer(device, framebuffer, nullptr);
     framebuffer = VK_NULL_HANDLE;
@@ -160,7 +160,7 @@ void Framebuffer::setup(Descriptor_t const& desc) {
       .subpassCount = static_cast<uint32_t>(subpasses.size()),
       .pSubpasses = subpasses.data(),
     };
-    CHECK_VK(vkCreateRenderPass(context_ptr_->get_device(), &render_pass_create_info, nullptr, &render_pass_));
+    CHECK_VK(vkCreateRenderPass(context_ptr_->device(), &render_pass_create_info, nullptr, &render_pass_));
   }
 
   /* Create the framebuffer & attachment images for each outputs. */

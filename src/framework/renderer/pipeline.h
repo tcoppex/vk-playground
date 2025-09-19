@@ -2,7 +2,6 @@
 #define VKFRAMEWORK_RENDERER_PIPELINE_H_
 
 #include "framework/backend/types.h"
-
 class Renderer;
 
 /* -------------------------------------------------------------------------- */
@@ -70,6 +69,10 @@ struct SpecializationConstant32_t {
     std::vector<VkSpecializationMapEntry> mapEntries_{};
 };
 
+using SpecializationConstants = std::vector<SpecializationConstant32_t::Entry>;
+
+// ----------------------------------------------------------------------------
+
 struct GraphicsPipelineCreateInfoData_t {
   std::vector<VkPipelineColorBlendAttachmentState> color_blend_attachments{};
 
@@ -100,8 +103,6 @@ struct GraphicsPipelineDescriptor_t {
     | VK_COLOR_COMPONENT_B_BIT
     | VK_COLOR_COMPONENT_A_BIT
   };
-
-  using SpecializationConstants = std::vector<SpecializationConstant32_t::Entry>;
 
   std::vector<VkDynamicState> dynamicStates{};
 
@@ -163,6 +164,46 @@ struct GraphicsPipelineDescriptor_t {
 
   VkRenderPass renderPass{};
 };
+
+// ----------------------------------------------------------------------------
+
+struct RayTracingPipelineDescriptor_t {
+  // struct ShaderStageDesc {
+  //   VkShaderModule module{};
+  //   std::string entryPoint{};
+  //   // SpecializationConstants specializationConstants{};
+  // };
+  using ShaderStageDesc = backend::ShaderModule; //
+
+  struct ShaderGroup {
+    VkRayTracingShaderGroupTypeKHR type{};
+    uint32_t generalShader{VK_SHADER_UNUSED_KHR};
+    uint32_t closestHitShader{VK_SHADER_UNUSED_KHR};
+    uint32_t anyHitShader{VK_SHADER_UNUSED_KHR};
+    uint32_t intersectionShader{VK_SHADER_UNUSED_KHR};
+  };
+  using ShaderGroups = std::vector<ShaderGroup>;
+
+  struct Shaders {
+    std::vector<ShaderStageDesc> raygens{};
+    std::vector<ShaderStageDesc> anyHits{};
+    std::vector<ShaderStageDesc> closestHits{};
+    std::vector<ShaderStageDesc> misses{};
+    std::vector<ShaderStageDesc> intersections{};
+    std::vector<ShaderStageDesc> callables{};
+  } shaders{};
+
+  struct {
+    ShaderGroups raygens{};
+    ShaderGroups misses{};
+    ShaderGroups hits{};
+    ShaderGroups callables{};
+  } shaderGroups;
+  
+  uint32_t maxPipelineRayRecursionDepth{1};
+};
+
+// ----------------------------------------------------------------------------
 
 using PipelineVertexBufferDescriptor = GraphicsPipelineDescriptor_t::Vertex::Buffer;
 using PipelineVertexBufferDescriptors = std::vector<PipelineVertexBufferDescriptor>;

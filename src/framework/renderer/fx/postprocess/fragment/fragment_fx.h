@@ -18,12 +18,15 @@ class FragmentFx : public virtual GenericFx {
 
   void setBufferInputs(std::vector<backend::Buffer> const& inputs) override;
 
-  void execute(CommandEncoder& cmd) override; //
+  void execute(CommandEncoder& cmd) const override; //
 
  protected:
+  // [deprecated]
+  virtual std::string getShaderName() const = 0; //
+
   void createPipeline() override;
 
-  std::vector<DescriptorSetLayoutParams> getDescriptorSetLayoutParams() const override {
+  DescriptorSetLayoutParamsBuffer getDescriptorSetLayoutParams() const override {
     return {
       {
         .binding = kDefaultCombinedImageSamplerBinding,
@@ -42,11 +45,9 @@ class FragmentFx : public virtual GenericFx {
     };
   }
 
-  virtual VkExtent2D getRenderSurfaceSize() const {
-    return renderer_ptr_->get_surface_size(); //
-  }
+  virtual VkExtent2D getRenderSurfaceSize() const;
 
-  virtual void prepareDrawState(RenderPassEncoder const& pass) {
+  virtual void prepareDrawState(RenderPassEncoder const& pass) const {
     pass.bind_pipeline(pipeline_);
     pass.bind_descriptor_set(descriptor_set_, pipeline_layout_, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
     pass.set_viewport_scissor(getRenderSurfaceSize()); //
@@ -57,7 +58,7 @@ class FragmentFx : public virtual GenericFx {
 
   virtual GraphicsPipelineDescriptor_t getGraphicsPipelineDescriptor(std::vector<backend::ShaderModule> const& shaders) const = 0;
 
-  virtual void draw(RenderPassEncoder const& pass) = 0; //
+  virtual void draw(RenderPassEncoder const& pass) const = 0; //
 };
 
 /* -------------------------------------------------------------------------- */

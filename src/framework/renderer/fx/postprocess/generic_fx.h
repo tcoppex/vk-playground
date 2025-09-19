@@ -2,14 +2,15 @@
 #define VKFRAMEWORK_RENDERER_FX_POSTPROCESS_GENERIC_FX_H_
 
 #include "framework/renderer/fx/postprocess/fx_interface.h"
+#include "framework/renderer/pipeline.h"
 
 /* -------------------------------------------------------------------------- */
 
 class GenericFx : public virtual FxInterface {
  public:
-  virtual ~GenericFx() {}
+  virtual ~GenericFx() = default;
 
-  void init(Context const& context, Renderer const& renderer) override;
+  void init(Renderer const& renderer) override;
 
   void setup(VkExtent2D const dimension) override;
 
@@ -17,24 +18,28 @@ class GenericFx : public virtual FxInterface {
 
   void setupUI() override {}
 
-  std::string name() const override;
-
  protected:
-  virtual std::string getShaderName() const = 0;
+  // virtual backend::ShadersMap createShaderModules() const = 0;
 
-  virtual std::vector<DescriptorSetLayoutParams> getDescriptorSetLayoutParams() const = 0;
+  virtual DescriptorSetLayoutParamsBuffer getDescriptorSetLayoutParams() const = 0;
+
+  virtual std::vector<VkDescriptorSetLayout> getDescriptorSetLayouts() const {
+    return {descriptor_set_layout_};
+  }
 
   virtual std::vector<VkPushConstantRange> getPushConstantRanges() const {
     return {};
   }
 
-  virtual void pushConstant(GenericCommandEncoder const& cmd) {}
+  virtual void pushConstant(GenericCommandEncoder const& cmd) const {} //
 
   virtual void createPipelineLayout();
 
   virtual void createPipeline() = 0;
 
  protected:
+  Context const* context_ptr_{};
+  Renderer const* renderer_ptr_{};
   ResourceAllocator const* allocator_ptr_{};
 
   // ----------------

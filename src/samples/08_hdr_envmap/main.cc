@@ -125,7 +125,7 @@ class SampleApp final : public Application {
           .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
           .images = {
             {
-              .sampler = renderer_.get_default_sampler(),
+              .sampler = renderer_.default_sampler(),
               .imageView = skybox.irradiance_map().view,
               .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             }
@@ -136,7 +136,11 @@ class SampleApp final : public Application {
 
     /* Update the Sampler Atlas descriptor with the currently loaded textures. */
     context_.update_descriptor_set(descriptor_set_, {
-      scene_->descriptor_set_texture_atlas_entry( shader_interop::kDescriptorSetBinding_Sampler )
+      {
+        .binding = shader_interop::kDescriptorSetBinding_Sampler,
+        .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+        .images = scene_->descriptor_image_infos()
+      }
     });
 
     auto shaders{context_.create_shader_modules(COMPILED_SHADERS_DIR, {

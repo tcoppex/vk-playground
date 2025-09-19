@@ -3,12 +3,14 @@
 
 #include "framework/scene/host_resources.h"
 #include "framework/renderer/fx/material/material_fx_registry.h"
+#include "framework/renderer/raytracing_scene.h"
 
 class Context;
 class ResourceAllocator;
 class SamplerPool;
 class RenderPassEncoder;
 class Camera;
+class RayTracingFx; //
 
 /* -------------------------------------------------------------------------- */
 
@@ -25,23 +27,41 @@ struct GPUResources : scene::HostResources {
   bool load_file(std::string_view filename);
 
   /* Bind mesh attributes to pipeline locations. */
-  void initialize_submesh_descriptors(scene::Mesh::AttributeLocationMap const& attribute_to_location);
+  void initialize_submesh_descriptors(
+    scene::Mesh::AttributeLocationMap const& attribute_to_location
+  );
 
   /* Upload host resources to Device memory. */
-  void upload_to_device(bool const bReleaseHostDataOnUpload = kReleaseHostDataOnUpload);
+  void upload_to_device(
+    bool const bReleaseHostDataOnUpload = kReleaseHostDataOnUpload
+  );
 
-  /* Construct a texture atlas entry for a descriptor set. */
-  DescriptorSetWriteEntry descriptor_set_texture_atlas_entry(uint32_t const binding) const;
+  /* Construct the image info buffer for the scene textures descriptor set. */
+  std::vector<VkDescriptorImageInfo> descriptor_image_infos() const;
 
   /* Update relevant resources before rendering (eg. shared uniform buffers). */
-  void update(Camera const& camera, VkExtent2D const& surfaceSize, float elapsedTime);
+  void update(
+    Camera const& camera,
+    VkExtent2D const& surfaceSize,
+    float elapsedTime
+  );
 
   /* Render the scene batch per MaterialFx. */
   void render(RenderPassEncoder const& pass);
 
+  // -------------------------------
+  void set_ray_tracing_fx(RayTracingFx* fx); //
+  // -------------------------------
+
  private:
   void upload_images(Context const& context);
   void upload_buffers(Context const& context);
+
+  void update_frame_data(
+    Camera const& camera,
+    VkExtent2D const& surfaceSize,
+    float elapsedTime
+  );
 
  public:
   /* --- Device Data --- */
@@ -57,6 +77,11 @@ struct GPUResources : scene::HostResources {
  protected:
   std::unique_ptr<MaterialFxRegistry> material_fx_registry_{};
 
+  // -------------------------------
+  std::unique_ptr<RayTracingSceneInterface> rt_scene_{};
+  RayTracingFx const* ray_tracing_fx_{};
+  // -------------------------------
+
   using SubMeshBuffer = std::vector<scene::Mesh::SubMesh const*>;
   using FxHashPair = std::pair< MaterialFx*, scene::MaterialStates >;
   using FxHashPairToSubmeshesMap = std::map< FxHashPair, SubMeshBuffer >;
@@ -66,6 +91,7 @@ struct GPUResources : scene::HostResources {
   Renderer const* renderer_ptr_{};
   Context const* context_ptr_{};
   ResourceAllocator const* allocator_ptr_{};
+  uint32_t frame_index_{};
 };
 
 /* -------------------------------------------------------------------------- */

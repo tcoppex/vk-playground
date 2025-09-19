@@ -68,7 +68,7 @@ bool Application::presetup() {
   }
 
   /* Create the context surface. */
-  if (auto res = wm_->createWindowSurface(context_.get_instance(), &surface_); CHECK_VK(res)) {
+  if (auto res = wm_->createWindowSurface(context_.instance(), &surface_); CHECK_VK(res)) {
     return false;
   }
 
@@ -76,7 +76,7 @@ bool Application::presetup() {
   renderer_.init(context_, context_.allocator_ptr(), surface_);
 
   /* Initialize User Interface. */
-  if (ui_ = std::make_unique<UIController>(); !ui_ || !ui_->init(context_, renderer_, *wm_)) {
+  if (ui_ = std::make_unique<UIController>(); !ui_ || !ui_->init(renderer_, *wm_)) {
     return false;
   }
 
@@ -97,7 +97,7 @@ bool Application::presetup() {
 }
 
 void Application::shutdown() {
-  CHECK_VK(vkDeviceWaitIdle(context_.get_device()));
+  CHECK_VK(vkDeviceWaitIdle(context_.device()));
 
   // User defined clean up.
   release();
@@ -105,7 +105,7 @@ void Application::shutdown() {
   ui_->release(context_);
 
   renderer_.deinit();
-  vkDestroySurfaceKHR(context_.get_instance(), surface_, nullptr);
+  vkDestroySurfaceKHR(context_.instance(), surface_, nullptr);
 
   glfwTerminate();
   context_.deinit();

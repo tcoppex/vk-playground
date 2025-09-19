@@ -5,6 +5,7 @@
 
 #include "framework/core/common.h"
 #include "framework/backend/types.h"
+#include "framework/backend/vk_utils.h"
 
 /* -------------------------------------------------------------------------- */
 
@@ -31,6 +32,7 @@ class ResourceAllocator {
     VmaAllocationCreateFlags const flags = {}
   ) const;
 
+  // [should return a std::unique_ptr !!]
   backend::Buffer create_staging_buffer(
     size_t const bytesize = kDefaultStagingBufferSize,
     void const* host_data = nullptr,
@@ -66,7 +68,7 @@ class ResourceAllocator {
     vmaDestroyBuffer(allocator_, buffer.buffer, buffer.allocation);
   }
 
-  void clear_staging_buffers();
+  void clear_staging_buffers() const;
 
   // ----- Image -----
 
