@@ -1,5 +1,10 @@
-#include "framework/core/platform/desktop/window/window.h"
+#include "framework/core/platform/desktop/window.h"
 #include "framework/core/platform/events.h"
+#include "framework/core/logger.h"
+
+#if defined(_WIN32)
+  #include <windows.h> // for SetConsoleOutputCP
+#endif
 
 /* -------------------------------------------------------------------------- */
 
@@ -95,12 +100,18 @@ void InitializeEventsCallbacks(GLFWwindow *handle) noexcept {
 /* -------------------------------------------------------------------------- */
 
 bool Window::init() {
+
+#if defined(_WIN32)
+  // Switch Windows console to UTF-8
+  SetConsoleOutputCP(CP_UTF8);
+#endif
+
   if (!glfwInit()) {
-    fprintf(stderr, "Error: Could not initialize GLFW.\n");
+    LOGE("Could not initialize GLFW.\n");
     return false;
   }
   if (!glfwVulkanSupported()) {
-    fprintf(stderr, "Error: Vulkan is not supported.\n");
+    LOGE("Vulkan is not supported.\n");
     return false;
   }
 
@@ -120,7 +131,7 @@ bool Window::init() {
 
   window_ = glfwCreateWindow(surface_w_, surface_h_, "", nullptr, nullptr);
   if (!window_) {
-    fprintf(stderr, "Error: GLFW couldn't create the window.\n");
+    LOGE("GLFW couldn't create the window.\n");
     glfwTerminate();
     return false;
   }

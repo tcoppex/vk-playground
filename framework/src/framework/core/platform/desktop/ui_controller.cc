@@ -28,7 +28,7 @@
 #include "framework/renderer/renderer.h"
 #include "framework/backend/context.h"
 
-#include "framework/core/platform/desktop/window/window.h" // for glfwGetWindowContentScale
+#include "framework/core/platform/desktop/window.h" // for glfwGetWindowContentScale
 
 /* -------------------------------------------------------------------------- */
 

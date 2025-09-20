@@ -2,14 +2,13 @@
 #include "framework/core/platform/events.h"
 
 // -----------------
-#if !defined(ANDROID)
-#include "framework/core/platform/desktop/window/window.h" //
+#if defined(ANDROID)
+#include "framework/core/platform/android/wm_android.h" //
+#else
+#include "framework/core/platform/desktop/window.h" //
 #endif
 // -----------------
 
-#if defined(_WIN32)
-  #include <windows.h> // for SetConsoleOutputCP
-#endif
 
 /* -------------------------------------------------------------------------- */
 
@@ -55,27 +54,21 @@ float Application::elapsed_time() const {
 // ----------------------------------------------------------------------------
 
 bool Application::presetup() {
-#if defined(_WIN32)
-    // Switch Windows console to UTF-8
-    SetConsoleOutputCP(CP_UTF8);
-#endif
-
   /* Singletons. */
   {
     Events::Initialize();
   }
 
-
 #if defined(ANDROID)
   LOGE("not implemented");
+  // wm_ = std::make_unique<WMAndroid>();
 #else
-  // -----------------
+  wm_ = std::make_unique<Window>();
+#endif
   /* Create the main window surface. */
-  if (wm_ = std::make_unique<Window>(); !wm_ || !wm_->init()) {
+  if (!wm_ || !wm_->init()) {
     return false;
   }
-  // -----------------
-#endif
 
   // ----------------------------------------------------------
 
