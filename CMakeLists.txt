@@ -510,6 +510,11 @@ list(APPEND SharedIncludeDirs
 # -----------------------------------------------------------------------------
 
 add_subdirectory(${FRAMEWORK_PATH})
-add_subdirectory(${SAMPLES_PATH})
+
+if(ANDROID)
+# add_subdirectory(${SAMPLES_PATH}/android)
+else()
+add_subdirectory(${SAMPLES_PATH}/desktop)
+endif()
 
 # -----------------------------------------------------------------------------

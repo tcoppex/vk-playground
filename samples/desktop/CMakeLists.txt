@@ -42,7 +42,7 @@ endforeach()
 # -----------------------------------------------------------------------------
 
 function(add_simple_demo dirname)
-  set(SAMPLE_PATH ${SAMPLES_PATH}/${dirname})
+  set(SAMPLE_PATH ${SAMPLES_PATH}/desktop/${dirname})
 
   file(GLOB Source
     ${SAMPLE_PATH}/*.cc
