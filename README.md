@@ -6,7 +6,7 @@
 
 A c++20 / Vulkan 1.1 rendering framework flavored like 1.4 and inspired by WebGPU and _vk_minimal_latest_.
 
-Runs on GNU / Linux and Windows 11, compiled with _GCC 11.4_ and _MSVC 19.38_.
+Runs on GNU / Linux and Windows 11, compiled with _GCC 11.4_, _Clang 21_ and _MSVC 19.38_.
 
 <details>
   <summary><strong>Quick start & run !</strong></summary>
@@ -49,7 +49,7 @@ cmake --build build --config Release
 ##### Third parties
 
  * Vulkan SDK 1.1
- * CMake 3.31
+ * CMake 3.22.1
  * CPM 0.40.3 (_downloaded automatically_)
  * GLFW 3.4 (_via CPM_)
  * Volk 1.4 (_via CPM_)
