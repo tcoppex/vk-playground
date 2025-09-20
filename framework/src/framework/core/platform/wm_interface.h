@@ -13,6 +13,8 @@ struct WMInterface {
 
   virtual bool init() = 0;
 
+  virtual void shutdown() = 0;
+
   virtual bool poll(void *data = nullptr) noexcept = 0;
 
   virtual void setTitle(std::string_view title) const noexcept = 0;

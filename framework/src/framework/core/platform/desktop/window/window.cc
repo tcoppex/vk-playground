@@ -133,6 +133,10 @@ bool Window::init() {
   return true;
 }
 
+void Window::shutdown() {
+  glfwTerminate();
+}
+
 bool Window::poll(void *data) noexcept {
   glfwPollEvents();
 

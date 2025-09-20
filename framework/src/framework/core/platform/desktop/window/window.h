@@ -16,6 +16,8 @@ class Window : public WMInterface {
 
   bool init() final;
 
+  void shutdown() final;
+
   bool poll(void *data = nullptr) noexcept final;
 
   void setTitle(std::string_view title) const noexcept final;
