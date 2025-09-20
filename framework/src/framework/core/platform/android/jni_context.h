@@ -9,9 +9,9 @@ extern "C" {
 #include <android/asset_manager.h>
 }
 
-#include "core/common.h"
-#include "core/singleton.h"
-#include "core/platform/common.h"
+#include "framework/core/common.h"
+#include "framework/core/singleton.h"
+#include "framework/core/platform/common.h"
 
 /* -------------------------------------------------------------------------- */
 

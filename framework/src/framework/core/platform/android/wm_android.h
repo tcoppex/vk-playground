@@ -3,8 +3,8 @@
 
 #include <vector>
 
-#include "core/platform/common.h"
-#include "core/platform/wm_interface.h"
+#include "framework/core/platform/common.h"
+#include "framework/core/platform/wm_interface.h"
 
 /* -------------------------------------------------------------------------- */
 

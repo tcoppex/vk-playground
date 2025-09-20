@@ -1,5 +1,5 @@
-#include "core/platform/android/wm_android.h"
-#include "core/platform/events.h"
+#include "framework/core/platform/android/wm_android.h"
+#include "framework/core/platform/events.h"
 
 /* -------------------------------------------------------------------------- */
 
