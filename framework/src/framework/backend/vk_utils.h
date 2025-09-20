@@ -131,6 +131,17 @@ void SetDebugObjectName(VkDevice device, T object, std::string_view name) {
   }
 }
 
+// ----------------------------------------------------------------------------
+
+VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDebugMessage(
+  VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+  VkDebugUtilsMessageTypeFlagsEXT messageTypes,
+  const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+  void* pUserData
+);
+
+// ----------------------------------------------------------------------------
+
 } // namespace "vkutils"
 
 /* -------------------------------------------------------------------------- */

@@ -47,11 +47,14 @@ bool Context::init(std::vector<char const*> const& instance_extensions) {
 
 void Context::deinit() {
   vkDeviceWaitIdle(device_);
+
   resource_allocator_->deinit();
-  vkDestroyCommandPool(device_, transient_command_pools_[TargetQueue::Main], nullptr);
-  vkDestroyCommandPool(device_, transient_command_pools_[TargetQueue::Transfer], nullptr);
-  vkDestroyCommandPool(device_, transient_command_pools_[TargetQueue::Compute], nullptr);
+  vkDestroyCommandPool(device_, transient_command_pools_[TargetQueue::Main], nullptr); //
+  vkDestroyCommandPool(device_, transient_command_pools_[TargetQueue::Transfer], nullptr); //
+  vkDestroyCommandPool(device_, transient_command_pools_[TargetQueue::Compute], nullptr); //
   vkDestroyDevice(device_, nullptr);
+
+  vkDestroyDebugUtilsMessengerEXT(instance_, debug_utils_messenger_, nullptr);
   vkDestroyInstance(instance_, nullptr);
 }
 
@@ -316,8 +319,28 @@ void Context::init_instance(std::vector<char const*> const& instance_extensions)
   if constexpr (kEnableDebugValidationLayer) {
     instance_layer_names_.push_back("VK_LAYER_KHRONOS_validation");
   }
-  instance_extension_names_.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 #endif
+
+  instance_extension_names_.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+
+  VkDebugUtilsMessengerCreateInfoEXT debug_info{
+    .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
+    .messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT
+                     | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT
+#ifndef NDEBUG
+                     // | VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT
+                     // | VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT
+#endif
+                     ,
+    .messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT
+                 | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
+                 | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT
+                 ,
+    .pfnUserCallback = vkutils::VulkanDebugMessage,
+    .pUserData = this,
+  };
+
+  // ------------------------------------------
 
   uint32_t extension_count{0u};
   vkEnumerateInstanceExtensionProperties(nullptr, &extension_count, nullptr);
@@ -339,7 +362,9 @@ void Context::init_instance(std::vector<char const*> const& instance_extensions)
 
   VkInstanceCreateInfo const instance_create_info{
     .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-    .pNext = nullptr,
+#ifndef NDEBUG
+    .pNext = &debug_info,
+#endif
     .pApplicationInfo = &application_info,
     .enabledLayerCount = static_cast<uint32_t>(instance_layer_names_.size()),
     .ppEnabledLayerNames = instance_layer_names_.data(),
@@ -351,6 +376,8 @@ void Context::init_instance(std::vector<char const*> const& instance_extensions)
   volkLoadInstance(instance_);
 
   // ------------------------------------------
+
+  CHECK_VK(vkCreateDebugUtilsMessengerEXT(instance_, &debug_info, nullptr, &debug_utils_messenger_));
 
   LOGD("Vulkan version required: %d.%d.%d",
     VK_API_VERSION_MAJOR(application_info.apiVersion),

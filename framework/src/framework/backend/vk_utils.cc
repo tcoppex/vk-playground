@@ -207,6 +207,38 @@ void TransformDescriptorSetWriteEntries(
   }
 }
 
+VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDebugMessage(
+  VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+  VkDebugUtilsMessageTypeFlagsEXT messageTypes,
+  const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+  void* pUserData
+) {
+  std::string const errorTypeString = string_VkDebugUtilsMessageTypeFlagsEXT(messageTypes);
+
+  switch (messageSeverity) {
+    case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
+      LOGE("[%s]\n%s\n", errorTypeString.c_str(), pCallbackData->pMessage);
+      break;
+
+    case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
+      LOGW("[%s]\n%s\n", errorTypeString.c_str(), pCallbackData->pMessage);
+      break;
+
+    case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
+      LOGI("[%s]\n%s\n", errorTypeString.c_str(), pCallbackData->pMessage);
+      break;
+
+    case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
+      LOGD("[%s]\n%s\n", errorTypeString.c_str(), pCallbackData->pMessage);
+      break;
+
+    default:
+      LOGD("[%s]\n%s\n", errorTypeString.c_str(), pCallbackData->pMessage);
+      break;
+  }
+  return VK_FALSE;
+}
+
 // ----------------------------------------------------------------------------
 
 } // namespace "vkutils"
