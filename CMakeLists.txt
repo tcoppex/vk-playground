@@ -82,6 +82,11 @@ if(ANDROID)
   if (${ANDROID_PLATFORM_LEVEL} LESS 29)
     message(FATAL_ERROR "Android is not supported before API level 29.")
   endif()
+
+  set(CLANG_TIDY_PATH
+    "${ANDROID_TOOLCHAIN_ROOT}/bin/clang-tidy${ANDROID_TOOLCHAIN_SUFFIX}"
+  )
+  set(CMAKE_CXX_CLANG_TIDY ${CLANG_TIDY_PATH} "-checks=android-*")
 endif()
 
 # -----------------------------------------------------------------------------
