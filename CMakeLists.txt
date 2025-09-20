@@ -364,7 +364,34 @@ else() # DESKTOP
 endif()
 
 # Vulkan
-find_package(Vulkan 1.1 REQUIRED)
+set(VULKAN_SDK_TAG vulkan-sdk-1.4.321.0)
+
+# Header + Utilities + Volk
+CPMAddPackage(
+  NAME Vulkan-Headers
+  GITHUB_REPOSITORY KhronosGroup/Vulkan-Headers
+  GIT_TAG ${VULKAN_SDK_TAG}
+  DOWNLOAD_ONLY YES
+)
+CPMAddPackage(
+  NAME Vulkan-Utility-Libraries
+  GITHUB_REPOSITORY KhronosGroup/Vulkan-Utility-Libraries
+  GIT_TAG ${VULKAN_SDK_TAG}
+  DOWNLOAD_ONLY YES
+)
+CPMAddPackage(
+  NAME volk
+  GITHUB_REPOSITORY zeux/volk
+  GIT_TAG ${VULKAN_SDK_TAG}
+  OPTIONS
+    "VULKAN_HEADERS_INSTALL_DIR ${Vulkan-Headers_SOURCE_DIR}/include"
+)
+list(APPEND VULKAN_INCLUDE_DIR
+  ${volk_SOURCE_DIR}
+  ${Vulkan-Headers_SOURCE_DIR}/include
+  ${Vulkan-Utility-Libraries_SOURCE_DIR}/include
+)
+
 
 # CGLTF
 CPMAddPackage(
@@ -390,14 +417,6 @@ if(FRAMEWORK_HAS_DRACO)
   list(APPEND SharedIncludeDirs ${DRACO_INCLUDE_DIR})
   list(APPEND SharedLibs draco)
 endif()
-
-# Volk
-CPMAddPackage(
-  NAME volk
-  GITHUB_REPOSITORY zeux/volk
-  GIT_TAG 1.4.304
-)
-set(VOLK_INCLUDE_DIR ${volk_SOURCE_DIR})
 
 # VulkanMemoryAlloc
 CPMAddPackage(
@@ -469,8 +488,7 @@ list(APPEND SharedIncludeDirs
 
   ${PROJECT_THIRD_PARTY_DIR}
 
-  ${Vulkan_INCLUDE_DIR}
-  ${VOLK_INCLUDE_DIR}
+  ${VULKAN_INCLUDE_DIR}
   ${VMA_INCLUDE_DIR}
   ${CGLTF_INCLUDE_DIR}
   ${LINALG_INCLUDE_DIR}
