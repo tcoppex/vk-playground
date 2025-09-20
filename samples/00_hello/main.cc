@@ -105,8 +105,18 @@ class SampleApp final : public Application {
 
 // ----------------------------------------------------------------------------
 
+#if defined(ANDROID)
+extern "C" {
+
+void android_main(struct android_app* app_states) {
+  SampleApp().run();
+}
+
+}
+#else
 int main(int argc, char *argv[]) {
   return SampleApp().run();
 }
+#endif
 
 /* -------------------------------------------------------------------------- */

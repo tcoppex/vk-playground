@@ -60,11 +60,11 @@ bool Application::presetup() {
   }
 
 #if defined(ANDROID)
-  LOGE("not implemented");
-  // wm_ = std::make_unique<WMAndroid>();
+  wm_ = std::make_unique<WMAndroid>(/*android_app*/); // XXX
 #else
   wm_ = std::make_unique<Window>();
 #endif
+
   /* Create the main window surface. */
   if (!wm_ || !wm_->init()) {
     return false;

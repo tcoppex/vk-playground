@@ -27,7 +27,7 @@ class ResourceAllocator {
 
   backend::Buffer create_buffer(
     VkDeviceSize const size,
-    VkBufferUsageFlags2KHR const usage,
+    VkBufferUsageFlags2KHR const usage,   // !! require maintenance5 !!
     VmaMemoryUsage const memory_usage = VMA_MEMORY_USAGE_AUTO,
     VmaAllocationCreateFlags const flags = {}
   ) const;

@@ -57,9 +57,8 @@ function(add_simple_demo dirname)
     ${FRAMEWORK_SHADERS_DIR}
   )
 
-
   if(ANDROID)
-    add_library(${dirname} SHARED ${Source} ${shaders_bin} ${shaders_src})
+    add_library(${dirname} MODULE ${Source} ${shaders_bin} ${shaders_src})
   else()
     add_executable(${dirname} ${Source} ${shaders_bin} ${shaders_src})
   endif()
@@ -94,8 +93,8 @@ function(add_simple_demo dirname)
 
     # Define VK_NO_PROTOTYPES to avoid including Vulkan prototypes
     # This is necessary because we are using volk to load Vulkan functions
-    VK_NO_PROTOTYPES
-    _USE_MATH_DEFINES
+    VK_NO_PROTOTYPES=1
+    _USE_MATH_DEFINES=1
   )
 
   set_target_output_directory(${dirname} ${PROJECT_BINARY_DIR})

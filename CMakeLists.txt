@@ -302,8 +302,13 @@ if(ANDROID)
   # minimum version required: Android23 for gles32, Android24 for Vulkan.
 
   # [SHARED] Android specifics.
-  find_library(ANDROID_LIBRARY NAMES android)
+  find_library(ANDROID_LIBRARY     NAMES android)
   find_library(ANDROID_LOG_LIBRARY NAMES log)
+
+  list(APPEND SharedLibs #FRAMEWORK_ANDROID_LIBRARIES
+    ${ANDROID_LIBRARY}
+    ${ANDROID_LOG_LIBRARY}
+  )
 
   # [OBJECT] Android Native App Glue.
   find_path(
@@ -334,11 +339,6 @@ if(ANDROID)
 
   # (Alternatively just uncomment the following line.)
   # set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -u ANativeActivity_onCreate")
-
-  list(APPEND SharedLibs #FRAMEWORK_ANDROID_LIBRARIES
-    ${ANDROID_LIBRARY}
-    ${ANDROID_LOG_LIBRARY}
-  )
 
 else() # DESKTOP
 

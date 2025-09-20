@@ -246,7 +246,10 @@ class Renderer : public backend::RTInterface {
 
  private:
   VkFormat get_valid_depth_format() const {
-    return VK_FORMAT_D24_UNORM_S8_UINT; // VK_FORMAT_D16_UNORM; //
+    return VK_FORMAT_D24_UNORM_S8_UINT
+           // VK_FORMAT_D16_UNORM  //
+           // VK_FORMAT_D32_SFLOAT //
+           ;
   }
 
   void init_descriptor_pool();

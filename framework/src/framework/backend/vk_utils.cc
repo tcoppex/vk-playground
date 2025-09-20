@@ -207,6 +207,8 @@ void TransformDescriptorSetWriteEntries(
   }
 }
 
+// ----------------------------------------------------------------------------
+
 VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDebugMessage(
   VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
   VkDebugUtilsMessageTypeFlagsEXT messageTypes,
