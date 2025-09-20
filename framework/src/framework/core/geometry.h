@@ -193,7 +193,7 @@ class Geometry {
 
   void add_attribute(AttributeType const type, AttributeInfo const& info);
 
-  void add_primitive(Primitive primitive);
+  void add_primitive(Primitive const& primitive);
 
   /* Return the current bytesize of the vertex attributes buffer. */
   uint64_t add_vertices_data(std::byte const* data, uint32_t bytesize);

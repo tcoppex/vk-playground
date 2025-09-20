@@ -19,14 +19,14 @@ static float constexpr kTwoPi = 2.0f * kPi;
 
 /* Default interleaved attributes used to construct most geometries internally. */
 struct Vertex_t {
-  float position[3u];
-  float normal[3u];
-  float texcoord[2u];
+  std::array<float, 3> position;
+  std::array<float, 3> normal;
+  std::array<float, 2> texcoord;
 };
 
 /* Attribute used by point list. */
 struct Point_t {
-  float position[4u];
+  std::array<float, 4> position;
 };
 
 }
@@ -605,7 +605,7 @@ void Geometry::MakePointListPlane(Geometry &geo, float size, uint32_t resx, uint
 
 // ----------------------------------------------------------------------------
 
-void Geometry::add_primitive(Primitive primitive) {
+void Geometry::add_primitive(Primitive const& primitive) {
   index_count_ += primitive.indexCount;
   vertex_count_ += primitive.vertexCount;
   primitives_.push_back(primitive);
@@ -668,7 +668,7 @@ bool Geometry::recalculate_tangents() {
     float* get_vertex(Geometry::AttributeType attrib, uint32_t vertex_index) {
       auto const& attr = geo->attributes_.at(attrib);
       return reinterpret_cast<float*>(
-        geo->vertices_.data() + attr.offset + vertex_index * attr.stride
+        geo->vertices_.data() + attr.offset + static_cast<uintptr_t>(vertex_index * attr.stride)
       );
     };
   } helper;
