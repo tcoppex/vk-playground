@@ -44,9 +44,6 @@ set(PROJECT_THIRD_PARTY_DIR         ${PROJECT_ROOT_PATH}/third_party)
 set(PROJECT_BINARY_DIR              ${PROJECT_ROOT_PATH}/bin)
 set(FRAMEWORK_COMPILED_SHADERS_DIR  ${PROJECT_BINARY_DIR}/spirv)
 
-# Flag the global spir-v directory to be destroy on clean target.
-set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_CLEAN_FILES "${FRAMEWORK_COMPILED_SHADERS_DIR}")
-
 # -----------------------------------------------------------------------------
 # CMake settings.
 # -----------------------------------------------------------------------------
