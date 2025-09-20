@@ -58,7 +58,29 @@ function(glsl2spirv input_glsl output_spirv shader_dir deps extra_args)
   endif()
 
   get_filename_component(output_dir ${output_spirv} DIRECTORY)
-  file(MAKE_DIRECTORY ${output_dir})
+
+  # ----------------------------
+
+  # Destroy the output directory on clean if it was not created by the user
+  # beforehand.
+
+  string(MAKE_C_IDENTIFIER "${output_dir}" output_dir_id)
+  set(var_name "${output_dir_id}_CREATED_BY_CMAKE")
+
+  if(NOT DEFINED ${var_name})
+    set(${var_name} OFF CACHE INTERNAL "Did CMake create ${output_dir}?")
+  endif()
+
+  if(NOT IS_DIRECTORY "${output_dir}")
+    file(MAKE_DIRECTORY "${output_dir}")
+    set(${var_name} ON CACHE INTERNAL "Did CMake create ${output_dir}?")
+  endif()
+
+  if(${var_name})
+    set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_CLEAN_FILES "${output_dir}")
+  endif()
+
+  # ----------------------------
 
   if(NOT stage OR stage STREQUAL "")
     set(command "")
