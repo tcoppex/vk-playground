@@ -123,34 +123,23 @@ bool WMAndroid::poll(void* data) noexcept {
     int events{};
     struct android_poll_source* source{nullptr};
 
-    // ------------
-    bool const is_active = isActive()
-                        && native_window
-                        ;
-
     bool const do_not_wait = app->destroyRequested
-                          || is_active
+                          || (isActive() && native_window)
                           // || (xr && xr->isSessionRunning()) // xxx
                           ;
-    // ------------
-
     int const timeout_ms{do_not_wait ? 0 : -1};
-    while (true) {
-      int const id = ALooper_pollOnce(timeout_ms, nullptr, &events, (void**)&source);
+    int const id = ALooper_pollOnce(timeout_ms, nullptr, &events, (void**)&source);
 
-      if (id == ALOOPER_POLL_ERROR) {
-        break;
-      }
-      if (id == ALOOPER_POLL_TIMEOUT) {
-        continue;
-      }
-      if (source) {
-        ((struct android_poll_source*)source)->process(app, source);
-      }
+    if (id == ALOOPER_POLL_ERROR) {
+      return false;
     }
 
     if (source) {
       source->process(app, source);
+    }
+
+    if (id == ALOOPER_POLL_TIMEOUT && do_not_wait) {
+      break;
     }
   }
 
