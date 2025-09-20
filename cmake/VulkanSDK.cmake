@@ -106,10 +106,11 @@ function(glsl2spirv input_glsl output_spirv shader_dir deps extra_args)
       ${input_glsl}
   )
 
-# Forcing compilation can be tricky.
-# To always recompile, use 
-# add_custom_target( gen_${fn} ALL ..
-# otherwise, set the output files as dependencies.
+  # Forcing compilation can be tricky.
+  # To always recompile, use
+  # add_custom_target( gen_${fn} ALL ..
+  # otherwise, set the output files as dependencies.
+
 endfunction(glsl2spirv)
 
 # -----------------------------------------------------------------------------
@@ -129,7 +130,6 @@ function(compile_shaders GLOBAL_GLSL_DIR GLOBAL_SPIRV_DIR binaries sources extra
     REGEX
     ".+\\..+\\.glsl$|${RaytraceShadersREGEX}"
   )
-
 
   file(GLOB_RECURSE ShadersDependencies
     ${GLOBAL_GLSL_DIR}/../interop.h ##

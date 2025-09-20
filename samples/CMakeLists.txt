@@ -42,10 +42,7 @@ endforeach()
 # -----------------------------------------------------------------------------
 
 function(add_simple_demo dirname)
-  # set(SAMPLE_PATH ${SAMPLES_PATH}/desktop/${dirname})
   set(SAMPLE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/${dirname})
-
-  message(STATUS ${SAMPLE_PATH})
 
   file(GLOB Source
     ${SAMPLE_PATH}/*.cc
