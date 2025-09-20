@@ -41,6 +41,20 @@ imgui.ini
 *.out
 *.app
 
+# Android Studio
+*.iml
+.idea/
+
+# Gradle / Android
+local.properties
+
+# APK / Outputs
+*.apk
+*.ap_
+*.dex
+*.class
+*.log
+
 # CMake
 CMakeLists.txt.user
 CMakeCache.txt

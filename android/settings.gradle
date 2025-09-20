@@ -1,0 +1,26 @@
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+// ----------------------------------------------------------------------------
+
+rootProject.name = "VKPlayground"
+
+file("../samples/android").eachDir { dir ->
+    def moduleName = dir.name
+    include(":$moduleName")
+    project(":$moduleName").projectDir = dir
+}
+
+// ----------------------------------------------------------------------------
