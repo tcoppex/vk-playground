@@ -511,7 +511,7 @@ void GPUResources::update_frame_data(
 ) {
   FrameData frame_data{
     .projectionMatrix = camera.proj(),
-    .invProjectionMatrix = linalg::inverse(camera.proj()),
+    .invProjectionMatrix = camera.projInverse(),
     .viewMatrix = camera.view(),
     .invViewMatrix = camera.world(),
     .viewProjMatrix = camera.viewproj(),

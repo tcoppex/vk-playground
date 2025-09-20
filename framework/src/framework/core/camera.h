@@ -58,6 +58,7 @@ class Camera {
     // Projection matrix.
     float const ratio = static_cast<float>(width_) / static_cast<float>(height_);
     proj_ = linalg::perspective_matrix(fov_, ratio, znear, zfar, linalg::neg_z, linalg::zero_to_one);
+    proj_inverse_ = linalg::inverse(proj_);
     bUseOrtho_ = false;
 
     // Linearization parameters.
@@ -157,6 +158,10 @@ class Camera {
     return proj_;
   }
 
+  mat4 const& projInverse() const noexcept {
+    return proj_inverse_;
+  }
+
   mat4 const& viewproj() const noexcept {
     return viewproj_;
   }
@@ -194,6 +199,7 @@ class Camera {
   mat4 view_{};
   mat4 world_{};
   mat4 proj_{};
+  mat4 proj_inverse_{};
   mat4 viewproj_{};
 
   bool bUseOrtho_{};
