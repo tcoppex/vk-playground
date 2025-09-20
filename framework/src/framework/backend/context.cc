@@ -431,12 +431,6 @@ bool Context::init_device() {
     );
 
     add_device_feature(
-      VK_KHR_INDEX_TYPE_UINT8_EXTENSION_NAME,
-      feature_.index_type_uint8,
-      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INDEX_TYPE_UINT8_FEATURES_KHR
-    );
-
-    add_device_feature(
       VK_KHR_16BIT_STORAGE_EXTENSION_NAME,
       feature_.storage_16bit,
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES_KHR
@@ -503,15 +497,21 @@ bool Context::init_device() {
     );
 
     add_device_feature(
-      VK_EXT_VERTEX_INPUT_DYNAMIC_STATE_EXTENSION_NAME,
-      feature_.vertex_input_dynamic_state,
-      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_INPUT_DYNAMIC_STATE_FEATURES_EXT
-    );
-
-    add_device_feature(
       VK_EXT_IMAGE_VIEW_MIN_LOD_EXTENSION_NAME,
       feature_.image_view_min_lod,
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_VIEW_MIN_LOD_FEATURES_EXT
+    );
+
+    add_device_feature(
+      VK_EXT_INDEX_TYPE_UINT8_EXTENSION_NAME,
+      feature_.index_type_uint8,
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INDEX_TYPE_UINT8_FEATURES_EXT
+    );
+
+    add_device_feature(
+      VK_EXT_VERTEX_INPUT_DYNAMIC_STATE_EXTENSION_NAME,
+      feature_.vertex_input_dynamic_state,
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_INPUT_DYNAMIC_STATE_FEATURES_EXT
     );
 
     add_device_feature(
@@ -626,7 +626,6 @@ bool Context::init_device() {
     bind_func(      vkCmdBeginRendering, vkCmdBeginRenderingKHR);
     bind_func(        vkCmdEndRendering, vkCmdEndRenderingKHR);
     bind_func(  vkCmdBindVertexBuffers2, vkCmdBindVertexBuffers2EXT);
-    bind_func(    vkCmdBindIndexBuffer2, vkCmdBindIndexBuffer2KHR);
   }
 
   LOGD("Used Device Extensions:");

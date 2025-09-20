@@ -57,7 +57,12 @@ function(add_simple_demo dirname)
     ${FRAMEWORK_SHADERS_DIR}
   )
 
-  add_executable(${dirname} ${Source} ${shaders_bin} ${shaders_src})
+
+  if(ANDROID)
+    add_library(${dirname} SHARED ${Source} ${shaders_bin} ${shaders_src})
+  else()
+    add_executable(${dirname} ${Source} ${shaders_bin} ${shaders_src})
+  endif()
 
   target_compile_options(${dirname} PRIVATE
     "${CXX_FLAGS}"

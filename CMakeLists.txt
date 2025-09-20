@@ -23,7 +23,7 @@ endif()
 # Project.
 # -----------------------------------------------------------------------------
 
-set(PROJECT_NAME hello_vk)
+set(PROJECT_NAME vk_playground)
 
 project(${PROJECT_NAME} VERSION 0.1 LANGUAGES CXX C)
 
@@ -183,6 +183,8 @@ else()
   message(WARNING "The \"${CMAKE_SYSTEM_NAME}\" platform is not supported.")
 endif()
 
+message(STATUS "Configured for system \"${OS_NAME}\"")
+
 # Detects the current compiler.
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
   set(USE_GCC TRUE)
@@ -263,6 +265,7 @@ if(USE_GCC OR USE_CLANG)
   if (ANDROID)
     list(APPEND CustomDefinitions
       ANDROID_NDK=1
+      VK_USE_PLATFORM_ANDROID_KHR=1
     )
   endif()
 endif()
@@ -457,18 +460,24 @@ if (TRUE)
     GIT_TAG docking
   )
 
-  set(IMGUI_SOURCES
+  if (ANDROID)
+    set(IMGUI_WM_BACKEND android)
+  else()
+    set(IMGUI_WM_BACKEND glfw)
+  endif()
+
+  list(APPEND IMGUI_SOURCES
     ${imgui_SOURCE_DIR}/imgui.cpp
     ${imgui_SOURCE_DIR}/imgui.h
-    ${imgui_SOURCE_DIR}/imgui_demo.cpp
     ${imgui_SOURCE_DIR}/imgui_draw.cpp
     ${imgui_SOURCE_DIR}/imgui_tables.cpp
     ${imgui_SOURCE_DIR}/imgui_widgets.cpp
-    ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.cpp
-    ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.h
     ${imgui_SOURCE_DIR}/backends/imgui_impl_vulkan.cpp
     ${imgui_SOURCE_DIR}/backends/imgui_impl_vulkan.h
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_${IMGUI_WM_BACKEND}.cpp
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_${IMGUI_WM_BACKEND}.h
   )
+
   source_group("Imgui" FILES ${IMGUI_SOURCES})
 endif()
 

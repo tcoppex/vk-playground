@@ -4,6 +4,7 @@
 #include <vulkan/vk_enum_string_helper.h>
 
 #include "framework/core/utils.h"
+#include "framework/core/logger.h"
 
 /* -------------------------------------------------------------------------- */
 
@@ -51,7 +52,7 @@ VkShaderModule CreateShaderModule(VkDevice const device, char const* shader_dire
 
 VkResult CheckVKResult(VkResult result, char const* file, int const line, bool const bExitOnFail) {
   if (VK_SUCCESS != result) {
-    fprintf(stderr, "Vulkan error @ \"%s\" [%d] : [%s].\n", file, line, string_VkResult(result));
+    LOGE("Vulkan error @ \"%s\" [%d] : [%s].\n", file, line, string_VkResult(result));
     if (bExitOnFail) {
       exit(EXIT_FAILURE);
     }

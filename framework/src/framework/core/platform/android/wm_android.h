@@ -31,11 +31,11 @@ struct WMAndroid final : public WMInterface {
 
   // -------------------------------------------
   std::vector<char const*> getVulkanInstanceExtensions() const noexcept final {
-    return {}
+    return {};
   }
 
   VkResult createWindowSurface(VkInstance instance, VkSurfaceKHR *surface) const noexcept final {
-    return VK_FAILURE;
+    return VK_ERROR_UNKNOWN;
   }
 
   void shutdown() final {}

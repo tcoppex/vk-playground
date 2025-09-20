@@ -41,8 +41,9 @@ struct DefaultAppCmdCallbacks final : AppCmdCallbacks {
 
   void onWindowResized(android_app* app) final {
     LOGD("onWindowResized");
-    auto const w = wma_->surface_ctx->width();
-    auto const h = wma_->surface_ctx->height();
+    uint32_t w = wma_->get_surface_width();
+    uint32_t h = wma_->get_surface_height();
+    LOG_CHECK(w > 0 && h > 0);
     Events::Get().onResize(w, h);
   }
 
@@ -91,11 +92,11 @@ struct DefaultAppCmdCallbacks final : AppCmdCallbacks {
 
 /* -------------------------------------------------------------------------- */
 
-WMAndroid::WMAndroid(DisplayParams const& params)
+WMAndroid::WMAndroid(/*DisplayParams const& params*/)
   : WMInterface()
-  , surface_ctx(std::make_shared<EGLSurfaceContext>())
+  // , surface_ctx(std::make_shared<EGLSurfaceContext>())
 {
-  addAppCmdCallbacks(std::make_shared<DefaultAppCmdCallbacks>(this, params));
+  addAppCmdCallbacks(std::make_shared<DefaultAppCmdCallbacks>(this/*, params*/));
 }
 
 // ----------------------------------------------------------------------------
@@ -103,7 +104,7 @@ WMAndroid::WMAndroid(DisplayParams const& params)
 bool WMAndroid::init(/*DisplayParams const& params*/) {
   // [We might not use this version because android display is created
   // through the APP_CMD_INIT_WINDOW callback, not externally]
-  assert(nullptr != surface_ctx);
+  // assert(nullptr != surface_ctx);
   return true;
 
   // return surface_ctx->initDisplay(params);
@@ -134,8 +135,18 @@ bool WMAndroid::poll(void* data) noexcept {
     // ------------
 
     int const timeout_ms{do_not_wait ? 0 : -1};
-    if (ALooper_pollAll(timeout_ms, nullptr, &events, (void**)&source) < 0) {
-      break;
+    while (true) {
+      int const id = ALooper_pollOnce(timeout_ms, nullptr, &events, (void**)&source);
+
+      if (id == ALOOPER_POLL_ERROR) {
+        break;
+      }
+      if (id == ALOOPER_POLL_TIMEOUT) {
+        continue;
+      }
+      if (source) {
+        ((struct android_poll_source*)source)->process(app, source);
+      }
     }
 
     if (source) {

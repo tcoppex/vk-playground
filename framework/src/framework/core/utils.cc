@@ -50,7 +50,7 @@ bool FileReader::Read(std::string_view filename, std::vector<uint8_t>& out) {
 
 char* ReadBinaryFile(const char *filename, size_t *filesize) {
 #if defined(ANDROID)
-  LOGE("%s undefined on ANDROID.\n", __FUNCTION);
+  LOGE("%s undefined on ANDROID.\n", __FUNCTION__);
   return nullptr;
 #else
   FILE *fd = fopen(filename, "rb");

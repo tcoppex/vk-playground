@@ -214,7 +214,6 @@ class Context {
 
   struct {
     VkPhysicalDeviceFeatures2 base{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
-    VkPhysicalDeviceIndexTypeUint8FeaturesEXT index_type_uint8{}; //
     VkPhysicalDevice16BitStorageFeaturesKHR storage_16bit{};
     VkPhysicalDeviceBufferDeviceAddressFeaturesKHR buffer_device_address{};
     VkPhysicalDeviceDynamicRenderingFeaturesKHR dynamic_rendering{};
@@ -227,8 +226,9 @@ class Context {
     VkPhysicalDeviceExtendedDynamicStateFeaturesEXT extended_dynamic_state{};
     VkPhysicalDeviceExtendedDynamicState2FeaturesEXT extended_dynamic_state2{};
     VkPhysicalDeviceExtendedDynamicState3FeaturesEXT extended_dynamic_state3{};
-    VkPhysicalDeviceVertexInputDynamicStateFeaturesEXT vertex_input_dynamic_state{};
     VkPhysicalDeviceImageViewMinLodFeaturesEXT image_view_min_lod{};
+    VkPhysicalDeviceIndexTypeUint8FeaturesEXT index_type_uint8{}; //
+    VkPhysicalDeviceVertexInputDynamicStateFeaturesEXT vertex_input_dynamic_state{};
     VkPhysicalDeviceAccelerationStructureFeaturesKHR acceleration_structure{};
     // VkPhysicalDeviceRayQueryFeaturesKHR ray_query{};
 
