@@ -5,24 +5,22 @@
 # -----------------------------------------------------------------------------
 
 # -----------------------------------------------------------------------------
-# External Assets Dependencies.
+# External Assets Dependencies (CC0 or public domains).
 # -----------------------------------------------------------------------------
 
+# ---- Models ----
+
 list(APPEND glbKhronosAssets
-  # DamagedHelmet     # on LFS
+  DamagedHelmet     # on LFS
   AlphaBlendModeTest
-)
-list(APPEND hdriPolyhavenAssets
-  # qwantani_dusk_2_2k    # on LFS
-  rogland_clear_night_2k
 )
 
 foreach(asset IN LISTS glbKhronosAssets)
   set(GLB_KHRONOS_ASSETS_URL
-    "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/"
+    "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models"
   )
   download_model(
-    "${GLB_KHRONOS_ASSETS_URL}${asset}/glTF-Binary/${asset}.glb"
+    "${GLB_KHRONOS_ASSETS_URL}/${asset}/glTF-Binary/${asset}.glb"
   )
 endforeach()
 
@@ -30,12 +28,19 @@ download_model(
   "https://raw.githubusercontent.com/SaschaWillems/VulkanPathTracer/refs/heads/master/data/models/CornellBox-Original.gltf"
 )
 
+# ---- Textures ----
+
+list(APPEND hdriPolyhavenAssets
+  qwantani_dusk_2_2k    # on LFS
+  rogland_clear_night_2k
+)
+
 foreach(asset IN LISTS hdriPolyhavenAssets)
   set(HDRI_POLYHAVEN_ASSETS_URL
-    "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/"
+    "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k"
   )
   download_texture(
-    "${HDRI_POLYHAVEN_ASSETS_URL}${asset}.hdr"
+    "${HDRI_POLYHAVEN_ASSETS_URL}/${asset}.hdr"
   )
 endforeach()
 
@@ -63,38 +68,21 @@ function(add_simple_demo dirname)
     add_executable(${dirname} ${Source} ${shaders_bin} ${shaders_src})
   endif()
 
-  target_compile_options(${dirname} PRIVATE
-    "${CXX_FLAGS}"
-    "$<$<CONFIG:Debug>:${CXX_FLAGS_DEBUG}>"
-    "$<$<CONFIG:Release>:${CXX_FLAGS_RELEASE}>"
-    "$<$<CONFIG:DebugWithRelInfo>:${CXX_FLAGS_RELWITHDEBINFO}>"
-  )
+  helpers_setupTarget(
+    TARGET
+      ${dirname}
 
-  set_target_properties(${dirname}
-    PROPERTIES
-      LINK_FLAGS "${CXX_LINK_FLAGS}"
-  )
+    INCLUDE_DIRECTORIES
+      ${SAMPLE_PATH}
+      ${SharedIncludeDirs}
 
-  target_link_libraries(${dirname} PRIVATE
-    ${FRAMEWORK_LIBRARIES}
-    ${SharedLibs}
-  )
+    LIBRARIES
+      ${FRAMEWORK_LIBRARIES}
+      ${SharedLibs}
 
-  target_include_directories(${dirname} PRIVATE
-    ${SAMPLE_PATH}
-    ${SharedIncludeDirs}
-  )
-
-  target_compile_definitions(${dirname} PRIVATE
-    COMPILED_SHADERS_DIR="${SAMPLE_PATH}/shaders/spirv/"
-    FRAMEWORK_COMPILED_SHADERS_DIR="${FRAMEWORK_COMPILED_SHADERS_DIR}/" #!
-
-    ASSETS_DIR="${PROJECT_ASSETS_DIR}/"
-
-    # Define VK_NO_PROTOTYPES to avoid including Vulkan prototypes
-    # This is necessary because we are using volk to load Vulkan functions
-    VK_NO_PROTOTYPES=1
-    _USE_MATH_DEFINES=1
+    DEFINITIONS
+      COMPILED_SHADERS_DIR="${SAMPLE_PATH}/shaders/spirv/"
+      ${CustomDefinitions}
   )
 
   set_target_output_directory(${dirname} ${PROJECT_BINARY_DIR})
@@ -103,7 +91,7 @@ endfunction(add_simple_demo)
 # -----------------------------------------------------------------------------
 
 if(ANDROID)
-# add_subdirectory(${SAMPLES_PATH}/android)
+add_subdirectory(${SAMPLES_PATH}/android)
 else()
 add_subdirectory(${SAMPLES_PATH}/desktop)
 endif()

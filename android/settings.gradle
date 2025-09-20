@@ -15,7 +15,7 @@ dependencyResolutionManagement {
 
 // ----------------------------------------------------------------------------
 
-rootProject.name = "VKPlayground"
+rootProject.name = "VulkanPlayground"
 
 file("../samples/android").eachDir { dir ->
     def moduleName = dir.name

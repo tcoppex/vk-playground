@@ -65,30 +65,6 @@ set(CMAKE_CXX_STANDARD              20)
 set(CMAKE_CXX_STANDARD_REQUIRED     ON)
 set(CMAKE_CXX_EXTENSIONS            OFF)
 
-
-# Android specifics.
-if(ANDROID)
-  # Force targetting 32-bit ARM processors on armeabi.
-  set(CMAKE_ANDROID_ARM_MODE        ON)
-  # Force targetting ARM NEON devices on armeabi-v7a.
-  set(CMAKE_ANDROID_ARM_NEON        ON)
-  # [tmp] Capture renamed definitions.
-  if(NOT DEFINED ANDROID_ABI)
-    set(ANDROID_ABI ${CMAKE_ANDROID_ARCH_ABI})
-  endif()
-  if(NOT DEFINED ANDROID_NDK)
-    set(ANDROID_NDK ${CMAKE_ANDROID_NDK})
-  endif()
-  if (${ANDROID_PLATFORM_LEVEL} LESS 29)
-    message(FATAL_ERROR "Android is not supported before API level 29.")
-  endif()
-
-  set(CLANG_TIDY_PATH
-    "${ANDROID_TOOLCHAIN_ROOT}/bin/clang-tidy${ANDROID_TOOLCHAIN_SUFFIX}"
-  )
-  set(CMAKE_CXX_CLANG_TIDY ${CLANG_TIDY_PATH} "-checks=android-*")
-endif()
-
 # -----------------------------------------------------------------------------
 # Custom functions
 # -----------------------------------------------------------------------------
@@ -111,8 +87,6 @@ function(set_target_output_directory target output_dir)
   endforeach()
 endfunction()
 
-set_global_output_directory(${PROJECT_BINARY_DIR})
-
 function(helpers_findLibM)
   # Chuck Atkins @ https://cmake.org/pipermail/cmake/2019-March/069168.html
   include(CheckCSourceCompiles)
@@ -130,7 +104,6 @@ function(helpers_findLibM)
     set(LIBM_LIBRARIES m)
   endif()
 endfunction(helpers_findLibM)
-
 
 function(download_asset assets_dir url)
   file(MAKE_DIRECTORY ${assets_dir})
@@ -163,8 +136,37 @@ function(download_texture url)
 endfunction()
 
 # -----------------------------------------------------------------------------
+# Custom macros
+# -----------------------------------------------------------------------------
+
+## {MACRO} Setup the default parameters for a target.
+##   @TARGET        : Unique name referencing the library as dependency.
+##   @INCLUDE_DIRS  : List of path for include files.
+##   @LIBRARIES     : List of libraries to link against.
+##   @DEFINITIONS   : List of definitions.
+macro(helpers_setupTarget)
+  set(oneValueArgs TARGET)
+  set(multiValueArgs INCLUDE_DIRECTORIES LIBRARIES DEFINITIONS)
+  cmake_parse_arguments(ARG "" "${oneValueArgs}" "${multiValueArgs}" "${ARGN}")
+  target_compile_options(
+    ${ARG_TARGET}
+    PRIVATE
+    "${CXX_FLAGS}"
+    "$<$<CONFIG:Debug>:${CXX_FLAGS_DEBUG}>"
+    "$<$<CONFIG:Release>:${CXX_FLAGS_RELEASE}>"
+    "$<$<CONFIG:DebugWithRelInfo>:${CXX_FLAGS_RELWITHDEBINFO}>"
+  )
+  target_include_directories(${ARG_TARGET} PRIVATE "${ARG_INCLUDE_DIRECTORIES}")
+  target_link_libraries(${ARG_TARGET} PRIVATE "${ARG_LIBRARIES}")
+  target_compile_definitions(${ARG_TARGET} PRIVATE "${ARG_DEFINITIONS}")
+  set_target_properties(${ARG_TARGET} PROPERTIES LINK_FLAGS "${CXX_LINK_FLAGS}")
+endmacro()
+
+# -----------------------------------------------------------------------------
 # Internal configuration attributes.
 # -----------------------------------------------------------------------------
+
+set_global_output_directory(${PROJECT_BINARY_DIR})
 
 # Detects if the build is flagged for full debug mode.
 if(CMAKE_BUILD_TYPE MATCHES "Debug")
@@ -184,6 +186,29 @@ elseif(WIN32)
 elseif(ANDROID)
   set(OS_NAME "Android")
   set(OS_ANDROID TRUE)
+
+  # --------------------------------------------------------
+  if (${ANDROID_PLATFORM_LEVEL} LESS 29)
+    message(FATAL_ERROR "Android is not supported before API level 29.")
+  endif()
+
+  # Capture renamed definitions.
+  if(NOT DEFINED ANDROID_ABI)
+    set(ANDROID_ABI ${CMAKE_ANDROID_ARCH_ABI})
+  endif()
+  if(NOT DEFINED ANDROID_NDK)
+    set(ANDROID_NDK ${CMAKE_ANDROID_NDK})
+  endif()
+
+  # Setup clang tidy.
+  if (DEBUG)
+    set(CLANG_TIDY_PATH
+      "${ANDROID_TOOLCHAIN_ROOT}/bin/clang-tidy${ANDROID_TOOLCHAIN_SUFFIX}"
+    )
+    set(CMAKE_CXX_CLANG_TIDY ${CLANG_TIDY_PATH} "-checks=android-*")
+  endif()
+  # --------------------------------------------------------
+
 else()
   message(WARNING "The \"${CMAKE_SYSTEM_NAME}\" platform is not supported.")
 endif()
@@ -490,6 +515,8 @@ endif()
 helpers_findLibM()
 
 # -----------------------------------------------------------------------------
+# Shared dependencies.
+# -----------------------------------------------------------------------------
 
 list(APPEND SharedLibs
   volk
@@ -507,6 +534,18 @@ list(APPEND SharedIncludeDirs
   ${CGLTF_INCLUDE_DIR}
   ${LINALG_INCLUDE_DIR}
   ${imgui_SOURCE_DIR}
+)
+
+list(APPEND CustomDefinitions
+  ASSETS_DIR="${PROJECT_ASSETS_DIR}/"
+
+  FRAMEWORK_COMPILED_SHADERS_DIR="${FRAMEWORK_COMPILED_SHADERS_DIR}/" #!
+
+  # Define VK_NO_PROTOTYPES to avoid including Vulkan prototypes
+  # This is necessary because we are using volk to load Vulkan functions
+  VK_NO_PROTOTYPES=1
+
+  _USE_MATH_DEFINES=1
 )
 
 # -----------------------------------------------------------------------------

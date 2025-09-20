@@ -8,6 +8,12 @@ ext {
   rootDir = file("../")
 }
 
-// tasks.register('clean', Delete) {
-//   delete rootProject.buildDir
+// tasks.named("clean") {
+//   doLast {
+//     rootProject.subprojects.each { sub ->
+//       delete "${sub.projectDir}/build"
+//       delete "${sub.projectDir}/.externalNativeBuild"
+//       delete "${sub.projectDir}/.cxx"
+//     }
+//   }
 // }

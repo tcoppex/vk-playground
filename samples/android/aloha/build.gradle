@@ -4,7 +4,7 @@ plugins {
 
 // ----------------------------------------------------------------------------
 
-def appName = "$projectDir"
+def appName = projectDir.name
 def packageName = "${rootProject.ext.orgPrefix}.samples.${appName}"
 
 // ----------------------------------------------------------------------------
@@ -14,7 +14,8 @@ base {
 }
 
 android {
-  namespace packageName
+  namespace = packageName
+  compileSdk = 36
 
   defaultConfig {
     applicationId packageName
@@ -30,6 +31,7 @@ android {
 
     externalNativeBuild {
       ndk {
+        //noinspection ChromeOsAbiSupport
         abiFilters "arm64-v8a"
       }
       cmake {

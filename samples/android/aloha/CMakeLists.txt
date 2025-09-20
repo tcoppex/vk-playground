@@ -1,48 +1,43 @@
 # -----------------------------------------------------------------------------
-# 
-#  aloha
-# 
-# -----------------------------------------------------------------------------
 
-set(target aloha)
+set(SAMPLE_ROOT_PATH        ${CMAKE_CURRENT_SOURCE_DIR})
+set(SAMPLE_SOURCE_DIR       ${SAMPLE_ROOT_PATH}/src/cpp)
 
-set(SAMPLE_ROOT_PATH               ${CMAKE_CURRENT_SOURCE_DIR})
-set(SAMPLE_SOURCE_DIR              ${SAMPLE_ROOT_PATH}/src/cpp)
+get_filename_component(target ${SAMPLE_ROOT_PATH} NAME)
 
 # -----------------------------------------------------------------------------
 
 file(GLOB_RECURSE Sources
   ${SAMPLE_SOURCE_DIR}/*.cc
+  ${SAMPLE_SOURCE_DIR}/*.h
 )
 
-list(APPEND CustomIncludeDirs
-  ${SAMPLE_SOURCE_DIR}
-  ${WAFFLE_INCLUDE_DIRS}
-)
-
-list(APPEND CustomLibs
-  ${WAFFLE_LIBRARIES}
-  ${WAFFLE_FRAMEWORK_LIBRARIES}
-)
-
-list(APPEND CustomDefinitions
-  ${WAFFLE_DEFINITIONS}
-)
+# compile_shaders(
+#   ${SAMPLE_PATH}/shaders/glsl
+#   ${SAMPLE_PATH}/shaders/spirv
+#   shaders_bin
+#   shaders_src
+#   ${FRAMEWORK_SHADERS_DIR}
+# )
 
 # -----------------------------------------------------------------------------
 
-if(ANDROID)
-  add_library(${target} MODULE ${Sources})
-endif()
+add_library(${target} MODULE ${Sources})
 
 helpers_setupTarget(
   TARGET
     ${target}
+
   INCLUDE_DIRECTORIES
-    ${CustomIncludeDirs}
+    ${SAMPLE_SOURCE_DIR}
+    ${SharedIncludeDirs}
+
   LIBRARIES
-    ${CustomLibs}
+    ${FRAMEWORK_LIBRARIES}
+    ${SharedLibs}
+
   DEFINITIONS
+    COMPILED_SHADERS_DIR="${SAMPLE_PATH}/shaders/spirv/" #!!!!
     ${CustomDefinitions}
 )
 
