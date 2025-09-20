@@ -25,6 +25,28 @@ struct WMAndroid final : public WMInterface {
     return visible && resumed;
   }
 
+  void* get_handle() const noexcept final {
+    return native_window;
+  }
+
+  // -------------------------------------------
+  std::vector<char const*> getVulkanInstanceExtensions() const noexcept final {
+    return {}
+  }
+
+  VkResult createWindowSurface(VkInstance instance, VkSurfaceKHR *surface) const noexcept final {
+    return VK_FAILURE;
+  }
+
+  void shutdown() final {}
+  void setTitle(std::string_view title) const noexcept final {}
+  void close() noexcept final {}
+
+  uint32_t get_surface_width() const noexcept final { return 0u; } //
+  uint32_t get_surface_height() const noexcept final { return 0u; } //
+  // -------------------------------------------
+
+ public:
   void addAppCmdCallbacks(std::shared_ptr<AppCmdCallbacks> callbacks) {
     appCmdCallbacks_.push_back(callbacks);
   }

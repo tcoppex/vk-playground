@@ -331,7 +331,7 @@ class RenderPassEncoder : public GenericCommandEncoder {
 
   void bind_index_buffer(backend::Buffer const& buffer, VkIndexType const index_type = VK_INDEX_TYPE_UINT32, VkDeviceSize const offset = 0u, VkDeviceSize const size = VK_WHOLE_SIZE) const {
     // VK_KHR_maintenance5 or VK_VERSION_1_4
-    vkCmdBindIndexBuffer2(command_buffer_, buffer.buffer, offset, size, index_type);
+    vkCmdBindIndexBuffer2KHR(command_buffer_, buffer.buffer, offset, size, index_type);
   }
 
   // --- Draw ---

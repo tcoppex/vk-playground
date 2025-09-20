@@ -1,7 +1,11 @@
 #include "framework/application.h"
 #include "framework/core/platform/events.h"
 
+// -----------------
+#if !defined(ANDROID)
 #include "framework/core/platform/desktop/window/window.h" //
+#endif
+// -----------------
 
 #if defined(_WIN32)
   #include <windows.h> // for SetConsoleOutputCP
@@ -61,10 +65,19 @@ bool Application::presetup() {
     Events::Initialize();
   }
 
+
+#if defined(ANDROID)
+  LOGE("not implemented");
+#else
+  // -----------------
   /* Create the main window surface. */
   if (wm_ = std::make_unique<Window>(); !wm_ || !wm_->init()) {
     return false;
   }
+  // -----------------
+#endif
+
+  // ----------------------------------------------------------
 
   /* Initialize the Vulkan context. */
   if (!context_.init(wm_->getVulkanInstanceExtensions())) {
@@ -78,6 +91,8 @@ bool Application::presetup() {
 
   /* Initialize the default renderer. */
   renderer_.init(context_, context_.allocator_ptr(), surface_);
+
+  // ----------------------------------------------------------
 
   /* Initialize User Interface. */
   if (ui_ = std::make_unique<UIController>(); !ui_ || !ui_->init(renderer_, *wm_)) {
@@ -105,15 +120,16 @@ bool Application::presetup() {
 void Application::shutdown() {
   CHECK_VK(vkDeviceWaitIdle(context_.device()));
 
-  // User defined clean up.
   release();
-
   ui_->release(context_);
 
   renderer_.deinit();
-  vkDestroySurfaceKHR(context_.instance(), surface_, nullptr);
 
-  glfwTerminate();
+  // ----------
+  vkDestroySurfaceKHR(context_.instance(), surface_, nullptr);
+  wm_->shutdown();
+  // ----------
+
   context_.deinit();
 
   Events::Deinitialize();
