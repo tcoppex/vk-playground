@@ -20,6 +20,9 @@ class RayTracingSceneInterface;
 ///   - RayTracing, for scene data that could change (eg. raytracing instances)
 ///
 class DescriptorSetRegistry {
+ private:
+  static constexpr uint32_t kMaxNumTextures = 512u; //
+
  public:
   enum class Type {
     Frame,

@@ -204,8 +204,8 @@ void DescriptorSetRegistry::init_descriptor_pool(uint32_t const max_sets) {
   /* Default pool, to adjust based on application needs. */
   descriptor_pool_sizes_ = {
     { VK_DESCRIPTOR_TYPE_SAMPLER, 50 },                 // standalone samplers
-    { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 300 }, // textures in materials
-    { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 100 },          // sampled images
+    { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1024 }, // textures in materials
+    { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1024 },          // sampled images
     { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 50 },           // compute shaders
     { VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 50 },    // texel buffers
     { VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 50 },    // storage texel buffers
@@ -240,8 +240,6 @@ void DescriptorSetRegistry::init_descriptor_pool(uint32_t const max_sets) {
 // ----------------------------------------------------------------------------
 
 void DescriptorSetRegistry::init_descriptor_sets() {
-  static constexpr uint32_t kMaxNumTextures = 128u; //
-
   VkShaderStageFlags extra_stage_flags{
       VK_SHADER_STAGE_RAYGEN_BIT_KHR
     | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR
