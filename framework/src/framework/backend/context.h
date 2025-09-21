@@ -31,39 +31,48 @@ class Context {
 
   void deinit();
 
-  VkInstance instance() const {
+  [[nodiscard]]
+  VkInstance instance() const noexcept {
     return instance_;
   }
 
-  VkPhysicalDevice physical_device() const {
+  [[nodiscard]]
+  VkPhysicalDevice physical_device() const noexcept {
     return gpu_;
   }
 
-  VkDevice device() const {
+  [[nodiscard]]
+  VkDevice device() const noexcept {
     return device_;
   }
 
-  backend::Queue const& queue(TargetQueue const target = TargetQueue::Main) const {
+  [[nodiscard]]
+  backend::Queue const& queue(TargetQueue const target = TargetQueue::Main) const noexcept {
     return queues_[target];
   }
 
-  backend::GPUProperties const& gpu_properties() const {
+  [[nodiscard]]
+  backend::GPUProperties const& gpu_properties() const noexcept {
     return properties_;
   }
 
-  ResourceAllocator* allocator_ptr() {
+  [[nodiscard]]
+  ResourceAllocator* allocator_ptr() noexcept {
     return resource_allocator_.get();
   }
 
-  ResourceAllocator const* allocator_ptr() const {
+  [[nodiscard]]
+  ResourceAllocator const* allocator_ptr() const noexcept {
     return resource_allocator_.get();
   }
 
-  ResourceAllocator& allocator() {
+  [[nodiscard]]
+  ResourceAllocator& allocator() noexcept {
     return *resource_allocator_;
   }
 
-  ResourceAllocator const& allocator() const {
+  [[nodiscard]]
+  ResourceAllocator const& allocator() const noexcept {
     return *resource_allocator_;
   }
 
@@ -73,6 +82,7 @@ class Context {
 
   // --- Image ---
 
+  [[nodiscard]]
   backend::Image create_image_2d(
     uint32_t width,
     uint32_t height,
@@ -83,10 +93,16 @@ class Context {
 
   // --- Shader Module ---
 
+  [[nodiscard]]
   backend::ShaderModule create_shader_module(std::string_view directory, std::string_view shader_name) const;
+
+  [[nodiscard]]
   backend::ShaderModule create_shader_module(std::string_view filepath) const;
 
+  [[nodiscard]]
   std::vector<backend::ShaderModule> create_shader_modules(std::string_view directory, std::vector<std::string_view> const& shader_names) const;
+
+  [[nodiscard]]
   std::vector<backend::ShaderModule> create_shader_modules(std::vector<std::string_view> const& filepaths) const;
 
   void release_shader_module(backend::ShaderModule const& shader) const;
@@ -94,6 +110,7 @@ class Context {
 
   // --- Command Encoder ---
 
+  [[nodiscard]]
   CommandEncoder create_transient_command_encoder(Context::TargetQueue const& target_queue = TargetQueue::Main) const;
 
   void finish_transient_command_encoder(CommandEncoder const& encoder) const;
@@ -107,7 +124,7 @@ class Context {
   ) const;
 
   template<typename T> requires (SpanConvertible<T>)
-  backend::Buffer create_buffer_and_upload(
+  [[nodiscard]] backend::Buffer create_buffer_and_upload(
     T const& host_data,
     VkBufferUsageFlags2KHR const usage,
     size_t const device_buffer_offset = 0u,
@@ -118,6 +135,7 @@ class Context {
     return create_buffer_and_upload(host_span.data(), bytesize, usage, device_buffer_offset, device_buffer_size);
   }
 
+  [[nodiscard]]
   backend::Buffer create_buffer_and_upload(
     void const* host_data,
     size_t const host_data_size,
@@ -164,7 +182,12 @@ class Context {
   }
 
   template<typename F>
-  bool add_device_feature(char const* extension_name, F& feature, VkStructureType sType, std::vector<char const*> const& dependencies = {}) {
+  bool add_device_feature(
+    char const* extension_name,
+    F& feature,
+    VkStructureType sType,
+    std::vector<char const*> const& dependencies = {}
+  ) {
     if (!has_extension(extension_name, available_device_extensions_)) {
       LOGI("[Vulkan] Feature extension \"%s\" is not available.\n", extension_name);
       return false;

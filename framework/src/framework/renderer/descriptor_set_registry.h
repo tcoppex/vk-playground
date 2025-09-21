@@ -42,13 +42,15 @@ class DescriptorSetRegistry {
   void release();
 
   /* Return an internal main DescriptorSet. */
-  DescriptorSet const& descriptor(Type type) const {
+  [[nodiscard]]
+  DescriptorSet const& descriptor(Type type) const noexcept {
     return sets_[type];
   };
 
  public:
   /* Methods to allocate custom descriptor set and layout. */
 
+  [[nodiscard]]
   VkDescriptorSetLayout create_layout(
     DescriptorSetLayoutParamsBuffer const& params,
     VkDescriptorSetLayoutCreateFlags flags
@@ -56,6 +58,7 @@ class DescriptorSetRegistry {
 
   void destroy_layout(VkDescriptorSetLayout &layout) const;
 
+  [[nodiscard]]
   VkDescriptorSet allocate_descriptor_set(
     VkDescriptorSetLayout const layout
   ) const;

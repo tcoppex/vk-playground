@@ -25,9 +25,11 @@ class RayTracingSceneInterface {
   ) = 0;
 
   /* Return the Top Level Acceleration Structure. */
+  [[nodiscard]]
   virtual backend::TLAS const& tlas() const = 0;
 
   /* Return the Instances data buffer. */
+  [[nodiscard]]
   virtual backend::Buffer instances_data_buffer() const = 0;
 
   // TODO:

@@ -175,20 +175,52 @@ class CommandEncoder : public GenericCommandEncoder {
 
   // --- Buffers ---
 
-  void copy_buffer(backend::Buffer const& src, backend::Buffer const& dst, std::vector<VkBufferCopy> const& regions) const;
+  void copy_buffer(
+    backend::Buffer const& src,
+    backend::Buffer const& dst,
+    std::vector<VkBufferCopy> const& regions
+  ) const;
 
-  size_t copy_buffer(backend::Buffer const& src, size_t src_offset, backend::Buffer const& dst, size_t dst_offet, size_t size) const;
+  size_t copy_buffer(
+    backend::Buffer const& src,
+    size_t src_offset,
+    backend::Buffer const& dst,
+    size_t dst_offet,
+    size_t size
+  ) const;
 
-  size_t copy_buffer(backend::Buffer const& src, backend::Buffer const& dst, size_t size) const {
+  size_t copy_buffer(
+    backend::Buffer const& src,
+    backend::Buffer const& dst,
+    size_t size
+  ) const {
     return copy_buffer(src, 0, dst, 0, size);
   }
 
-  void transfer_host_to_device(void const* host_data, size_t const host_data_size, backend::Buffer const& device_buffer, size_t const device_buffer_offset = 0u) const;
+  void transfer_host_to_device(
+    void const* host_data,
+    size_t const host_data_size,
+    backend::Buffer const& device_buffer,
+    size_t const device_buffer_offset = 0u
+  ) const;
 
-  backend::Buffer create_buffer_and_upload(void const* host_data, size_t const host_data_size, VkBufferUsageFlags2KHR const usage, size_t const device_buffer_offset = 0u, size_t const device_buffer_size = 0u) const;
+  [[nodiscard]]
+  backend::Buffer create_buffer_and_upload(
+    void const* host_data,
+    size_t const host_data_size,
+    VkBufferUsageFlags2KHR const usage,
+    size_t const device_buffer_offset = 0u,
+    size_t const device_buffer_size = 0u
+  ) const;
 
   template<typename T> requires (SpanConvertible<T>)
-  backend::Buffer create_buffer_and_upload(T const& host_data, VkBufferUsageFlags2KHR const usage = {}, size_t const device_buffer_offset = 0u, size_t const device_buffer_size = 0u) const {
+  [[nodiscard]]
+  backend::Buffer create_buffer_and_upload(
+    T const& host_data,
+    VkBufferUsageFlags2KHR const usage = {},
+    size_t const device_buffer_offset = 0u,
+    size_t const device_buffer_size = 0u
+  ) const {
     auto const host_span{ std::span(host_data) };
     size_t const bytesize{ sizeof(typename decltype(host_span)::element_type) * host_span.size() };
     return create_buffer_and_upload(host_span.data(), bytesize, usage, device_buffer_offset, device_buffer_size);
@@ -196,9 +228,18 @@ class CommandEncoder : public GenericCommandEncoder {
 
   // --- Images ---
 
-  void transition_images_layout(std::vector<backend::Image> const& images, VkImageLayout const src_layout, VkImageLayout const dst_layout) const;
+  void transition_images_layout(
+    std::vector<backend::Image> const& images,
+    VkImageLayout const src_layout,
+    VkImageLayout const dst_layout
+  ) const;
 
-  void copy_buffer_to_image(backend::Buffer const& src, backend::Image const& dst, VkExtent3D extent, VkImageLayout image_layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) const {
+  void copy_buffer_to_image(
+    backend::Buffer const& src,
+    backend::Image const& dst,
+    VkExtent3D extent,
+    VkImageLayout image_layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
+  ) const {
     VkBufferImageCopy const copy{
       .bufferOffset = 0lu,
       .bufferRowLength = 0u,
@@ -215,27 +256,35 @@ class CommandEncoder : public GenericCommandEncoder {
     vkCmdCopyBufferToImage(command_buffer_, src.buffer, dst.image, image_layout, 1u, &copy);
   }
 
-  void blit_image_2d(backend::Image const& src, VkImageLayout src_layout, backend::Image const& dst, VkImageLayout dst_layout, VkExtent2D const& extent) const;
+  void blit_image_2d(
+    backend::Image const& src,
+    VkImageLayout src_layout,
+    backend::Image const& dst,
+    VkImageLayout dst_layout,
+    VkExtent2D const& extent
+  ) const;
 
-  void blit(PostFxInterface const& fx_src, backend::RTInterface const& rt_dst) const;
+  void blit(
+    PostFxInterface const& fx_src,
+    backend::RTInterface const& rt_dst
+  ) const;
 
   // --- Rendering ---
 
   /* Dynamic rendering. */
-  RenderPassEncoder begin_rendering(RenderPassDescriptor const& desc) const;
-  RenderPassEncoder begin_rendering(backend::RTInterface const& render_target);
-  RenderPassEncoder begin_rendering(std::shared_ptr<backend::RTInterface> render_target);
-  RenderPassEncoder begin_rendering();
+  [[nodiscard]] RenderPassEncoder begin_rendering(RenderPassDescriptor const& desc) const;
+  [[nodiscard]] RenderPassEncoder begin_rendering(backend::RTInterface const& render_target);
+  [[nodiscard]] RenderPassEncoder begin_rendering(std::shared_ptr<backend::RTInterface> render_target);
+  [[nodiscard]] RenderPassEncoder begin_rendering();
   void end_rendering();
 
   /* Legacy rendering. */
-  RenderPassEncoder begin_render_pass(backend::RPInterface const& render_pass) const;
+  [[nodiscard]] RenderPassEncoder begin_render_pass(backend::RPInterface const& render_pass) const;
   void end_render_pass() const;
 
   // --- UI ----
 
   void render_ui(backend::RTInterface &render_target);
-
 
  protected:
   CommandEncoder() = default;

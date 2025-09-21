@@ -47,23 +47,28 @@ class Renderer : public backend::RTInterface {
 
   void deinit();
 
+  [[nodiscard]]
   CommandEncoder begin_frame();
 
   void end_frame();
 
-  Swapchain const& swapchain() const {
+  [[nodiscard]]
+  Swapchain const& swapchain() const noexcept {
     return swapchain_;
   }
 
-  Context const& context() const {
+  [[nodiscard]]
+  Context const& context() const noexcept {
     return *ctx_ptr_;
   }
 
-  Skybox& skybox() {
+  [[nodiscard]]
+  Skybox& skybox() noexcept {
     return skybox_;
   }
 
-  Skybox const& skybox() const {
+  [[nodiscard]]
+  Skybox const& skybox() const noexcept {
     return skybox_;
   }
 
@@ -72,20 +77,26 @@ class Renderer : public backend::RTInterface {
 
   // --- Render Target (Dynamic Rendering) ---
 
+  [[nodiscard]]
   std::shared_ptr<RenderTarget> create_render_target() const;
 
+  [[nodiscard]]
   std::shared_ptr<RenderTarget> create_render_target(RenderTarget::Descriptor_t const& desc) const;
 
+  [[nodiscard]]
   std::shared_ptr<RenderTarget> create_default_render_target(uint32_t num_color_outputs = 1u) const;
 
   // --- Framebuffer (Legacy Rendering) ---
 
+  [[nodiscard]]
   std::shared_ptr<Framebuffer> create_framebuffer() const;
 
+  [[nodiscard]]
   std::shared_ptr<Framebuffer> create_framebuffer(Framebuffer::Descriptor_t const& desc) const;
 
   // --- Pipeline Layout ---
 
+  [[nodiscard]]
   VkPipelineLayout create_pipeline_layout(PipelineLayoutDescriptor_t const& params) const;
 
   void destroy_pipeline_layout(VkPipelineLayout layout) const;
@@ -96,6 +107,7 @@ class Renderer : public backend::RTInterface {
 
   // --- Graphics Pipelines ---
 
+  [[nodiscard]]
   VkGraphicsPipelineCreateInfo get_graphics_pipeline_create_info(
     GraphicsPipelineCreateInfoData_t &data,
     VkPipelineLayout pipeline_layout,
@@ -110,18 +122,21 @@ class Renderer : public backend::RTInterface {
   ) const;
 
   // Create a graphics pipeline with a pre-defined layout.
+  [[nodiscard]]
   Pipeline create_graphics_pipeline(
     VkPipelineLayout pipeline_layout,
     GraphicsPipelineDescriptor_t const& desc
   ) const;
 
   // Create a graphics pipeline and a layout based on description.
+  [[nodiscard]]
   Pipeline create_graphics_pipeline(
     PipelineLayoutDescriptor_t const& layout_desc,
     GraphicsPipelineDescriptor_t const& desc
   ) const;
 
   // Create a graphics pipeline with a default empty layout.
+  [[nodiscard]]
   Pipeline create_graphics_pipeline(
     GraphicsPipelineDescriptor_t const& desc
   ) const;
@@ -134,6 +149,7 @@ class Renderer : public backend::RTInterface {
     Pipeline *pipelines
   ) const;
 
+  [[nodiscard]]
   Pipeline create_compute_pipeline(
     VkPipelineLayout pipeline_layout,
     backend::ShaderModule const& module
@@ -141,6 +157,7 @@ class Renderer : public backend::RTInterface {
 
   // --- Ray Tracing Pipelines ---
 
+  [[nodiscard]]
   Pipeline create_raytracing_pipeline(
     VkPipelineLayout pipeline_layout,
     RayTracingPipelineDescriptor_t const& desc
@@ -148,10 +165,12 @@ class Renderer : public backend::RTInterface {
 
   // --- Descriptor Set Registry ---
 
-  DescriptorSetRegistry const& descriptor_set_registry() const {
+  [[nodiscard]]
+  DescriptorSetRegistry const& descriptor_set_registry() const noexcept {
     return descriptor_set_registry_;
   }
 
+  [[nodiscard]]
   VkDescriptorSetLayout create_descriptor_set_layout(
     DescriptorSetLayoutParamsBuffer const& params,
     VkDescriptorSetLayoutCreateFlags flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT
@@ -159,8 +178,10 @@ class Renderer : public backend::RTInterface {
 
   void destroy_descriptor_set_layout(VkDescriptorSetLayout& layout) const;
 
+  [[nodiscard]]
   VkDescriptorSet create_descriptor_set(VkDescriptorSetLayout const layout) const;
 
+  [[nodiscard]]
   VkDescriptorSet create_descriptor_set(VkDescriptorSetLayout const layout, std::vector<DescriptorSetWriteEntry> const& entries) const;
 
   // --- Texture ---
@@ -171,24 +192,30 @@ class Renderer : public backend::RTInterface {
 
   // --- Sampler ---
 
-  VkSampler default_sampler() const {
+  [[nodiscard]]
+  VkSampler default_sampler() const noexcept {
     return sampler_pool_.default_sampler();
   }
 
-  SamplerPool& sampler_pool() {
+  [[nodiscard]]
+  SamplerPool& sampler_pool() noexcept {
     return sampler_pool_;
   }
 
-  SamplerPool const& sampler_pool() const {
+  [[nodiscard]]
+  SamplerPool const& sampler_pool() const noexcept {
     return sampler_pool_;
   }
 
   // --- GPUResources gltf objects ---
 
+  [[nodiscard]]
   GLTFScene load_and_upload(std::string_view gltf_filename, scene::Mesh::AttributeLocationMap const& attribute_to_location);
 
+  [[nodiscard]]
   GLTFScene load_and_upload(std::string_view gltf_filename);
 
+  [[nodiscard]]
   std::future<GLTFScene> async_load_to_device(std::string const& filename) {
     // [might be incorrect if async spawn a thread, as there is GPU transfer here]
     return utils::RunTaskGeneric<GLTFScene>([this, filename] {
@@ -245,7 +272,7 @@ class Renderer : public backend::RTInterface {
   }
 
  private:
-  VkFormat get_valid_depth_format() const {
+  VkFormat get_valid_depth_format() const noexcept {
     return VK_FORMAT_D24_UNORM_S8_UINT
            // VK_FORMAT_D16_UNORM  //
            // VK_FORMAT_D32_SFLOAT //

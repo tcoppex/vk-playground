@@ -15,7 +15,7 @@ class SamplerPool {
     LOG_CHECK( device_ == VK_NULL_HANDLE );
   }
 
-  void init(VkDevice device) {
+  void init(VkDevice device) noexcept {
     device_ = device;
 
     default_sampler_ = get({
@@ -39,10 +39,12 @@ class SamplerPool {
     *this = {};
   }
 
-  VkSampler default_sampler() const {
+  [[nodiscard]]
+  VkSampler default_sampler() const noexcept {
     return default_sampler_;
   }
 
+  [[nodiscard]]
   VkSampler get(VkSamplerCreateInfo info) const {
     info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
     if (auto it = map_.find(info); it != map_.end()) {
@@ -53,6 +55,7 @@ class SamplerPool {
     return sampler;
   }
 
+  [[nodiscard]]
   VkSampler convert(scene::Sampler const& scene_sampler) const {
     return scene_sampler.use_default() ? default_sampler_
                                        : get(scene_sampler.info)
@@ -99,6 +102,7 @@ class SamplerPool {
     }
   };
 
+  [[nodiscard]]
   VkSampler createSampler(VkSamplerCreateInfo info) const {
     LOG_CHECK( device_ != VK_NULL_HANDLE );
     VkSampler sampler{};

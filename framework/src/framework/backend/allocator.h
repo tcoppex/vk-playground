@@ -25,6 +25,7 @@ class ResourceAllocator {
 
   // ----- Buffer -----
 
+  [[nodiscard]]
   backend::Buffer create_buffer(
     VkDeviceSize const size,
     VkBufferUsageFlags2KHR const usage,   // !! require maintenance5 !!
@@ -33,13 +34,14 @@ class ResourceAllocator {
   ) const;
 
   // [should return a std::unique_ptr !!]
+  [[nodiscard]]
   backend::Buffer create_staging_buffer(
     size_t const bytesize = kDefaultStagingBufferSize,
     void const* host_data = nullptr,
     size_t host_data_size = 0u
   ) const;
 
-  template<typename T>
+  template<typename T> [[nodiscard]]
   backend::Buffer create_staging_buffer(std::span<T> const& host_data) const {
     return create_staging_buffer(sizeof(T) * host_data.size(), host_data.data());
   }
