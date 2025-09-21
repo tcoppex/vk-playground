@@ -34,8 +34,8 @@ class SampleApp final : public Application {
       camera_.setController(&arcball_controller_);
 
       arcball_controller_.setTarget(vec3(-1.25f, 0.75f, 0.0f));
-      arcball_controller_.setView(lina::kPi/16.0f, lina::kPi/6.0f, false);
-      arcball_controller_.setDolly(5.0f, false);
+      arcball_controller_.setView(lina::kPi/16.0f, lina::kPi/6.0f);
+      arcball_controller_.setDolly(5.0f);
     }
 
     /* Load a glTF Scene. */

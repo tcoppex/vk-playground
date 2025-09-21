@@ -240,9 +240,9 @@ class SampleApp final : public Application {
       );
       camera_.setController(&arcball_controller_);
 
-      arcball_controller_.setTarget(vec3f(0.0f, 1.0f, 0.0), false);
-      arcball_controller_.setView(0.0f, 0.0f, false);
-      arcball_controller_.setDolly(3.5f, false);
+      arcball_controller_.setTarget(vec3f(0.0f, 1.0f, 0.0));
+      arcball_controller_.setView(0.0f, 0.0f);
+      arcball_controller_.setDolly(3.5f);
     }
 
     // -------------------------------

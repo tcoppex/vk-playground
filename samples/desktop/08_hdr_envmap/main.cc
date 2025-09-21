@@ -46,8 +46,8 @@ class SampleApp final : public Application {
       );
       camera_.setController(&arcball_controller_);
 
-      arcball_controller_.setView(lina::kTwoPi/16.0f, lina::kTwoPi/8.0f, false);
-      arcball_controller_.setDolly(4.0f, false);
+      arcball_controller_.setView(lina::kTwoPi/16.0f, lina::kTwoPi/8.0f);
+      arcball_controller_.setDolly(4.0f);
 
       host_data_.scene = {
         .projectionMatrix = camera_.proj(),

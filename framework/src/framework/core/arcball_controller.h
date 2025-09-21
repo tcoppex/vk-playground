@@ -152,7 +152,7 @@ class ArcBallController : public Camera::ViewController {
   // Used to smooth transition, to factor with deltatime.
   static double constexpr kSmoothingCoeff         = 12.0f;
 
-  static bool constexpr kDefaultSmoothTransition  = true;
+  static bool constexpr kDefaultSmoothTransition  = false;
   static bool constexpr kDefaultFastestPitchAngle = true;
 
   double last_mouse_x_;
