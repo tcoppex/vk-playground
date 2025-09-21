@@ -213,8 +213,8 @@ void GPUResources::update(
 
   using SortKey = std::pair<float, size_t>; // (depthProxy, index)
   std::vector<SortKey> sortkeys{};
-  vec3 const camera_dir{camera.direction()};
   SubMeshBuffer swap_buffer{};
+  auto const camera_dir = camera.direction();
 
   auto sort_submeshes = [&](SubMeshBuffer &submeshes, auto comp) {
     sortkeys = {};
@@ -299,8 +299,8 @@ void GPUResources::set_ray_tracing_fx(RayTracingFx* fx) {
 // ----------------------------------------------------------------------------
 
 void GPUResources::upload_images(Context const& context) {
-  assert(total_image_size > 0);
-  assert(allocator_ptr_ != nullptr);
+  LOG_CHECK( total_image_size > 0 );
+  LOG_CHECK( allocator_ptr_ != nullptr );
 
   /* Create a staging buffer. */
   backend::Buffer staging_buffer{
@@ -312,10 +312,9 @@ void GPUResources::upload_images(Context const& context) {
   std::vector<VkBufferImageCopy> copies{};
   copies.reserve(host_images.size());
 
-  // uint32_t channel_index = 0u;
-  uint64_t staging_offset = 0u;
+  uint64_t staging_offset = 0lu;
   for (auto const& host_image : host_images) {
-    VkExtent3D const extent{
+    auto const extent = VkExtent3D{
       .width = static_cast<uint32_t>(host_image.width),
       .height = static_cast<uint32_t>(host_image.height),
       .depth = 1u,
@@ -328,7 +327,7 @@ void GPUResources::upload_images(Context const& context) {
     ));
 
     /* Upload image to staging buffer */
-    uint32_t const img_bytesize{ host_image.getBytesize() };
+    auto const img_bytesize = host_image.getBytesize();
     allocator_ptr_->write_buffer(
       staging_buffer, staging_offset, host_image.getPixels(), 0u, img_bytesize
     );
@@ -428,7 +427,7 @@ void GPUResources::upload_buffers(Context const& context) {
     allocator_ptr_->create_staging_buffer(vertex_buffer_size + index_buffer_size + transforms_buffer_size)
   };
   {
-    size_t vertex_offset{0u};
+    size_t vertex_offset{0lu};
     size_t index_offset{vertex_buffer_size};
 
     // Transfer the attributes & indices by ranges.
@@ -459,7 +458,7 @@ void GPUResources::upload_buffers(Context const& context) {
   /* Copy device data from staging buffers to their respective buffers. */
   auto cmd = context.create_transient_command_encoder(Context::TargetQueue::Transfer);
   {
-    size_t src_offset{0};
+    size_t src_offset{0lu};
 
     src_offset = cmd.copy_buffer(staging_buffer, src_offset, vertex_buffer, 0u, vertex_buffer_size);
 

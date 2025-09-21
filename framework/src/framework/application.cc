@@ -9,7 +9,6 @@
 #endif
 // -----------------
 
-
 /* -------------------------------------------------------------------------- */
 
 int Application::run() {
@@ -26,7 +25,7 @@ int Application::run() {
 
   while (nextFrame()) {
     /* Clock */
-    float tick = elapsed_time();
+    auto const tick = elapsed_time();
     last_frame_time_ = frame_time_;
     frame_time_ = tick;
 

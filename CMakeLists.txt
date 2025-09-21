@@ -1,31 +1,12 @@
 cmake_minimum_required(VERSION 3.22.1)
 
 # -----------------------------------------------------------------------------
-# CMake policies.
-# -----------------------------------------------------------------------------
-
-# Enable the use of "VERSION" for project setting in older cmake version.
-if(POLICY CMP0048)
-  cmake_policy(SET CMP0048 NEW)
-endif()
-
-# Use <PackageName>_ROOT variables.
-if(POLICY CMP0074)
-  cmake_policy(SET CMP0074 NEW)
-endif()
-
-# Honor CMAKE_REQUIRED_LIBRARIES in the include file check macros.
-if(POLICY CMP0075)
-  cmake_policy(SET CMP0075 NEW)
-endif()
-
-# -----------------------------------------------------------------------------
 # Project.
 # -----------------------------------------------------------------------------
 
 set(PROJECT_NAME vk_playground)
 
-project(${PROJECT_NAME} VERSION 0.1 LANGUAGES CXX C)
+project(${PROJECT_NAME} VERSION 0.2 LANGUAGES CXX C)
 
 # -----------------------------------------------------------------------------
 # Paths.
@@ -47,9 +28,6 @@ set(FRAMEWORK_COMPILED_SHADERS_DIR  ${PROJECT_BINARY_DIR}/spirv)
 # -----------------------------------------------------------------------------
 # CMake settings.
 # -----------------------------------------------------------------------------
-
-# CMake module path.
-# list(APPEND CMAKE_MODULE_PATH       ${PROJECT_TOOLS_DIR}/cmake)
 
 # Default CMake behavior.
 set(CMAKE_VERBOSE_MAKEFILE          OFF)
@@ -166,8 +144,6 @@ endmacro()
 # Internal configuration attributes.
 # -----------------------------------------------------------------------------
 
-set_global_output_directory(${PROJECT_BINARY_DIR})
-
 # Detects if the build is flagged for full debug mode.
 if(CMAKE_BUILD_TYPE MATCHES "Debug")
   set(DEBUG TRUE)
@@ -186,7 +162,13 @@ elseif(WIN32)
 elseif(ANDROID)
   set(OS_NAME "Android")
   set(OS_ANDROID TRUE)
+else()
+  message(WARNING "The \"${CMAKE_SYSTEM_NAME}\" platform is not supported.")
+endif()
 
+message(STATUS "Configured for system \"${OS_NAME}\"")
+
+if (ANDROID)
   # --------------------------------------------------------
   if (${ANDROID_PLATFORM_LEVEL} LESS 29)
     message(FATAL_ERROR "Android is not supported before API level 29.")
@@ -202,18 +184,17 @@ elseif(ANDROID)
 
   # Setup clang tidy.
   if (DEBUG)
+    message(STATUS "clang-tidy enabled.")
     set(CLANG_TIDY_PATH
       "${ANDROID_TOOLCHAIN_ROOT}/bin/clang-tidy${ANDROID_TOOLCHAIN_SUFFIX}"
     )
     set(CMAKE_CXX_CLANG_TIDY ${CLANG_TIDY_PATH} "-checks=android-*")
   endif()
   # --------------------------------------------------------
-
 else()
-  message(WARNING "The \"${CMAKE_SYSTEM_NAME}\" platform is not supported.")
+  # On Desktop force all outputs to the binary directory.
+  set_global_output_directory(${PROJECT_BINARY_DIR})
 endif()
-
-message(STATUS "Configured for system \"${OS_NAME}\"")
 
 # Detects the current compiler.
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
@@ -223,7 +204,7 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "(Apple)?[Cc]lang")
 elseif(MSVC)
   set(USE_MSVC TRUE)
 else()
-  message(WARNING "The \"${CMAKE_CXX_COMPILER_ID}\" compiler is not supported.")
+  message(WARNING "The \"${CMAKE_CXX_COMPILER_ID}\" compiler is not officially supported.")
 endif()
 
 # -----------------------------------------------------------------------------
@@ -258,7 +239,7 @@ if(USE_GCC OR USE_CLANG)
     # -Wundef
   )
 
-  # To avoid warnings about the previous mismatched GCC / Clang options.
+  # Clang specific warnings.
   if(USE_CLANG)
     list(APPEND CXX_FLAGS
       -Wno-unknown-warning-option
@@ -298,6 +279,32 @@ if(USE_GCC OR USE_CLANG)
       VK_USE_PLATFORM_ANDROID_KHR=1
     )
   endif()
+elseif(USE_MSVC)
+  # list(APPEND CXX_FLAGS
+  #   /W4           # Warning level 4 (strict warnings, less noisy than /Wall)
+  #   /w14640       # Warn about thread-unsafe static member initialization
+  #   /w14928       # Warn about illegal copy-initialization
+  #   /w14265       # class has virtual functions but non-virtual destructor
+  #   /w14555       # Warn about expressions with no effect/side-effect
+  #   /wd4100       # Disable: "unused parameter" warnings
+  #   /MP           # build with multiple process.
+  #   #/EHsc-       # no exception
+  #   #/GR-         # disable RTTI
+  #   /permissive-
+  # )
+  # list(APPEND CXX_FLAGS_DEBUG           /Zi)
+  # list(APPEND CXX_FLAGS_RELEASE         /Ox /INCREMENTAL:NO /DEBUG:NONE /DNDEBUG)
+  # list(APPEND CXX_FLAGS_RELWITHDEBINFO  ${CXX_FLAGS_RELEASE} /Ox /Zi)
+
+  # list(APPEND CustomDefinitions
+  #   NOMINMAX
+  #   WIN32
+  #   _WINDOWS
+  #   _CRT_SECURE_NO_WARNINGS
+  #   # _HAS_EXCEPTIONS=0
+  #   VC_EXTRALEAN
+  #   WIN32_LEAN_AND_MEAN
+  # )
 endif()
 
 # Transform linker flags from a list to a string.
@@ -335,7 +342,7 @@ if(ANDROID)
   find_library(ANDROID_LIBRARY     NAMES android)
   find_library(ANDROID_LOG_LIBRARY NAMES log)
 
-  list(APPEND SharedLibs #FRAMEWORK_ANDROID_LIBRARIES
+  list(APPEND SharedLibs
     ${ANDROID_LIBRARY}
     ${ANDROID_LOG_LIBRARY}
   )
@@ -350,12 +357,12 @@ if(ANDROID)
   add_library(
     android_native_app_glue
     OBJECT
-    "${ANDROID_NATIVE_APP_GLUE_PATH}/android_native_app_glue.c"
+      "${ANDROID_NATIVE_APP_GLUE_PATH}/android_native_app_glue.c"
   )
   target_include_directories(
     android_native_app_glue
     PUBLIC
-    "${ANDROID_NATIVE_APP_GLUE_PATH}"
+      "${ANDROID_NATIVE_APP_GLUE_PATH}"
   )
   target_compile_options(
     android_native_app_glue PRIVATE -Wno-unused-parameter
@@ -397,9 +404,8 @@ else() # DESKTOP
 endif()
 
 # Vulkan
+# Headers + Utility Libraries + Volk (dynamic extension loader)
 set(VULKAN_SDK_TAG vulkan-sdk-1.4.321.0)
-
-# Header + Utilities + Volk
 CPMAddPackage(
   NAME Vulkan-Headers
   GITHUB_REPOSITORY KhronosGroup/Vulkan-Headers
@@ -425,6 +431,13 @@ list(APPEND VULKAN_INCLUDE_DIR
   ${Vulkan-Utility-Libraries_SOURCE_DIR}/include
 )
 
+# Vulkan Memory Allocator (VMA)
+CPMAddPackage(
+  NAME VulkanMemoryAllocator
+  GITHUB_REPOSITORY GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator
+  GIT_TAG v3.2.0
+)
+set(VMA_INCLUDE_DIR  ${VulkanMemoryAllocator_SOURCE_DIR}/include)
 
 # CGLTF
 CPMAddPackage(
@@ -434,7 +447,7 @@ CPMAddPackage(
 )
 set(CGLTF_INCLUDE_DIR ${cgltf_SOURCE_DIR})
 
-# [WIP] Draco
+# [wip] Draco (not currently supported)
 # see https://github.com/google/draco/blob/1.5.7/BUILDING.md#cmake-build-configuration
 option(FRAMEWORK_HAS_DRACO OFF)
 if(FRAMEWORK_HAS_DRACO)
@@ -451,15 +464,7 @@ if(FRAMEWORK_HAS_DRACO)
   list(APPEND SharedLibs draco)
 endif()
 
-# VulkanMemoryAlloc
-CPMAddPackage(
-  NAME VulkanMemoryAllocator
-  GITHUB_REPOSITORY GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator
-  GIT_TAG v3.2.0
-)
-set(VMA_INCLUDE_DIR  ${VulkanMemoryAllocator_SOURCE_DIR}/include)
-
-# linalg
+# linalg (linear algebra single header)
 CPMAddPackage(
   NAME linalg
   GITHUB_REPOSITORY sgorsten/linalg
@@ -468,7 +473,7 @@ CPMAddPackage(
 )
 set(LINALG_INCLUDE_DIR ${linalg_SOURCE_DIR})
 
-# MikkTSpace as Static Lib
+# MikkTSpace (build as Static Lib)
 CPMAddPackage(
   NAME MikkTSpace
   GITHUB_REPOSITORY mmikk/MikkTSpace
@@ -526,9 +531,7 @@ list(APPEND SharedLibs
 list(APPEND SharedIncludeDirs
   ${FRAMEWORK_SOURCE_DIR} #!
   ${FRAMEWORK_SHADERS_DIR} #!
-
   ${PROJECT_THIRD_PARTY_DIR}
-
   ${VULKAN_INCLUDE_DIR}
   ${VMA_INCLUDE_DIR}
   ${CGLTF_INCLUDE_DIR}

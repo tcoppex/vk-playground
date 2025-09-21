@@ -406,9 +406,9 @@ void CommandEncoder::render_ui(backend::RTInterface &render_target) {
   auto const load_op = render_target.get_color_load_op();
   render_target.set_color_load_op(VK_ATTACHMENT_LOAD_OP_LOAD);
 
-  begin_rendering(render_target);
+  auto cmd = begin_rendering(render_target);
   // ----------------------------------------
-  ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), command_buffer_); // XXX
+  ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd.get_handle()); // XXX
   // ----------------------------------------
   end_rendering();
 
