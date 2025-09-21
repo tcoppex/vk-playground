@@ -168,6 +168,7 @@ endif()
 
 message(STATUS "Configured for system \"${OS_NAME}\"")
 
+# Customize based on platform.
 if (ANDROID)
   # --------------------------------------------------------
   if (${ANDROID_PLATFORM_LEVEL} LESS 29)
@@ -184,11 +185,11 @@ if (ANDROID)
 
   # Setup clang tidy.
   if (DEBUG)
-    message(STATUS "clang-tidy enabled.")
-    set(CLANG_TIDY_PATH
-      "${ANDROID_TOOLCHAIN_ROOT}/bin/clang-tidy${ANDROID_TOOLCHAIN_SUFFIX}"
-    )
-    set(CMAKE_CXX_CLANG_TIDY ${CLANG_TIDY_PATH} "-checks=android-*")
+    # message(STATUS "clang-tidy enabled.")
+    # set(CLANG_TIDY_PATH
+    #   "${ANDROID_TOOLCHAIN_ROOT}/bin/clang-tidy${ANDROID_TOOLCHAIN_SUFFIX}"
+    # )
+    # set(CMAKE_CXX_CLANG_TIDY ${CLANG_TIDY_PATH} "-checks=android-*")
   endif()
   # --------------------------------------------------------
 else()
@@ -251,7 +252,7 @@ if(USE_GCC OR USE_CLANG)
 
   # Features.
   list(APPEND CXX_FLAGS
-    -fdiagnostics-color
+    -fdiagnostics-color=always
     # -fno-strict-aliasing
     # -fno-builtin-memcmp
     # -fno-common
@@ -326,7 +327,10 @@ set(CPM_DOWNLOAD_VERSION 0.40.3)
 set(CPM_DOWNLOAD_LOCATION "${CMAKE_BINARY_DIR}/cmake/CPM_${CPM_DOWNLOAD_VERSION}.cmake")
 if(NOT (EXISTS ${CPM_DOWNLOAD_LOCATION}))
   message(STATUS "Downloading CPM.cmake...")
-  file(DOWNLOAD https://github.com/cpm-cmake/CPM.cmake/releases/download/v${CPM_DOWNLOAD_VERSION}/CPM.cmake ${CPM_DOWNLOAD_LOCATION})
+  file(DOWNLOAD
+    https://github.com/cpm-cmake/CPM.cmake/releases/download/v${CPM_DOWNLOAD_VERSION}/CPM.cmake
+    ${CPM_DOWNLOAD_LOCATION}
+  )
 endif()
 
 include(${CPM_DOWNLOAD_LOCATION})
