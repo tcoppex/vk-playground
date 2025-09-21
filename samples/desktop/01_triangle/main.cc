@@ -153,7 +153,6 @@ class SampleApp final : public Application {
        **/
       pass.set_viewport_scissor(viewport_size_, false);
 
-      // pass.bind_pipeline(graphics_pipeline_);
       pass.bind_pipeline(graphics_pipeline_);
       pass.bind_vertex_buffer(vertex_buffer_);
       pass.draw(kVertices.size());

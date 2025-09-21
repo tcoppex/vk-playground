@@ -15,12 +15,13 @@ void HostResources::setup() {
     host_images.reserve(kDefaultResourceSize);
     textures.reserve(kDefaultResourceSize);
 
-    auto push_default_texture{
-      [&textures = this->textures, &host_images = this->host_images]
-      (std::array<uint8_t, 4> const& c) -> uint32_t {
-        uint32_t const texture_id = textures.size();
-        textures.emplace_back( host_images.size() );
-        host_images.emplace_back( c[0], c[1], c[2], c[3] );
+    auto push_default_texture{[
+      &_textures = this->textures,
+      &_host_images = this->host_images
+    ] (std::array<uint8_t, 4> const& c) -> uint32_t {
+        uint32_t const texture_id = _textures.size();
+        _textures.emplace_back( _host_images.size() );
+        _host_images.emplace_back( c[0], c[1], c[2], c[3] );
         return texture_id;
       }
     };
@@ -83,63 +84,84 @@ bool HostResources::load_file(std::string_view filename) {
       auto run_task_ret     = utils::RunTaskGeneric<PointerToIndexMap_t>;
       auto run_task_sampler = utils::RunTaskGeneric<PointerToSamplerMap_t>;
 
-      auto taskSamplers = run_task_sampler([data, &samplers = this->samplers] {
-        return ExtractSamplers(data, samplers);
+      auto taskSamplers = run_task_sampler([
+        data,
+        &_samplers = this->samplers
+      ] {
+        return ExtractSamplers(data, _samplers);
       });
 
-      auto taskSkeletons = run_task_ret([data, &skeletons = this->skeletons] {
-        return ExtractSkeletons(data, skeletons);
+      auto taskSkeletons = run_task_ret([
+        data,
+        &_skeletons = this->skeletons
+      ] {
+        return ExtractSkeletons(data, _skeletons);
       });
 
       // [real bottleneck, internally images are loaded asynchronously and must be waited for at the end]
-      auto taskImageData = run_task_ret([data, &host_images = this->host_images] {
-        return ExtractImages(data, host_images);
+      auto taskImageData = run_task_ret([
+        data,
+        &_host_images = this->host_images
+      ] {
+        return ExtractImages(data, _host_images);
       });
 
-      auto taskTextures = run_task_ret(
-        [&taskImageData, &taskSamplers, data, &textures = this->textures] {
+      auto taskTextures = run_task_ret([
+        &taskImageData,
+        &taskSamplers,
+        data,
+        &_textures = this->textures
+      ] {
         auto images_indices = taskImageData.get();
         auto samplers_lut = taskSamplers.get();
-        return ExtractTextures(data, images_indices, samplers_lut, textures);
+        return ExtractTextures(data, images_indices, samplers_lut, _textures);
       });
 
       auto taskMaterials = run_task_ret([
         &taskTextures,
         data,
-        &material_proxies = this->material_proxies,
-        &material_refs = this->material_refs,
-        &default_binding = this->default_texture_binding_
+        &_material_proxies = this->material_proxies,
+        &_material_refs = this->material_refs,
+        &_default_binding = this->default_texture_binding_
       ] {
         auto textures_indices = taskTextures.get();
         return ExtractMaterials(
-          data, textures_indices,
-          material_proxies,
-          material_refs,
-          default_binding
+          data,
+          textures_indices,
+          _material_proxies,
+          _material_refs,
+          _default_binding
         );
       });
 
       auto skeletons_indices = taskSkeletons.get();
 
-      auto taskAnimations = run_task([data, &skeletons_indices, &skeletons = this->skeletons] {
-        // ExtractAnimations(data, basename, skeletons_indices, skeletons, animations_map);
+      auto taskAnimations = run_task([
+        data,
+        &skeletons_indices,
+        &_skeletons = this->skeletons
+      ] {
+        // ExtractAnimations(data, basename, skeletons_indices, _skeletons, animations_map);
       });
 
       auto taskMeshes = run_task([
         &taskMaterials,
         data,
-        &material_refs = this->material_refs,
         &skeletons_indices,
-        &skeletons = this->skeletons,
-        &meshes = this->meshes,
-        &transforms = this->transforms
+        &_material_refs = this->material_refs,
+        &_skeletons = this->skeletons,
+        &_meshes = this->meshes,
+        &_transforms = this->transforms
       ] {
         auto materials_indices = taskMaterials.get();
         ExtractMeshes(
           data,
-          materials_indices, material_refs,
-          skeletons_indices, skeletons,
-          meshes, transforms,
+          materials_indices,
+          _material_refs,
+          skeletons_indices,
+          _skeletons,
+          _meshes,
+          _transforms,
           kRestructureAttribs,
           kForce32BitsIndexing
         );

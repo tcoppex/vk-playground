@@ -245,9 +245,10 @@ void Geometry::MakeSphere(Geometry &geo, float radius, uint32_t resx, uint32_t r
   std::vector<Vertex_t> vertices(vertex_count);
 
   // Vertices data.
+  if (!vertices.empty()) // (disable a warning)
   {
-    float const dx = 1.0f / static_cast<float>(resx);
-    float const dy = 1.0f / static_cast<float>(resy);
+    auto const dx = 1.0f / static_cast<float>(resx);
+    auto const dy = 1.0f / static_cast<float>(resy);
 
     uint32_t vertex_id = 0u;
 
@@ -258,22 +259,22 @@ void Geometry::MakeSphere(Geometry &geo, float radius, uint32_t resx, uint32_t r
     };
 
     for (uint32_t j = 1u; j < nrows-1u; ++j) {
-      float const dj = static_cast<float>(j) * dy;
+      auto const dj = static_cast<float>(j) * dy;
 
-      float const theta = (dj - 0.5f) * kPi;
-      float const ct = cosf(theta);
-      float const st = sinf(theta);
+      auto const theta = (dj - 0.5f) * kPi;
+      auto const ct = cosf(theta);
+      auto const st = sinf(theta);
 
       for (uint32_t i = 0u; i < ncols; ++i) {
-        float const di = static_cast<float>(i) * dx;
+        auto const di = static_cast<float>(i) * dx;
 
-        float const phi = di * kTwoPi;
-        float const cp = cosf(phi);
-        float const sp = sinf(phi);
+        auto const phi = di * kTwoPi;
+        auto const cp = cosf(phi);
+        auto const sp = sinf(phi);
 
-        float nx = ct * cp;
-        float ny = st;
-        float nz = ct * sp;
+        auto nx = ct * cp;
+        auto ny = st;
+        auto nz = ct * sp;
 
         // float dlen = 1.0f / sqrtf(nx*nx + ny*ny + nz*nz);
         // nx *= dlen;
@@ -388,41 +389,41 @@ void Geometry::MakeTorus(Geometry &geo, float major_radius, float minor_radius, 
   /* Set up the buffer of raw vertices. */
   std::vector<Vertex_t> vertices(vertex_count);
   {
-    float const dx = 1.0f / static_cast<float>(ncols - 1u);
-    float const dy = 1.0f / static_cast<float>(nrows - 1u);
+    auto const dx = 1.0f / static_cast<float>(ncols - 1u);
+    auto const dy = 1.0f / static_cast<float>(nrows - 1u);
 
-    //float const cosine_step_theta = cos(dy * kTwoPi);
-    //float const sine_step_theta = sin(dy * kTwoPi);
-    //float const cosine_step_phi = cos(dx * kTwoPi);
-    //float const sine_step_phi = sin(dx * kTwoPi);
+    //auto const cosine_step_theta = cos(dy * kTwoPi);
+    //auto const sine_step_theta = sin(dy * kTwoPi);
+    //auto const cosine_step_phi = cos(dx * kTwoPi);
+    //auto const sine_step_phi = sin(dx * kTwoPi);
 
     uint32_t v_index = 0u;
     for (uint32_t iy = 0u; iy < nrows; ++iy) {
-      float const uv_y = static_cast<float>(iy) * dy;
-      float const theta = uv_y * kTwoPi;
+      auto const uv_y = static_cast<float>(iy) * dy;
+      auto const theta = uv_y * kTwoPi;
 
-      float cosine_theta = cosf(theta);
-      float sine_theta = sinf(theta);
+      auto cosine_theta = cosf(theta);
+      auto sine_theta = sinf(theta);
 
       // Rotate minor ring position (1, 0, 0) on Z-axis.
-      float const b_x = cosine_theta * minor_radius + major_radius;
-      float const b_y = sine_theta * minor_radius;
+      auto const b_x = cosine_theta * minor_radius + major_radius;
+      auto const b_y = sine_theta * minor_radius;
 
       for (uint32_t ix = 0u; ix < ncols; ++ix, ++v_index) {
-        float const uv_x = static_cast<float>(ix) * dx;
-        float const phi = uv_x * kTwoPi;
+        auto const uv_x = static_cast<float>(ix) * dx;
+        auto const phi = uv_x * kTwoPi;
 
-        float const cosine_phi = cosf(phi);
-        float const sine_phi = sinf(phi);
+        auto const cosine_phi = cosf(phi);
+        auto const sine_phi = sinf(phi);
 
         // Rotate major ring position on Y-axis.
-        float const a_x = cosine_phi * b_x;
-        float const a_y = b_y;
-        float const a_z = - sine_phi * b_x;
+        auto const a_x = cosine_phi * b_x;
+        auto const a_y = b_y;
+        auto const a_z = - sine_phi * b_x;
 
-        float const nx = cosine_phi * cosine_theta;
-        float const ny = sine_theta;
-        float const nz = - sine_phi * cosine_theta;
+        auto const nx = cosine_phi * cosine_theta;
+        auto const ny = sine_theta;
+        auto const nz = - sine_phi * cosine_theta;
 
         vertices[v_index] = {
           .position = { a_x, a_y, a_z },
@@ -508,14 +509,14 @@ void Geometry::MakePointListPlane(Geometry &geo, float size, uint32_t resx, uint
 
   std::vector<Point_t> vertices(vertex_count);
   {
-    float const dx = 1.0f / static_cast<float>(ncols - 1u);
-    float const dy = 1.0f / static_cast<float>(nrows - 1u);
+    auto const dx = 1.0f / static_cast<float>(ncols - 1u);
+    auto const dy = 1.0f / static_cast<float>(nrows - 1u);
 
     uint32_t v_index = 0u;
     for (uint32_t iy = 0u; iy < nrows; ++iy) {
-      float const uv_y = static_cast<float>(iy) * dy;
+      auto const uv_y = static_cast<float>(iy) * dy;
       for (uint32_t ix = 0u; ix < ncols; ++ix, ++v_index) {
-        float const uv_x = static_cast<float>(ix) * dx;
+        auto const uv_x = static_cast<float>(ix) * dx;
         vertices[v_index] = {
           .position = { size * (uv_x - 0.5f), 0.0f, size * (uv_y - 0.5f), 1.0f },
         };
@@ -603,10 +604,10 @@ bool Geometry::recalculate_tangents() {
     Geometry *geo{};
     Geometry::Primitive const* prim{};
 
-    uint32_t get_index(int32_t iFace, int32_t iVert) const {
-      int32_t index_id = iFace * 3 + iVert;
-      uint32_t index = 0u;
+    uint32_t vertex_index(int32_t iFace, int32_t iVert) const {
+      auto const index_id = iFace * 3 + iVert;
       auto const* indices = geo->indices_.data() + prim->indexOffset;
+      uint32_t index = 0u;
 
       if (geo->index_format_ == Geometry::IndexFormat::U16) {
         index = reinterpret_cast<uint16_t const*>(indices)[index_id];
@@ -616,7 +617,7 @@ bool Geometry::recalculate_tangents() {
       return index;
     };
 
-    float* get_vertex(Geometry::AttributeType attrib, uint32_t vertex_index) {
+    float* vertex(Geometry::AttributeType attrib, uint32_t vertex_index) const {
       auto const& attr = geo->attributes_.at(attrib);
       return reinterpret_cast<float*>(
         geo->vertices_.data() + attr.offset + static_cast<uintptr_t>(vertex_index * attr.stride)
@@ -640,8 +641,8 @@ bool Geometry::recalculate_tangents() {
                         int const iFace,
                         int const iVert) {
       Helper *H = static_cast<Helper*>(pContext->m_pUserData);
-      uint32_t vidx = H->get_index(iFace, iVert);
-      float const* pos = H->get_vertex(Geometry::AttributeType::Position, vidx);
+      auto const vertex_index = H->vertex_index(iFace, iVert);
+      float const* pos = H->vertex(Geometry::AttributeType::Position, vertex_index);
       fvPosOut[0] = pos[0];
       fvPosOut[1] = pos[1];
       fvPosOut[2] = pos[2];
@@ -652,8 +653,8 @@ bool Geometry::recalculate_tangents() {
                       int const iFace,
                       int const iVert) {
       Helper *H = static_cast<Helper*>(pContext->m_pUserData);
-      uint32_t vidx = H->get_index(iFace, iVert);
-      float const *nor = H->get_vertex(Geometry::AttributeType::Normal, vidx);
+      auto const vertex_index = H->vertex_index(iFace, iVert);
+      float const *nor = H->vertex(Geometry::AttributeType::Normal, vertex_index);
       fvNormOut[0] = nor[0];
       fvNormOut[1] = nor[1];
       fvNormOut[2] = nor[2];
@@ -664,8 +665,8 @@ bool Geometry::recalculate_tangents() {
                         const int iFace,
                         const int iVert) {
       Helper *H = static_cast<Helper*>(pContext->m_pUserData);
-      uint32_t vidx = H->get_index(iFace, iVert);
-      float const *uv = H->get_vertex(Geometry::AttributeType::Texcoord, vidx);
+      auto const vertex_index = H->vertex_index(iFace, iVert);
+      float const *uv = H->vertex(Geometry::AttributeType::Texcoord, vertex_index);
       fvTexcOut[0] = uv[0];
       fvTexcOut[1] = uv[1];
     },
@@ -676,8 +677,8 @@ bool Geometry::recalculate_tangents() {
                            int const iFace,
                            int const iVert) {
       Helper *H = static_cast<Helper*>(pContext->m_pUserData);
-      uint32_t vidx = H->get_index(iFace, iVert);
-      float *tangent = H->get_vertex(Geometry::AttributeType::Tangent, vidx);
+      auto const vertex_index = H->vertex_index(iFace, iVert);
+      float *tangent = H->vertex(Geometry::AttributeType::Tangent, vertex_index);
       tangent[0] = fvTangent[0];
       tangent[1] = fvTangent[1];
       tangent[2] = fvTangent[2];

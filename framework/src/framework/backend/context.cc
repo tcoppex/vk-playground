@@ -91,7 +91,7 @@ backend::Image Context::create_image_2d(
       height,
       1u
     },
-    .mipLevels = 1u, //
+    .mipLevels = 1u, // [todo]
     .arrayLayers = 1u, //
     .samples = VK_SAMPLE_COUNT_1_BIT,
     .tiling = VK_IMAGE_TILING_OPTIMAL,
@@ -147,25 +147,25 @@ backend::ShaderModule Context::create_shader_module(
 
 // ----------------------------------------------------------------------------
 
+std::vector<backend::ShaderModule> Context::create_shader_modules(
+  std::string_view directory, 
+  std::vector<std::string_view> const& shader_names
+) const {
+  std::vector<backend::ShaderModule> shaders{};
+  shaders.reserve(shader_names.size());
+  for (auto name : shader_names) {
+    shaders.push_back(create_shader_module(directory, name));
+  }
+  return shaders;
+}
+
+// ----------------------------------------------------------------------------
+
 backend::ShaderModule Context::create_shader_module(std::string_view filepath) const {
   return create_shader_module("", filepath); //
 }
 
 // ----------------------------------------------------------------------------
-
-std::vector<backend::ShaderModule> Context::create_shader_modules(
-  std::string_view directory, 
-  std::vector<std::string_view> const& shader_names
-) const {
-  std::vector<backend::ShaderModule> shaders;
-  shaders.reserve(shader_names.size());
-
-  for (auto name : shader_names) {
-    shaders.push_back(create_shader_module(directory, name));
-  }
-
-  return shaders;
-}
 
 std::vector<backend::ShaderModule> Context::create_shader_modules(std::vector<std::string_view> const& filepaths) const {
   return create_shader_modules("", filepaths); //
@@ -177,6 +177,8 @@ void Context::release_shader_module(backend::ShaderModule const& shader) const {
   vkDestroyShaderModule(device_, shader.module, nullptr);
 }
 
+// ----------------------------------------------------------------------------
+
 void Context::release_shader_modules(std::vector<backend::ShaderModule> const& shaders) const {
   for (auto const& shader : shaders) {
     vkDestroyShaderModule(device_, shader.module, nullptr);
@@ -187,7 +189,6 @@ void Context::release_shader_modules(std::vector<backend::ShaderModule> const& s
 
 CommandEncoder Context::create_transient_command_encoder(Context::TargetQueue const& target_queue) const {
   VkCommandBuffer cmd{};
-
   VkCommandBufferAllocateInfo const alloc_info{
     .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
     .commandPool = transient_command_pools_[target_queue],
@@ -196,7 +197,12 @@ CommandEncoder Context::create_transient_command_encoder(Context::TargetQueue co
   };
   CHECK_VK(vkAllocateCommandBuffers(device_, &alloc_info, &cmd));
 
-  auto encoder{ CommandEncoder(cmd, static_cast<uint32_t>(target_queue), device_, resource_allocator_.get()) };
+  auto encoder = CommandEncoder(
+    cmd,
+    static_cast<uint32_t>(target_queue),
+    device_,
+    resource_allocator_.get()
+  );
   encoder.begin();
 
   return encoder;
@@ -379,6 +385,7 @@ void Context::init_instance(std::vector<char const*> const& instance_extensions)
 
   CHECK_VK(vkCreateDebugUtilsMessengerEXT(instance_, &debug_info, nullptr, &debug_utils_messenger_));
 
+#ifndef NDEBUG
   LOGD("Vulkan version required: %d.%d.%d",
     VK_API_VERSION_MAJOR(application_info.apiVersion),
     VK_API_VERSION_MINOR(application_info.apiVersion),
@@ -391,6 +398,7 @@ void Context::init_instance(std::vector<char const*> const& instance_extensions)
     LOGD(" > %s", name);
   }
   LOGD(" ");
+#endif
 }
 
 // ----------------------------------------------------------------------------
@@ -425,6 +433,7 @@ void Context::select_gpu() {
   properties_.queue_families2.resize(queue_family_count, {.sType = VK_STRUCTURE_TYPE_QUEUE_FAMILY_PROPERTIES_2});
   vkGetPhysicalDeviceQueueFamilyProperties2(gpu_, &queue_family_count, properties_.queue_families2.data());
 
+#ifndef NDEBUG
   LOGD("Selected Device:");
   LOGD(" - Device Name    : %s", properties_.gpu2.properties.deviceName);
   LOGD(" - Driver version : %d.%d.%d",
@@ -438,6 +447,7 @@ void Context::select_gpu() {
     VK_API_VERSION_PATCH(properties_.gpu2.properties.apiVersion)
   );
   LOGD(" ");
+#endif
 }
 
 // ----------------------------------------------------------------------------
@@ -655,11 +665,13 @@ bool Context::init_device() {
     bind_func(  vkCmdBindVertexBuffers2, vkCmdBindVertexBuffers2EXT);
   }
 
+#ifndef NDEBUG
   LOGD("Used Device Extensions:");
   for (auto const& name : device_extension_names_) {
     LOGD(" > %s", name);
   }
   LOGD(" ");
+#endif
 
   /* Retrieved requested queues. */
   for (auto& pair : queues) {
