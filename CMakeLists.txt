@@ -325,12 +325,18 @@ include(VulkanSDK)
 # Download CPM.cmake
 set(CPM_DOWNLOAD_VERSION 0.40.3)
 set(CPM_DOWNLOAD_LOCATION "${CMAKE_BINARY_DIR}/cmake/CPM_${CPM_DOWNLOAD_VERSION}.cmake")
+
 if(NOT (EXISTS ${CPM_DOWNLOAD_LOCATION}))
   message(STATUS "Downloading CPM.cmake...")
   file(DOWNLOAD
     https://github.com/cpm-cmake/CPM.cmake/releases/download/v${CPM_DOWNLOAD_VERSION}/CPM.cmake
     ${CPM_DOWNLOAD_LOCATION}
   )
+endif()
+
+# Set a share cache for CPM if none exist.
+if(NOT DEFINED CPM_SOURCE_CACHE)
+  set(CPM_SOURCE_CACHE "${PROJECT_THIRD_PARTY_DIR}/.cpmlocalcache" CACHE PATH "")
 endif()
 
 include(${CPM_DOWNLOAD_LOCATION})
