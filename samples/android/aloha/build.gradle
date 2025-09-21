@@ -36,7 +36,6 @@ android {
       }
       cmake {
         targets "${appName}"
-        // arguments "-DCOMPILE_SAMPLE_SHADER=OFF"
       }
     }
   }
@@ -51,13 +50,14 @@ android {
     main {
       manifest.srcFile "src/AndroidManifest.xml"
       res.srcDirs = ["src/res"]
-      assets.srcDirs = ["assets"]
+      shaders.srcDirs = ["src/shaders"]
+      assets.srcDirs = [ rootProject.ext.frameworkSpirvDirs ]
     }
   }
 
-  // buildFeatures {
-  //   shaders = false //
-  // }
+  buildFeatures {
+    shaders = true
+  }
 
   buildTypes {
     release {
@@ -66,6 +66,10 @@ android {
   }
 }
 
+// ----------------------------------------------------------------------------
+
 dependencies {
   // implementation 'org.khronos.openxr:openxr_loader_for_android:1.1.46'
 }
+
+// ----------------------------------------------------------------------------

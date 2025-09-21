@@ -17,6 +17,22 @@ dependencyResolutionManagement {
 
 rootProject.name = "VulkanPlayground"
 
+//
+// As for now, every samples is its own target, which mean it will spawn
+// a complete build of the framework locally.
+//
+// To avoid that we might want to create a new android library module :framework
+// driving the cmake.
+// More interestingly, create an AAR library containing both a .so and
+// assets files.
+// (alternatively We could also force a cmake build here and share the cmake cache
+//  with subsamples..)
+//
+// for now the method is a bit overkill, and the framework spirv output lib
+// is taken as an assets directory to migrate their shader into
+// the sample apk.. (which might fails from time to time still)
+//
+
 file("../samples/android").eachDir { dir ->
     def moduleName = dir.name
     include(":$moduleName")

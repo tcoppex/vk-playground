@@ -12,6 +12,16 @@ file(GLOB_RECURSE Sources
   ${SAMPLE_SOURCE_DIR}/*.h
 )
 
+add_library(${target} MODULE ${Sources})
+
+# -----------------------------------------------------------------------------
+
+# Here the sample's shaders will be compiled by gradle but we NEED to copy the
+# framework shaders to the assets for the package to hold them.
+#
+# for now it is handle by gradle in a semi reliable way but we might
+# have need to rethink it ulteriorly.
+
 # compile_shaders(
 #   ${SAMPLE_PATH}/shaders/glsl
 #   ${SAMPLE_PATH}/shaders/spirv
@@ -20,9 +30,9 @@ file(GLOB_RECURSE Sources
 #   ${FRAMEWORK_SHADERS_DIR}
 # )
 
-# -----------------------------------------------------------------------------
+add_dependencies(${target} BuildFrameworkShaders)
 
-add_library(${target} MODULE ${Sources})
+# -----------------------------------------------------------------------------
 
 helpers_setupTarget(
   TARGET
@@ -37,7 +47,7 @@ helpers_setupTarget(
     ${SharedLibs}
 
   DEFINITIONS
-    COMPILED_SHADERS_DIR="${SAMPLE_PATH}/shaders/spirv/" #!!!!
+    COMPILED_SHADERS_DIR="shaders/"
     ${CustomDefinitions}
 )
 

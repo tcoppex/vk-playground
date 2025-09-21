@@ -62,11 +62,20 @@ function(add_simple_demo dirname)
     ${FRAMEWORK_SHADERS_DIR}
   )
 
+  set(BuildShaderTarget BuildSampleShaders_${dirname})
+  add_custom_target(
+    ${BuildShaderTarget} ALL
+    DEPENDS
+      ${shaders_bin}
+      ${shaders_src}
+  )
+
   if(ANDROID)
-    add_library(${dirname} MODULE ${Source} ${shaders_bin} ${shaders_src})
+    add_library(${dirname} MODULE ${Source})
   else()
-    add_executable(${dirname} ${Source} ${shaders_bin} ${shaders_src})
+    add_executable(${dirname} ${Source})
   endif()
+  add_dependencies(${dirname} ${BuildShaderTarget})
 
   helpers_setupTarget(
     TARGET

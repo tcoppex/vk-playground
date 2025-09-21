@@ -3,17 +3,32 @@ plugins {
     id 'org.jetbrains.kotlin.android' version '2.2.20' apply false
 }
 
+// ----------------------------------------------------------------------------
+
+def rootDir = file("../")
+
+
 ext {
   orgPrefix = "com.polysfaer.vkframework"
-  rootDir = file("../")
+  rootPath = "${rootDir}"
+  frameworkSpirvDirs = "${rootDir}/bin/spirv"
+  sampleFrameworkSpirvAssetsSubdir = "shaders/framework"
 }
 
-// tasks.named("clean") {
-//   doLast {
-//     rootProject.subprojects.each { sub ->
-//       delete "${sub.projectDir}/build"
-//       delete "${sub.projectDir}/.externalNativeBuild"
-//       delete "${sub.projectDir}/.cxx"
-//     }
-//   }
+
+// ----------------------------------------------------------------------------
+
+// task buildFrameworkShaders(type: Exec) {
+//   workingDir "$rootDir"
+//   commandLine "cmake", "--build", "BuildFrameworkShaders"
 // }
+
+subprojects {
+  // Remove additionnal cmake cache on delete.
+  task cleanNative(type: Delete) {
+    delete "${projectDir}/.cxx"
+  }
+  // clean.dependsOn cleanNative
+}
+
+// ----------------------------------------------------------------------------

@@ -25,6 +25,14 @@ set(PROJECT_THIRD_PARTY_DIR         ${PROJECT_ROOT_PATH}/third_party)
 set(PROJECT_BINARY_DIR              ${PROJECT_ROOT_PATH}/bin)
 set(FRAMEWORK_COMPILED_SHADERS_DIR  ${PROJECT_BINARY_DIR}/spirv)
 
+# (important)
+# Currently the framework spirv directory is also used by the Android gradle build
+# to migrate them to samples APK assets directory, so we need to specify a distinct
+# subdir for them to be in conflict with others assets (shaders or otherwhise).
+# [better alternative: build the framework as an AAR library]
+set(FRAMEWORK_SPIRV_ASSETS_SUBDIR framework_shaders)
+set(FRAMEWORK_COMPILED_SHADERS_DIR  ${FRAMEWORK_COMPILED_SHADERS_DIR}/${FRAMEWORK_SPIRV_ASSETS_SUBDIR})
+
 # -----------------------------------------------------------------------------
 # CMake settings.
 # -----------------------------------------------------------------------------
@@ -550,16 +558,25 @@ list(APPEND SharedIncludeDirs
 )
 
 list(APPEND CustomDefinitions
-  ASSETS_DIR="${PROJECT_ASSETS_DIR}/"
-
-  FRAMEWORK_COMPILED_SHADERS_DIR="${FRAMEWORK_COMPILED_SHADERS_DIR}/" #!
-
   # Define VK_NO_PROTOTYPES to avoid including Vulkan prototypes
   # This is necessary because we are using volk to load Vulkan functions
   VK_NO_PROTOTYPES=1
-
   _USE_MATH_DEFINES=1
 )
+
+# -----------------------------------------------------------------------------
+
+if (ANDROID)
+  list(APPEND CustomDefinitions
+    ASSETS_DIR=""
+    FRAMEWORK_COMPILED_SHADERS_DIR="${FRAMEWORK_SPIRV_ASSETS_SUBDIR}/"
+  )
+else()
+  list(APPEND CustomDefinitions
+    ASSETS_DIR="${PROJECT_ASSETS_DIR}/"
+    FRAMEWORK_COMPILED_SHADERS_DIR="${FRAMEWORK_COMPILED_SHADERS_DIR}/" #!
+  )
+endif()
 
 # -----------------------------------------------------------------------------
 
