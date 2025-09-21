@@ -86,7 +86,7 @@ void Geometry::MakeCube(Geometry &geo, float size) {
   geo.set_index_format(IndexFormat::U16);
   geo.set_topology(Topology::TriangleList);
 
-  geo.add_indices_data((std::byte*)trilistIndices.data(), sizeof(trilistIndices));
+  geo.add_indices_data(std::as_bytes(std::span(trilistIndices)));
 
   geo.add_primitive({
     .vertexCount = static_cast<uint32_t>(vertexAttributesIndices.size()),
@@ -189,7 +189,6 @@ void Geometry::MakePlane(Geometry &geo, float size, uint32_t resx, uint32_t resy
   /// --------------
 
   geo.set_index_format(IndexFormat::U32);
-
   geo.set_topology(Topology::TriangleStrip);
 
   geo.add_primitive({
@@ -229,19 +228,8 @@ void Geometry::MakePlane(Geometry &geo, float size, uint32_t resx, uint32_t resy
     },
   };
 
-  /* Fill vertices. */
-  {
-    size_t const vertices_bytesize = vertices.size() * sizeof(vertices[0u]);
-    std::byte *const vertices_ptr = reinterpret_cast<std::byte*>(vertices.data());
-    geo.add_vertices_data(vertices_ptr, vertices_bytesize);
-  }
-
-  /* Fill indices. */
-  {
-    size_t const indices_bytesize = indices.size() * sizeof(indices[0u]);
-    std::byte *const indices_ptr = reinterpret_cast<std::byte*>(indices.data());
-    geo.add_indices_data(indices_ptr, indices_bytesize);
-  }
+  geo.add_vertices_data(std::as_bytes(std::span(vertices)));
+  geo.add_indices_data(std::as_bytes(std::span(indices)));
 }
 
 // ----------------------------------------------------------------------------
@@ -254,8 +242,7 @@ void Geometry::MakeSphere(Geometry &geo, float radius, uint32_t resx, uint32_t r
   uint32_t const nrows = resy + 1u;
 
   uint32_t const vertex_count = 2u + (nrows - 2u) * ncols;
-  std::vector<Vertex_t> vertices;
-  vertices.resize(vertex_count);
+  std::vector<Vertex_t> vertices(vertex_count);
 
   // Vertices data.
   {
@@ -346,7 +333,6 @@ void Geometry::MakeSphere(Geometry &geo, float radius, uint32_t resx, uint32_t r
   /// --------------
 
   geo.set_index_format(IndexFormat::U32);
-
   geo.set_topology(Topology::TriangleStrip);
 
   geo.add_primitive({
@@ -386,19 +372,8 @@ void Geometry::MakeSphere(Geometry &geo, float radius, uint32_t resx, uint32_t r
     },
   };
 
-  /* Fill vertices. */
-  {
-    size_t const vertices_bytesize = vertices.size() * sizeof(vertices[0u]);
-    std::byte *const vertices_ptr = reinterpret_cast<std::byte*>(vertices.data());
-    geo.add_vertices_data(vertices_ptr, vertices_bytesize);
-  }
-
-  /* Fill indices. */
-  {
-    size_t const indices_bytesize = indices.size() * sizeof(indices[0u]);
-    std::byte *const indices_ptr = reinterpret_cast<std::byte*>(indices.data());
-    geo.add_indices_data(indices_ptr, indices_bytesize);
-  }
+  geo.add_vertices_data(std::as_bytes(std::span(vertices)));
+  geo.add_indices_data(std::as_bytes(std::span(indices)));
 }
 
 // ----------------------------------------------------------------------------
@@ -481,7 +456,6 @@ void Geometry::MakeTorus(Geometry &geo, float major_radius, float minor_radius, 
   /// --------------
 
   geo.set_index_format(IndexFormat::U32);
-
   geo.set_topology(Topology::TriangleStrip);
 
   geo.add_primitive({
@@ -521,19 +495,8 @@ void Geometry::MakeTorus(Geometry &geo, float major_radius, float minor_radius, 
     },
   };
 
-  /* Fill vertices. */
-  {
-    size_t const vertices_bytesize = vertices.size() * sizeof(vertices[0u]);
-    std::byte *const vertices_ptr = reinterpret_cast<std::byte*>(vertices.data());
-    geo.add_vertices_data(vertices_ptr, vertices_bytesize);
-  }
-
-  /* Fill indices. */
-  {
-    size_t const indices_bytesize = indices.size() * sizeof(indices[0u]);
-    std::byte *const indices_ptr = reinterpret_cast<std::byte*>(indices.data());
-    geo.add_indices_data(indices_ptr, indices_bytesize);
-  }
+  geo.add_vertices_data(std::as_bytes(std::span(vertices)));
+  geo.add_indices_data(std::as_bytes(std::span(indices)));
 }
 
 // ----------------------------------------------------------------------------
@@ -566,7 +529,6 @@ void Geometry::MakePointListPlane(Geometry &geo, float size, uint32_t resx, uint
   /// --------------
 
   geo.set_index_format(IndexFormat::U32);
-
   geo.set_topology(Topology::PointList);
 
   geo.add_primitive({
@@ -588,19 +550,8 @@ void Geometry::MakePointListPlane(Geometry &geo, float size, uint32_t resx, uint
     },
   };
 
-  /* Fill vertices. */
-  {
-    size_t const vertices_bytesize = vertices.size() * sizeof(vertices[0u]);
-    std::byte *const vertices_ptr = reinterpret_cast<std::byte*>(vertices.data());
-    geo.add_vertices_data(vertices_ptr, vertices_bytesize);
-  }
-
-  /* Fill indices. */
-  {
-    size_t const indices_bytesize = indices.size() * sizeof(indices[0u]);
-    std::byte *const indices_ptr = reinterpret_cast<std::byte*>(indices.data());
-    geo.add_indices_data(indices_ptr, indices_bytesize);
-  }
+  geo.add_vertices_data(std::as_bytes(std::span(vertices)));
+  geo.add_indices_data(std::as_bytes(std::span(indices)));
 }
 
 // ----------------------------------------------------------------------------
@@ -611,15 +562,15 @@ void Geometry::add_primitive(Primitive const& primitive) {
   primitives_.push_back(primitive);
 }
 
-uint64_t Geometry::add_vertices_data(std::byte const* data, uint32_t bytesize) {
+uint64_t Geometry::add_vertices_data(std::span<const std::byte> data) {
   uint64_t const offset = vertices_.size();
-  vertices_.insert(vertices_.end(), data, data + bytesize);
+  vertices_.insert(vertices_.end(), data.begin(), data.end());
   return offset;
 }
 
-uint64_t Geometry::add_indices_data(std::byte const* data, uint32_t bytesize) {
+uint64_t Geometry::add_indices_data(std::span<const std::byte> data) {
   uint64_t const offset = indices_.size();
-  indices_.insert(indices_.cend(), data, data + bytesize);
+  indices_.insert(indices_.cend(), data.begin(), data.end());
   return offset;
 }
 
@@ -652,17 +603,17 @@ bool Geometry::recalculate_tangents() {
     Geometry *geo{};
     Geometry::Primitive const* prim{};
 
-    uint32_t get_index(int iFace, int iVert) const {
-      int index_id = iFace * 3 + iVert;
-      uint32_t idx = 0;
+    uint32_t get_index(int32_t iFace, int32_t iVert) const {
+      int32_t index_id = iFace * 3 + iVert;
+      uint32_t index = 0u;
       auto const* indices = geo->indices_.data() + prim->indexOffset;
 
       if (geo->index_format_ == Geometry::IndexFormat::U16) {
-        idx = reinterpret_cast<uint16_t const*>(indices)[index_id];
+        index = reinterpret_cast<uint16_t const*>(indices)[index_id];
       } else {
-        idx = reinterpret_cast<uint32_t const*>(indices)[index_id];
+        index = reinterpret_cast<uint32_t const*>(indices)[index_id];
       }
-      return idx;
+      return index;
     };
 
     float* get_vertex(Geometry::AttributeType attrib, uint32_t vertex_index) {

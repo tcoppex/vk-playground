@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <map>
+#include <span>
 #include <vector>
 
 // ----------------------------------------------------------------------------
@@ -127,67 +128,79 @@ class Geometry {
 
   /* --- Getters --- */
 
-  Topology get_topology() const {
+  [[nodiscard]]
+  Topology get_topology() const noexcept {
     return topology_;
   }
 
-  IndexFormat get_index_format() const {
+  [[nodiscard]]
+  IndexFormat get_index_format() const noexcept {
     return index_format_;
   }
 
-  uint32_t get_index_count() const {
+  [[nodiscard]]
+  uint32_t get_index_count() const noexcept {
     return index_count_;
   }
 
-  uint32_t get_vertex_count() const {
+  [[nodiscard]]
+  uint32_t get_vertex_count() const noexcept {
     return vertex_count_;
   }
 
+  [[nodiscard]]
   AttributeFormat get_format(AttributeType const attrib_type) const {
     return attributes_.at(attrib_type).format;
   }
 
+  [[nodiscard]]
   uint32_t get_offset(AttributeType const attrib_type) const {
     return attributes_.at(attrib_type).offset;
   }
 
+  [[nodiscard]]
   uint32_t get_stride(AttributeType const attrib_type = AttributeType::Position) const {
     return attributes_.at(attrib_type).stride;
   }
 
-  std::vector<std::byte> const& get_indices() const {
+  [[nodiscard]]
+  std::vector<std::byte> const& get_indices() const noexcept {
     return indices_;
   }
 
-  std::vector<std::byte> const& get_vertices() const {
+  [[nodiscard]]
+  std::vector<std::byte> const& get_vertices() const noexcept {
     return vertices_;
   }
 
+  [[nodiscard]]
   Primitive const& get_primitive(uint32_t const primitive_index = 0u) const {
     return primitives_.at(primitive_index);
   }
 
-  uint32_t get_primitive_count() const {
+  [[nodiscard]]
+  uint32_t get_primitive_count() const noexcept {
     return static_cast<uint32_t>(primitives_.size());
   }
 
   /* --- Setters --- */
 
-  void set_attributes(AttributeInfoMap const attributes) {
+  void set_attributes(AttributeInfoMap const attributes) noexcept {
     attributes_ = attributes;
   }
 
-  void set_topology(Topology const topology) {
+  void set_topology(Topology const topology) noexcept {
     topology_ = topology;
   }
 
-  void set_index_format(IndexFormat const format) {
+  void set_index_format(IndexFormat const format) noexcept {
     index_format_ = format;
   }
 
   /* --- Utils --- */
 
-  bool has_attribute(AttributeType const type) const {
+  [[nodiscard]]
+  bool has_attribute(AttributeType const type) const noexcept {
     return attributes_.contains(type);
   }
 
@@ -196,10 +209,10 @@ class Geometry {
   void add_primitive(Primitive const& primitive);
 
   /* Return the current bytesize of the vertex attributes buffer. */
-  uint64_t add_vertices_data(std::byte const* data, uint32_t bytesize);
+  uint64_t add_vertices_data(std::span<const std::byte> data);
 
   /* Return the current bytesize of the indices buffer. */
-  uint64_t add_indices_data(std::byte const* data, uint32_t bytesize);
+  uint64_t add_indices_data(std::span<const std::byte> data);
 
   void clear_indices_and_vertices();
 

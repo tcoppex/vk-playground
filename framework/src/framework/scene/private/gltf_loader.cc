@@ -536,10 +536,7 @@ void ExtractMeshes(
           if (prim.indices) {
             mesh->set_index_format(Geometry::IndexFormat::U32);
             primitive.indexCount = static_cast<uint32_t>(indices.size());
-            primitive.indexOffset = mesh->add_indices_data(
-              reinterpret_cast<const std::byte*>(indices.data()),
-              indices.size() * sizeof(uint32_t)
-            );
+            primitive.indexOffset = mesh->add_indices_data(std::as_bytes(std::span(indices)));
           }
         } else {
           // Attributes.
@@ -559,14 +556,13 @@ void ExtractMeshes(
 
               size_t const index_size = cgltf_component_size(accessor->component_type);
               size_t const stride = accessor->stride ? accessor->stride : index_size;
-              size_t const total_size = accessor->count * stride;
 
               std::byte const* src = reinterpret_cast<std::byte const*>(buffer->data) +
                                 buffer_view->offset + accessor->offset;
               std::vector<uint32_t> indices_u32{};
 
               // [the same index format should be shared by the whole mesh.]
-              if (bForce32bitsIndex && (index_format != Geometry::IndexFormat::U32)) {
+              if (bForce32bitsIndex && (index_format != Geometry::IndexFormat::U32)) [[likely]] {
                 indices_u32.reserve(accessor->count);
                 for (size_t i = 0; i < accessor->count; ++i) {
                   uint32_t val = 0;
@@ -586,17 +582,11 @@ void ExtractMeshes(
                   }
                   indices_u32.push_back(val);
                 }
-                src = reinterpret_cast<std::byte const*>(indices_u32.data());
-
                 mesh->set_index_format(Geometry::IndexFormat::U32);
-                primitive.indexOffset = mesh->add_indices_data(
-                  reinterpret_cast<std::byte const*>(indices_u32.data()),
-                  indices_u32.size() * sizeof(indices_u32[0])
-                );
               } else {
                 mesh->set_index_format(index_format);
-                primitive.indexOffset = mesh->add_indices_data( src, total_size);
               }
+              primitive.indexOffset = mesh->add_indices_data(std::as_bytes(std::span(indices_u32)));
             } else {
               LOGD("index format unsupported.");
             }
@@ -604,10 +594,7 @@ void ExtractMeshes(
         }
 
         /* Add the primitive interleaved attributes to the mesh, and retrieve its internal offset. */
-        attribs_buffer_offset = mesh->add_vertices_data(
-          reinterpret_cast<std::byte const*>(vertices.data()),
-          vertices.size() * sizeof(vertices[0u])
-        );
+        attribs_buffer_offset = mesh->add_vertices_data(std::as_bytes(std::span(vertices)));
         primitive.vertexCount = static_cast<uint32_t>(vertices.size());
         primitive.bufferOffsets = VertexInternal_t::GetAttributeOffsetMap(attribs_buffer_offset);
 
@@ -674,9 +661,9 @@ void ExtractMeshes(
 
             uint64_t bufferOffset{};
             if (isAccessorOffsetFlat(accessor)) {
-              bufferOffset = mesh->add_vertices_data(
-                reinterpret_cast<std::byte const*>(buffer_view->buffer->data) + buffer_view->offset + accessor->offset,
-                buffer_view->size
+              bufferOffset = mesh->add_vertices_data(std::span<const std::byte>(
+                  reinterpret_cast<const std::byte*>(buffer_view->buffer->data), buffer_view->size
+                ).subspan(buffer_view->offset + accessor->offset)
               );
               accessor_buffer_offsets[accessor] = bufferOffset;
             } else {
@@ -696,9 +683,10 @@ void ExtractMeshes(
             mesh->set_index_format(index_format);
 
             primitive.indexCount = accessor->count;
-            primitive.indexOffset = mesh->add_indices_data(
-              reinterpret_cast<std::byte const*>(buffer->data) + buffer_view->offset + accessor->offset, //
-              buffer_view->size
+            primitive.indexOffset = mesh->add_indices_data(std::span<const std::byte>(
+                reinterpret_cast<const std::byte*>(buffer->data),
+                buffer_view->size
+              ).subspan(buffer_view->offset + accessor->offset)
             );
           }
         }
@@ -787,20 +775,23 @@ void ExtractAnimations(
     return;
   }
 
+  auto resolve_name = [&basename](char const* cstr, std::string_view suffix, size_t index) -> std::string {
+    return (cstr != nullptr) ? std::string(cstr)
+                             : basename + std::string(suffix) + std::to_string(index);
+  };
+
   // --------
 
   // LUT to find skeleton via animations name.
   std::unordered_map<std::string, std::string> animationName_to_SkeletonName;
   for (cgltf_size i = 0; i < data->skins_count; ++i) {
     cgltf_skin* skin = &data->skins[i];
-    auto const skeletonName = (skin->name != nullptr) ? std::string(skin->name)
-                            : basename + "::Skeleton_" + std::to_string(i);
+    auto const skeletonName = resolve_name(skin->name, "::Skeleton_", i);
     for (size_t j = 0; j < skin->joints_count; ++j) {
       cgltf_node* joint_node = skin->joints[j];
       for (size_t k = 0; k < data->animations_count; ++k) {
         cgltf_animation const& animation = data->animations[k];
-        auto const clipName = animation.name ? animation.name
-                            : basename + "::Animation_" + std::to_string(k);
+        auto const clipName = resolve_name(animation.name, "::Animation_", k);
         for (size_t l = 0; l < animation.channels_count; ++l) {
           cgltf_animation_channel* channel = &animation.channels[l];
           if (channel->target_node == joint_node) {
@@ -819,9 +810,9 @@ void ExtractAnimations(
   // Retrieve Animations.
   for (cgltf_size i = 0; i < data->animations_count; ++i) {
     cgltf_animation const& animation = data->animations[i];
-    std::string const clipName = animation.name ? animation.name
-                               : basename + "##Animation_" + std::to_string(i);
     LOG_CHECK(animation.samplers_count == animation.channels_count);
+
+    std::string const clipName = resolve_name(animation.name, "::Animation_", i);
 
     // Find animation's skeleton.
     scene::Skeleton* skeleton{nullptr};
