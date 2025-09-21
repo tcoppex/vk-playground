@@ -556,6 +556,7 @@ void ExtractMeshes(
 
               size_t const index_size = cgltf_component_size(accessor->component_type);
               size_t const stride = accessor->stride ? accessor->stride : index_size;
+              size_t const total_size = accessor->count * stride;
 
               std::byte const* src = reinterpret_cast<std::byte const*>(buffer->data) +
                                 buffer_view->offset + accessor->offset;
@@ -583,10 +584,13 @@ void ExtractMeshes(
                   indices_u32.push_back(val);
                 }
                 mesh->set_index_format(Geometry::IndexFormat::U32);
+                primitive.indexOffset = mesh->add_indices_data(
+                  std::as_bytes(std::span(indices_u32))
+                );
               } else {
                 mesh->set_index_format(index_format);
+                primitive.indexOffset = mesh->add_indices_data(std::span(src, total_size));
               }
-              primitive.indexOffset = mesh->add_indices_data(std::as_bytes(std::span(indices_u32)));
             } else {
               LOGD("index format unsupported.");
             }
