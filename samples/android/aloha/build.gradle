@@ -15,6 +15,8 @@ base {
 
 android {
   namespace = packageName
+
+  ndkVersion = "29.0.14033849"
   compileSdk = 36
 
   defaultConfig {
