@@ -15,7 +15,7 @@ Runs on GNU/Linux, Windows 11 and Android 32, compiled against _GCC 11.4_, _MSVC
 # [Optional] Retrieve system build dependencies with Synaptic.
 # sudo apt install git git-lfs build-essential cmake vulkan-sdk
 
-# [Optionnal] Specify the ANDROID_SDK path to create custom targets.
+# [Optionnal] Specify the ANDROID_SDK path to create Android targets.
 # export ANDROID_SDK=~/Android/Sdk
 
 # Clone the repository.
@@ -29,7 +29,7 @@ cmake --build build --config Release
 # Run the first sample.
 ./bin/00_hello
 
-# [Optionnal] Build & Run a sample on a compatible connected Android device.
+# [Optionnal] Build & Run an Android sample on a connected device.
 # cmake --build build --target run_aloha
 ```
 
@@ -58,9 +58,9 @@ cmake --build build --config Release
  * Vulkan SDK 1.1
  * CMake 3.22.1
  * CPM 0.40.3 (_downloaded automatically_)
- * GLFW 3.4 (_via CPM_)
  * Volk 1.4 (_via CPM_)
  * VulkanMemoryAllocator 3.2.0 (_via CPM_)
+ * GLFW 3.4 (_via CPM_)
  * ImGUI (_via CPM_)
  * MikkTSpace (_via CPM_)
  * linalg v2.2 (_via CPM_)
@@ -81,12 +81,26 @@ cmake --build build --config Release
 * [VK_KHR_index_type_uint8](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_index_type_uint8.html)
 * [VK_KHR_maintenance4](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_maintenance4.html)
 * [VK_KHR_maintenance5](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_maintenance5.html)
-* [VK_KHR_maintenance6](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_maintenance6.html)
 * [VK_KHR_swapchain](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_swapchain.html)
 * [VK_KHR_synchronization2](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_synchronization2.html)
 * [VK_KHR_timeline_semaphore](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_timeline_semaphore.html)
 * [VK_KHR_acceleration_structure](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_acceleration_structure.html)
+
+###### Optionnal
+
+* [VK_KHR_maintenance6](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_maintenance6.html)
 * [VK_KHR_ray_tracing_pipeline](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_ray_tracing_pipeline.html)
+
+##### Android build
+
+ * Android SDK 36
+ * Android NDK 29.0.14033849
+ * Gradle 8.14.3
+
+##### Assets
+
+There is a few assets served via `git-lfs` but most of them are download automatically
+while generating the cmake cache.
 
 ### Acknowledgement
 
