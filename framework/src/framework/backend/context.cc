@@ -321,9 +321,25 @@ void Context::update_descriptor_set(
 /* -------------------------------------------------------------------------- */
 
 void Context::init_instance(std::vector<char const*> const& instance_extensions) {
+
+  uint32_t layerCount = 0;
+  CHECK_VK( vkEnumerateInstanceLayerProperties(&layerCount, nullptr) );
+  available_instance_layers_.resize(layerCount);
+  CHECK_VK( vkEnumerateInstanceLayerProperties(&layerCount, available_instance_layers_.data()) );
+
 #ifndef NDEBUG
+  auto hasLayer = [&](char const* layerName) {
+    for (const auto& layer : available_instance_layers_) {
+      if (std::string(layer.layerName) == std::string(layerName)) {
+        return true;
+      }
+    }
+    return false;
+  };
   if constexpr (kEnableDebugValidationLayer) {
-    instance_layer_names_.push_back("VK_LAYER_KHRONOS_validation");
+    if (auto layername = "VK_LAYER_KHRONOS_validation"; hasLayer(layername)) {
+      instance_layer_names_.push_back(layername);
+    }
   }
 #endif
 
@@ -391,6 +407,12 @@ void Context::init_instance(std::vector<char const*> const& instance_extensions)
     VK_API_VERSION_MINOR(application_info.apiVersion),
     VK_API_VERSION_PATCH(application_info.apiVersion)
   );
+  LOGD(" ");
+
+  LOGD("Available Instance layers:");
+  for (const auto& layer : available_instance_layers_) {
+    LOGI(" > %s", layer.layerName);
+  }
   LOGD(" ");
 
   LOGD("Used Instance layers:");

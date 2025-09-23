@@ -214,6 +214,7 @@ class Context {
 
   VkDebugUtilsMessengerEXT debug_utils_messenger_{VK_NULL_HANDLE};
 
+  std::vector<VkLayerProperties> available_instance_layers_{};
   std::vector<VkExtensionProperties> available_instance_extensions_{};
   std::vector<VkExtensionProperties> available_device_extensions_{};
 
