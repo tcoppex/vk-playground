@@ -97,6 +97,50 @@ cmake --build build --config Release
  * Android NDK 29.0.14033849
  * Gradle 8.14.3
 
+<details>
+  <summary><strong>Install Android dependencies</strong></summary>
+
+Linux :
+
+```bash
+# Install tools and the JDK
+sudo apt-get install -y unzip wget openjdk-17-jdk
+
+# Setup ANDROID_SDK
+export ANDROID_SDK=$HOME/Android
+mkdir $ANDROID_SDK && cd $ANDROID_SDK
+
+# Download & install Android SDK Command-line Tools 12.0.
+wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+unzip commandlinetools-linux-11076708_latest.zip -d cmdline-tools
+mv cmdline-tools/cmdline-tools cmdline-tools/latest
+export PATH=$ANDROID_SDK/cmdline-tools/latest/bin:$ANDROID_SDK/platform-tools:$PATH
+
+# Install dependencies.
+sdkmanager "platforms;android-36" "platform-tools" "build-tools;36.0.0" "ndk;29.0.14033849"
+```
+
+Windows 11 (eg. using [git bash](https://gitforwindows.org/)) :
+
+```bash
+# Install JDK manually on Windows (Temurin 17 recommended)
+
+# Setup ANDROID_SDK
+export ANDROID_SDK=$HOME/Android
+mkdir -p $ANDROID_SDK && cd $ANDROID_SDK
+
+# Download & install Android SDK Command-line Tools 12.0
+curl -O https://dl.google.com/android/repository/commandlinetools-win-11076708_latest.zip
+unzip commandlinetools-win-11076708_latest.zip -d cmdline-tools
+mv cmdline-tools/cmdline-tools cmdline-tools/latest
+export PATH=$ANDROID_SDK/cmdline-tools/latest/bin:$ANDROID_SDK/platform-tools:$PATH
+
+# Install dependencies
+sdkmanager "platforms;android-36" "platform-tools" "build-tools;36.0.0" "ndk;29.0.14033849"
+```
+
+</details>
+
 ##### Assets
 
 There is a few assets served via `git-lfs` but most of them are download automatically
