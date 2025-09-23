@@ -79,28 +79,29 @@ class GenericCommandEncoder {
     VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS,
     uint32_t const offset = 0u
   ) const {
-#if defined(VK_KHR_maintenace6)
-  // (requires VK_KHR_maintenance6 or VK_VERSION_1_4)
-    LOG_CHECK(vkCmdPushConstants2KHR);
-    VkPushConstantsInfoKHR const push_info{
-      .sType = VK_STRUCTURE_TYPE_PUSH_CONSTANTS_INFO_KHR,
-      .layout = pipeline_layout,
-      .stageFlags = stage_flags,
-      .offset = offset,
-      .size = static_cast<uint32_t>(sizeof(T)),
-      .pValues = &value,
-    };
-    vkCmdPushConstants2KHR(command_buffer_, &push_info);
-#else
-  vkCmdPushConstants(
-    command_buffer_,
-    pipeline_layout,
-    stage_flags,
-    offset,
-    static_cast<uint32_t>(sizeof(T)),
-    &value
-  );
-#endif
+    if (vkCmdPushConstants2KHR)
+    {
+      VkPushConstantsInfoKHR const push_info{
+        .sType = VK_STRUCTURE_TYPE_PUSH_CONSTANTS_INFO_KHR,
+        .layout = pipeline_layout,
+        .stageFlags = stage_flags,
+        .offset = offset,
+        .size = static_cast<uint32_t>(sizeof(T)),
+        .pValues = &value,
+      };
+      vkCmdPushConstants2KHR(command_buffer_, &push_info);
+    }
+    else
+    {
+      vkCmdPushConstants(
+        command_buffer_,
+        pipeline_layout,
+        stage_flags,
+        offset,
+        static_cast<uint32_t>(sizeof(T)),
+        &value
+      );
+    }
   }
 
   // template<typename T> requires (SpanConvertible<T>)

@@ -12,31 +12,32 @@ void GenericCommandEncoder::bind_descriptor_set(
   VkShaderStageFlags stage_flags,
   uint32_t first_set
 ) const {
-#if defined(VK_KHR_maintenace6)
-  // (requires VK_KHR_maintenance6 or VK_VERSION_1_4)
-  VkBindDescriptorSetsInfoKHR const bind_desc_sets_info{
-    .sType = VK_STRUCTURE_TYPE_BIND_DESCRIPTOR_SETS_INFO_KHR,
-    .stageFlags = stage_flags,
-    .layout = pipeline_layout,
-    .firstSet = first_set,
-    .descriptorSetCount = 1u, //
-    .pDescriptorSets = &descriptor_set,
-  };
-  LOG_CHECK(vkCmdBindDescriptorSets2KHR != nullptr);
-  vkCmdBindDescriptorSets2KHR(command_buffer_, &bind_desc_sets_info);
-#else
-  LOG_CHECK(nullptr != currently_bound_pipeline_);
-  vkCmdBindDescriptorSets(
-    command_buffer_,
-    currently_bound_pipeline_->get_bind_point(),
-    pipeline_layout,
-    first_set,
-    1,
-    &descriptor_set,
-    0,
-    nullptr
-  );
-#endif
+  if (vkCmdBindDescriptorSets2KHR)
+  {
+    // (requires VK_KHR_maintenance6 or VK_VERSION_1_4)
+    VkBindDescriptorSetsInfoKHR const bind_desc_sets_info{
+      .sType = VK_STRUCTURE_TYPE_BIND_DESCRIPTOR_SETS_INFO_KHR,
+      .stageFlags = stage_flags,
+      .layout = pipeline_layout,
+      .firstSet = first_set,
+      .descriptorSetCount = 1u, //
+      .pDescriptorSets = &descriptor_set,
+    };
+    vkCmdBindDescriptorSets2KHR(command_buffer_, &bind_desc_sets_info);
+  }
+  else
+  {
+    vkCmdBindDescriptorSets(
+      command_buffer_,
+      currently_bound_pipeline_->get_bind_point(),
+      pipeline_layout,
+      first_set,
+      1,
+      &descriptor_set,
+      0,
+      nullptr
+    );
+  }
 }
 
 // ----------------------------------------------------------------------------
