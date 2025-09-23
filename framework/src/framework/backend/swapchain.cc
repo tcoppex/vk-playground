@@ -8,7 +8,7 @@ namespace {
 bool CheckOutOfDataResult(VkResult const result, std::string_view const& msg) {
   switch (result) {
     case VK_ERROR_OUT_OF_DATE_KHR:
-      fprintf(stderr, "[TODO] The swapchain need to be rebuild.\n");
+      LOGI("[TODO] The swapchain need to be rebuild.");
     return true;
 
     case VK_SUCCESS:
@@ -16,8 +16,7 @@ bool CheckOutOfDataResult(VkResult const result, std::string_view const& msg) {
     break;
 
     default:
-      fprintf(stderr, "[ERROR] %s\n", msg.data());
-      exit(EXIT_FAILURE);
+      LOGE("%s", msg.data());
     break;
   }
 
@@ -33,6 +32,7 @@ void Swapchain::init(Context const& context, VkSurfaceKHR const surface) {
   device_ = context.device();
   surface_ = surface;
 
+  LOG_CHECK(vkGetPhysicalDeviceSurfaceCapabilities2KHR);
   /* Retrieve the GPU's capabilities for this surface. */
   VkPhysicalDeviceSurfaceInfo2KHR const surface_info2{
     .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SURFACE_INFO_2_KHR,
@@ -60,6 +60,7 @@ void Swapchain::init(Context const& context, VkSurfaceKHR const surface) {
 
   image_count_ = std::clamp(preferred_image_count, min_image_count, max_image_count);
   VkFormat const color_format = surface_format2.surfaceFormat.format;
+  LOGD("Swapchain images : %u", image_count_);
 
   /* Create the swapchain image. */
   VkSwapchainCreateInfoKHR swapchain_create_info{
@@ -144,14 +145,14 @@ void Swapchain::deinit() {
 // ----------------------------------------------------------------------------
 
 uint32_t Swapchain::acquire_next_image() {
-  assert(swapchain_ != VK_NULL_HANDLE);
+  LOG_CHECK(swapchain_ != VK_NULL_HANDLE);
 
   auto const& semaphore = get_current_synchronizer().wait_image_semaphore;
 
   VkResult const result = vkAcquireNextImageKHR(
     device_, swapchain_, UINT64_MAX, semaphore, VK_NULL_HANDLE, &next_swap_index_
   );
-  // assert(current_swap_index_ == next_swap_index_);
+  LOG_CHECK(current_swap_index_ == next_swap_index_);
 
   need_rebuild_ = CheckOutOfDataResult(result,
     "Vulkan: couldn't acquire swapchain image.\n"
@@ -163,7 +164,7 @@ uint32_t Swapchain::acquire_next_image() {
 // ----------------------------------------------------------------------------
 
 void Swapchain::present_and_swap(VkQueue const queue) {
-  assert(swapchain_ != VK_NULL_HANDLE);
+  LOG_CHECK(swapchain_ != VK_NULL_HANDLE);
 
   auto const& semaphore = get_current_synchronizer().signal_present_semaphore;
 
@@ -188,14 +189,27 @@ void Swapchain::present_and_swap(VkQueue const queue) {
 // ----------------------------------------------------------------------------
 
 VkSurfaceFormat2KHR Swapchain::select_surface_format(VkPhysicalDeviceSurfaceInfo2KHR const* surface_info2) const {
+  LOG_CHECK(vkGetPhysicalDeviceSurfaceFormats2KHR);
+
+#ifdef ANDROID
+  LOGD(">>>>> vkGetPhysicalDeviceSurfaceFormats2KHR Start");
+#endif
+
   uint32_t image_format_count{0u};
   CHECK_VK( vkGetPhysicalDeviceSurfaceFormats2KHR(gpu_, surface_info2, &image_format_count, nullptr) );
   std::vector<VkSurfaceFormat2KHR> formats(image_format_count, {.sType = VK_STRUCTURE_TYPE_SURFACE_FORMAT_2_KHR});
   CHECK_VK( vkGetPhysicalDeviceSurfaceFormats2KHR(gpu_, surface_info2, &image_format_count, formats.data()) );
 
+#ifdef ANDROID
+  LOGD("<<<<< vkGetPhysicalDeviceSurfaceFormats2KHR End");
+#endif
+
   VkSurfaceFormat2KHR const default_format{
     .sType = VK_STRUCTURE_TYPE_SURFACE_FORMAT_2_KHR,
-    .surfaceFormat = {VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR},
+    .surfaceFormat = {
+      .format = VK_FORMAT_B8G8R8A8_UNORM,
+      .colorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR
+    },
   };
   if ((formats.size() == 1ul)
    && (formats[0].surfaceFormat.format == VK_FORMAT_UNDEFINED)) {
@@ -206,9 +220,13 @@ VkSurfaceFormat2KHR Swapchain::select_surface_format(VkPhysicalDeviceSurfaceInfo
     default_format,
     VkSurfaceFormat2KHR{
       .sType = VK_STRUCTURE_TYPE_SURFACE_FORMAT_2_KHR,
-      .surfaceFormat = {VK_FORMAT_R8G8B8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR},
+      .surfaceFormat = {
+        .format = VK_FORMAT_R8G8B8A8_UNORM,
+        .colorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR
+      },
     },
   };
+
   for (auto const& available : formats) {
     for (auto const& preferred : preferred_formats) {
       if ((available.surfaceFormat.format == preferred.surfaceFormat.format)
