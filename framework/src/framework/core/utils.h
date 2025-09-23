@@ -25,6 +25,10 @@ namespace utils {
 // --- structs ---
 
 struct FileReader {
+  static constexpr std::size_t kMaxReadFileSize = 4 << 27; // ~512Mib
+
+  FileReader() = default;
+
   static
   bool Read(std::string_view filename, std::vector<uint8_t>& out);
 
@@ -71,7 +75,7 @@ std::vector<std::byte> ToBytes(const T& value) {
 
 // --- functions ---
 
-char* ReadBinaryFile(const char* filename, size_t* filesize);
+// char* ReadBinaryFile(const char* filename, size_t* filesize);
 
 std::string ExtractBasename(std::string_view filename, bool keepExtension = false);
 

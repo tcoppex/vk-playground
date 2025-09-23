@@ -16,7 +16,6 @@ bool FileReader::Read(std::string_view filename, std::vector<uint8_t>& out) {
 #if defined(ANDROID)
   return JNIContext::Get().readFile(filename, out);
 #else
-  constexpr std::size_t kMaxReadFileSize{4 << 27}; //
 
   std::ifstream file(filename.data(), std::ios::binary | std::ios::ate);
   if (!file) {
@@ -48,32 +47,32 @@ bool FileReader::Read(std::string_view filename, std::vector<uint8_t>& out) {
 
 // ----------------------------------------------------------------------------
 
-char* ReadBinaryFile(const char *filename, size_t *filesize) {
-#if defined(ANDROID)
-  LOGE("%s undefined on ANDROID.\n", __FUNCTION__);
-  return nullptr;
-#else
-  FILE *fd = fopen(filename, "rb");
-  if (!fd) {
-    return nullptr;
-  }
+// char* ReadBinaryFile(const char *filename, size_t *filesize) {
+// #if defined(ANDROID)
+//   LOGE("%s undefined on ANDROID.\n", __FUNCTION__);
+//   return nullptr;
+// #else
+//   FILE *fd = fopen(filename, "rb");
+//   if (!fd) {
+//     return nullptr;
+//   }
 
-  fseek(fd, 0L, SEEK_END);
-  *filesize = ftell(fd);
-  fseek(fd, 0L, SEEK_SET);
+//   fseek(fd, 0L, SEEK_END);
+//   *filesize = ftell(fd);
+//   fseek(fd, 0L, SEEK_SET);
 
-  char* shader_binary = new char[*filesize];
-  size_t const ret = fread(shader_binary, *filesize, 1u, fd);
-  fclose(fd);
+//   char* shader_binary = new char[*filesize];
+//   size_t const ret = fread(shader_binary, *filesize, 1u, fd);
+//   fclose(fd);
 
-  if (ret != 1u) {
-    delete [] shader_binary;
-    shader_binary = nullptr;
-  }
+//   if (ret != 1u) {
+//     delete [] shader_binary;
+//     shader_binary = nullptr;
+//   }
 
-  return shader_binary;
-#endif
-}
+//   return shader_binary;
+// #endif
+// }
 
 // ----------------------------------------------------------------------------
 

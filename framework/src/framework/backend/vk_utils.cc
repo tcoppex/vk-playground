@@ -10,7 +10,11 @@
 
 namespace vkutils {
 
-VkShaderModule CreateShaderModule(VkDevice const device, char const* shader_directory, char const* shader_name) {
+VkShaderModule CreateShaderModule(
+  VkDevice const device,
+  char const* shader_directory,
+  char const* shader_name
+) {
   /*
   * Note :
   * Since maintenance5, shader module creation can be bypassed if VkShaderModuleCreateInfo
@@ -19,31 +23,28 @@ VkShaderModule CreateShaderModule(VkDevice const device, char const* shader_dire
   */
 
   namespace fs = std::filesystem;
-
   fs::path spirv_path = fs::path(shader_directory).empty()
                           ? fs::path(shader_name).concat(".spv")
-                          : fs::path(shader_directory) / (std::string(shader_name) + ".spv");
+                          : fs::path(shader_directory) / (std::string(shader_name) + ".spv")
+                          ;
 
-  size_t filesize{};
-  std::string filename{spirv_path.string()};
-  char* code = utils::ReadBinaryFile(filename.c_str(), &filesize);
+  std::string const filename{spirv_path.string()};
 
-  if (code == nullptr) {
+  utils::FileReader reader;
+  if (!reader.read(filename)) {
     fprintf(stderr, "Error: the spirv shader \"%s\" could not be found.\n", spirv_path.string().c_str());
     exit(EXIT_FAILURE);
   }
 
   VkShaderModuleCreateInfo shader_module_info{
     .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-    .codeSize = filesize,
-    .pCode = reinterpret_cast<uint32_t*>(code),
+    .codeSize = reader.buffer.size(),
+    .pCode = reinterpret_cast<uint32_t*>(reader.buffer.data()),
   };
 
-  VkShaderModule module;
+  VkShaderModule module{};
   CHECK_VK( vkCreateShaderModule(device, &shader_module_info, nullptr, &module) );
   SetDebugObjectName(device, module, shader_name);
-
-  delete [] code;
 
   return module;
 }
