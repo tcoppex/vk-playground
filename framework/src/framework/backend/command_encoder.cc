@@ -1,16 +1,19 @@
 #include "framework/backend/command_encoder.h"
 #include "framework/renderer/fx/postprocess/post_fx_interface.h"
 
-#include <backends/imgui_impl_vulkan.h> //
+#include "framework/backend/vk_utils.h"
+#include <backends/imgui_impl_vulkan.h> // XXX
 
 /* -------------------------------------------------------------------------- */
 
 void GenericCommandEncoder::bind_descriptor_set(
-  VkDescriptorSet const descriptor_set,
-  VkPipelineLayout const pipeline_layout,
-  VkShaderStageFlags const stage_flags,
+  VkDescriptorSet descriptor_set,
+  VkPipelineLayout pipeline_layout,
+  VkShaderStageFlags stage_flags,
   uint32_t first_set
 ) const {
+#if defined(VK_KHR_maintenace6)
+  // (requires VK_KHR_maintenance6 or VK_VERSION_1_4)
   VkBindDescriptorSetsInfoKHR const bind_desc_sets_info{
     .sType = VK_STRUCTURE_TYPE_BIND_DESCRIPTOR_SETS_INFO_KHR,
     .stageFlags = stage_flags,
@@ -19,9 +22,21 @@ void GenericCommandEncoder::bind_descriptor_set(
     .descriptorSetCount = 1u, //
     .pDescriptorSets = &descriptor_set,
   };
-  // (requires VK_KHR_maintenance6 or VK_VERSION_1_4)
   LOG_CHECK(vkCmdBindDescriptorSets2KHR != nullptr);
   vkCmdBindDescriptorSets2KHR(command_buffer_, &bind_desc_sets_info);
+#else
+  LOG_CHECK(nullptr != currently_bound_pipeline_);
+  vkCmdBindDescriptorSets(
+    command_buffer_,
+    currently_bound_pipeline_->get_bind_point(),
+    pipeline_layout,
+    first_set,
+    1,
+    &descriptor_set,
+    0,
+    nullptr
+  );
+#endif
 }
 
 // ----------------------------------------------------------------------------

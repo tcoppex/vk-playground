@@ -22,34 +22,46 @@ class GenericCommandEncoder {
   GenericCommandEncoder(VkCommandBuffer command_buffer, uint32_t target_queue_index)
     : command_buffer_(command_buffer)
     , target_queue_index_{target_queue_index}
-    , currently_bound_pipeline_layout_{VK_NULL_HANDLE}
   {}
 
-  virtual ~GenericCommandEncoder() {}
+  virtual ~GenericCommandEncoder() = default;
 
-  VkCommandBuffer get_handle() {
+  [[nodiscard]]
+  VkCommandBuffer get_handle() const noexcept {
     return command_buffer_;
   }
 
-  uint32_t get_target_queue_index() const {
+  [[nodiscard]]
+  uint32_t get_target_queue_index() const noexcept {
     return target_queue_index_;
+  }
+
+  // --- Pipeline ---
+
+  void bind_pipeline(backend::PipelineInterface const& pipeline) {
+    currently_bound_pipeline_ = &pipeline;
+    vkCmdBindPipeline(command_buffer_, pipeline.get_bind_point(), pipeline.get_handle());
+  }
+
+  void bind_pipeline(backend::PipelineInterface const& pipeline) const {
+    vkCmdBindPipeline(command_buffer_, pipeline.get_bind_point(), pipeline.get_handle());
   }
 
   // --- Descriptor Sets ---
 
   void bind_descriptor_set(
-    VkDescriptorSet const descriptor_set,
-    VkPipelineLayout const pipeline_layout,
-    VkShaderStageFlags const stage_flags,
+    VkDescriptorSet descriptor_set,
+    VkPipelineLayout pipeline_layout,
+    VkShaderStageFlags stage_flags,
     uint32_t first_set = 0u
   ) const;
 
   void bind_descriptor_set(
-    VkDescriptorSet const descriptor_set,
-    VkShaderStageFlags const stage_flags
+    VkDescriptorSet descriptor_set,
+    VkShaderStageFlags stage_flags
   ) const {
-    LOG_CHECK(VK_NULL_HANDLE != currently_bound_pipeline_layout_);
-    bind_descriptor_set(descriptor_set, currently_bound_pipeline_layout_, stage_flags);
+    LOG_CHECK(nullptr != currently_bound_pipeline_);
+    bind_descriptor_set(descriptor_set, currently_bound_pipeline_->get_layout(), stage_flags);
   }
 
   void push_descriptor_set(
@@ -67,6 +79,9 @@ class GenericCommandEncoder {
     VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS,
     uint32_t const offset = 0u
   ) const {
+#if defined(VK_KHR_maintenace6)
+  // (requires VK_KHR_maintenance6 or VK_VERSION_1_4)
+    LOG_CHECK(vkCmdPushConstants2KHR);
     VkPushConstantsInfoKHR const push_info{
       .sType = VK_STRUCTURE_TYPE_PUSH_CONSTANTS_INFO_KHR,
       .layout = pipeline_layout,
@@ -76,48 +91,47 @@ class GenericCommandEncoder {
       .pValues = &value,
     };
     vkCmdPushConstants2KHR(command_buffer_, &push_info);
+#else
+  vkCmdPushConstants(
+    command_buffer_,
+    pipeline_layout,
+    stage_flags,
+    offset,
+    static_cast<uint32_t>(sizeof(T)),
+    &value
+  );
+#endif
   }
 
-  template<typename T> requires (SpanConvertible<T>)
-  void push_constants(
-    T const& values,
-    VkPipelineLayout const pipeline_layout,
-    VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS,
-    uint32_t const offset = 0u
-  ) const {
-    auto const span_values{ std::span(values) };
-    VkPushConstantsInfoKHR const push_info{
-      .sType = VK_STRUCTURE_TYPE_PUSH_CONSTANTS_INFO_KHR,
-      .layout = pipeline_layout,
-      .stageFlags = stage_flags,
-      .offset = offset,
-      .size = sizeof(typename decltype(span_values)::value_type) * span_values.size(),
-      .pValues = span_values.data(),
-    };
-    vkCmdPushConstants2KHR(command_buffer_, &push_info);
-  }
+  // template<typename T> requires (SpanConvertible<T>)
+  // void push_constants(
+  //   T const& values,
+  //   VkPipelineLayout const pipeline_layout,
+  //   VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS,
+  //   uint32_t const offset = 0u
+  // ) const {
+  //   auto const span_values{ std::span(values) };
+  //   VkPushConstantsInfoKHR const push_info{
+  //     .sType = VK_STRUCTURE_TYPE_PUSH_CONSTANTS_INFO_KHR,
+  //     .layout = pipeline_layout,
+  //     .stageFlags = stage_flags,
+  //     .offset = offset,
+  //     .size = sizeof(typename decltype(span_values)::value_type) * span_values.size(),
+  //     .pValues = span_values.data(),
+  //   };
+  //   vkCmdPushConstants2KHR(command_buffer_, &push_info);
+  // }
 
   template<typename T> requires (!SpanConvertible<T>)
   void push_constant(T const& value, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS, uint32_t const offset = 0u) const {
-    LOG_CHECK(VK_NULL_HANDLE != currently_bound_pipeline_layout_);
-    push_constant(value, currently_bound_pipeline_layout_, stage_flags, offset);
+    LOG_CHECK(nullptr != currently_bound_pipeline_);
+    push_constant(value, currently_bound_pipeline_->get_layout(), stage_flags, offset);
   }
 
   template<typename T> requires (SpanConvertible<T>)
   void push_constants(T const& values, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS, uint32_t const offset = 0u) const {
-    LOG_CHECK(VK_NULL_HANDLE != currently_bound_pipeline_layout_);
-    push_constants(values, currently_bound_pipeline_layout_, stage_flags, offset);
-  }
-
-  // --- Pipeline ---
-
-  void bind_pipeline(backend::PipelineInterface const& pipeline) {
-    currently_bound_pipeline_layout_ = pipeline.get_layout();
-    vkCmdBindPipeline(command_buffer_, pipeline.get_bind_point(), pipeline.get_handle());
-  }
-
-  void bind_pipeline(backend::PipelineInterface const& pipeline) const {
-    vkCmdBindPipeline(command_buffer_, pipeline.get_bind_point(), pipeline.get_handle());
+    LOG_CHECK(nullptr != currently_bound_pipeline_);
+    push_constants(values, currently_bound_pipeline_->get_layout(), stage_flags, offset);
   }
 
   // --- Pipeline Barrier ---
@@ -161,7 +175,8 @@ class GenericCommandEncoder {
   uint32_t target_queue_index_{};
 
  private:
-  VkPipelineLayout currently_bound_pipeline_layout_{};
+  // VkPipelineLayout currently_bound_pipeline_layout_{};
+  backend::PipelineInterface const* currently_bound_pipeline_{};
 };
 
 /* -------------------------------------------------------------------------- */
