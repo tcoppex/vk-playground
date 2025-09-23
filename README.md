@@ -15,6 +15,9 @@ Runs on GNU/Linux, Windows 11 and Android 32, compiled against _GCC 11.4_, _MSVC
 # [Optional] Retrieve system build dependencies with Synaptic.
 # sudo apt install git git-lfs build-essential cmake vulkan-sdk
 
+# [Optionnal] Specify the ANDROID_SDK path to create custom targets.
+# export ANDROID_SDK=~/Android/Sdk
+
 # Clone the repository.
 git clone https://github.com/tcoppex/vk-playground
 cd vk-playground
@@ -23,11 +26,15 @@ cd vk-playground
 cmake . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build --config Release
 
-# Run the first demo.
+# Run the first sample.
 ./bin/00_hello
+
+# [Optionnal] Build & Run a sample on a compatible connected Android device.
+# cmake --build build --target run_aloha
 ```
 
 </details>
+
 
 ### Demos
 

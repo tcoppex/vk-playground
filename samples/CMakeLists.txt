@@ -99,10 +99,7 @@ endfunction(add_simple_demo)
 
 # -----------------------------------------------------------------------------
 
-if(ANDROID)
 add_subdirectory(${SAMPLES_PATH}/android)
-else()
 add_subdirectory(${SAMPLES_PATH}/desktop)
-endif()
 
 # -----------------------------------------------------------------------------
