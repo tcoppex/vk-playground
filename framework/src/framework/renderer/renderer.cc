@@ -20,6 +20,8 @@ void Renderer::init(
   device_ = context.device();
   allocator_ptr_ = allocator;
 
+  LOGD("--- Initialize Swapchain ---");
+
   /* Initialize the swapchain. */
   swapchain_.init(context, surface);
 
@@ -39,6 +41,7 @@ void Renderer::init(
   }
 
   /* Create a default depth stencil buffer. */
+  LOGD("--- Initialize DepthStencil ---");
   VkExtent2D const dimension{swapchain_.get_surface_size()};
   depth_stencil_ = context.create_image_2d(
     dimension.width,
@@ -47,6 +50,7 @@ void Renderer::init(
   );
 
   /* Initialize resources for the semaphore timeline. */
+  LOGD("--- Initialize Timeline Semaphore Resources ---");
   {
     uint64_t const frame_count = swapchain_.get_image_count();
 
@@ -92,6 +96,7 @@ void Renderer::init(
   // --------------------------
 
   // Handle Descriptor Set allocation through the framework.
+  LOGD("--- Initialize Descriptor Registry ---");
   descriptor_set_registry_.init(*this, kMaxDescriptorPoolSets);
 
   // Handle the app samplers.
@@ -99,9 +104,13 @@ void Renderer::init(
 
   // Renderer internal effects.
   {
+    LOGD("--- Initialize Renderer Fx ---");
+
     // [should condition creation on some config]
     skybox_.init(*this);
   }
+  
+  LOGD("--------------------------------------------\n");
 }
 
 // ----------------------------------------------------------------------------

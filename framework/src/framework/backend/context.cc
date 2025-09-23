@@ -409,17 +409,21 @@ void Context::init_instance(std::vector<char const*> const& instance_extensions)
   );
   LOGD(" ");
 
-  LOGD("Available Instance layers:");
-  for (const auto& layer : available_instance_layers_) {
-    LOGI(" > %s", layer.layerName);
+  if (!available_instance_layers_.empty()) {
+    LOGD("Available Instance layers:");
+    for (const auto& layer : available_instance_layers_) {
+      LOGI(" > %s", layer.layerName);
+    }
+    LOGD(" ");
   }
-  LOGD(" ");
 
-  LOGD("Used Instance layers:");
-  for (auto const& name : instance_extension_names_) {
-    LOGD(" > %s", name);
+  if (!instance_extension_names_.empty()) {
+    LOGD("Used Instance extensions:");
+    for (auto const& name : instance_extension_names_) {
+      LOGD(" > %s", name);
+    }
+    LOGD(" ");
   }
-  LOGD(" ");
 #endif
 }
 
