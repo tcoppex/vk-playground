@@ -258,7 +258,9 @@ class Context {
     // VkPhysicalDeviceRayQueryFeaturesKHR ray_query{};
 
     // -------------------------------
+#if !defined(ANDROID)
     VkPhysicalDeviceRayTracingPipelineFeaturesKHR ray_tracing_pipeline{};
+#endif
     // -------------------------------
   } feature_;
 

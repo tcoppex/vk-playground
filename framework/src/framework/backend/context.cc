@@ -557,11 +557,13 @@ bool Context::init_device() {
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR
     );
 
+#if !defined(ANDROID)
     add_device_feature(
       VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
       feature_.ray_tracing_pipeline,
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR
     );
+#endif
 
     vkGetPhysicalDeviceFeatures2(gpu_, &feature_.base);
   }
@@ -573,7 +575,10 @@ bool Context::init_device() {
   LOG_CHECK(feature_.descriptor_indexing.shaderSampledImageArrayNonUniformIndexing);
   LOG_CHECK(feature_.vertex_input_dynamic_state.vertexInputDynamicState);
   LOG_CHECK(feature_.acceleration_structure.accelerationStructure);
+
+#if !defined(ANDROID)
   LOG_CHECK(feature_.ray_tracing_pipeline.rayTracingPipeline);
+#endif
 
   // --------------------
 
