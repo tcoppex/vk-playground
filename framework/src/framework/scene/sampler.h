@@ -1,7 +1,7 @@
 #ifndef VKFRAMEWORK_SCENE_SAMPLER_H_
 #define VKFRAMEWORK_SCENE_SAMPLER_H_
 
-#include <vulkan/vulkan.h> // for VkSamplerCreateInfo..
+#include "framework/backend/vk_utils.h" // for VkSamplerCreateInfo..
 
 namespace scene {
 

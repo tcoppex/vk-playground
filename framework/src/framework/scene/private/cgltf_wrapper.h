@@ -16,10 +16,9 @@ extern "C" {
 #pragma clang diagnostic pop
 #endif
 
-#include <vulkan/vulkan.h> //
-
 }
 
+#include "framework/backend/vk_utils.h"
 #include "framework/core/geometry.h"
 
 /* -------------------------------------------------------------------------- */

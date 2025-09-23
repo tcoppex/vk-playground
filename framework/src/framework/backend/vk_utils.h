@@ -5,7 +5,8 @@
 
 #include "framework/core/common.h"
 #include "framework/backend/types.h"
-#include "volk.h"
+
+#include "volk.h" // load core vulkan + extensions.
 
 /* -------------------------------------------------------------------------- */
 
