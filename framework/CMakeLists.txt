@@ -78,7 +78,10 @@ file(GLOB_RECURSE PlatformSources CONFIGURE_DEPENDS
   ${FRAMEWORK_PLATFORM_SRC_DIR}/*.h
 )
 
-list(APPEND Sources ${PlatformCommonSources} ${PlatformSources})
+list(APPEND Sources
+  ${PlatformCommonSources}
+  ${PlatformSources}
+)
 
 # -----------------------------------------------------------------------------
 # Target library compilation.

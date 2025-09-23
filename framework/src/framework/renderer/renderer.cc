@@ -89,14 +89,19 @@ void Renderer::init(
     ));
   }
 
-  /* Handle Descriptor Set allocation through the framework. */
+  // --------------------------
+
+  // Handle Descriptor Set allocation through the framework.
   descriptor_set_registry_.init(*this, kMaxDescriptorPoolSets);
 
-  /*  */
+  // Handle the app samplers.
   sampler_pool_.init(device_);
 
-  /* Renderer internal effects. */
-  skybox_.init(*this);
+  // Renderer internal effects.
+  {
+    // [should condition creation on some config]
+    skybox_.init(*this);
+  }
 }
 
 // ----------------------------------------------------------------------------

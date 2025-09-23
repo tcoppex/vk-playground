@@ -7,28 +7,11 @@ plugins {
 
 def rootDir = file("../")
 
-
 ext {
   orgPrefix = "com.polysfaer.vkframework"
   rootPath = "${rootDir}"
   frameworkSpirvDirs = "${rootDir}/bin/spirv"
   sampleFrameworkSpirvAssetsSubdir = "shaders/framework"
-}
-
-
-// ----------------------------------------------------------------------------
-
-// task buildFrameworkShaders(type: Exec) {
-//   workingDir "$rootDir"
-//   commandLine "cmake", "--build", "BuildFrameworkShaders"
-// }
-
-subprojects {
-  // Remove additionnal cmake cache on delete.
-  task cleanNative(type: Delete) {
-    delete "${projectDir}/.cxx"
-  }
-  // clean.dependsOn cleanNative
 }
 
 // ----------------------------------------------------------------------------
