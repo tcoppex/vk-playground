@@ -10,16 +10,14 @@
 
 struct WMAndroid final : public WMInterface {
  public:
-  WMAndroid(/*DisplayParams const& params*/);
+  WMAndroid();
   virtual ~WMAndroid() = default;
 
-  bool init(/*DisplayParams const& params*/) final;
+  bool init(AppData_t app_data) final;
 
-  bool poll(void *data) noexcept final;
+  void shutdown() final;
 
-  // void swapBuffers() const noexcept final {
-  //   surface_ctx->swapBuffers();
-  // }
+  bool poll(AppData_t app_data) noexcept final;
 
   bool isActive() const noexcept final {
     return visible && resumed;
@@ -29,43 +27,48 @@ struct WMAndroid final : public WMInterface {
     return native_window;
   }
 
+  std::vector<char const*> getVulkanInstanceExtensions() const noexcept final;
+
+  VkResult createWindowSurface(VkInstance instance, VkSurfaceKHR *surface) const noexcept final;
+
   // -------------------------------------------
-  std::vector<char const*> getVulkanInstanceExtensions() const noexcept final {
-    return {};
-  }
-
-  VkResult createWindowSurface(VkInstance instance, VkSurfaceKHR *surface) const noexcept final {
-    //dvkCreateAndroidSurfaceKHR
-    return VK_ERROR_UNKNOWN;
-  }
-
-  void shutdown() final {}
   void setTitle(std::string_view title) const noexcept final {}
   void close() noexcept final {}
 
-  uint32_t get_surface_width() const noexcept final { return 0u; } //
-  uint32_t get_surface_height() const noexcept final { return 0u; } //
+  uint32_t get_surface_width() const noexcept final {
+    LOG_CHECK(surface_w_ > 0u);
+    return surface_w_;
+  }
+
+  uint32_t get_surface_height() const noexcept final {
+    LOG_CHECK(surface_h_ > 0u);
+    return surface_h_;
+  }
   // -------------------------------------------
 
  public:
-  void addAppCmdCallbacks(std::shared_ptr<AppCmdCallbacks> callbacks) {
-    appCmdCallbacks_.push_back(callbacks);
+  void addAppCmdCallbacks(AppCmdCallbacks *app_cmd_callbacks) {
+    appCmdCallbacks_.push_back(app_cmd_callbacks);
   }
 
-  void handleAppCmd(android_app* app, int32_t cmd);
+  void handleAppCmd(AppData_t app_data, int32_t cmd);
 
   bool handleInputEvent(AInputEvent *event);
 
+ // -------------------------------------------
  public:
   ANativeWindow *native_window{};
-  // std::shared_ptr<EGLSurfaceContext> surface_ctx;
+  uint32_t surface_w_{};
+  uint32_t surface_h_{};
 
-  bool visible = false;
-  bool resumed = false;
-  bool focused = false;
+  bool visible{};
+  bool resumed{};
+  bool focused{};
+ // -------------------------------------------
 
  private:
-  std::vector<std::shared_ptr<AppCmdCallbacks>> appCmdCallbacks_{};
+  std::unique_ptr<AppCmdCallbacks> default_app_callback_{};
+  std::vector<AppCmdCallbacks*> appCmdCallbacks_{};
 };
 
 /* -------------------------------------------------------------------------- */

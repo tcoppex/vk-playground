@@ -14,11 +14,11 @@ class Window : public WMInterface {
 
   virtual ~Window() = default;
 
-  bool init() final;
+  bool init(AppData_t app_data) final;
 
   void shutdown() final;
 
-  bool poll(void *data = nullptr) noexcept final;
+  bool poll(AppData_t app_data) noexcept final;
 
   void setTitle(std::string_view title) const noexcept final;
 

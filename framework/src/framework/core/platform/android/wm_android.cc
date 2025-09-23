@@ -1,121 +1,169 @@
 #include "framework/core/platform/android/wm_android.h"
+#include "framework/core/platform/android/jni_context.h"
 #include "framework/core/platform/events.h"
+
 
 /* -------------------------------------------------------------------------- */
 
+// [probably not needed anymore with Vulkan, legacy of glES-EGL code]
 struct DefaultAppCmdCallbacks final : AppCmdCallbacks {
-  DefaultAppCmdCallbacks(WMAndroid *wma/*, DisplayParams const& params*/)
+  DefaultAppCmdCallbacks(WMAndroid *const wma) noexcept
     : wma_(wma)
-    // , defaultDisplayParams(params)
   {}
+  ~DefaultAppCmdCallbacks() override {}
 
-  ~DefaultAppCmdCallbacks() override {
-    wma_ = nullptr;
+  void handleResize(android_app* app, bool signalOnResize = true) {
+    LOGD(">>>>>> %s", __FUNCTION__);
+    int32_t w = ANativeWindow_getWidth(app->window);
+    int32_t h = ANativeWindow_getHeight(app->window);
+    wma_->surface_w_ = static_cast<uint32_t>(w);
+    wma_->surface_h_ = static_cast<uint32_t>(h);
+    if (signalOnResize) {
+      Events::Get().onResize(w, h);
+    }
   }
 
   void onInitWindow(android_app* app) final {
-    LOGD("onInitWindow");
+    LOGD("%s", __FUNCTION__);
     // (APP_CMD_INIT_WINDOW is called when app->window has a new ANativeWindow)
     if (app->window != nullptr) {
-      // auto egl = wma_->surface_ctx;
-
       // We only need to create the display & context once.
       if (wma_->native_window == nullptr) {
-        // egl->initDisplay(defaultDisplayParams);
-        // egl->initContext();
+        LOGI("((( window created )))");
+        //// ideally we should create the surface here, but we don't, so to be sure
+        //// subsequent call got the surface size we fake resize it here..
+        handleResize(app, false); //
       }
-      // [release the surface here when needed and not on TermWindow to let app resources
-      //  to be released properly on app exits]
-      // egl->releaseSurface();
-
-      // egl->initSurface(app->window);
-      // egl->makeCurrent();
       wma_->native_window = app->window;
     }
   }
 
   void onTermWindow(android_app* app) final {
-    LOGD("onTermWindow");
+    LOGD("%s", __FUNCTION__);
     wma_->native_window = nullptr;
   }
 
   void onWindowResized(android_app* app) final {
-    LOGD("onWindowResized");
-    uint32_t w = wma_->get_surface_width();
-    uint32_t h = wma_->get_surface_height();
-    LOG_CHECK(w > 0 && h > 0);
-    Events::Get().onResize(w, h);
+    LOGD("%s", __FUNCTION__);
+    handleResize(app);
   }
 
   void onStart(android_app* app) final {
-    LOGD("onStart");
+    LOGD("%s", __FUNCTION__);
     wma_->visible = true;
   }
 
   void onResume(android_app* app) final {
-    LOGD("onResume");
+    LOGD("%s", __FUNCTION__);
     wma_->resumed = true;
   }
 
   void onPause(android_app* app) final {
-    LOGD("onPause");
+    LOGD("%s", __FUNCTION__);
     wma_->resumed = false;
   }
 
   void onStop(android_app* app) final {
-    LOGD("onPause");
+    LOGD("%s", __FUNCTION__);
     wma_->visible = false;
   }
 
   void onGainedFocus(android_app* app) final {
-    LOGD("onGainedFocus");
+    LOGD("%s", __FUNCTION__);
     wma_->focused = true;
   }
 
   void onLostFocus(android_app* app) final {
-    LOGD("onLostFocus");
+    LOGD("%s", __FUNCTION__);
     wma_->focused = false;
   }
 
   // [not always called]
   void onDestroy(android_app* app) final {
-    LOGD("onDestroy");
-    // if (auto egl = wma_->surface_ctx; egl) {
-    //   egl->releaseDisplay();
-    // }
+    LOGD("%s", __FUNCTION__);
   }
 
-  // [those could be retrieved from inherited member 'app', but it's easier that way]
-  WMAndroid *wma_ = nullptr;
-  // DisplayParams const& defaultDisplayParams;
+  private:
+    WMAndroid *const wma_{};
 };
 
 /* -------------------------------------------------------------------------- */
 
-WMAndroid::WMAndroid(/*DisplayParams const& params*/)
+WMAndroid::WMAndroid()
   : WMInterface()
-  // , surface_ctx(std::make_shared<EGLSurfaceContext>())
 {
-  addAppCmdCallbacks(std::make_shared<DefaultAppCmdCallbacks>(this/*, params*/));
+  default_app_callback_ = std::make_unique<DefaultAppCmdCallbacks>(this);
+  addAppCmdCallbacks(default_app_callback_.get());
 }
 
 // ----------------------------------------------------------------------------
 
-bool WMAndroid::init(/*DisplayParams const& params*/) {
-  // [We might not use this version because android display is created
-  // through the APP_CMD_INIT_WINDOW callback, not externally]
-  // assert(nullptr != surface_ctx);
+bool WMAndroid::init(AppData_t app_data) {
+  LOG_CHECK(app_data != nullptr);
+
+  JNIContext::Initialize(app_data);
+  ANativeActivity_setWindowFlags(app_data->activity, AWINDOW_FLAG_KEEP_SCREEN_ON, 0);
+
+  app_data->userData = this;
+  app_data->onAppCmd = [](struct android_app* _app, int32_t cmd) {
+    auto self = reinterpret_cast<WMAndroid*>(_app->userData);
+    self->handleAppCmd(_app, cmd);
+  };
+  app_data->onInputEvent = [](struct android_app* _app, AInputEvent* event) -> int32_t {
+    auto self = reinterpret_cast<WMAndroid*>(_app->userData);
+    return self->handleInputEvent(event) ? 1 : 0;
+  };
+
+  // Wait for the APP_CMD_INIT_WINDOW event which should create the native window.
+  while (!app_data->destroyRequested && poll(app_data))  {
+    if (native_window != nullptr) {
+      break;
+    }
+  }
+  if (native_window == nullptr) {
+    LOGE("Android native window failed to initialize.");
+    return false;
+  }
+
   return true;
-
-  // return surface_ctx->initDisplay(params);
-  // return surface_ctx->create(params); //
 }
 
 // ----------------------------------------------------------------------------
 
-bool WMAndroid::poll(void* data) noexcept {
-  auto app{reinterpret_cast<android_app*>(data)};
+void WMAndroid::shutdown() {
+  JNIContext::Deinitialize();
+}
 
+// ----------------------------------------------------------------------------
+
+std::vector<char const*> WMAndroid::getVulkanInstanceExtensions() const noexcept {
+  return {
+    VK_KHR_SURFACE_EXTENSION_NAME,
+    VK_KHR_ANDROID_SURFACE_EXTENSION_NAME,
+  };
+}
+
+// ----------------------------------------------------------------------------
+
+VkResult WMAndroid::createWindowSurface(VkInstance instance, VkSurfaceKHR *surface) const noexcept {
+  auto fpCreateAndroidSurfaceKHR = reinterpret_cast<PFN_vkCreateAndroidSurfaceKHR>(
+    vkGetInstanceProcAddr(instance, "vkCreateAndroidSurfaceKHR")
+  );
+  if (!fpCreateAndroidSurfaceKHR) {
+    return VK_ERROR_EXTENSION_NOT_PRESENT;
+  }
+  VkAndroidSurfaceCreateInfoKHR info{
+    .sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR,
+    .pNext = nullptr,
+    .flags = VkAndroidSurfaceCreateFlagsKHR{},
+    .window = native_window,
+  };
+  return fpCreateAndroidSurfaceKHR(instance, &info, nullptr, surface);
+}
+
+// ----------------------------------------------------------------------------
+
+bool WMAndroid::poll(AppData_t app_data) noexcept {
   // auto Fmwk{reinterpret_cast<Framework*>(app->userData)};
   // auto xr = Fmwk->xr();
 
@@ -123,22 +171,24 @@ bool WMAndroid::poll(void* data) noexcept {
     int events{};
     struct android_poll_source* source{nullptr};
 
-    bool const do_not_wait = app->destroyRequested
+    bool const do_not_wait = app_data->destroyRequested
                           || (isActive() && native_window)
                           // || (xr && xr->isSessionRunning()) // xxx
                           ;
-    int const timeout_ms{do_not_wait ? 0 : -1};
-    int const id = ALooper_pollOnce(timeout_ms, nullptr, &events, (void**)&source);
 
-    if (id == ALOOPER_POLL_ERROR) {
+    auto const poll_id = ALooper_pollOnce(
+      (do_not_wait ? 0 : -1), nullptr, &events, (void**)&source
+    );
+
+    if (poll_id == ALOOPER_POLL_ERROR) {
       return false;
     }
 
     if (source) {
-      source->process(app, source);
+      source->process(app_data, source);
     }
 
-    if (id == ALOOPER_POLL_TIMEOUT && do_not_wait) {
+    if ((poll_id == ALOOPER_POLL_TIMEOUT) && do_not_wait) {
       break;
     }
   }
@@ -148,41 +198,41 @@ bool WMAndroid::poll(void* data) noexcept {
 
 // ----------------------------------------------------------------------------
 
-void WMAndroid::handleAppCmd(android_app* app, int32_t cmd) {
+void WMAndroid::handleAppCmd(AppData_t app_data, int32_t cmd) {
   for (auto &callbacks : appCmdCallbacks_) {
     switch (cmd) {
       case APP_CMD_INIT_WINDOW:
-        callbacks->onInitWindow(app);
+        callbacks->onInitWindow(app_data);
       break;
       case APP_CMD_TERM_WINDOW:
-        callbacks->onTermWindow(app);
+        callbacks->onTermWindow(app_data);
       break;
       case APP_CMD_WINDOW_RESIZED:
-        callbacks->onWindowResized(app);
+        callbacks->onWindowResized(app_data);
       break;
       case APP_CMD_START:
-        callbacks->onStart(app);
+        callbacks->onStart(app_data);
       break;
       case APP_CMD_RESUME:
-        callbacks->onResume(app);
+        callbacks->onResume(app_data);
       break;
       case APP_CMD_PAUSE:
-        callbacks->onPause(app);
+        callbacks->onPause(app_data);
       break;
       case APP_CMD_STOP:
-        callbacks->onStop(app);
+        callbacks->onStop(app_data);
       break;
       case APP_CMD_GAINED_FOCUS:
-        callbacks->onGainedFocus(app);
+        callbacks->onGainedFocus(app_data);
       break;
       case APP_CMD_LOST_FOCUS:
-        callbacks->onLostFocus(app);
+        callbacks->onLostFocus(app_data);
       break;
       case APP_CMD_SAVE_STATE:
-        callbacks->onSaveState(app);
+        callbacks->onSaveState(app_data);
       break;
       case APP_CMD_DESTROY:
-        callbacks->onDestroy(app);
+        callbacks->onDestroy(app_data);
       break;
 
       default:
@@ -196,14 +246,14 @@ void WMAndroid::handleAppCmd(android_app* app, int32_t cmd) {
 bool WMAndroid::handleInputEvent(AInputEvent *event) {
   auto& E{Events::Get()};
 
-  int const action = AKeyEvent_getAction(event);
-  int const src = AInputEvent_getSource(event);
-  int const type = AInputEvent_getType(event);
+  auto const action  = AKeyEvent_getAction(event);
+  auto const src     = AInputEvent_getSource(event);
+  auto const type    = AInputEvent_getType(event);
 
   switch (type) {
     case AINPUT_EVENT_TYPE_KEY:
     {
-      int const keycode = AKeyEvent_getKeyCode(event);
+      auto const keycode = AKeyEvent_getKeyCode(event);
       if (AKEY_EVENT_ACTION_DOWN == action) {
         E.onKeyPressed(keycode); //
         if (AKEYCODE_BACK == keycode) {}
@@ -217,12 +267,12 @@ bool WMAndroid::handleInputEvent(AInputEvent *event) {
       if (AINPUT_SOURCE_CLASS_JOYSTICK == (src & AINPUT_SOURCE_CLASS_MASK)) {
         // (joystick)
       } else {
-        int const ptrIndex = (action & AMOTION_EVENT_ACTION_POINTER_INDEX_MASK) >> AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT;
-        int const motionX = static_cast<int>(AMotionEvent_getX(event, ptrIndex)); //
-        int const motionY = static_cast<int>(AMotionEvent_getY(event, ptrIndex)); //
-        int const keycode = AKeyEvent_getKeyCode(event);
-        // int const motionPointerId = AMotionEvent_getPointerId(event, ptrIndex);
-        // int const motionIsOnScreen = (src == AINPUT_SOURCE_TOUCHSCREEN);
+        auto const ptrIndex = (action & AMOTION_EVENT_ACTION_POINTER_INDEX_MASK) >> AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT;
+        auto const motionX = static_cast<int32_t>(AMotionEvent_getX(event, ptrIndex)); //
+        auto const motionY = static_cast<int32_t>(AMotionEvent_getY(event, ptrIndex)); //
+        auto const keycode = AKeyEvent_getKeyCode(event);
+        // auto const motionPointerId = AMotionEvent_getPointerId(event, ptrIndex);
+        // auto const motionIsOnScreen = (src == AINPUT_SOURCE_TOUCHSCREEN);
 
         switch (action & AMOTION_EVENT_ACTION_MASK) {
           case AMOTION_EVENT_ACTION_DOWN:

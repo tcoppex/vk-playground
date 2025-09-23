@@ -99,11 +99,13 @@ void InitializeEventsCallbacks(GLFWwindow *handle) noexcept {
 
 /* -------------------------------------------------------------------------- */
 
-bool Window::init() {
-
+bool Window::init(AppData_t app_data) {
 #if defined(_WIN32)
   // Switch Windows console to UTF-8
   SetConsoleOutputCP(CP_UTF8);
+
+  // Force stderr to flush automatically on Windows.
+  std::setbuf(stderr, nullptr);
 #endif
 
   if (!glfwInit()) {
@@ -144,11 +146,15 @@ bool Window::init() {
   return true;
 }
 
+// ----------------------------------------------------------------------------
+
 void Window::shutdown() {
   glfwTerminate();
 }
 
-bool Window::poll(void *data) noexcept {
+// ----------------------------------------------------------------------------
+
+bool Window::poll(AppData_t app_data) noexcept {
   glfwPollEvents();
 
   // Hardcode exit via escape key.
@@ -159,13 +165,19 @@ bool Window::poll(void *data) noexcept {
   return GLFW_TRUE != glfwWindowShouldClose(window_);
 }
 
+// ----------------------------------------------------------------------------
+
 void Window::setTitle(std::string_view title) const noexcept {
   glfwSetWindowTitle(window_, title.data());
 }
 
+// ----------------------------------------------------------------------------
+
 void Window::close() noexcept {
   glfwSetWindowShouldClose(window_, GLFW_TRUE);
 }
+
+// ----------------------------------------------------------------------------
 
 std::vector<char const*> Window::getVulkanInstanceExtensions() const noexcept {
   uint32_t extension_count;
@@ -176,6 +188,8 @@ std::vector<char const*> Window::getVulkanInstanceExtensions() const noexcept {
 
   return result;
 }
+
+// ----------------------------------------------------------------------------
 
 VkResult Window::createWindowSurface(VkInstance instance, VkSurfaceKHR *surface) const noexcept {
   return glfwCreateWindowSurface(instance, window_, nullptr, surface);
