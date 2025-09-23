@@ -178,6 +178,10 @@ void Envmap::init(Renderer const& renderer) {
 // ----------------------------------------------------------------------------
 
 void Envmap::release() {
+  if (!allocator_ptr_) {
+    return;
+  }
+
   allocator_ptr_->destroy_buffer(irradiance_matrices_buffer_);
   vkDestroySampler(context_->device(), sampler_, nullptr); //
   for (auto &image : images_) {
