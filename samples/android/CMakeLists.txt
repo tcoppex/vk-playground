@@ -4,18 +4,23 @@
 # 
 # -----------------------------------------------------------------------------
 
+set(SAMPLES_PACKAGE_NAME  com.polysfaer.vkframework.samples)
+
+# -----------------------------------------------------------------------------
+
 if(NOT DEFINED ENV{ANDROID_SDK})
   message(STATUS "Environment variable ANDROID_SDK is not set.")
 endif()
 
+# -----------------------------------------------------------------------------
+
 function(add_activity_target suffix)
   if(DEFINED ENV{ANDROID_SDK})
-    set(ADB_CMD               $ENV{ANDROID_SDK}/platform-tools/adb)
-    set(SAMPLES_PACKAGE_NAME  com.polysfaer.vkframework.samples)
-    set(target launch_${suffix})
+    set(ADB_CMD $ENV{ANDROID_SDK}/platform-tools/adb)
 
+    set(PACKAGE_NAME ${SAMPLES_PACKAGE_NAME}.${suffix})
     set(ADB_RESOLVE_CMD
-      "${ADB_CMD} shell cmd package resolve-activity --brief ${SAMPLES_PACKAGE_NAME}.${suffix}"
+      "${ADB_CMD} shell cmd package resolve-activity --brief ${PACKAGE_NAME}"
     )
     set(ADB_LAUNCH_CMD
       "${ADB_CMD} shell am start -n \$ACTIVITY"
@@ -55,15 +60,34 @@ function(add_activity_target suffix)
         "Run Android DEBUG target \"${suffix}\" on device."
       VERBATIM
     )
+
+    set(LOGGER_ANDROID_TAG VkFramework)
+    set(ADB_LOGCAT_CMD
+      ${ADB_CMD} logcat -v time -v color
+    )
+
+    add_custom_target(log_${suffix}
+      COMMAND
+        ${ADB_CMD} logcat -c
+      COMMAND
+        # ${ADB_LOGCAT_CMD} | grep --line-buffered "${SAMPLES_PACKAGE_NAME}"
+        # ${ADB_LOGCAT_CMD} | grep ${LOGGER_ANDROID_TAG}
+        ${ADB_LOGCAT_CMD} *:S ${LOGGER_ANDROID_TAG}:D | tee ${suffix}.log
+      DEPENDS
+        run_${suffix}
+      WORKING_DIRECTORY
+        ${ANDROID_BUILD_DIR}
+      COMMENT
+        "Log Android target \"${suffix}\" on device."
+      VERBATIM
+    )
   endif()
 endfunction()
 
-add_activity_target(aloha)
-
 function(add_android_sample target)
-  add_activity_target(target)
+  add_activity_target(${target})
   if(ANDROID)
-    add_subdirectory(aloha)
+    add_subdirectory(${target})
   endif()
 endfunction()
 
