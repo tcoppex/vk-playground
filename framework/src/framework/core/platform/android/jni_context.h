@@ -19,16 +19,19 @@ class JNIContext final : public Singleton<JNIContext> {
   friend class Singleton<JNIContext>;
 
  public:
-  JavaVM* getJVM() const noexcept {
+  [[nodiscard]]
+  JavaVM* jvm() const noexcept {
     return jvm_;
   }
   
-  jobject getActivity() const noexcept {
+  [[nodiscard]]
+  jobject activity() const noexcept {
     return activity_;
   }
 
-  std::vector<uint8_t> const& getReadBuffer() const noexcept {
-    return readBuffer_;
+  [[nodiscard]]
+  std::vector<uint8_t> const& buffer() const noexcept {
+    return buffer_;
   }
 
   bool readFile(std::string_view filename, std::vector<uint8_t>& buffer);
@@ -42,10 +45,8 @@ class JNIContext final : public Singleton<JNIContext> {
  private:
   JavaVM* jvm_{};
   jobject activity_{};
-
   AAssetManager* asset_manager_{};
-
-  std::vector<uint8_t> readBuffer_{};
+  std::vector<uint8_t> buffer_{};
 };
 
 /* -------------------------------------------------------------------------- */

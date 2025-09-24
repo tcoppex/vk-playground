@@ -61,7 +61,7 @@ bool JNIContext::readFile(std::string_view filename, std::vector<uint8_t>& buffe
 // ----------------------------------------------------------------------------
 
 bool JNIContext::readFile(std::string_view filename) {
-  return readFile(filename, readBuffer_);
+  return readFile(filename, buffer_);
 }
 
 /* -------------------------------------------------------------------------- */
