@@ -7,11 +7,15 @@
 using namespace std::chrono_literals;
 
 #include "framework/core/common.h"
+
 #include "framework/core/platform/common.h"
 #include "framework/core/platform/event_callbacks.h"
 #include "framework/core/platform/wm_interface.h"
 #include "framework/core/platform/ui_controller.h"
+
 #include "framework/backend/context.h"
+#include "framework/backend/swapchain.h"
+
 #include "framework/renderer/renderer.h"
 
 /* -------------------------------------------------------------------------- */
@@ -66,16 +70,20 @@ class Application : public EventCallbacks
   std::unique_ptr<UIController> ui_{};
 
   Context context_{};
+  Swapchain swapchain_{};
   Renderer renderer_{};
-  VkExtent2D viewport_size_{};
+
+  VkExtent2D viewport_size_{}; //
 
  private:
-  uint32_t rand_seed_{};
   VkSurfaceKHR surface_{};
+
+  std::unique_ptr<EventCallbacks> default_callbacks_{};
 
   std::chrono::time_point<std::chrono::high_resolution_clock> chrono_{};
   float frame_time_{};
   float last_frame_time_{};
+  uint32_t rand_seed_{};
 };
 
 /* -------------------------------------------------------------------------- */

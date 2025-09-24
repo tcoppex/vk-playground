@@ -7,14 +7,13 @@
 
 #include "framework/backend/swapchain.h"
 #include "framework/backend/command_encoder.h"
-#include "framework/renderer/pipeline.h"
-#include "framework/renderer/sampler_pool.h"
 #include "framework/renderer/targets/framebuffer.h"
 #include "framework/renderer/targets/render_target.h"
+#include "framework/renderer/pipeline.h"
+#include "framework/renderer/sampler_pool.h"
+#include "framework/renderer/descriptor_set_registry.h" //
 #include "framework/renderer/gpu_resources.h" // (for GLTFScene)
 #include "framework/renderer/fx/skybox.h"
-
-#include "framework/renderer/descriptor_set_registry.h" //
 
 class Context;
 
@@ -36,14 +35,20 @@ class Context;
  **/
 class Renderer : public backend::RTInterface {
  public:
-  static constexpr VkClearValue kDefaultColorClearValue{{{1.0f, 0.25f, 0.75f, 1.0f}}};
+  static constexpr VkClearValue kDefaultColorClearValue{{
+    .float32 = {1.0f, 0.25f, 0.75f, 1.0f}
+  }};
   static constexpr uint32_t kMaxDescriptorPoolSets{ 256u };
 
  public:
   Renderer() = default;
   ~Renderer() {}
 
-  void init(Context const& context, ResourceAllocator* allocator, VkSurfaceKHR const surface);
+  void init(
+    Context const& context,
+    Swapchain& swapchain,
+    ResourceAllocator& allocator
+  );
 
   void deinit();
 
@@ -55,11 +60,6 @@ class Renderer : public backend::RTInterface {
   [[nodiscard]]
   Context const& context() const noexcept {
     return *ctx_ptr_;
-  }
-
-  [[nodiscard]]
-  Swapchain const& swapchain() const noexcept {
-    return swapchain_;
   }
 
   [[nodiscard]]
@@ -81,10 +81,14 @@ class Renderer : public backend::RTInterface {
   std::shared_ptr<RenderTarget> create_render_target() const;
 
   [[nodiscard]]
-  std::shared_ptr<RenderTarget> create_render_target(RenderTarget::Descriptor_t const& desc) const;
+  std::shared_ptr<RenderTarget> create_render_target(
+    RenderTarget::Descriptor_t const& desc
+  ) const;
 
   [[nodiscard]]
-  std::shared_ptr<RenderTarget> create_default_render_target(uint32_t num_color_outputs = 1u) const;
+  std::shared_ptr<RenderTarget> create_default_render_target(
+    uint32_t num_color_outputs = 1u
+  ) const;
 
   // --- Framebuffer (Legacy Rendering) ---
 
@@ -92,18 +96,26 @@ class Renderer : public backend::RTInterface {
   std::shared_ptr<Framebuffer> create_framebuffer() const;
 
   [[nodiscard]]
-  std::shared_ptr<Framebuffer> create_framebuffer(Framebuffer::Descriptor_t const& desc) const;
+  std::shared_ptr<Framebuffer> create_framebuffer(
+    Framebuffer::Descriptor_t const& desc
+  ) const;
 
   // --- Pipeline Layout ---
 
   [[nodiscard]]
-  VkPipelineLayout create_pipeline_layout(PipelineLayoutDescriptor_t const& params) const;
+  VkPipelineLayout create_pipeline_layout(
+    PipelineLayoutDescriptor_t const& params
+  ) const;
 
-  void destroy_pipeline_layout(VkPipelineLayout layout) const;
+  void destroy_pipeline_layout(
+    VkPipelineLayout layout
+  ) const;
 
   // --- Pipelines ---
 
-  void destroy_pipeline(Pipeline const& pipeline) const;
+  void destroy_pipeline(
+    Pipeline const& pipeline
+  ) const;
 
   // --- Graphics Pipelines ---
 
@@ -182,13 +194,23 @@ class Renderer : public backend::RTInterface {
   VkDescriptorSet create_descriptor_set(VkDescriptorSetLayout const layout) const;
 
   [[nodiscard]]
-  VkDescriptorSet create_descriptor_set(VkDescriptorSetLayout const layout, std::vector<DescriptorSetWriteEntry> const& entries) const;
+  VkDescriptorSet create_descriptor_set(
+    VkDescriptorSetLayout const layout,
+    std::vector<DescriptorSetWriteEntry> const& entries
+  ) const;
 
   // --- Texture ---
 
-  bool load_image_2d(CommandEncoder const& cmd, std::string_view const& filename, backend::Image &image) const;
+  bool load_image_2d(
+    CommandEncoder const& cmd,
+    std::string_view const& filename,
+    backend::Image& image
+  ) const;
 
-  bool load_image_2d(std::string_view const& filename, backend::Image &image) const;
+  bool load_image_2d(
+    std::string_view const& filename,
+    backend::Image& image
+  ) const;
 
   // --- Sampler ---
 
@@ -210,7 +232,10 @@ class Renderer : public backend::RTInterface {
   // --- GPUResources gltf objects ---
 
   [[nodiscard]]
-  GLTFScene load_and_upload(std::string_view gltf_filename, scene::Mesh::AttributeLocationMap const& attribute_to_location);
+  GLTFScene load_and_upload(
+    std::string_view gltf_filename,
+    scene::Mesh::AttributeLocationMap const& attribute_to_location
+  );
 
   [[nodiscard]]
   GLTFScene load_and_upload(std::string_view gltf_filename);
@@ -227,7 +252,7 @@ class Renderer : public backend::RTInterface {
   /* ----- RTInterface Overrides ----- */
 
   VkExtent2D get_surface_size() const final {
-    return swapchain_.get_surface_size();
+    return swapchain_ptr_->get_surface_size();
   }
 
   uint32_t get_color_attachment_count() const final {
@@ -239,15 +264,15 @@ class Renderer : public backend::RTInterface {
     return proxy_swap_attachment_;
   }
 
-  backend::Image const& get_color_attachment(uint32_t i = 0u) const final {
-    return swapchain_.get_current_swap_image();
+  backend::Image const& get_color_attachment(uint32_t index = 0u) const final {
+    return swapchain_ptr_->get_current_swap_image();
   }
 
   backend::Image const& get_depth_stencil_attachment() const final {
     return depth_stencil_;
   }
 
-  VkClearValue get_color_clear_value(uint32_t i = 0u) const final {
+  VkClearValue get_color_clear_value(uint32_t index = 0u) const final {
     return color_clear_value_;
   }
 
@@ -255,11 +280,11 @@ class Renderer : public backend::RTInterface {
     return depth_stencil_clear_value_;
   }
 
-  VkAttachmentLoadOp get_color_load_op(uint32_t i = 0u) const {
+  VkAttachmentLoadOp get_color_load_op(uint32_t index = 0u) const final {
     return color_load_op_;
   }
 
-  void set_color_clear_value(VkClearColorValue clear_color, uint32_t i = 0u) final {
+  void set_color_clear_value(VkClearColorValue clear_color, uint32_t index = 0u) final {
     color_clear_value_.color = clear_color;
   }
 
@@ -267,18 +292,28 @@ class Renderer : public backend::RTInterface {
     depth_stencil_clear_value_.depthStencil = clear_depth_stencil;
   }
 
-  void set_color_load_op(VkAttachmentLoadOp load_op, uint32_t i = 0u) final {
+  void set_color_load_op(VkAttachmentLoadOp load_op, uint32_t index = 0u) final {
     color_load_op_ = load_op;
+  }
+
+  bool resize(uint32_t w, uint32_t h) final {
+    LOGW("Renderer::resize TODO");
+    ctx_ptr_->wait_device_idle();
+    return false;
   }
 
   // -----------
 
-  void set_color_clear_value(vec4 clear_color, uint32_t i = 0u) {
+  void set_color_clear_value(vec4 clear_color, uint32_t index = 0u) {
     set_color_clear_value(
-      {.float32 = { clear_color.x, clear_color.y, clear_color.z, clear_color.w }}, i
+      {.float32 = { clear_color.x, clear_color.y, clear_color.z, clear_color.w }},
+      index
     );
   }
 
+  uint32_t get_swap_image_count() const noexcept {
+    return swapchain_ptr_->get_image_count();
+  }
 
  private:
   VkFormat get_valid_depth_format() const noexcept {
@@ -302,36 +337,38 @@ class Renderer : public backend::RTInterface {
     uint32_t frame_index{};
     VkSemaphore semaphore{};
 
-    TimelineFrame_t& current_frame() {
+    TimelineFrame_t& current_frame() noexcept {
       return frames[frame_index];
     }
   };
 
  private:
-  /* Copy references for quick access */
+  /* References for quick access */
   Context const* ctx_ptr_{};
-  VkDevice device_{};
+  Swapchain* swapchain_ptr_{};
   ResourceAllocator* allocator_ptr_{};
+  VkDevice device_{};
 
-  /* Swapchain. */
-  Swapchain swapchain_{};
+  /* Color framebuffers */
   mutable std::vector<backend::Image> proxy_swap_attachment_{};
 
-  /* Pipeline Cache */
-  VkPipelineCache pipeline_cache_{};
-
-  /* Default depth-stencil buffer. */
+  /* Default depth-stencil buffer */
   backend::Image depth_stencil_{};
 
   /* Timeline frame resources */
   Timeline_t timeline_{};
 
+  /* Pipeline Cache */
+  VkPipelineCache pipeline_cache_{};
+
   /* Descriptor registry and allocator */
   DescriptorSetRegistry descriptor_set_registry_{};
 
+  // ----------------
+
   /* Utils */
   SamplerPool sampler_pool_{};
-  Skybox skybox_{};
+  Skybox skybox_{}; // (higher level..)
 
   /* Miscs resources */
   VkClearValue color_clear_value_{kDefaultColorClearValue};

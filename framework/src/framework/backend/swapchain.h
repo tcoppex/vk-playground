@@ -25,7 +25,12 @@ class Swapchain {
 
   void deinit();
 
-  uint32_t acquire_next_image();
+  void reset(Context const& context, VkSurfaceKHR const surface) {
+    deinit();
+    init(context, surface);
+  }
+
+  void acquire_next_image();
 
   void present_and_swap(VkQueue const queue);
 
@@ -65,8 +70,10 @@ class Swapchain {
   }
 
  private:
+  [[nodiscard]]
   VkSurfaceFormat2KHR select_surface_format(VkPhysicalDeviceSurfaceInfo2KHR const* surface_info2) const;
 
+  [[nodiscard]]
   VkPresentModeKHR select_present_mode(bool use_vsync) const;
 
  private:

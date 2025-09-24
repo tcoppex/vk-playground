@@ -32,6 +32,8 @@ void Swapchain::init(Context const& context, VkSurfaceKHR const surface) {
   device_ = context.device();
   surface_ = surface;
 
+  LOGD("--- Initialize Swapchain ---");
+
   LOG_CHECK(vkGetPhysicalDeviceSurfaceCapabilities2KHR);
   /* Retrieve the GPU's capabilities for this surface. */
   VkPhysicalDeviceSurfaceInfo2KHR const surface_info2{
@@ -127,6 +129,8 @@ void Swapchain::init(Context const& context, VkSurfaceKHR const surface) {
     VK_IMAGE_LAYOUT_UNDEFINED,
     VK_IMAGE_LAYOUT_PRESENT_SRC_KHR // VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR
   );
+
+  LOGD("--------------------------------------------\n");
 }
 
 // ----------------------------------------------------------------------------
@@ -144,7 +148,7 @@ void Swapchain::deinit() {
 
 // ----------------------------------------------------------------------------
 
-uint32_t Swapchain::acquire_next_image() {
+void Swapchain::acquire_next_image() {
   LOG_CHECK(swapchain_ != VK_NULL_HANDLE);
 
   auto const& semaphore = get_current_synchronizer().wait_image_semaphore;
@@ -152,11 +156,10 @@ uint32_t Swapchain::acquire_next_image() {
   VkResult const result = vkAcquireNextImageKHR(
     device_, swapchain_, UINT64_MAX, semaphore, VK_NULL_HANDLE, &next_swap_index_
   );
-  // LOG_CHECK(current_swap_index_ == next_swap_index_);
-
   need_rebuild_ = CheckOutOfDataResult(result, __FUNCTION__);
 
-  return current_swap_index_;
+  // LOG_CHECK(current_swap_index_ == next_swap_index_);
+  // return current_swap_index_;
 }
 
 // ----------------------------------------------------------------------------

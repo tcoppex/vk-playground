@@ -80,10 +80,13 @@ bool Application::presetup(AppData_t app_data) {
     goto presetup_fails_surface;
   }
 
+  /* Initialize the swapchain. */
+  swapchain_.init(context_, surface_);
+
   // ----------------------------------
 
   /* Initialize the default renderer. */
-  renderer_.init(context_, context_.allocator_ptr(), surface_);
+  renderer_.init(context_, swapchain_, context_.allocator());
 
   // ----------------------------------
 
@@ -145,7 +148,9 @@ void Application::shutdown() {
   ui_->release(context_);
   renderer_.deinit();
 
+  swapchain_.deinit();
   vkDestroySurfaceKHR(context_.instance(), surface_, nullptr);
+
   context_.deinit();
   wm_->shutdown();
 

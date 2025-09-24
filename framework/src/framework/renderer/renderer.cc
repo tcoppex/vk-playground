@@ -13,20 +13,19 @@ char const* kDefaulShaderEntryPoint{
 
 void Renderer::init(
   Context const& context,
-  ResourceAllocator* allocator,
-  VkSurfaceKHR const surface
+  Swapchain& swapchain,
+  ResourceAllocator& allocator
 ) {
   ctx_ptr_ = &context;
+  swapchain_ptr_ = &swapchain;
+  allocator_ptr_ = &allocator;
+
   device_ = context.device();
-  allocator_ptr_ = allocator;
 
   LOGD("--- Initialize Renderer ---");
 
-  /* Initialize the swapchain. */
-  LOGD(" > Swapchain");
-  swapchain_.init(context, surface);
-
   /* Create the shared pipeline cache. */
+  LOGD(" > PipelineCacheInfo");
   {
     VkPipelineCacheCreateInfo const cache_info{
       .sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO,
@@ -43,7 +42,7 @@ void Renderer::init(
 
   /* Create a default depth stencil buffer. */
   LOGD(" > DepthStencil");
-  VkExtent2D const dimension{swapchain_.get_surface_size()};
+  VkExtent2D const dimension{swapchain_ptr_->get_surface_size()};
   depth_stencil_ = context.create_image_2d(
     dimension.width,
     dimension.height,
@@ -53,7 +52,7 @@ void Renderer::init(
   /* Initialize resources for the semaphore timeline. */
   LOGD(" > Timeline Semaphore Resources");
   {
-    uint64_t const frame_count = swapchain_.get_image_count();
+    uint64_t const frame_count = swapchain_ptr_->get_image_count();
 
     // Initialize per-frame command buffers.
     timeline_.frames.resize(frame_count);
@@ -104,9 +103,8 @@ void Renderer::init(
   sampler_pool_.init(device_);
 
   // Renderer internal effects.
+  LOGD(" > Internal Fx");
   {
-    LOGD(" > Internal Fx");
-
     // [should condition creation on some config]
     skybox_.init(*this);
   }
@@ -131,7 +129,6 @@ void Renderer::deinit() {
 
   allocator_ptr_->destroy_image(&depth_stencil_);
   vkDestroyPipelineCache(device_, pipeline_cache_, nullptr);
-  swapchain_.deinit();
 
   *this = {};
 }
@@ -152,7 +149,7 @@ CommandEncoder Renderer::begin_frame() {
   };
   vkWaitSemaphores(device_, &semaphore_wait_info, UINT64_MAX);
 
-  swapchain_.acquire_next_image();
+  swapchain_ptr_->acquire_next_image();
 
   // Reset the frame command pool to record new command for this frame.
   CHECK_VK( vkResetCommandPool(device_, frame.command_pool, 0u) );
@@ -181,9 +178,9 @@ void Renderer::end_frame() {
   //------------
 
   // Next frame index to start when this one completed.
-  frame.signal_index += swapchain_.get_image_count();
+  frame.signal_index += swapchain_ptr_->get_image_count();
 
-  auto const& synchronizer = swapchain_.get_current_synchronizer();
+  auto const& synchronizer = swapchain_ptr_->get_current_synchronizer();
 
   VkPipelineStageFlags2 const stage_mask{
     VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
@@ -238,8 +235,8 @@ void Renderer::end_frame() {
   CHECK_VK( vkQueueSubmit2(queue, 1u, &submit_info_2, nullptr) );
 
   /* Display and swap buffers. */
-  swapchain_.present_and_swap(queue); //
-  timeline_.frame_index = swapchain_.get_current_swap_index();
+  swapchain_ptr_->present_and_swap(queue); //
+  timeline_.frame_index = swapchain_ptr_->get_current_swap_index();
 }
 
 // ----------------------------------------------------------------------------
@@ -268,7 +265,7 @@ std::shared_ptr<RenderTarget> Renderer::create_default_render_target(
   RenderTarget::Descriptor_t desc{
     .color_formats = {},
     .depth_stencil_format = get_valid_depth_format(),
-    .size = swapchain_.get_surface_size(),
+    .size = get_surface_size(),
     .sampler = default_sampler(),
   };
   desc.color_formats.resize(num_color_outputs, get_color_attachment().format);
@@ -279,7 +276,7 @@ std::shared_ptr<RenderTarget> Renderer::create_default_render_target(
 // ----------------------------------------------------------------------------
 
 std::shared_ptr<Framebuffer> Renderer::create_framebuffer() const {
-  return std::shared_ptr<Framebuffer>(new Framebuffer(*ctx_ptr_, swapchain_));
+  return std::shared_ptr<Framebuffer>(new Framebuffer(*ctx_ptr_, (*swapchain_ptr_)));
 }
 
 // ----------------------------------------------------------------------------

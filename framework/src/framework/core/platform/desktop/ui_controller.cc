@@ -1,6 +1,5 @@
 /* -------------------------------------------------------------------------- */
 
-
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wuseless-cast"
@@ -75,7 +74,7 @@ bool UIController::init(Renderer const& renderer, WMInterface const& wm) {
     .Queue = main_queue.queue,
     .DescriptorPool = imgui_descriptor_pool_,
     .MinImageCount = 2,
-    .ImageCount = renderer.swapchain().get_image_count(),
+    .ImageCount = renderer.get_swap_image_count(),
     .UseDynamicRendering = true,
     .PipelineRenderingCreateInfo = {
       .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
