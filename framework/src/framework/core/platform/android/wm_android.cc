@@ -14,15 +14,16 @@ struct DefaultAppCmdCallbacks final : AppCmdCallbacks {
 
   void handleResize(android_app* app, bool signalOnResize = true) {
     LOGD(">>>>>> %s", __FUNCTION__);
-    int32_t w = ANativeWindow_getWidth(app->window);
-    int32_t h = ANativeWindow_getHeight(app->window);
-    wma_->surface_w_ = static_cast<uint32_t>(w);
-    wma_->surface_h_ = static_cast<uint32_t>(h);
+    int32_t const w = ANativeWindow_getWidth(app->window);
+    int32_t const h = ANativeWindow_getHeight(app->window);
+    wma_->surface_width_ = static_cast<uint32_t>(w);
+    wma_->surface_height_ = static_cast<uint32_t>(h);
     if (signalOnResize) {
       Events::Get().onResize(w, h);
     }
   }
 
+  // ----------------------------------------------------------
   void onInitWindow(android_app* app) final {
     LOGD("%s", __FUNCTION__);
     // (APP_CMD_INIT_WINDOW is called when app->window has a new ANativeWindow)
@@ -34,13 +35,14 @@ struct DefaultAppCmdCallbacks final : AppCmdCallbacks {
         //// subsequent call got the surface size we fake resize it here..
         handleResize(app, false); //
       }
-      wma_->native_window = app->window;
+      wma_->native_window.reset(app->window);
     }
   }
+  // ----------------------------------------------------------
 
   void onTermWindow(android_app* app) final {
     LOGD("%s", __FUNCTION__);
-    wma_->native_window = nullptr;
+    wma_->native_window.reset();
   }
 
   void onWindowResized(android_app* app) final {
@@ -81,6 +83,7 @@ struct DefaultAppCmdCallbacks final : AppCmdCallbacks {
   // [not always called]
   void onDestroy(android_app* app) final {
     LOGD("%s", __FUNCTION__);
+    wma_->native_window.reset();
   }
 
   private:
@@ -156,7 +159,7 @@ VkResult WMAndroid::createWindowSurface(VkInstance instance, VkSurfaceKHR *surfa
     .sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR,
     .pNext = nullptr,
     .flags = VkAndroidSurfaceCreateFlagsKHR{},
-    .window = native_window,
+    .window = native_window.get(),
   };
   return fpCreateAndroidSurfaceKHR(instance, &info, nullptr, surface);
 }

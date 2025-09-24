@@ -6,6 +6,10 @@
 #include "framework/core/platform/common.h"
 #include "framework/core/platform/wm_interface.h"
 
+struct ANativeWindowDeleter {
+  void operator()(ANativeWindow* window) { ANativeWindow_release(window); }
+};
+
 /* -------------------------------------------------------------------------- */
 
 struct WMAndroid final : public WMInterface {
@@ -24,7 +28,7 @@ struct WMAndroid final : public WMInterface {
   }
 
   void* get_handle() const noexcept final {
-    return native_window;
+    return native_window.get();
   }
 
   std::vector<char const*> getVulkanInstanceExtensions() const noexcept final;
@@ -36,13 +40,13 @@ struct WMAndroid final : public WMInterface {
   void close() noexcept final {}
 
   uint32_t get_surface_width() const noexcept final {
-    LOG_CHECK(surface_w_ > 0u);
-    return surface_w_;
+    LOG_CHECK(surface_width_ > 0u);
+    return surface_width_;
   }
 
   uint32_t get_surface_height() const noexcept final {
-    LOG_CHECK(surface_h_ > 0u);
-    return surface_h_;
+    LOG_CHECK(surface_height_ > 0u);
+    return surface_height_;
   }
   // -------------------------------------------
 
@@ -57,9 +61,11 @@ struct WMAndroid final : public WMInterface {
 
  // -------------------------------------------
  public:
-  ANativeWindow *native_window{};
-  uint32_t surface_w_{};
-  uint32_t surface_h_{};
+  // ANativeWindow *native_window{};
+  std::unique_ptr<ANativeWindow, ANativeWindowDeleter> native_window{};
+
+  uint32_t surface_width_{};
+  uint32_t surface_height_{};
 
   bool visible{};
   bool resumed{};
