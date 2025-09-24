@@ -85,11 +85,8 @@ cmake --build build --config Release
 * [VK_KHR_synchronization2](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_synchronization2.html)
 * [VK_KHR_timeline_semaphore](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_timeline_semaphore.html)
 * [VK_KHR_acceleration_structure](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_acceleration_structure.html)
-
-###### Optionnal
-
-* [VK_KHR_maintenance6](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_maintenance6.html)
-* [VK_KHR_ray_tracing_pipeline](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_ray_tracing_pipeline.html)
+* (_optionnal_) [VK_KHR_maintenance6](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_maintenance6.html)
+* (_optionnal_) [VK_KHR_ray_tracing_pipeline](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_ray_tracing_pipeline.html)
 
 ##### Android build
 
@@ -98,9 +95,7 @@ cmake --build build --config Release
  * Gradle 8.14.3
 
 <details>
-  <summary><strong>Install Android dependencies</strong></summary>
-
-Linux :
+  <summary><strong>Installing Android dependencies for Linux</strong></summary>
 
 ```bash
 # Install tools and the JDK
@@ -119,32 +114,33 @@ export PATH=$ANDROID_SDK/cmdline-tools/latest/bin:$ANDROID_SDK/platform-tools:$P
 # Install dependencies.
 sdkmanager "platforms;android-36" "platform-tools" "build-tools;36.0.0" "ndk;29.0.14033849"
 ```
+</details>
 
-Windows 11 (eg. using [git bash](https://gitforwindows.org/)) :
+<details>
+  <summary><strong>Installing Android dependencies for Windows 11</strong></summary>
 
 ```bash
-# Install JDK manually on Windows (Temurin 17 recommended)
+# Install JDK manually on Windows (eg. Temurin 17)
 
 # Setup ANDROID_SDK
 export ANDROID_SDK=$HOME/Android
 mkdir -p $ANDROID_SDK && cd $ANDROID_SDK
 
-# Download & install Android SDK Command-line Tools 12.0
+# Download & install Android SDK Command-line Tools 12.0.
 curl -O https://dl.google.com/android/repository/commandlinetools-win-11076708_latest.zip
 unzip commandlinetools-win-11076708_latest.zip -d cmdline-tools
 mv cmdline-tools/cmdline-tools cmdline-tools/latest
 export PATH=$ANDROID_SDK/cmdline-tools/latest/bin:$ANDROID_SDK/platform-tools:$PATH
 
-# Install dependencies
+# Install dependencies.
 sdkmanager "platforms;android-36" "platform-tools" "build-tools;36.0.0" "ndk;29.0.14033849"
 ```
-
 </details>
 
-##### Assets
+#### Assets
 
-There is a few assets served via `git-lfs` but most of them are download automatically
-while generating the cmake cache.
+A few assets are served via `git-lfs` but most are downloaded automatically
+as needed on CMake cache generation time.
 
 ### Acknowledgement
 
