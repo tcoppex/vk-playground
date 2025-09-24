@@ -1,13 +1,23 @@
 #include "framework/application.h"
 #include "framework/core/platform/events.h"
+#include "framework/core/platform/window.h"
 
-// -----------------
-#if defined(ANDROID)
-#include "framework/core/platform/android/wm_android.h" //
-#else
-#include "framework/core/platform/desktop/window.h" //
-#endif
-// -----------------
+/* -------------------------------------------------------------------------- */
+
+struct DefaultAppEventCallbacks final : public EventCallbacks {
+  DefaultAppEventCallbacks(WMInterface *wm, Renderer *renderer)
+    : wm_(wm)
+    , renderer_(renderer)
+  {}
+  ~DefaultAppEventCallbacks() = default;
+
+  void onResize(int w, int h) final {
+    LOGI("DefaultAppEventCallbacks::%s", __FUNCTION__);
+  }
+
+  WMInterface *wm_{};
+  Renderer *renderer_{};
+};
 
 /* -------------------------------------------------------------------------- */
 
@@ -52,15 +62,9 @@ bool Application::presetup(AppData_t app_data) {
     Events::Initialize();
   }
 
-#if defined(ANDROID)
-  wm_ = std::make_unique<WMAndroid>();
-#else
-  wm_ = std::make_unique<Window>();
-#endif
-
   /* Create the main window surface. */
-  if (!wm_ || !wm_->init(app_data)) {
-    LOGE("window creation fails");
+  if (wm_ = std::make_unique<Window>(); !wm_ || !wm_->init(app_data)) {
+    LOGE("Window creation fails");
     goto presetup_fails_wm;
   }
 
