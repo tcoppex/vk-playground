@@ -53,22 +53,22 @@ class Renderer : public backend::RTInterface {
   void end_frame();
 
   [[nodiscard]]
-  Swapchain const& swapchain() const noexcept {
-    return swapchain_;
-  }
-
-  [[nodiscard]]
   Context const& context() const noexcept {
     return *ctx_ptr_;
   }
 
   [[nodiscard]]
-  Skybox& skybox() noexcept {
-    return skybox_;
+  Swapchain const& swapchain() const noexcept {
+    return swapchain_;
   }
 
   [[nodiscard]]
   Skybox const& skybox() const noexcept {
+    return skybox_;
+  }
+
+  [[nodiscard]]
+  Skybox& skybox() noexcept {
     return skybox_;
   }
 
@@ -267,9 +267,18 @@ class Renderer : public backend::RTInterface {
     depth_stencil_clear_value_.depthStencil = clear_depth_stencil;
   }
 
-  void set_color_load_op(VkAttachmentLoadOp load_op, uint32_t i = 0u) {
+  void set_color_load_op(VkAttachmentLoadOp load_op, uint32_t i = 0u) final {
     color_load_op_ = load_op;
   }
+
+  // -----------
+
+  void set_color_clear_value(vec4 clear_color, uint32_t i = 0u) {
+    set_color_clear_value(
+      {.float32 = { clear_color.x, clear_color.y, clear_color.z, clear_color.w }}, i
+    );
+  }
+
 
  private:
   VkFormat get_valid_depth_format() const noexcept {

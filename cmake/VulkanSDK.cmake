@@ -7,7 +7,7 @@
 
 # -----------------------------------------------------------------------------
 
-## Search the GLSL Compiler binary
+## Search for the GLSL Compiler binary.
 if (WIN32)
   if (CMAKE_CL_64)
     find_program(GLSLC glslc
@@ -110,15 +110,13 @@ function(glsl2spirv input_glsl output_spirv shader_dir deps extra_args)
   # To always recompile, use
   # add_custom_target( gen_${fn} ALL ..
   # otherwise, set the output files as dependencies.
-
 endfunction(glsl2spirv)
 
 # -----------------------------------------------------------------------------
 
-# Compile all shader from one directory to another
+## Compile all shader from one directory to another.
 function(compile_shaders GLOBAL_GLSL_DIR GLOBAL_SPIRV_DIR binaries sources extra_dir)
-
-  # retrieve all SOURCE glsl shaders
+  # Retrieve all SOURCE glsl shaders
   file(GLOB_RECURSE g_ShadersGLSL ${GLOBAL_GLSL_DIR}/*.*)
 
   # Only keep shaders of the form "filename.stage.glsl"
@@ -149,7 +147,7 @@ function(compile_shaders GLOBAL_GLSL_DIR GLOBAL_SPIRV_DIR binaries sources extra
   list(APPEND ShadersDependencies ${ShadersDependencies_bis})
 
 
-  # transform shader path to relative
+  # Transform shader path to relative
   foreach(glslshader IN LISTS g_ShadersGLSL)
     file(RELATIVE_PATH glslshader 
       ${GLOBAL_GLSL_DIR}

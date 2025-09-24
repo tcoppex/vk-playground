@@ -2,28 +2,33 @@
 #include "framework/core/platform/android/jni_context.h"
 #include "framework/core/platform/events.h"
 
-
 /* -------------------------------------------------------------------------- */
 
-// [probably not needed anymore with Vulkan, legacy of glES-EGL code]
-struct DefaultAppCmdCallbacks final : AppCmdCallbacks {
+struct DefaultAppCmdCallbacks final : public AppCmdCallbacks {
   DefaultAppCmdCallbacks(WMAndroid *const wma) noexcept
     : wma_(wma)
   {}
   ~DefaultAppCmdCallbacks() override {}
 
   void handleResize(android_app* app, bool signalOnResize = true) {
-    LOGD(">>>>>> %s", __FUNCTION__);
-    int32_t const w = ANativeWindow_getWidth(app->window);
-    int32_t const h = ANativeWindow_getHeight(app->window);
-    wma_->surface_width_ = static_cast<uint32_t>(w);
-    wma_->surface_height_ = static_cast<uint32_t>(h);
-    if (signalOnResize) {
-      Events::Get().onResize(w, h);
+    LOGD(">>> %s", __FUNCTION__);
+    int32_t const iw = ANativeWindow_getWidth(app->window);
+    int32_t const ih = ANativeWindow_getHeight(app->window);
+    uint32_t const w = static_cast<uint32_t>(iw);
+    uint32_t const h = static_cast<uint32_t>(ih);
+
+    if (signalOnResize)
+    {
+      if ((wma_->surface_width_ != w) || (wma_->surface_height_ != h)) {
+        LOGD("RESIZED");
+          wma_->surface_width_ = w;
+          wma_->surface_height_ = h;
+          Events::Get().onResize(iw, ih);
+      }
     }
   }
 
-  // ----------------------------------------------------------
+  // -----------------------------------------
   void onInitWindow(android_app* app) final {
     LOGD("%s", __FUNCTION__);
     // (APP_CMD_INIT_WINDOW is called when app->window has a new ANativeWindow)
@@ -38,7 +43,7 @@ struct DefaultAppCmdCallbacks final : AppCmdCallbacks {
       wma_->native_window.reset(app->window);
     }
   }
-  // ----------------------------------------------------------
+  // -----------------------------------------
 
   void onTermWindow(android_app* app) final {
     LOGD("%s", __FUNCTION__);
@@ -118,12 +123,10 @@ bool WMAndroid::init(AppData_t app_data) {
   };
 
   // Wait for the APP_CMD_INIT_WINDOW event which should create the native window.
-  while (!app_data->destroyRequested && poll(app_data))  {
-    if (native_window != nullptr) {
-      break;
-    }
+  while (!app_data->destroyRequested && poll(app_data) && !native_window) {
   }
-  if (native_window == nullptr) {
+
+  if (!native_window) {
     LOGE("Android native window failed to initialize.");
     return false;
   }
@@ -149,10 +152,10 @@ std::vector<char const*> WMAndroid::getVulkanInstanceExtensions() const noexcept
 // ----------------------------------------------------------------------------
 
 VkResult WMAndroid::createWindowSurface(VkInstance instance, VkSurfaceKHR *surface) const noexcept {
-  auto fpCreateAndroidSurfaceKHR = reinterpret_cast<PFN_vkCreateAndroidSurfaceKHR>(
+  auto fp_vkCreateAndroidSurfaceKHR = reinterpret_cast<PFN_vkCreateAndroidSurfaceKHR>(
     vkGetInstanceProcAddr(instance, "vkCreateAndroidSurfaceKHR")
   );
-  if (!fpCreateAndroidSurfaceKHR) {
+  if (!fp_vkCreateAndroidSurfaceKHR) {
     return VK_ERROR_EXTENSION_NOT_PRESENT;
   }
   VkAndroidSurfaceCreateInfoKHR info{
@@ -161,7 +164,8 @@ VkResult WMAndroid::createWindowSurface(VkInstance instance, VkSurfaceKHR *surfa
     .flags = VkAndroidSurfaceCreateFlagsKHR{},
     .window = native_window.get(),
   };
-  return fpCreateAndroidSurfaceKHR(instance, &info, nullptr, surface);
+  // [should not be used for OpenXR]
+  return fp_vkCreateAndroidSurfaceKHR(instance, &info, nullptr, surface);
 }
 
 // ----------------------------------------------------------------------------

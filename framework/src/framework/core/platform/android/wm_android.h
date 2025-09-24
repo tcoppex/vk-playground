@@ -61,7 +61,6 @@ struct WMAndroid final : public WMInterface {
 
  // -------------------------------------------
  public:
-  // ANativeWindow *native_window{};
   std::unique_ptr<ANativeWindow, ANativeWindowDeleter> native_window{};
 
   uint32_t surface_width_{};

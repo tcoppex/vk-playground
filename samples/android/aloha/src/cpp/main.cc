@@ -19,7 +19,6 @@ private:
   enum AttributeLocation : uint8_t {
     Position = 0,
     Color    = 1,
-    kAttributeLocationCount
   };
 
   std::vector<Vertex_t> const kVertices{
@@ -46,7 +45,7 @@ private:
 
  private:
   bool setup() final {
-    renderer_.set_color_clear_value({.float32 = {0.75f, 0.15f, 0.30f, 1.0f}});
+    renderer_.set_color_clear_value(vec4(0.75f, 0.15f, 0.30f, 1.0f));
 
     vertex_buffer_ = context_.create_buffer_and_upload(
       kVertices, VK_BUFFER_USAGE_2_VERTEX_BUFFER_BIT
@@ -113,9 +112,9 @@ private:
   }
 
   void frame() final {
-    auto cmd = renderer_.begin_frame();
+    auto cmd= renderer_.begin_frame();
 
-    auto pass = cmd.begin_rendering();
+    auto pass= cmd.begin_rendering();
     {
       pass.set_viewport_scissor(viewport_size_, false);
       pass.bind_pipeline(graphics_pipeline_);
@@ -128,7 +127,7 @@ private:
   }
 
   void onPointerUp(int x, int y, KeyCode_t button) final {
-    clear_color_index_ = static_cast<uint32_t>(kColors.size() * (rand() / (float)RAND_MAX));
+    clear_color_index_ = (clear_color_index_ + 1u)  % kColors.size();
     renderer_.set_color_clear_value(kColors[clear_color_index_]);
   }
 

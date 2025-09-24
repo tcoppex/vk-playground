@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.22.1)
 # Project.
 # -----------------------------------------------------------------------------
 
-set(PROJECT_NAME vk_playground)
+set(PROJECT_NAME vkplayground)
 
 project(${PROJECT_NAME} VERSION 0.2 LANGUAGES CXX C)
 
@@ -31,7 +31,7 @@ set(FRAMEWORK_COMPILED_SHADERS_DIR  ${PROJECT_BINARY_DIR}/spirv)
 # to migrate them to samples APK assets directory, so we need to specify a distinct
 # subdir for them to be in conflict with others assets (shaders or otherwhise).
 # [better alternative: build the framework as an AAR library]
-set(FRAMEWORK_SPIRV_ASSETS_SUBDIR framework_shaders)
+set(FRAMEWORK_SPIRV_ASSETS_SUBDIR   framework_shaders)
 set(FRAMEWORK_COMPILED_SHADERS_DIR  ${FRAMEWORK_COMPILED_SHADERS_DIR}/${FRAMEWORK_SPIRV_ASSETS_SUBDIR})
 
 # -----------------------------------------------------------------------------
@@ -355,8 +355,6 @@ include(${CPM_DOWNLOAD_LOCATION})
 # -----------------------------------------------------------------------------
 
 if(ANDROID)
-  # minimum version required: Android23 for gles32, Android24 for Vulkan.
-
   # [SHARED] Android specifics.
   find_library(ANDROID_LIBRARY     NAMES android)
   find_library(ANDROID_LOG_LIBRARY NAMES log)

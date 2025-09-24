@@ -8,7 +8,7 @@
 
 /* -------------------------------------------------------------------------- */
 
-#define WINDOW_SCALE          0.65f
+#define WINDOW_SCALE          0.67f
 #define MONITOR_SCALE         1.25f
 #define WINDOW_SIZE_FACTOR    (WINDOW_SCALE / MONITOR_SCALE)
 
@@ -78,19 +78,19 @@ void InitializeEventsCallbacks(GLFWwindow *handle) noexcept {
 
   // // Drag-n-drop.
   // glfwSetDropCallback(handle, [](GLFWwindow* window, int count, char const** paths) {
-  //   // LOG_WARNING( "Window signal glfwSetDropCallback is not implemented." );
+  //   // LOGW( "Window signal glfwSetDropCallback is not implemented." );
   //   Events::Get().onFilesDropped(count, paths);
-  // });
-
-  // // Window resize.
-  // glfwSetWindowSizeCallback(handle, [](GLFWwindow *window, int w, int h) {
-  //   LOG_WARNING( "Window signal glfwSetWindowSizeCallback is not implemented." );
-  //   // Events::Get().onResize(w, h);
   // });
 
   // Framebuffer resize.
   glfwSetFramebufferSizeCallback(handle, [](GLFWwindow *window, int w, int h) {
+    LOGW( "Window framebuffer resize." );
     Events::Get().onResize(w, h);
+  });
+
+  // Window resize.
+  glfwSetWindowSizeCallback(handle, [](GLFWwindow *window, int w, int h) {
+    LOGV( "> glfwSetWindowSizeCallback is not implemented." );
   });
 }
 
