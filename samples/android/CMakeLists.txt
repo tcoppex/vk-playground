@@ -4,10 +4,12 @@
 # 
 # -----------------------------------------------------------------------------
 
+if(NOT DEFINED ENV{ANDROID_SDK})
+  message(STATUS "Environment variable ANDROID_SDK is not set.")
+endif()
+
 function(add_activity_target suffix)
-  if(NOT DEFINED ENV{ANDROID_SDK})
-    message(STATUS "Environment variable ANDROID_SDK is not set.")
-  else()
+  if(DEFINED ENV{ANDROID_SDK})
     set(ADB_CMD               $ENV{ANDROID_SDK}/platform-tools/adb)
     set(SAMPLES_PACKAGE_NAME  com.polysfaer.vkframework.samples)
     set(target launch_${suffix})
@@ -24,9 +26,21 @@ function(add_activity_target suffix)
 
     add_custom_target(build_${suffix}
       COMMAND
-        ./gradlew installDebug
+        ./gradlew :${suffix}:buildDebug
       WORKING_DIRECTORY
         ${ANDROID_BUILD_DIR}
+      COMMENT
+        "Build Android DEBUG target \"${suffix}\"."
+      VERBATIM
+    )
+
+    add_custom_target(install_${suffix}
+      COMMAND
+        ./gradlew :${suffix}:installDebug
+      WORKING_DIRECTORY
+        ${ANDROID_BUILD_DIR}
+      COMMENT
+        "Install Android DEBUG target \"${suffix}\" on device."
       VERBATIM
     )
 
@@ -34,9 +48,11 @@ function(add_activity_target suffix)
       COMMAND
         ${CMAKE_COMMAND} -E env bash -c "${ADB_RESOLVE_AND_LAUNCH_CMD}"
       DEPENDS
-        build_${suffix}
+        install_${suffix}
       WORKING_DIRECTORY
         ${ANDROID_BUILD_DIR}
+      COMMENT
+        "Run Android DEBUG target \"${suffix}\" on device."
       VERBATIM
     )
   endif()
