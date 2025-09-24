@@ -8,23 +8,16 @@ struct DefaultAppCmdCallbacks final : public AppCmdCallbacks {
   DefaultAppCmdCallbacks(WMAndroid *const wma) noexcept
     : wma_(wma)
   {}
-  ~DefaultAppCmdCallbacks() override {}
 
   void handleResize(android_app* app, bool signalOnResize = true) {
     LOGD(">>> %s", __FUNCTION__);
     int32_t const iw = ANativeWindow_getWidth(app->window);
     int32_t const ih = ANativeWindow_getHeight(app->window);
-    uint32_t const w = static_cast<uint32_t>(iw);
-    uint32_t const h = static_cast<uint32_t>(ih);
 
-    if (signalOnResize)
-    {
-      if ((wma_->surface_width_ != w) || (wma_->surface_height_ != h)) {
-        LOGD("RESIZED");
-          wma_->surface_width_ = w;
-          wma_->surface_height_ = h;
-          Events::Get().onResize(iw, ih);
-      }
+    wma_->surface_width_ = static_cast<uint32_t>(iw);
+    wma_->surface_height_ = static_cast<uint32_t>(ih);
+    if (signalOnResize) {
+      Events::Get().onResize(iw, ih);
     }
   }
 
@@ -34,20 +27,26 @@ struct DefaultAppCmdCallbacks final : public AppCmdCallbacks {
     // (APP_CMD_INIT_WINDOW is called when app->window has a new ANativeWindow)
     if (app->window != nullptr) {
       // We only need to create the display & context once.
-      if (wma_->native_window == nullptr) {
+      if (wma_->native_window == nullptr)
+      {
         LOGI("((( window created )))");
-        //// ideally we should create the surface here, but we don't, so to be sure
-        //// subsequent call got the surface size we fake resize it here..
+        wma_->native_window = app->window;
+
+        // (we may have to update th Asset manager too)
+
+        // we need to specify the surface res for the first initialization
+        // but we don't want to create everything as it's the true "resize"
+        // event that will signal it.
         handleResize(app, false); //
       }
-      wma_->native_window.reset(app->window);
     }
   }
   // -----------------------------------------
 
   void onTermWindow(android_app* app) final {
     LOGD("%s", __FUNCTION__);
-    wma_->native_window.reset();
+    // wma_->native_window.reset();
+    wma_->native_window = nullptr;
   }
 
   void onWindowResized(android_app* app) final {
@@ -88,7 +87,8 @@ struct DefaultAppCmdCallbacks final : public AppCmdCallbacks {
   // [not always called]
   void onDestroy(android_app* app) final {
     LOGD("%s", __FUNCTION__);
-    wma_->native_window.reset();
+    // wma_->native_window.reset();
+    wma_->native_window = nullptr;
   }
 
   private:
@@ -142,34 +142,6 @@ void WMAndroid::shutdown() {
 
 // ----------------------------------------------------------------------------
 
-std::vector<char const*> WMAndroid::getVulkanInstanceExtensions() const noexcept {
-  return {
-    VK_KHR_SURFACE_EXTENSION_NAME,
-    VK_KHR_ANDROID_SURFACE_EXTENSION_NAME,
-  };
-}
-
-// ----------------------------------------------------------------------------
-
-VkResult WMAndroid::createWindowSurface(VkInstance instance, VkSurfaceKHR *surface) const noexcept {
-  auto fp_vkCreateAndroidSurfaceKHR = reinterpret_cast<PFN_vkCreateAndroidSurfaceKHR>(
-    vkGetInstanceProcAddr(instance, "vkCreateAndroidSurfaceKHR")
-  );
-  if (!fp_vkCreateAndroidSurfaceKHR) {
-    return VK_ERROR_EXTENSION_NOT_PRESENT;
-  }
-  VkAndroidSurfaceCreateInfoKHR info{
-    .sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR,
-    .pNext = nullptr,
-    .flags = VkAndroidSurfaceCreateFlagsKHR{},
-    .window = native_window.get(),
-  };
-  // [should not be used for OpenXR]
-  return fp_vkCreateAndroidSurfaceKHR(instance, &info, nullptr, surface);
-}
-
-// ----------------------------------------------------------------------------
-
 bool WMAndroid::poll(AppData_t app_data) noexcept {
   // auto Fmwk{reinterpret_cast<Framework*>(app->userData)};
   // auto xr = Fmwk->xr();
@@ -201,6 +173,41 @@ bool WMAndroid::poll(AppData_t app_data) noexcept {
   }
 
   return true;
+}
+
+// ----------------------------------------------------------------------------
+
+void WMAndroid::close() noexcept {
+  ANativeActivity_finish(JNIContext::Get().activity());
+}
+
+// ----------------------------------------------------------------------------
+
+std::vector<char const*> WMAndroid::getVulkanInstanceExtensions() const noexcept {
+  return {
+    VK_KHR_SURFACE_EXTENSION_NAME,
+    VK_KHR_ANDROID_SURFACE_EXTENSION_NAME,
+  };
+}
+
+// ----------------------------------------------------------------------------
+
+VkResult WMAndroid::createWindowSurface(VkInstance instance, VkSurfaceKHR *surface) const noexcept {
+  static PFN_vkCreateAndroidSurfaceKHR fp_vkCreateAndroidSurfaceKHR = reinterpret_cast<PFN_vkCreateAndroidSurfaceKHR>(
+    vkGetInstanceProcAddr(instance, "vkCreateAndroidSurfaceKHR")
+  );
+  if (!fp_vkCreateAndroidSurfaceKHR) {
+    return VK_ERROR_EXTENSION_NOT_PRESENT;
+  }
+  LOG_CHECK(native_window);
+  VkAndroidSurfaceCreateInfoKHR const info{
+    .sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR,
+    .pNext = nullptr,
+    .flags = VkAndroidSurfaceCreateFlagsKHR{},
+    .window = native_window,
+  };
+  // [should not be used for OpenXR]
+  return fp_vkCreateAndroidSurfaceKHR(instance, &info, nullptr, surface);
 }
 
 // ----------------------------------------------------------------------------

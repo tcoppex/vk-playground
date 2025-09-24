@@ -23,10 +23,10 @@ class JNIContext final : public Singleton<JNIContext> {
   JavaVM* jvm() const noexcept {
     return jvm_;
   }
-  
+
   [[nodiscard]]
-  jobject activity() const noexcept {
-    return activity_;
+  ANativeActivity* activity() const noexcept {
+    return app_ ? app_->activity : nullptr;
   }
 
   [[nodiscard]]
@@ -43,8 +43,8 @@ class JNIContext final : public Singleton<JNIContext> {
   ~JNIContext() final;
 
  private:
+  struct android_app* app_{};
   JavaVM* jvm_{};
-  jobject activity_{};
   AAssetManager* asset_manager_{};
   std::vector<uint8_t> buffer_{};
 };

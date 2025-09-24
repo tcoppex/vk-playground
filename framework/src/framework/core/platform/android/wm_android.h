@@ -1,14 +1,8 @@
 #ifndef VKFRAMEWORK_CORE_PLATEFORM_ANDROID_WM_ANDROID_H_
 #define VKFRAMEWORK_CORE_PLATEFORM_ANDROID_WM_ANDROID_H_
 
-#include <vector>
-
 #include "framework/core/platform/common.h"
 #include "framework/core/platform/wm_interface.h"
-
-struct ANativeWindowDeleter {
-  void operator()(ANativeWindow* window) { ANativeWindow_release(window); }
-};
 
 /* -------------------------------------------------------------------------- */
 
@@ -23,21 +17,9 @@ struct WMAndroid final : public WMInterface {
 
   bool poll(AppData_t app_data) noexcept final;
 
-  bool isActive() const noexcept final {
-    return visible && resumed;
-  }
-
-  void* get_handle() const noexcept final {
-    return native_window.get();
-  }
-
-  std::vector<char const*> getVulkanInstanceExtensions() const noexcept final;
-
-  VkResult createWindowSurface(VkInstance instance, VkSurfaceKHR *surface) const noexcept final;
-
-  // -------------------------------------------
   void setTitle(std::string_view title) const noexcept final {}
-  void close() noexcept final {}
+
+  void close() noexcept final;
 
   uint32_t get_surface_width() const noexcept final {
     LOG_CHECK(surface_width_ > 0u);
@@ -48,7 +30,19 @@ struct WMAndroid final : public WMInterface {
     LOG_CHECK(surface_height_ > 0u);
     return surface_height_;
   }
-  // -------------------------------------------
+
+  void* get_handle() const noexcept final {
+    return native_window;
+  }
+
+  bool isActive() const noexcept final {
+    return visible && resumed;
+  }
+
+  std::vector<char const*> getVulkanInstanceExtensions() const noexcept final;
+
+  VkResult createWindowSurface(VkInstance instance, VkSurfaceKHR *surface) const noexcept final;
+
 
  public:
   void addAppCmdCallbacks(AppCmdCallbacks *app_cmd_callbacks) {
@@ -61,7 +55,7 @@ struct WMAndroid final : public WMInterface {
 
  // -------------------------------------------
  public:
-  std::unique_ptr<ANativeWindow, ANativeWindowDeleter> native_window{};
+  ANativeWindow *native_window{};
 
   uint32_t surface_width_{};
   uint32_t surface_height_{};
