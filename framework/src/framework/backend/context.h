@@ -214,8 +214,7 @@ class Context {
 
   VkDebugUtilsMessengerEXT debug_utils_messenger_{VK_NULL_HANDLE};
 
-  std::vector<VkLayerProperties> available_instance_layers_{};
-  std::vector<VkExtensionProperties> available_instance_extensions_{};
+  // -----------------------------------------------
   std::vector<VkExtensionProperties> available_device_extensions_{};
 
   std::vector<char const*> instance_layer_names_{};
@@ -237,6 +236,7 @@ class Context {
     VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME,
     // -------------------------------
   };
+  // -----------------------------------------------
 
   struct {
     VkPhysicalDeviceFeatures2 base{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
@@ -269,12 +269,12 @@ class Context {
   VkPhysicalDevice gpu_{};
   VkDevice device_{};
 
+  backend::GPUProperties properties_{};
+
   EnumArray<backend::Queue, TargetQueue> queues_{};
   EnumArray<VkCommandPool, TargetQueue> transient_command_pools_{};
 
-  backend::GPUProperties properties_{};
-
-  std::unique_ptr<ResourceAllocator> resource_allocator_{};
+  std::unique_ptr<ResourceAllocator> resource_allocator_{}; //
 };
 
 /* -------------------------------------------------------------------------- */

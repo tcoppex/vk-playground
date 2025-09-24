@@ -321,15 +321,17 @@ void Context::update_descriptor_set(
 /* -------------------------------------------------------------------------- */
 
 void Context::init_instance(std::vector<char const*> const& instance_extensions) {
+  std::vector<VkLayerProperties> available_instance_layers{};
+  std::vector<VkExtensionProperties> available_instance_extensions{};
 
   uint32_t layerCount = 0;
   CHECK_VK( vkEnumerateInstanceLayerProperties(&layerCount, nullptr) );
-  available_instance_layers_.resize(layerCount);
-  CHECK_VK( vkEnumerateInstanceLayerProperties(&layerCount, available_instance_layers_.data()) );
+  available_instance_layers.resize(layerCount);
+  CHECK_VK( vkEnumerateInstanceLayerProperties(&layerCount, available_instance_layers.data()) );
 
 #ifndef NDEBUG
   auto hasLayer = [&](char const* layerName) {
-    for (const auto& layer : available_instance_layers_) {
+    for (const auto& layer : available_instance_layers) {
       if (std::string(layer.layerName) == std::string(layerName)) {
         return true;
       }
@@ -366,8 +368,8 @@ void Context::init_instance(std::vector<char const*> const& instance_extensions)
 
   uint32_t extension_count{0u};
   vkEnumerateInstanceExtensionProperties(nullptr, &extension_count, nullptr);
-  available_instance_extensions_.resize(extension_count);
-  vkEnumerateInstanceExtensionProperties(nullptr, &extension_count, available_instance_extensions_.data());
+  available_instance_extensions.resize(extension_count);
+  vkEnumerateInstanceExtensionProperties(nullptr, &extension_count, available_instance_extensions.data());
 
   // Add extensions requested by the application.
   instance_extension_names_.insert(
@@ -409,9 +411,9 @@ void Context::init_instance(std::vector<char const*> const& instance_extensions)
   );
   LOGD(" ");
 
-  if (!available_instance_layers_.empty()) {
+  if (!available_instance_layers.empty()) {
     LOGD("Available Instance layers:");
-    for (const auto& layer : available_instance_layers_) {
+    for (const auto& layer : available_instance_layers) {
       LOGI(" > %s", layer.layerName);
     }
     LOGD(" ");
