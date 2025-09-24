@@ -205,7 +205,7 @@ struct RTInterface {
 
   virtual void set_color_load_op(VkAttachmentLoadOp load_op, uint32_t i = 0u) = 0;
 
-  // virtual bool resize(VkExtent2D const extent) = 0;
+  virtual bool resize(uint32_t w, uint32_t h) = 0;
 };
 
 // ----------------------------------------------------------------------------

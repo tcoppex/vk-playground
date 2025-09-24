@@ -40,10 +40,6 @@ class RenderTarget : public backend::RTInterface {
 
   void release();
 
-  // [TODO: rework and remove context from args]
-  // (might be put inside a generic command encoder to resize similar objects)
-  bool resize(VkExtent2D const extent); //
-
  public:
   // ----- RTInterface Overrides -----
 
@@ -90,6 +86,8 @@ class RenderTarget : public backend::RTInterface {
   void set_color_load_op(VkAttachmentLoadOp load_op, uint32_t i = 0u) final {
     color_load_ops_[i] = load_op;
   }
+
+  bool resize(uint32_t w, uint32_t h) final; //
 
  private:
   RenderTarget(Context const& context);

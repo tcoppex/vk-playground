@@ -26,7 +26,7 @@ void RenderTarget::setup(Descriptor_t const& desc) {
 
   // Reset size.
   extent_ = {};
-  resize(desc.size);
+  resize(desc.size.width, desc.size.height);
 }
 
 // ----------------------------------------------------------------------------
@@ -43,18 +43,23 @@ void RenderTarget::release() {
 
 // ----------------------------------------------------------------------------
 
-bool RenderTarget::resize(VkExtent2D const extent) {
-  if ((extent.width == extent_.width)
-   && (extent.height == extent_.height)) {
+bool RenderTarget::resize(uint32_t w, uint32_t h) {
+  if ((w == extent_.width)
+   && (h == extent_.height)) {
     return false;
   }
-
   release();
-  extent_ = extent;
+
+  extent_ = {
+    .width = w,
+    .height = h
+  };
 
   /* Create color images. */
   for (auto &color : colors_) {
-    color = context_ptr_->create_image_2d(extent_.width, extent_.height, color.format, kDefaultImageUsageFlags);
+    color = context_ptr_->create_image_2d(
+      extent_.width, extent_.height, color.format, kDefaultImageUsageFlags
+    );
   }
   // context_ptr_->transition_images_layout(colors_, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
 

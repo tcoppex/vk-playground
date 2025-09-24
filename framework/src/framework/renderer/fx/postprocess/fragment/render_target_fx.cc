@@ -15,7 +15,7 @@ bool RenderTargetFx::resize(VkExtent2D const dimension) {
     createRenderTarget(dimension);
     return true;
   }
-  return render_target_->resize(dimension);
+  return render_target_->resize(dimension.width, dimension.height);
 }
 
 // ----------------------------------------------------------------------------
