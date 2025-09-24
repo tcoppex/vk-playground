@@ -76,7 +76,7 @@ class Context {
     return *resource_allocator_;
   }
 
-  void wait_device_idle() const {
+  void device_wait_idle() const {
     CHECK_VK(vkDeviceWaitIdle(device_));
   }
 

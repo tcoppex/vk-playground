@@ -24,7 +24,7 @@ GPUResources::GPUResources(Renderer const& renderer)
 // ----------------------------------------------------------------------------
 
 GPUResources::~GPUResources() {
-  context_ptr_->wait_device_idle();
+  context_ptr_->device_wait_idle();
 
   if (material_fx_registry_) {
     material_fx_registry_->release();

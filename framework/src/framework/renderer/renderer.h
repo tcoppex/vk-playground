@@ -298,7 +298,7 @@ class Renderer : public backend::RTInterface {
 
   bool resize(uint32_t w, uint32_t h) final {
     LOGW("Renderer::resize TODO");
-    ctx_ptr_->wait_device_idle();
+    ctx_ptr_->device_wait_idle();
     return false;
   }
 

@@ -142,7 +142,7 @@ bool Application::next_frame(AppData_t app_data) {
 // ----------------------------------------------------------------------------
 
 void Application::shutdown() {
-  CHECK_VK(vkDeviceWaitIdle(context_.device()));
+  context_.device_wait_idle();
 
   release();
   ui_->release(context_);

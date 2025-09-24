@@ -18,7 +18,7 @@ void PostFxPipeline::setupDependencies() {
   assert(context_ptr_ != nullptr);
   assert(!effects_.empty());
 
-  context_ptr_->wait_device_idle();
+  context_ptr_->device_wait_idle();
 
   for (size_t i = 0; i < effects_.size(); ++i) {
     auto& fx = effects_[i];
