@@ -32,7 +32,7 @@ void Swapchain::init(Context const& context, VkSurfaceKHR const surface) {
   device_ = context.device();
   surface_ = surface;
 
-  LOGD("--- Initialize Swapchain ---");
+  LOGD("-- Swapchain --");
 
   LOG_CHECK(vkGetPhysicalDeviceSurfaceCapabilities2KHR);
   /* Retrieve the GPU's capabilities for this surface. */
@@ -129,8 +129,6 @@ void Swapchain::init(Context const& context, VkSurfaceKHR const surface) {
     VK_IMAGE_LAYOUT_UNDEFINED,
     VK_IMAGE_LAYOUT_PRESENT_SRC_KHR // VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR
   );
-
-  LOGD("--------------------------------------------\n");
 }
 
 // ----------------------------------------------------------------------------

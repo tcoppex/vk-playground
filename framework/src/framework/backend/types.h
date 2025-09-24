@@ -54,17 +54,30 @@ namespace backend {
 
 // Resource Allocator
 
-struct Buffer {
+struct VulkanResource {
+  virtual ~VulkanResource() = default;
+  virtual bool valid() const noexcept = 0;
+};
+
+struct Buffer : VulkanResource {
   VkBuffer buffer{};
   VmaAllocation allocation{};
   VkDeviceAddress address{};
+
+  bool valid() const noexcept final {
+    return buffer != VK_NULL_HANDLE;
+  }
 };
 
-struct Image {
+struct Image : VulkanResource {
   VkImage image{};
   VmaAllocation allocation{};
   VkImageView view{};
   VkFormat format{};
+
+  bool valid() const noexcept final {
+    return image != VK_NULL_HANDLE;
+  }
 };
 
 // ----------------------------------------------------------------------------

@@ -296,11 +296,7 @@ class Renderer : public backend::RTInterface {
     color_load_op_ = load_op;
   }
 
-  bool resize(uint32_t w, uint32_t h) final {
-    LOGW("Renderer::resize TODO");
-    ctx_ptr_->device_wait_idle();
-    return false;
-  }
+  bool resize(uint32_t w, uint32_t h) final;
 
   // -----------
 
@@ -319,11 +315,8 @@ class Renderer : public backend::RTInterface {
   VkFormat get_valid_depth_format() const noexcept {
     return VK_FORMAT_D24_UNORM_S8_UINT
            // VK_FORMAT_D16_UNORM  //
-           // VK_FORMAT_D32_SFLOAT //
            ;
   }
-
-  void init_descriptor_pool();
 
  private:
   struct TimelineFrame_t {
@@ -349,9 +342,6 @@ class Renderer : public backend::RTInterface {
   ResourceAllocator* allocator_ptr_{};
   VkDevice device_{};
 
-  /* Color framebuffers */
-  mutable std::vector<backend::Image> proxy_swap_attachment_{};
-
   /* Default depth-stencil buffer */
   backend::Image depth_stencil_{};
 
@@ -370,7 +360,13 @@ class Renderer : public backend::RTInterface {
   SamplerPool sampler_pool_{};
   Skybox skybox_{}; // (higher level..)
 
+  // ----------------
+
   /* Miscs resources */
+
+  // Proxy to const ref return the swapbuffer..
+  mutable std::vector<backend::Image> proxy_swap_attachment_{}; //
+
   VkClearValue color_clear_value_{kDefaultColorClearValue};
   VkClearValue depth_stencil_clear_value_{{{1.0f, 0u}}};
   VkAttachmentLoadOp color_load_op_{VK_ATTACHMENT_LOAD_OP_CLEAR};

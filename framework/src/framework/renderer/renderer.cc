@@ -22,7 +22,7 @@ void Renderer::init(
 
   device_ = context.device();
 
-  LOGD("--- Initialize Renderer ---");
+  LOGD("-- Renderer --");
 
   /* Create the shared pipeline cache. */
   LOGD(" > PipelineCacheInfo");
@@ -41,13 +41,8 @@ void Renderer::init(
   }
 
   /* Create a default depth stencil buffer. */
-  LOGD(" > DepthStencil");
   VkExtent2D const dimension{swapchain_ptr_->get_surface_size()};
-  depth_stencil_ = context.create_image_2d(
-    dimension.width,
-    dimension.height,
-    get_valid_depth_format()
-  );
+  resize(dimension.width, dimension.height);
 
   /* Initialize resources for the semaphore timeline. */
   LOGD(" > Timeline Semaphore Resources");
@@ -108,8 +103,6 @@ void Renderer::init(
     // [should condition creation on some config]
     skybox_.init(*this);
   }
-  
-  LOGD("--------------------------------------------\n");
 }
 
 // ----------------------------------------------------------------------------
@@ -131,6 +124,20 @@ void Renderer::deinit() {
   vkDestroyPipelineCache(device_, pipeline_cache_, nullptr);
 
   *this = {};
+}
+
+// ----------------------------------------------------------------------------
+
+bool Renderer::resize(uint32_t w, uint32_t h) {
+  LOG_CHECK(ctx_ptr_ != nullptr);
+
+  /* Create a default depth stencil buffer. */
+  LOGD(" > [Renderer] Resize DepthStencil");
+  if (depth_stencil_.valid()) {
+    allocator_ptr_->destroy_image(&depth_stencil_);
+  }
+  depth_stencil_ = ctx_ptr_->create_image_2d(w, h, get_valid_depth_format());
+  return true;
 }
 
 // ----------------------------------------------------------------------------

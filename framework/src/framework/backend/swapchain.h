@@ -25,11 +25,6 @@ class Swapchain {
 
   void deinit();
 
-  void reset(Context const& context, VkSurfaceKHR const surface) {
-    deinit();
-    init(context, surface);
-  }
-
   void acquire_next_image();
 
   void present_and_swap(VkQueue const queue);
