@@ -63,8 +63,9 @@ function(add_activity_target suffix)
 
     set(LOGGER_ANDROID_TAG VkFramework)
     set(ADB_LOGCAT_CMD
-      ${ADB_CMD} logcat -v time -v color
+      ${ADB_CMD} logcat -v color -v raw
     )
+    set(LOGCAT_OUTPUT_FILEPATH ${CMAKE_BINARY_DIR}/${suffix}.log)
 
     add_custom_target(log_${suffix}
       COMMAND
@@ -72,13 +73,13 @@ function(add_activity_target suffix)
       COMMAND
         # ${ADB_LOGCAT_CMD} | grep --line-buffered "${SAMPLES_PACKAGE_NAME}"
         # ${ADB_LOGCAT_CMD} | grep ${LOGGER_ANDROID_TAG}
-        ${ADB_LOGCAT_CMD} *:S ${LOGGER_ANDROID_TAG}:D | tee ${suffix}.log
+        ${ADB_LOGCAT_CMD} *:F ${LOGGER_ANDROID_TAG}:D | tee ${LOGCAT_OUTPUT_FILEPATH}
       DEPENDS
         run_${suffix}
       WORKING_DIRECTORY
         ${ANDROID_BUILD_DIR}
       COMMENT
-        "Log Android target \"${suffix}\" on device."
+        "Log Android target \"${suffix}\" on device.\n(copy at ${LOGCAT_OUTPUT_FILEPATH})"
       VERBATIM
     )
   endif()
