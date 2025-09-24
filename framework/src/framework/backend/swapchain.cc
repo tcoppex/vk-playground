@@ -151,8 +151,9 @@ void Swapchain::acquire_next_image() {
 
   auto const& semaphore = get_current_synchronizer().wait_image_semaphore;
 
+  constexpr uint64_t kFiniteAcquireTimeout = 1'000'000'000ull; // 1s
   VkResult const result = vkAcquireNextImageKHR(
-    device_, swapchain_, UINT64_MAX, semaphore, VK_NULL_HANDLE, &next_swap_index_
+    device_, swapchain_, kFiniteAcquireTimeout, semaphore, VK_NULL_HANDLE, &next_swap_index_
   );
   need_rebuild_ = CheckOutOfDataResult(result, __FUNCTION__);
 
