@@ -78,25 +78,25 @@ class Renderer : public backend::RTInterface {
   // --- Render Target (Dynamic Rendering) ---
 
   [[nodiscard]]
-  std::shared_ptr<RenderTarget> create_render_target() const;
+  std::unique_ptr<RenderTarget> create_render_target() const;
 
   [[nodiscard]]
-  std::shared_ptr<RenderTarget> create_render_target(
+  std::unique_ptr<RenderTarget> create_render_target(
     RenderTarget::Descriptor_t const& desc
   ) const;
 
   [[nodiscard]]
-  std::shared_ptr<RenderTarget> create_default_render_target(
+  std::unique_ptr<RenderTarget> create_default_render_target(
     uint32_t num_color_outputs = 1u
   ) const;
 
   // --- Framebuffer (Legacy Rendering) ---
 
   [[nodiscard]]
-  std::shared_ptr<Framebuffer> create_framebuffer() const;
+  std::unique_ptr<Framebuffer> create_framebuffer() const;
 
   [[nodiscard]]
-  std::shared_ptr<Framebuffer> create_framebuffer(
+  std::unique_ptr<Framebuffer> create_framebuffer(
     Framebuffer::Descriptor_t const& desc
   ) const;
 

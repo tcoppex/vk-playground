@@ -241,13 +241,13 @@ void Renderer::end_frame() {
 
 // ----------------------------------------------------------------------------
 
-std::shared_ptr<RenderTarget> Renderer::create_render_target() const {
-  return std::shared_ptr<RenderTarget>(new RenderTarget(*ctx_ptr_));
+std::unique_ptr<RenderTarget> Renderer::create_render_target() const {
+  return std::unique_ptr<RenderTarget>(new RenderTarget(*ctx_ptr_));
 }
 
 // ----------------------------------------------------------------------------
 
-std::shared_ptr<RenderTarget> Renderer::create_render_target(
+std::unique_ptr<RenderTarget> Renderer::create_render_target(
   RenderTarget::Descriptor_t const& desc
 ) const {
   if (auto rt = create_render_target(); rt) {
@@ -259,7 +259,7 @@ std::shared_ptr<RenderTarget> Renderer::create_render_target(
 
 // ----------------------------------------------------------------------------
 
-std::shared_ptr<RenderTarget> Renderer::create_default_render_target(
+std::unique_ptr<RenderTarget> Renderer::create_default_render_target(
   uint32_t num_color_outputs
 ) const {
   RenderTarget::Descriptor_t desc{
@@ -269,19 +269,18 @@ std::shared_ptr<RenderTarget> Renderer::create_default_render_target(
     .sampler = default_sampler(),
   };
   desc.color_formats.resize(num_color_outputs, get_color_attachment().format);
-
   return create_render_target(desc);
 }
 
 // ----------------------------------------------------------------------------
 
-std::shared_ptr<Framebuffer> Renderer::create_framebuffer() const {
-  return std::shared_ptr<Framebuffer>(new Framebuffer(*ctx_ptr_, (*swapchain_ptr_)));
+std::unique_ptr<Framebuffer> Renderer::create_framebuffer() const {
+  return std::unique_ptr<Framebuffer>(new Framebuffer(*ctx_ptr_, *swapchain_ptr_));
 }
 
 // ----------------------------------------------------------------------------
 
-std::shared_ptr<Framebuffer> Renderer::create_framebuffer(
+std::unique_ptr<Framebuffer> Renderer::create_framebuffer(
   Framebuffer::Descriptor_t const& desc
 ) const {
   if (auto framebuffer = create_framebuffer(); framebuffer) {
