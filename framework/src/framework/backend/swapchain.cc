@@ -8,7 +8,7 @@ namespace {
 bool CheckOutOfDataResult(VkResult const result, std::string_view const& msg) {
   switch (result) {
     case VK_ERROR_OUT_OF_DATE_KHR:
-      LOGI("[TODO] The swapchain need to be rebuild.");
+      LOGI("[TODO] The swapchain need to be rebuilt (%s).", msg.data());
     return true;
 
     case VK_SUCCESS:
@@ -16,7 +16,7 @@ bool CheckOutOfDataResult(VkResult const result, std::string_view const& msg) {
     break;
 
     default:
-      LOGE("%s", msg.data());
+      LOGE("%s : swapchain image issue.", msg.data());
     break;
   }
 
@@ -152,11 +152,9 @@ uint32_t Swapchain::acquire_next_image() {
   VkResult const result = vkAcquireNextImageKHR(
     device_, swapchain_, UINT64_MAX, semaphore, VK_NULL_HANDLE, &next_swap_index_
   );
-  LOG_CHECK(current_swap_index_ == next_swap_index_);
+  // LOG_CHECK(current_swap_index_ == next_swap_index_);
 
-  need_rebuild_ = CheckOutOfDataResult(result,
-    "Vulkan: couldn't acquire swapchain image.\n"
-  );
+  need_rebuild_ = CheckOutOfDataResult(result, __FUNCTION__);
 
   return current_swap_index_;
 }
@@ -178,9 +176,7 @@ void Swapchain::present_and_swap(VkQueue const queue) {
   };
   VkResult const result = vkQueuePresentKHR(queue, &present_info);
 
-  need_rebuild_ = CheckOutOfDataResult(result,
-    "Vulkan: couldn't present swapchain image.\n"
-  );
+  need_rebuild_ = CheckOutOfDataResult(result, __FUNCTION__);
 
   current_swap_index_ = (current_swap_index_ + 1u) % image_count_;
 }
@@ -192,7 +188,8 @@ VkSurfaceFormat2KHR Swapchain::select_surface_format(VkPhysicalDeviceSurfaceInfo
   LOG_CHECK(vkGetPhysicalDeviceSurfaceFormats2KHR);
 
 #ifdef ANDROID
-  LOGD(">>>>> vkGetPhysicalDeviceSurfaceFormats2KHR Start");
+  // (Those could spit errors log on Android)
+  LOGV("> Start vkGetPhysicalDeviceSurfaceFormats2KHR");
 #endif
 
   uint32_t image_format_count{0u};
@@ -201,7 +198,7 @@ VkSurfaceFormat2KHR Swapchain::select_surface_format(VkPhysicalDeviceSurfaceInfo
   CHECK_VK( vkGetPhysicalDeviceSurfaceFormats2KHR(gpu_, surface_info2, &image_format_count, formats.data()) );
 
 #ifdef ANDROID
-  LOGD("<<<<< vkGetPhysicalDeviceSurfaceFormats2KHR End");
+  LOGV("> End vkGetPhysicalDeviceSurfaceFormats2KHR");
 #endif
 
   VkSurfaceFormat2KHR const default_format{

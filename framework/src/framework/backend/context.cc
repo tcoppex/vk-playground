@@ -485,6 +485,12 @@ bool Context::init_device() {
   available_device_extensions_.resize(extension_count);
   CHECK_VK(vkEnumerateDeviceExtensionProperties(gpu_, nullptr, &extension_count, available_device_extensions_.data()));
 
+#ifndef NDEBUG
+  // for (auto const& prop : available_device_extensions_) {
+  //   LOGI("%s", prop.extensionName);
+  // }
+#endif
+
   /* Vulkan GPU features. */
   {
     add_device_feature(
