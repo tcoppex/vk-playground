@@ -73,6 +73,28 @@ struct NullType {};
 
 static constexpr uint32_t kInvalidIndexU32{ std::numeric_limits<uint32_t>::max() };
 
+// ----------------------------------------------------------------------------
+/* -- macros -- */
+
+
+// Trivial POD check (trivially copyable + moveable)
+#define STATIC_ASSERT_TRIVIALITY(T)                                 \
+    static_assert(std::is_trivially_move_constructible_v<T>,        \
+                  #T " must be trivially move constructible");      \
+    static_assert(std::is_trivially_move_assignable_v<T>,           \
+                  #T " must be trivially move assignable");         \
+    static_assert(std::is_trivially_copyable_v<T>,                  \
+                  #T " must be trivially copyable")
+
+// RAII resource check (non-copyable, movable)
+#define STATIC_ASSERT_MOVABLE_ONLY(T)                               \
+    static_assert(!std::is_copy_constructible_v<T>,                 \
+                  #T " must be non-copyable");                      \
+    static_assert(std::is_move_constructible_v<T>,                  \
+                  #T " must be move constructible");                \
+    static_assert(std::is_move_assignable_v<T>,                     \
+                  #T " must be move assignable")
+
 /* -------------------------------------------------------------------------- */
 
 #endif // VKFRAMEWORK_CORE_COMMON_H_

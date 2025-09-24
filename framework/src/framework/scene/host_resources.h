@@ -13,6 +13,7 @@
 
 namespace scene {
 
+// (to remove to only use std::vector instead)
 template<typename T>
 using ResourceBuffer = std::vector<std::unique_ptr<T>>;
 
@@ -48,16 +49,16 @@ struct HostResources {
   /* --- Host Data --- */
 
   std::vector<Sampler> samplers{};
-  std::vector<ImageData> host_images{};
+  std::vector<ImageData> host_images{}; // (not trivially moveable)
   std::vector<Texture> textures{};
 
   std::vector<MaterialProxy> material_proxies{};
-  ResourceBuffer<MaterialRef> material_refs{};
+  ResourceBuffer<MaterialRef> material_refs{}; //
 
   ResourceBuffer<Mesh> meshes{}; //
   std::vector<mat4f> transforms{};
 
-  ResourceBuffer<Skeleton> skeletons{};
+  ResourceBuffer<Skeleton> skeletons{}; //
   ResourceMap<AnimationClip> animations_map{};
 
   uint32_t vertex_buffer_size{0u};

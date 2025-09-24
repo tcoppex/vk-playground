@@ -258,3 +258,19 @@ void HostResources::reset_internal_descriptors() {
 }  // namespace scene
 
 /* -------------------------------------------------------------------------- */
+/* -------------------------------------------------------------------------- */
+
+#if !defined(NDEBUG)
+
+STATIC_ASSERT_TRIVIALITY(scene::Sampler);
+STATIC_ASSERT_TRIVIALITY(scene::Texture);
+STATIC_ASSERT_TRIVIALITY(scene::MaterialProxy);
+STATIC_ASSERT_TRIVIALITY(scene::MaterialRef);
+
+STATIC_ASSERT_MOVABLE_ONLY(scene::ImageData);
+// STATIC_ASSERT_MOVABLE_ONLY(scene::Mesh);
+// STATIC_ASSERT_MOVABLE_ONLY(scene::Skeleton);
+
+#endif // NDEBUG
+
+/* -------------------------------------------------------------------------- */
