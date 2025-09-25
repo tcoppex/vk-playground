@@ -533,6 +533,14 @@ if (TRUE)
   source_group("Imgui" FILES ${IMGUI_SOURCES})
 endif()
 
+CPMAddPackage(
+  NAME fmt
+  GITHUB_REPOSITORY fmtlib/fmt
+  GIT_TAG 12.0.0
+)
+set(FMT_INCLUDE_DIR  ${fmt_SOURCE_DIR}/include)
+message(STATUS ${FMT_INCLUDE_DIR})
+
 # Sometimes we need to link libm too.
 helpers_findLibM()
 
@@ -543,6 +551,7 @@ helpers_findLibM()
 list(APPEND SharedLibs
   volk
   ${LIBM_LIBRARIES}
+  fmt
 )
 
 list(APPEND SharedIncludeDirs
@@ -554,6 +563,7 @@ list(APPEND SharedIncludeDirs
   ${CGLTF_INCLUDE_DIR}
   ${LINALG_INCLUDE_DIR}
   ${imgui_SOURCE_DIR}
+  ${FMT_INCLUDE_DIR}
 )
 
 list(APPEND CustomDefinitions
