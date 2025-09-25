@@ -40,7 +40,7 @@ class BasicRayTracingFx : public RayTracingFx {
     changed |= ImGui::SliderInt(
       "Samples",
       &push_constant_.num_samples,
-      1, 16
+      1, 64
     );
 
     changed |= ImGui::SliderFloat(
