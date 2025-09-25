@@ -49,14 +49,20 @@ class Logger : public Singleton<Logger> {
   };
 
   ~Logger() {
+#ifndef NDEBUG
     // displayStats();
+#endif // NDEBUG
   }
 
   template<typename... Args>
   bool log(
-    char const* file, char const* fn, int line,
-    bool useHash, LogType type,
-    std::string_view fmt, Args&&... args
+    char const* file,
+    char const* fn,
+    int line,
+    bool useHash,
+    LogType type,
+    std::string_view fmt,
+    Args&&... args
   ) {
     // Clear the local stream and retrieve the full current message.
     out_.str({});
@@ -110,6 +116,14 @@ class Logger : public Singleton<Logger> {
   }
 
   template<typename... Args>
+  void android_log(int priority, char const* tag, char const* fmt, Args&&... args) {
+#if defined(ANDROID)
+    auto const msg = fmt::format(fmt, std::forward<Args>(args)...);
+    __android_log_print(priority, tag, "%s", msg.c_str());
+#endif
+  }
+
+  template<typename... Args>
   void message(char const* file, char const* fn, int line, fmt::format_string<Args...> fmt, Args&&... args) {
     log(file, fn, line, false, LogType::Message, fmt::vformat(fmt, fmt::make_format_args(args...)));
   }
@@ -139,7 +153,6 @@ class Logger : public Singleton<Logger> {
 
  private:
   void displayStats() {
-#ifndef NDEBUG
     if ((warning_count_ > 0) || (error_count_ > 0)) {
       std::cerr << "\n"
         "\x1b[7;38m================= Logger stats =================\x1b[0m\n" \
@@ -148,7 +161,6 @@ class Logger : public Singleton<Logger> {
         "\x1b[7;38m================================================\x1b[0m\n\n"
         ;
     }
-#endif // NDEBUG
   }
 
   std::stringstream out_{};
@@ -159,31 +171,41 @@ class Logger : public Singleton<Logger> {
 
 /* -------------------------------------------------------------------------- */
 
-#if defined(ANDROID)
-
-#ifndef LOGGER_ANDROID_TAG
+#if defined(ANDROID) && !defined(LOGGER_ANDROID_TAG)
 #define LOGGER_ANDROID_TAG "VkFramework"
 #endif
 
+#if 1
+
+#if defined(ANDROID)
 #define LOGV(...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, LOGGER_ANDROID_TAG, __VA_ARGS__))
 #define LOGD(...) ((void)__android_log_print(ANDROID_LOG_DEBUG,   LOGGER_ANDROID_TAG, __VA_ARGS__))
 #define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO,    LOGGER_ANDROID_TAG, __VA_ARGS__))
 #define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN,    LOGGER_ANDROID_TAG, __VA_ARGS__))
 #define LOGE(...) ((void)__android_log_print(ANDROID_LOG_ERROR,   LOGGER_ANDROID_TAG, __VA_ARGS__))
-
 #else
-
 #define LOGV(...) fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n");
 #define LOGD(...) fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n");
 #define LOGI(...) fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n");
 #define LOGW(...) fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n");
 #define LOGE(...) fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n");
+#endif
 
-// #define LOGV(...)   Logger::Get().message( __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
-// #define LOGD(...)   Logger::Get().message( __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
-// #define LOGI(...)   Logger::Get().info   ( __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
-// #define LOGW(...)   Logger::Get().warning( __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
-// #define LOGE(...)   Logger::Get().error  ( __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
+#else
+
+#if defined(ANDROID)
+#define LOGV(...) Logger::Get().android_log(ANDROID_LOG_VERBOSE, LOGGER_ANDROID_TAG, __VA_ARGS__))
+#define LOGD(...) Logger::Get().android_log(ANDROID_LOG_DEBUG,   LOGGER_ANDROID_TAG, __VA_ARGS__))
+#define LOGI(...) Logger::Get().android_log(ANDROID_LOG_INFO,    LOGGER_ANDROID_TAG, __VA_ARGS__))
+#define LOGW(...) Logger::Get().android_log(ANDROID_LOG_WARN,    LOGGER_ANDROID_TAG, __VA_ARGS__))
+#define LOGE(...) Logger::Get().android_log(ANDROID_LOG_ERROR,   LOGGER_ANDROID_TAG, __VA_ARGS__))
+#else
+#define LOGV(...) Logger::Get().message( __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
+#define LOGD(...) Logger::Get().message( __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
+#define LOGI(...) Logger::Get().info   ( __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
+#define LOGW(...) Logger::Get().warning( __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
+#define LOGE(...) Logger::Get().error  ( __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
+#endif
 
 #endif
 

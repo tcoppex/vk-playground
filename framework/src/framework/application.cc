@@ -23,6 +23,12 @@ struct DefaultAppEventCallbacks final : public EventCallbacks {
 /* -------------------------------------------------------------------------- */
 
 int Application::run(AppData_t app_data) {
+  /* Singletons. */
+  {
+    Logger::Initialize();
+    Events::Initialize();
+  }
+
   LOGD("--- Framework Initialization ---");
   if (!presetup(app_data)) {
     return EXIT_FAILURE;
@@ -65,12 +71,6 @@ float Application::elapsed_time() const noexcept {
 // ----------------------------------------------------------------------------
 
 bool Application::presetup(AppData_t app_data) {
-
-  /* Singleton(s). */
-  {
-    Events::Initialize();
-  }
-
   /* Window manager. */
   if (wm_ = std::make_unique<Window>(); !wm_ || !wm_->init(app_data)) {
     LOGE("Window creation fails");
@@ -204,6 +204,7 @@ void Application::shutdown() {
   wm_->shutdown();
 
   Events::Deinitialize();
+  Logger::Deinitialize();
 }
 
 /* -------------------------------------------------------------------------- */
