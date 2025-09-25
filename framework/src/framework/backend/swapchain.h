@@ -23,7 +23,7 @@ class Swapchain {
 
   void init(Context const& context, VkSurfaceKHR const surface);
 
-  void deinit();
+  void deinit(bool keep_previous_swapchain = false);
 
   void acquire_next_image();
 
@@ -77,6 +77,7 @@ class Swapchain {
   VkSurfaceKHR surface_{};
   VkExtent2D surface_size_{};
 
+  VkFormat color_format_{};
   VkSwapchainKHR swapchain_{};
 
   std::vector<backend::Image> swap_images_{};
@@ -86,7 +87,7 @@ class Swapchain {
   uint32_t current_swap_index_{};
   uint32_t next_swap_index_{};
 
-  bool need_rebuild_ = false;
+  bool need_rebuild_ = true;
 };
 
 /* -------------------------------------------------------------------------- */

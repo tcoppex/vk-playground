@@ -28,6 +28,7 @@ bool CheckOutOfDataResult(VkResult const result, std::string_view const& msg) {
 /* -------------------------------------------------------------------------- */
 
 void Swapchain::init(Context const& context, VkSurfaceKHR const surface) {
+
   gpu_ = context.physical_device();
   device_ = context.device();
   surface_ = surface;
@@ -55,21 +56,26 @@ void Swapchain::init(Context const& context, VkSurfaceKHR const surface) {
 
   /* Select best swap surface format and present mode. */
   VkSurfaceFormat2KHR const surface_format2 = select_surface_format(&surface_info2);
-  VkPresentModeKHR const present_mode = select_present_mode(kUseVSync);
+  color_format_ = surface_format2.surfaceFormat.format;
 
   // TODO: check case where it does not match screen extent.
   surface_size_ = capabilities2.surfaceCapabilities.currentExtent; //
 
   image_count_ = std::clamp(preferred_image_count, min_image_count, max_image_count);
-  VkFormat const color_format = surface_format2.surfaceFormat.format;
-  LOGD("Swapchain images : %u", image_count_);
+  LOGD("Swapchain image count : %u", image_count_);
+
+  VkPresentModeKHR const present_mode = select_present_mode(kUseVSync);
 
   /* Create the swapchain image. */
-  VkSwapchainCreateInfoKHR swapchain_create_info{
+  VkSwapchainKHR old_swapchain = VK_NULL_HANDLE;//swapchain_;
+
+  VkSwapchainCreateInfoKHR const swapchain_create_info{
     .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+    .pNext = nullptr,
+    .flags = VkSwapchainCreateFlagsKHR{},
     .surface = surface_,
     .minImageCount = image_count_,
-    .imageFormat = color_format,
+    .imageFormat = color_format_,
     .imageColorSpace = surface_format2.surfaceFormat.colorSpace,
     .imageExtent = surface_size_,
     .imageArrayLayers = 1u,
@@ -77,21 +83,28 @@ void Swapchain::init(Context const& context, VkSurfaceKHR const surface) {
                 | VK_IMAGE_USAGE_TRANSFER_DST_BIT
                 ,
     .imageSharingMode = VK_SHARING_MODE_EXCLUSIVE,
+    .queueFamilyIndexCount = 0u,
+    .pQueueFamilyIndices = nullptr,
     .preTransform = capabilities2.surfaceCapabilities.currentTransform,
     .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
     .presentMode = present_mode,
     .clipped = VK_TRUE,
+    .oldSwapchain = old_swapchain,
   };
-  CHECK_VK(vkCreateSwapchainKHR(device_, &swapchain_create_info, nullptr, &swapchain_));
+  CHECK_VK(vkCreateSwapchainKHR(
+    device_, &swapchain_create_info, nullptr, &swapchain_
+  ));
 
   /* Create the swapchain resources. */
   std::vector<VkImage> images(image_count_);
-  CHECK_VK(vkGetSwapchainImagesKHR(device_, swapchain_, &image_count_, images.data()));
+  CHECK_VK(vkGetSwapchainImagesKHR(
+    device_, swapchain_, &image_count_, images.data()
+  ));
 
   VkImageViewCreateInfo image_view_create_info{
     .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
     .viewType = VK_IMAGE_VIEW_TYPE_2D,
-    .format = color_format,
+    .format = color_format_,
     .components = {
       .r = VK_COMPONENT_SWIZZLE_R,
       .g = VK_COMPONENT_SWIZZLE_G,
@@ -115,11 +128,13 @@ void Swapchain::init(Context const& context, VkSurfaceKHR const surface) {
     auto &sync = swap_syncs_[i];
 
     buffer.image = images[i];
-    buffer.format = color_format;
+    buffer.format = color_format_;
     image_view_create_info.image = buffer.image;
     CHECK_VK(vkCreateImageView(device_, &image_view_create_info, nullptr, &buffer.view));
 
-    VkSemaphoreCreateInfo const semaphore_create_info{.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
+    VkSemaphoreCreateInfo const semaphore_create_info{
+      .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO
+    };
     CHECK_VK(vkCreateSemaphore(device_, &semaphore_create_info, nullptr, &sync.wait_image_semaphore));
     CHECK_VK(vkCreateSemaphore(device_, &semaphore_create_info, nullptr, &sync.signal_present_semaphore));
   }
@@ -129,19 +144,30 @@ void Swapchain::init(Context const& context, VkSurfaceKHR const surface) {
     VK_IMAGE_LAYOUT_UNDEFINED,
     VK_IMAGE_LAYOUT_PRESENT_SRC_KHR // VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR
   );
+  need_rebuild_ = false;
 }
 
 // ----------------------------------------------------------------------------
 
-void Swapchain::deinit() {
-  vkDestroySwapchainKHR(device_, swapchain_, nullptr);
+void Swapchain::deinit(bool keep_previous_swapchain) {
+  // if (!keep_previous_swapchain)
+  {
+    vkDestroySwapchainKHR(device_, swapchain_, nullptr);
+    swapchain_ = VK_NULL_HANDLE;
+  }
+
   for (auto& buffer : swap_images_) {
     vkDestroyImageView(device_, buffer.view, nullptr);
   }
+  swap_images_.clear();
+
   for (auto& frame_sync : swap_syncs_) {
     vkDestroySemaphore(device_, frame_sync.wait_image_semaphore, nullptr);
     vkDestroySemaphore(device_, frame_sync.signal_present_semaphore, nullptr);
   }
+  swap_syncs_.clear();
+
+  need_rebuild_ = true;
 }
 
 // ----------------------------------------------------------------------------

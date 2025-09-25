@@ -119,21 +119,23 @@ bool Application::presetup(AppData_t app_data) {
       };
       LOGW("> AppResize new(w: %u, h: %u).", viewport_size_.width, viewport_size_.height);
 
-      LOGD("destroy swapchain");
-      swapchain_.deinit();
+      LOGD("reset previous swapchain");
+      swapchain_.deinit(true);
 
+#if defined(ANDROID)
       // Recreate the surface.
       LOGD("destroy surface");
       vkDestroySurfaceKHR(context_.instance(), surface_, nullptr);
 
       LOGD("create surface");
-      if (VK_SUCCESS == CHECK_VK(wm_->createWindowSurface(context_.instance(), &surface_))) {
-        // Recreate the Swapchain.
-        swapchain_.init(context_, surface_);
+      CHECK_VK(wm_->createWindowSurface(context_.instance(), &surface_));
+#endif
 
-        // Signal the Renderer.
-        renderer_.resize(viewport_size_.width, viewport_size_.height);
-      }
+      // Recreate the Swapchain.
+      swapchain_.init(context_, surface_);
+
+      // Signal the Renderer.
+      renderer_.resize(viewport_size_.width, viewport_size_.height);
     };
 
     default_callbacks_ = std::make_unique<DefaultAppEventCallbacks>(onResize);
@@ -167,6 +169,7 @@ bool Application::presetup(AppData_t app_data) {
   // [just for the hellish fun of it]
 presetup_fails_ui:
   renderer_.deinit();
+  swapchain_.deinit();
 presetup_fails_surface:
   context_.deinit();
 presetup_fails_context:
