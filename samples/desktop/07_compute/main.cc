@@ -279,7 +279,7 @@ class SampleApp final : public Application {
     allocator.destroy_buffer(uniform_buffer_);
   }
 
-  void frame() final {
+  void draw() final {
     mat4 const world_matrix(
       linalg::mul(
         lina::rotation_matrix_y(0.05f * frame_time()),

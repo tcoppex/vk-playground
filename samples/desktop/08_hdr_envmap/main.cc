@@ -206,11 +206,6 @@ class SampleApp final : public Application {
     scene_.reset();
   }
 
-  void update_frame(float const delta_time) {
-    camera_.update( delta_time );
-    push_constant_.viewMatrix = camera_.view();
-  }
-
   void draw_model(RenderPassEncoder const& pass, mat4 const& world_matrix) {
     for (auto const& mesh : scene_->meshes) {
       pass.set_primitive_topology(mesh->vk_primitive_topology());
@@ -227,11 +222,13 @@ class SampleApp final : public Application {
     }
   }
 
-  void frame() final {
-    update_frame(delta_time());
+  void update(float const dt) final {
+    camera_.update( dt );
+    push_constant_.viewMatrix = camera_.view();
+  }
 
+  void draw() final {
     mat4 const worldMatrix{
-      // linalg::identity
       lina::rotation_matrix_axis(
         vec3(-0.25f, 1.0f, -0.15f),
         frame_time() * 0.4f

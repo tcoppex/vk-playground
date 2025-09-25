@@ -130,7 +130,7 @@ class SampleApp final : public Application {
     context_.allocator().destroy_buffer(vertex_buffer_);
   }
 
-  void frame() final {
+  void draw() final {
     auto cmd = renderer_.begin_frame();
 
     /**

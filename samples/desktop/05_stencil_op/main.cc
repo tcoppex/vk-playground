@@ -305,7 +305,7 @@ class SampleApp final : public Application {
     allocator.destroy_buffer(uniform_buffer_);
   }
 
-  void frame() final {
+  void draw() final {
     float const tick{ frame_time() };
 
     mat4 const portal_world_matrix = linalg::mul(

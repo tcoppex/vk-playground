@@ -50,12 +50,6 @@ class Application : public EventCallbacks
   virtual void update(float const dt) {}
   virtual void draw() {}
 
-  [[deprecated]]
-  virtual void frame() {
-    update(delta_time());
-    draw();
-  }
-
  private:
   [[nodiscard]]
   bool presetup(AppData_t app_data);

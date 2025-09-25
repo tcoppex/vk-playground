@@ -404,7 +404,7 @@ void Context::init_instance(std::vector<char const*> const& instance_extensions)
   CHECK_VK(vkCreateDebugUtilsMessengerEXT(instance_, &debug_info, nullptr, &debug_utils_messenger_));
 
 #ifndef NDEBUG
-  LOGD("Vulkan version required: {}.{}.{}",
+  LOGD("Vulkan version requested: {}.{}.{}",
     VK_API_VERSION_MAJOR(application_info.apiVersion),
     VK_API_VERSION_MINOR(application_info.apiVersion),
     VK_API_VERSION_PATCH(application_info.apiVersion)
@@ -414,7 +414,7 @@ void Context::init_instance(std::vector<char const*> const& instance_extensions)
   if (!available_instance_layers.empty()) {
     LOGD("Available Instance layers:");
     for (const auto& layer : available_instance_layers) {
-      LOGI(" > {}", layer.layerName);
+      LOGD(" > {}", layer.layerName);
     }
     LOGD(" ");
   }

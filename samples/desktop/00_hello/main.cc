@@ -21,7 +21,7 @@ class SampleApp final : public Application {
     return true;
   }
 
-  void frame() final {
+  void draw() final {
     auto cmd = renderer_.begin_frame();
 
 #if 1 /* Direct method */

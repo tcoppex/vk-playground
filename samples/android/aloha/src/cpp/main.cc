@@ -111,10 +111,10 @@ private:
     context_.allocator().destroy_buffer(vertex_buffer_);
   }
 
-  void frame() final {
-    auto cmd= renderer_.begin_frame();
+  void draw() final {
+    auto cmd = renderer_.begin_frame();
 
-    auto pass= cmd.begin_rendering();
+    auto pass = cmd.begin_rendering();
     {
       pass.set_viewport_scissor(viewport_size_, false);
       pass.bind_pipeline(graphics_pipeline_);

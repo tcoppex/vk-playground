@@ -23,24 +23,15 @@ struct DefaultAppEventCallbacks final : public EventCallbacks {
 /* -------------------------------------------------------------------------- */
 
 int Application::run(AppData_t app_data) {
-  /* Singletons. */
-  {
-    Logger::Initialize();
-    Events::Initialize();
-  }
-
-  LOGD("--- Framework Initialization ---");
   if (!presetup(app_data)) {
     return EXIT_FAILURE;
   }
-  LOGD("--------------------------------------------\n");
 
   LOGD("--- App Initialization ---");
   if (!setup()) {
     return EXIT_FAILURE;
   }
   context_.allocator().clear_staging_buffers();
-  LOGD("--------------------------------------------\n");
 
   LOGD("--- Mainloop ---");
   while (next_frame(app_data)) {
@@ -52,10 +43,10 @@ int Application::run(AppData_t app_data) {
     build_ui();
     ui_->endFrame();
 
-    frame();
+    update(delta_time());
+    draw();
   }
 
-  LOGD("--- Shutdown ---");
   shutdown();
 
   return EXIT_SUCCESS;
@@ -71,6 +62,14 @@ float Application::elapsed_time() const noexcept {
 // ----------------------------------------------------------------------------
 
 bool Application::presetup(AppData_t app_data) {
+  /* Singletons. */
+  {
+    Logger::Initialize();
+    Events::Initialize();
+  }
+
+  LOGD("--- Framework Initialization ---");
+
   /* Window manager. */
   if (wm_ = std::make_unique<Window>(); !wm_ || !wm_->init(app_data)) {
     LOGE("Window creation fails");
@@ -92,12 +91,8 @@ bool Application::presetup(AppData_t app_data) {
   /* Swapchain. */
   swapchain_.init(context_, surface_);
 
-  // ----------------------------------
-
   /* Internal Renderer. */
   renderer_.init(context_, swapchain_, context_.allocator());
-
-  // ----------------------------------
 
   /* User Interface. */
   if (ui_ = std::make_unique<UIController>(); !ui_ || !ui_->init(renderer_, *wm_)) {
@@ -108,16 +103,15 @@ bool Application::presetup(AppData_t app_data) {
   /* Framework internal data. */
   {
     // ---------------------------------------------
-    // ---------------------------------------------
     auto onResize = [this](int w, int h) {
       context_.device_wait_idle();
 
-      LOGW("> AppResize old(w: {}, h: {}).", viewport_size_.width, viewport_size_.height);
+      LOGD("> AppResize old(w: {}, h: {})", viewport_size_.width, viewport_size_.height);
       viewport_size_ = {
         .width = (uint32_t)w, //wm_->get_surface_width(),
         .height = (uint32_t)h, //wm_->get_surface_height(),
       };
-      LOGW("> AppResize new(w: {}, h: {}).", viewport_size_.width, viewport_size_.height);
+      LOGD("> AppResize new(w: {}, h: {})", viewport_size_.width, viewport_size_.height);
 
       LOGD("reset previous swapchain");
       swapchain_.deinit(true);
@@ -147,14 +141,11 @@ bool Application::presetup(AppData_t app_data) {
       .width = wm_->get_surface_width(),
       .height = wm_->get_surface_height(),
     };
-    LOGW("> (w: {}, h: {}).", viewport_size_.width, viewport_size_.height);
+    LOGD("> (w: {}, h: {})", viewport_size_.width, viewport_size_.height);
 
     // onResize(wm_->get_surface_width(), wm_->get_surface_height());
     // renderer_.resize(viewport_size_.width, viewport_size_.height);
-
     // ---------------------------------------------
-    // ---------------------------------------------
-
 
     // Time tracker.
     chrono_ = std::chrono::high_resolution_clock::now();
@@ -163,6 +154,8 @@ bool Application::presetup(AppData_t app_data) {
     rand_seed_ = static_cast<uint32_t>(std::time(nullptr));
     std::srand(rand_seed_);
   }
+
+  LOGD("--------------------------------------------\n");
 
   return true;
 
@@ -194,6 +187,8 @@ bool Application::next_frame(AppData_t app_data) {
 // ----------------------------------------------------------------------------
 
 void Application::shutdown() {
+  LOGD("--- Shutdown ---");
+
   context_.device_wait_idle();
 
   release();

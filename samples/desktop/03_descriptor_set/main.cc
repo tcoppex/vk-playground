@@ -212,16 +212,16 @@ class SampleApp final : public Application {
     allocator_ptr_->destroy_buffer(uniform_buffer_);
   }
 
-  void frame() final {
+  void update(float const dt) final {
     /* Update the model world matrix. */
-    {
-      float const tick{ frame_time() };
-      push_constant_.model.worldMatrix = lina::rotation_matrix_axis(
-        vec3f(0.2f * cosf(3.0f * tick), 0.8f, sinf(tick)),
-        tick * 0.75f
-      );
-    }
+    float const tick{ frame_time() };
+    push_constant_.model.worldMatrix = lina::rotation_matrix_axis(
+      vec3f(0.2f * cosf(3.0f * tick), 0.8f, sinf(tick)),
+      tick * 0.75f
+    );
+  }
 
+  void draw() final {
     auto cmd = renderer_.begin_frame();
     {
       auto pass = cmd.begin_rendering();
