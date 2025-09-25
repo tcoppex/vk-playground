@@ -79,6 +79,7 @@ class Swapchain {
 
   VkFormat color_format_{};
   VkSwapchainKHR swapchain_{};
+  VkSwapchainKHR old_swapchain_{};
 
   std::vector<backend::Image> swap_images_{};
   std::vector<SwapSynchronizer_t> swap_syncs_{};

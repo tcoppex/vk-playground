@@ -106,23 +106,23 @@ bool Application::presetup(AppData_t app_data) {
     auto onResize = [this](int w, int h) {
       context_.device_wait_idle();
 
-      LOGD("> AppResize old(w: {}, h: {})", viewport_size_.width, viewport_size_.height);
       viewport_size_ = {
         .width = (uint32_t)w, //wm_->get_surface_width(),
         .height = (uint32_t)h, //wm_->get_surface_height(),
       };
-      LOGD("> AppResize new(w: {}, h: {})", viewport_size_.width, viewport_size_.height);
+      // LOGD("> AppResize (w: {}, h: {})", viewport_size_.width, viewport_size_.height);
 
-      LOGD("reset previous swapchain");
-      swapchain_.deinit(true);
-
+      // Reset the swapchain.
 #if defined(ANDROID)
-      // Recreate the surface.
       LOGD("destroy surface");
       vkDestroySurfaceKHR(context_.instance(), surface_, nullptr);
 
+      swapchain_.deinit();
+
       LOGD("create surface");
       CHECK_VK(wm_->createWindowSurface(context_.instance(), &surface_));
+#else
+      swapchain_.deinit(true);
 #endif
 
       // Recreate the Swapchain.

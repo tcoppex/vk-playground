@@ -28,15 +28,14 @@ bool CheckOutOfDataResult(VkResult const result, std::string_view const& msg) {
 /* -------------------------------------------------------------------------- */
 
 void Swapchain::init(Context const& context, VkSurfaceKHR const surface) {
-
   gpu_ = context.physical_device();
   device_ = context.device();
   surface_ = surface;
 
   LOGD("-- Swapchain --");
 
-  LOG_CHECK(vkGetPhysicalDeviceSurfaceCapabilities2KHR);
   /* Retrieve the GPU's capabilities for this surface. */
+  LOG_CHECK(vkGetPhysicalDeviceSurfaceCapabilities2KHR);
   VkPhysicalDeviceSurfaceInfo2KHR const surface_info2{
     .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SURFACE_INFO_2_KHR,
     .surface = surface_,
@@ -62,13 +61,15 @@ void Swapchain::init(Context const& context, VkSurfaceKHR const surface) {
   surface_size_ = capabilities2.surfaceCapabilities.currentExtent; //
 
   image_count_ = std::clamp(preferred_image_count, min_image_count, max_image_count);
-  LOGD("Swapchain image count : {}", image_count_);
+  LOGD("image count : {}", image_count_);
 
   VkPresentModeKHR const present_mode = select_present_mode(kUseVSync);
 
-  /* Create the swapchain image. */
-  VkSwapchainKHR old_swapchain = VK_NULL_HANDLE;//swapchain_;
+  // Keep the previous swapchain for quick recreation.
+  old_swapchain_ = swapchain_;
+  swapchain_ = VK_NULL_HANDLE;
 
+  /* Create the swapchain image. */
   VkSwapchainCreateInfoKHR const swapchain_create_info{
     .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
     .pNext = nullptr,
@@ -89,7 +90,7 @@ void Swapchain::init(Context const& context, VkSurfaceKHR const surface) {
     .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
     .presentMode = present_mode,
     .clipped = VK_TRUE,
-    .oldSwapchain = old_swapchain,
+    .oldSwapchain = old_swapchain_,
   };
   CHECK_VK(vkCreateSwapchainKHR(
     device_, &swapchain_create_info, nullptr, &swapchain_
@@ -150,8 +151,16 @@ void Swapchain::init(Context const& context, VkSurfaceKHR const surface) {
 // ----------------------------------------------------------------------------
 
 void Swapchain::deinit(bool keep_previous_swapchain) {
-  // if (!keep_previous_swapchain)
-  {
+  LOGD("Reset swapchain and {} keep previous one.",
+    keep_previous_swapchain ? "" : "don't"
+  );
+
+  if (old_swapchain_ != VK_NULL_HANDLE) [[likely]] {
+    vkDestroySwapchainKHR(device_, old_swapchain_, nullptr);
+    old_swapchain_ = VK_NULL_HANDLE;
+  }
+
+  if (!keep_previous_swapchain) [[unlikely]] {
     vkDestroySwapchainKHR(device_, swapchain_, nullptr);
     swapchain_ = VK_NULL_HANDLE;
   }
