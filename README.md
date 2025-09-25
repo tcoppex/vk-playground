@@ -55,17 +55,19 @@ cmake --build build --config Release
 
 ##### Third parties
 
- * Vulkan SDK 1.1
  * CMake 3.22.1
  * CPM 0.40.3 (_downloaded automatically_)
- * Volk 1.4 (_via CPM_)
+ * Vulkan SDK 1.1 (_1.4.321.0 headers downloaded via CPM_)
+ * Volk 1.4.321.0 (_via CPM_)
  * VulkanMemoryAllocator 3.2.0 (_via CPM_)
  * GLFW 3.4 (_via CPM_)
- * ImGUI (_via CPM_)
+ * ImGUI Docker (_via CPM_)
  * MikkTSpace (_via CPM_)
  * linalg v2.2 (_via CPM_)
- * libfmt 12.0 (_via CPM_)
+ * libfmt 12.0.0 (_via CPM_)
  * stb_image.h (_included_)
+
+By default, CPM downloads and caches third-party dependencies in `./third_party/.cpmlocalcache/`.
 
 ##### Vulkan device extensions
 
@@ -89,16 +91,18 @@ cmake --build build --config Release
 * [VK_KHR_acceleration_structure](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_acceleration_structure.html)
 * [VK_KHR_ray_tracing_pipeline](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_ray_tracing_pipeline.html) (_optionnal_)
 
-##### Android build
+#### Android build
+
+The Android build used the following dependencies :
 
  * Android SDK 36
  * Android NDK 29.0.14033849
  * Gradle 8.14.3
 
-###### Installing Android dependencies
+You can install them depending on your platform using one of those script :
 
 <details>
-  <summary><strong>for GNU/Linux</strong></summary>
+  <summary><strong>GNU/Linux</strong></summary>
 
 ```bash
 # Install tools and the JDK
@@ -120,7 +124,7 @@ sdkmanager "platforms;android-36" "platform-tools" "build-tools;36.0.0" "ndk;29.
 </details>
 
 <details>
-  <summary><strong>for Windows 11</strong></summary>
+  <summary><strong>Windows 11</strong></summary>
 
 ```bash
 # Install JDK manually on Windows (eg. Temurin 17)
@@ -140,21 +144,19 @@ sdkmanager "platforms;android-36" "platform-tools" "build-tools;36.0.0" "ndk;29.
 ```
 </details>
 
-<br/>
-
 ###### Build and Run
 
-For each Android sample a collection of CMake debug targets using the template `{prefix}{sample_name}`
-are availables to simplify development without the need to use Android Studio :
+Each Android sample provides a set of CMake debug targets in the form `{prefix}{sample_name}`  
+to simplify development without the need to launch Android Studio.
 
-| Prefix            | Description | 
-|-------------------|-------------|
-| **build_**        | build the target in debug mode |
-| **install_**      | build and install the target   |
-| **run_**          | build, install, and run the target |
-| **log_**          | build, install, run and log the target outputs |
+| Prefix       | Action                                                |
+|--------------|-------------------------------------------------------|
+| **build_**   | Build the sample in debug mode                        |
+| **install_** | Build and install the sample on a connected device    |
+| **run_**     | Build, install, and run the sample                    |
+| **log_**     | Build, install, run, and stream the sample’s logcat   |
 
-_On device targets (eg. install, run, log) require a compatible connected device to work._
+_Device-dependent targets (**install**, **run**, **log**) require a compatible connected Android device._
 
 #### Assets
 
