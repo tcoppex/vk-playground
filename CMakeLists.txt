@@ -589,6 +589,7 @@ endif()
 
 # -----------------------------------------------------------------------------
 
+add_subdirectory(${PROJECT_ASSETS_DIR})
 add_subdirectory(${FRAMEWORK_PATH})
 add_subdirectory(${SAMPLES_PATH})
 
