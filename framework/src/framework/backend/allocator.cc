@@ -5,6 +5,7 @@
     fprintf(stderr, (format), __VA_ARGS__);     \
     fprintf(stderr, "\n");                      \
   }
+
 #include "framework/backend/allocator.h"
 #include "framework/backend/vk_utils.h"
 #include "framework/core/utils.h"
@@ -70,9 +71,14 @@ backend::Buffer ResourceAllocator::create_buffer(
     .usage = memory_usage,
   };
   VmaAllocationInfo result_alloc_info{};
-  CHECK_VK(
-    vmaCreateBuffer(allocator_, &buffer_info, &alloc_create_info, &buffer.buffer, &buffer.allocation, &result_alloc_info)
-  );
+  CHECK_VK(vmaCreateBuffer(
+    allocator_,
+    &buffer_info,
+    &alloc_create_info,
+    &buffer.buffer,
+    &buffer.allocation,
+    &result_alloc_info
+  ));
 
   // Get its GPU address.
   VkBufferDeviceAddressInfoKHR const buffer_device_addr_info{
@@ -91,7 +97,7 @@ backend::Buffer ResourceAllocator::create_staging_buffer(
   void const* host_data,
   size_t host_data_size
 ) const {
-  assert(host_data_size <= bytesize);
+  LOG_CHECK(host_data_size <= bytesize);
 
   // TODO : use a pool to reuse some staging buffer.
 
@@ -104,7 +110,11 @@ backend::Buffer ResourceAllocator::create_staging_buffer(
   )};
   // Map host data to device.
   if (host_data != nullptr) {
-    upload_host_to_device(host_data, (host_data_size > 0u) ? host_data_size : bytesize, staging_buffer);
+    upload_host_to_device(
+      host_data,
+      (host_data_size > 0u) ? host_data_size : bytesize,
+      staging_buffer
+    );
   }
   staging_buffers_.push_back(staging_buffer);
   return staging_buffer;
@@ -119,9 +129,9 @@ size_t ResourceAllocator::write_buffer(
   size_t const host_offset,
   size_t const bytesize
 ) const {
-  assert(host_data != nullptr);
-  assert(dst_buffer.buffer != VK_NULL_HANDLE);
-  assert(bytesize > 0);
+  LOG_CHECK(host_data != nullptr);
+  LOG_CHECK(dst_buffer.valid());
+  LOG_CHECK(bytesize > 0);
 
   void *device_data = nullptr;
   CHECK_VK( vmaMapMemory(allocator_, dst_buffer.allocation, &device_data) );
@@ -146,7 +156,7 @@ void ResourceAllocator::clear_staging_buffers() const {
 // ----------------------------------------------------------------------------
 
 void ResourceAllocator::create_image(VkImageCreateInfo const& image_info, backend::Image *image) const {
-  assert( image_info.format != VK_FORMAT_UNDEFINED );
+  LOG_CHECK( image_info.format != VK_FORMAT_UNDEFINED );
 
   VmaAllocationCreateInfo const alloc_create_info{
     .usage = VMA_MEMORY_USAGE_GPU_ONLY,
@@ -160,8 +170,12 @@ void ResourceAllocator::create_image(VkImageCreateInfo const& image_info, backen
 
 // ----------------------------------------------------------------------------
 
-void ResourceAllocator::create_image_with_view(VkImageCreateInfo const& image_info, VkImageViewCreateInfo const& view_info, backend::Image *image) const {
-  assert( view_info.format == image_info.format );
+void ResourceAllocator::create_image_with_view(
+  VkImageCreateInfo const& image_info,
+  VkImageViewCreateInfo const& view_info,
+  backend::Image *image
+) const {
+  LOG_CHECK( view_info.format == image_info.format );
 
   create_image(image_info, image);
   auto info{view_info};
@@ -172,7 +186,7 @@ void ResourceAllocator::create_image_with_view(VkImageCreateInfo const& image_in
 // ----------------------------------------------------------------------------
 
 void ResourceAllocator::destroy_image(backend::Image *image) const {
-  if (image && image->image != VK_NULL_HANDLE) {
+  if (image && image->valid()) {
     vmaDestroyImage(allocator_, image->image, image->allocation);
     image->image = VK_NULL_HANDLE;
     if (image->view != VK_NULL_HANDLE) {
