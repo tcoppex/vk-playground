@@ -8,7 +8,7 @@
 
 /* -------------------------------------------------------------------------- */
 
-#define WINDOW_SCALE          0.62f
+#define WINDOW_SCALE          0.48f
 #define MONITOR_SCALE         1.25f
 #define WINDOW_SIZE_FACTOR    (WINDOW_SCALE / MONITOR_SCALE)
 
@@ -78,19 +78,18 @@ void InitializeEventsCallbacks(GLFWwindow *handle) noexcept {
 
   // // Drag-n-drop.
   // glfwSetDropCallback(handle, [](GLFWwindow* window, int count, char const** paths) {
-  //   // LOGW( "Window signal glfwSetDropCallback is not implemented." );
+  //   LOGW( "> glfwSetDropCallback is not implemented." );
   //   Events::Get().onFilesDropped(count, paths);
   // });
 
   // Framebuffer resize.
   glfwSetFramebufferSizeCallback(handle, [](GLFWwindow *window, int w, int h) {
-    // LOGD( "Window framebuffer resize." );
     Events::Get().onResize(w, h);
   });
 
   // Window resize.
   // glfwSetWindowSizeCallback(handle, [](GLFWwindow *window, int w, int h) {
-  //   LOGV( "> glfwSetWindowSizeCallback is not implemented." );
+  //   LOGW( "> glfwSetWindowSizeCallback is not implemented." );
   // });
 }
 
@@ -138,10 +137,15 @@ bool Window::init(AppData_t app_data) {
   }
 
   // Do not constraints aspect ratio.
-  // glfwSetWindowAspectRatio(window_, GLFW_DONT_CARE, GLFW_DONT_CARE);
+  glfwSetWindowAspectRatio(window_, GLFW_DONT_CARE, GLFW_DONT_CARE);
 
   // ~Silverish / Japanese JIS B6 ratio.
-  glfwSetWindowAspectRatio(window_, 182, 128);
+  // glfwSetWindowAspectRatio(window_, 91, 64); // ~ 1.422
+
+  // Other ratios.
+  // glfwSetWindowAspectRatio(window_, 707, 500); // ~1.414
+  // glfwSetWindowAspectRatio(window_, 866, 500); // ~1.732
+
 
   InitializeEventsCallbacks(window_);
 
