@@ -72,12 +72,15 @@ class Swapchain {
   VkPresentModeKHR select_present_mode(bool use_vsync) const;
 
  private:
+  /* Copy references */
   VkPhysicalDevice gpu_{};
   VkDevice device_{};
   VkSurfaceKHR surface_{};
-  VkExtent2D surface_size_{};
 
+  VkExtent2D surface_size_{};
   VkFormat color_format_{};
+
+  VkSwapchainCreateInfoKHR swapchain_create_info_{};
   VkSwapchainKHR swapchain_{};
   VkSwapchainKHR old_swapchain_{};
 
