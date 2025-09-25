@@ -24,7 +24,7 @@ extern "C" {
 // A colored logger that could be used inside loops to print messages once.
 //
 //  Type of logs :
-//    * Message    : white, not hashed (will be repeated).
+//    * Debug      : white, not hashed (will be repeated).
 //    * Info       : blue, hashed (will not be repeated).
 //    * Warning    : yellow, hashed, used in stats.
 //    * Error      : bold red, hashed, display file and line, used in stats.
@@ -39,7 +39,8 @@ class Logger : public Singleton<Logger> {
   }
 
   enum class LogType {
-    Message,
+    Verbose,
+    Debug,
     Info,
     Warning,
     Error,
@@ -81,7 +82,9 @@ class Logger : public Singleton<Logger> {
 
     // Prefix.
     switch (type) {
-      case LogType::Message:    std::cerr << "\x1b[0;29m";
+      case LogType::Verbose:    std::cerr << "\x1b[3;38;5;109m";
+        break;
+      case LogType::Debug:      std::cerr << "\x1b[0;39m";
         break;
       case LogType::Info:       std::cerr << "\x1b[0;36m";
         break;
@@ -127,8 +130,13 @@ class Logger : public Singleton<Logger> {
   }
 
   template<typename... Args>
-  void message(char const* file, char const* fn, int line, fmt::format_string<Args...> fmt, Args&&... args) {
-    log(file, fn, line, false, LogType::Message, fmt::vformat(fmt, fmt::make_format_args(args...)));
+  void verbose(char const* file, char const* fn, int line, fmt::format_string<Args...> fmt, Args&&... args) {
+    log(file, fn, line, false, LogType::Verbose, fmt::vformat(fmt, fmt::make_format_args(args...)));
+  }
+
+  template<typename... Args>
+  void debug(char const* file, char const* fn, int line, fmt::format_string<Args...> fmt, Args&&... args) {
+    log(file, fn, line, false, LogType::Debug, fmt::vformat(fmt, fmt::make_format_args(args...)));
   }
 
   template<typename... Args>
@@ -185,8 +193,8 @@ class Logger : public Singleton<Logger> {
 #define LOGW(...) Logger::Get().android_log(ANDROID_LOG_WARN,    LOGGER_ANDROID_TAG, __VA_ARGS__)
 #define LOGE(...) Logger::Get().android_log(ANDROID_LOG_ERROR,   LOGGER_ANDROID_TAG, __VA_ARGS__)
 #else
-#define LOGV(...) Logger::Get().message( __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
-#define LOGD(...) Logger::Get().message( __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
+#define LOGV(...) Logger::Get().verbose( __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
+#define LOGD(...) Logger::Get().debug  ( __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
 #define LOGI(...) Logger::Get().info   ( __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
 #define LOGW(...) Logger::Get().warning( __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
 #define LOGE(...) Logger::Get().error  ( __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
