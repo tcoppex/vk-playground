@@ -18,7 +18,7 @@
  * sub event handlers.
  */
 class Events final : public Singleton<Events>
-                   , private EventCallbacks
+                   , public EventCallbacks
 {
  public:
   /* Different states for a key / button :

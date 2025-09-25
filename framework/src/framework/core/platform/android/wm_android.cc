@@ -45,7 +45,6 @@ struct DefaultAppCmdCallbacks final : public AppCmdCallbacks {
 
   void onTermWindow(android_app* app) final {
     LOGD("%s", __FUNCTION__);
-    // wma_->native_window.reset();
     wma_->native_window = nullptr;
   }
 
@@ -85,9 +84,11 @@ struct DefaultAppCmdCallbacks final : public AppCmdCallbacks {
   }
 
   // [not always called]
+  // * On the Meta Quest 3, when a classic app (non XR) is resized
+  // to a framebuffer lower in any dimension, the app is destroyed and
+  // then recreated.
   void onDestroy(android_app* app) final {
     LOGD("%s", __FUNCTION__);
-    // wma_->native_window.reset();
     wma_->native_window = nullptr;
   }
 

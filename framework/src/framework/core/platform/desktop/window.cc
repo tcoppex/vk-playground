@@ -84,16 +84,15 @@ void InitializeEventsCallbacks(GLFWwindow *handle) noexcept {
 
   // Framebuffer resize.
   glfwSetFramebufferSizeCallback(handle, [](GLFWwindow *window, int w, int h) {
-    LOGW( "Window framebuffer resize." );
+    // LOGD( "Window framebuffer resize." );
     Events::Get().onResize(w, h);
   });
 
   // Window resize.
-  glfwSetWindowSizeCallback(handle, [](GLFWwindow *window, int w, int h) {
-    LOGV( "> glfwSetWindowSizeCallback is not implemented." );
-  });
+  // glfwSetWindowSizeCallback(handle, [](GLFWwindow *window, int w, int h) {
+  //   LOGV( "> glfwSetWindowSizeCallback is not implemented." );
+  // });
 }
-
 
 } // namespace
 
