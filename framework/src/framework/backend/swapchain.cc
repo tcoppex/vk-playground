@@ -5,121 +5,114 @@
 
 namespace {
 
-bool CheckOutOfDataResult(VkResult const result, std::string_view msg) {
+bool IsSwapchainInvalid(VkResult const result, std::string_view msg) {
   switch (result) {
-    case VK_ERROR_OUT_OF_DATE_KHR:
-      LOGW("[TODO] The swapchain need to be rebuilt ({}).", msg);
-    return true;
+    case VK_SUCCESS:
+      return false;
 
     case VK_SUBOPTIMAL_KHR:
       LOGW("The current swapchain is suboptimal ({}).", msg);
-    case VK_SUCCESS:
-    break;
+      return false;
+
+    case VK_ERROR_OUT_OF_DATE_KHR:
+      LOGW("[TODO] The swapchain need to be rebuilt ({}).", msg);
+      return true;
 
     default:
       LOGE("{} : swapchain image issue.", msg);
-    break;
+     return true;
   }
-
-  return false;
 }
 
 }
 
 /* -------------------------------------------------------------------------- */
 
-void Swapchain::init(Context const& context, VkSurfaceKHR const surface) {
+void Swapchain::init(Context const& context, VkSurfaceKHR surface) {
+  LOG_CHECK(VK_NULL_HANDLE != surface);
+  LOG_CHECK(vkGetPhysicalDeviceSurfaceCapabilities2KHR);
   gpu_ = context.physical_device();
   device_ = context.device();
-  surface_ = surface;
-
-  LOGD("-- Swapchain --");
 
   // ---------
 
   /* Retrieve the GPU's capabilities for this surface. */
-  LOG_CHECK(vkGetPhysicalDeviceSurfaceCapabilities2KHR);
   VkPhysicalDeviceSurfaceInfo2KHR const surface_info2{
     .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SURFACE_INFO_2_KHR,
-    .surface = surface_,
+    .surface = surface,
   };
   VkSurfaceCapabilities2KHR capabilities2{
     .sType = VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_KHR
   };
   vkGetPhysicalDeviceSurfaceCapabilities2KHR(gpu_, &surface_info2, &capabilities2);
-
-  surface_size_ = capabilities2.surfaceCapabilities.currentExtent; //
+  auto const surface_capabilities = capabilities2.surfaceCapabilities;
 
   // ---------
 
-  if ((swapchain_ == VK_NULL_HANDLE) && (old_swapchain_ == VK_NULL_HANDLE))
+  /* Configure the swapchain creation info. */
+  if ((swapchain_ == VK_NULL_HANDLE) && (swapchain_create_info_.oldSwapchain == VK_NULL_HANDLE))
   {
+    // [we do not need to repeat this step when we kept the previous swapchain]
+
     /* Determine the number of image to use in the swapchain. */
-    uint32_t const min_image_count{ capabilities2.surfaceCapabilities.minImageCount };
+    uint32_t const min_image_count{ surface_capabilities.minImageCount };
     uint32_t const preferred_image_count{ std::max(kPreferredMaxImageCount, min_image_count) };
     uint32_t const max_image_count{
-      (capabilities2.surfaceCapabilities.maxImageCount == 0u) ? preferred_image_count
-                                                              : capabilities2.surfaceCapabilities.maxImageCount
+      (surface_capabilities.maxImageCount == 0u) ? preferred_image_count
+                                                 : surface_capabilities.maxImageCount
     };
-
-    /* Select best swap surface format and present mode. */
-    VkSurfaceFormat2KHR const surface_format2 = select_surface_format(&surface_info2);
-    color_format_ = surface_format2.surfaceFormat.format;
-
     image_count_ = std::clamp(preferred_image_count, min_image_count, max_image_count);
     LOGD("image count : {}", image_count_);
 
-    VkPresentModeKHR const present_mode = select_present_mode(kUseVSync);
+    /* Select best swap surface format and present mode. */
+    auto const surface_format = select_surface_format(&surface_info2).surfaceFormat;
 
     swapchain_create_info_ = VkSwapchainCreateInfoKHR{
-      .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-      .pNext = nullptr,
-      .flags = VkSwapchainCreateFlagsKHR{},
-      // .surface = surface_,
-      .minImageCount = image_count_,
-      .imageFormat = color_format_,
-      .imageColorSpace = surface_format2.surfaceFormat.colorSpace,
-      // .imageExtent = surface_size_,
+      .sType            = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+      .pNext            = nullptr,
+      .flags            = VkSwapchainCreateFlagsKHR{},
+      .surface          = VK_NULL_HANDLE,
+      .minImageCount    = image_count_,
+      .imageFormat      = surface_format.format,
+      .imageColorSpace  = surface_format.colorSpace,
+      .imageExtent      = {},
       .imageArrayLayers = 1u,
-      .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
-                  | VK_IMAGE_USAGE_TRANSFER_DST_BIT
-                  ,
+      .imageUsage       = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
+                        | VK_IMAGE_USAGE_TRANSFER_DST_BIT
+                        ,
       .imageSharingMode = VK_SHARING_MODE_EXCLUSIVE,
       .queueFamilyIndexCount = 0u,
       .pQueueFamilyIndices = nullptr,
-      .preTransform = capabilities2.surfaceCapabilities.currentTransform,
-      .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
-      .presentMode = present_mode,
-      .clipped = VK_TRUE,
-      // .oldSwapchain = old_swapchain_,
+      .preTransform     = surface_capabilities.currentTransform,
+      .compositeAlpha   = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+      .presentMode      = select_present_mode(surface, kUseVSync),
+      .clipped          = VK_TRUE,
+      .oldSwapchain     = VK_NULL_HANDLE,
     };
   }
 
+  swapchain_create_info_.surface      = surface;
+  swapchain_create_info_.imageExtent  = surface_capabilities.currentExtent;
+  swapchain_create_info_.oldSwapchain = swapchain_;
+
   // ---------
 
-  // Keep the previous swapchain for quick recreation.
-  old_swapchain_ = swapchain_;
-  swapchain_ = VK_NULL_HANDLE;
-
-  swapchain_create_info_.surface      = surface;
-  swapchain_create_info_.imageExtent  = surface_size_;
-  swapchain_create_info_.oldSwapchain = old_swapchain_;
-
   /* Create the swapchain image. */
+  swapchain_ = VK_NULL_HANDLE;
   CHECK_VK(vkCreateSwapchainKHR(
     device_, &swapchain_create_info_, nullptr, &swapchain_
   ));
 
-  /* Create the swapchain resources. */
+  /* Create the swapchain resources (Views + Semaphores). */
   std::vector<VkImage> images(image_count_);
   CHECK_VK(vkGetSwapchainImagesKHR(
     device_, swapchain_, &image_count_, images.data()
   ));
 
   VkImageViewCreateInfo image_view_create_info{
-    .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-    .viewType = VK_IMAGE_VIEW_TYPE_2D,
-    .format = color_format_,
+    .sType      = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+    .viewType   = VK_IMAGE_VIEW_TYPE_2D,
+    .format     = swapchain_create_info_.imageFormat,
     .components = {
       .r = VK_COMPONENT_SWIZZLE_R,
       .g = VK_COMPONENT_SWIZZLE_G,
@@ -127,11 +120,11 @@ void Swapchain::init(Context const& context, VkSurfaceKHR const surface) {
       .a = VK_COMPONENT_SWIZZLE_A,
     },
     .subresourceRange = {
-      .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-      .baseMipLevel = 0u,
-      .levelCount = 1u,
+      .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+      .baseMipLevel   = 0u,
+      .levelCount     = 1u,
       .baseArrayLayer = 0u,
-      .layerCount = 1u,
+      .layerCount     = 1u,
     },
   };
 
@@ -143,7 +136,7 @@ void Swapchain::init(Context const& context, VkSurfaceKHR const surface) {
     auto &sync = swap_syncs_[i];
 
     buffer.image = images[i];
-    buffer.format = color_format_;
+    buffer.format = swapchain_create_info_.imageFormat;
     image_view_create_info.image = buffer.image;
     CHECK_VK(vkCreateImageView(device_, &image_view_create_info, nullptr, &buffer.view));
 
@@ -178,13 +171,13 @@ void Swapchain::init(Context const& context, VkSurfaceKHR const surface) {
 // ----------------------------------------------------------------------------
 
 void Swapchain::deinit(bool keep_previous_swapchain) {
-  LOGD("Reset swapchain and {} keep previous one.",
-    keep_previous_swapchain ? "" : "don't"
+  LOGD("Destroy swapchain resources,{} keep previous handle.",
+    keep_previous_swapchain ? "" : " don't"
   );
 
-  if (old_swapchain_ != VK_NULL_HANDLE) [[likely]] {
-    vkDestroySwapchainKHR(device_, old_swapchain_, nullptr);
-    old_swapchain_ = VK_NULL_HANDLE;
+  if (swapchain_create_info_.oldSwapchain != VK_NULL_HANDLE) [[likely]] {
+    vkDestroySwapchainKHR(device_, swapchain_create_info_.oldSwapchain, nullptr);
+    swapchain_create_info_.oldSwapchain = VK_NULL_HANDLE;
   }
 
   if (!keep_previous_swapchain) [[unlikely]] {
@@ -213,14 +206,11 @@ void Swapchain::acquire_next_image() {
 
   auto const& semaphore = get_current_synchronizer().wait_image_semaphore;
 
-  constexpr uint64_t kFiniteAcquireTimeout = 250'000'000ull; // 0.25s
-  VkResult const result = vkAcquireNextImageKHR(
+  constexpr uint64_t kFiniteAcquireTimeout = 1'000'000'000ull; // 1s
+  auto const acquire_result = vkAcquireNextImageKHR(
     device_, swapchain_, kFiniteAcquireTimeout, semaphore, VK_NULL_HANDLE, &next_swap_index_
   );
-  need_rebuild_ = CheckOutOfDataResult(result, __FUNCTION__);
-
-  // LOG_CHECK(current_swap_index_ == next_swap_index_);
-  // return current_swap_index_;
+  need_rebuild_ = IsSwapchainInvalid(acquire_result, __FUNCTION__);
 }
 
 // ----------------------------------------------------------------------------
@@ -238,9 +228,8 @@ void Swapchain::present_and_swap(VkQueue const queue) {
     .pSwapchains = &swapchain_,
     .pImageIndices = &next_swap_index_,
   };
-  VkResult const result = vkQueuePresentKHR(queue, &present_info);
-
-  need_rebuild_ = CheckOutOfDataResult(result, __FUNCTION__);
+  auto const present_result = vkQueuePresentKHR(queue, &present_info);
+  need_rebuild_ = IsSwapchainInvalid(present_result, __FUNCTION__);
 
   current_swap_index_ = (current_swap_index_ + 1u) % image_count_;
 }
@@ -303,15 +292,15 @@ VkSurfaceFormat2KHR Swapchain::select_surface_format(
 
 // ----------------------------------------------------------------------------
 
-VkPresentModeKHR Swapchain::select_present_mode(bool use_vsync) const {
+VkPresentModeKHR Swapchain::select_present_mode(VkSurfaceKHR surface, bool use_vsync) const {
   if (use_vsync) {
     return VK_PRESENT_MODE_FIFO_KHR;
   }
 
   uint32_t present_mode_count{0u};
-  vkGetPhysicalDeviceSurfacePresentModesKHR(gpu_, surface_, &present_mode_count, nullptr);
+  vkGetPhysicalDeviceSurfacePresentModesKHR(gpu_, surface, &present_mode_count, nullptr);
   std::vector<VkPresentModeKHR> present_modes(present_mode_count);
-  vkGetPhysicalDeviceSurfacePresentModesKHR(gpu_, surface_, &present_mode_count, present_modes.data());
+  vkGetPhysicalDeviceSurfacePresentModesKHR(gpu_, surface, &present_mode_count, present_modes.data());
 
   bool mailbox_available = false;
   bool immediate_available = false;

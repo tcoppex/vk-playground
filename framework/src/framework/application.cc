@@ -13,11 +13,10 @@ struct DefaultAppEventCallbacks final : public EventCallbacks {
   ~DefaultAppEventCallbacks() = default;
 
   void onResize(int w, int h) final {
-    LOGI("DefaultAppEventCallbacks::{}", __FUNCTION__);
     on_resize_cb_(w, h);
   }
 
-  OnResizeCB on_resize_cb_;
+  OnResizeCB on_resize_cb_{};
 };
 
 /* -------------------------------------------------------------------------- */
@@ -27,8 +26,9 @@ int Application::run(AppData_t app_data) {
     return EXIT_FAILURE;
   }
 
-  LOGD("--- App Initialization ---");
+  LOGD("--- App Setup ---");
   if (!setup()) {
+    shutdown();
     return EXIT_FAILURE;
   }
   context_.allocator().clear_staging_buffers();
@@ -46,7 +46,6 @@ int Application::run(AppData_t app_data) {
     update(delta_time());
     draw();
   }
-
   shutdown();
 
   return EXIT_SUCCESS;
@@ -68,7 +67,7 @@ bool Application::presetup(AppData_t app_data) {
     Events::Initialize();
   }
 
-  LOGD("--- Framework Initialization ---");
+  LOGD("--- Framework Setup ---");
 
   /* Window manager. */
   if (wm_ = std::make_unique<Window>(); !wm_ || !wm_->init(app_data)) {
@@ -82,14 +81,11 @@ bool Application::presetup(AppData_t app_data) {
     goto presetup_fails_context;
   }
 
-  /* Platform rendering surface. */
-  if (auto res = wm_->createWindowSurface(context_.instance(), &surface_); CHECK_VK(res) != VK_SUCCESS) {
-    LOGE("Vulkan Surface creation fails");
+  /* Surface & Swapchain. */
+  if (!reset_swapchain()) {
+    LOGE("Surface creation fails");
     goto presetup_fails_surface;
   }
-
-  /* Swapchain. */
-  swapchain_.init(context_, surface_);
 
   /* Internal Renderer. */
   renderer_.init(context_, swapchain_, context_.allocator());
@@ -103,36 +99,21 @@ bool Application::presetup(AppData_t app_data) {
   /* Framework internal data. */
   {
     // ---------------------------------------------
-    auto onResize = [this](int w, int h) {
+    auto on_resize = [this](uint32_t w, uint32_t h) {
       context_.device_wait_idle();
 
       viewport_size_ = {
-        .width = (uint32_t)w, //wm_->get_surface_width(),
-        .height = (uint32_t)h, //wm_->get_surface_height(),
+        .width = w,
+        .height = h,
       };
-      // LOGD("> AppResize (w: {}, h: {})", viewport_size_.width, viewport_size_.height);
+      LOGV("> AppResize (w: {}, h: {})", viewport_size_.width, viewport_size_.height);
 
-      // Reset the swapchain.
-#if defined(ANDROID)
-      LOGD("destroy surface");
-      vkDestroySurfaceKHR(context_.instance(), surface_, nullptr);
-
-      swapchain_.deinit();
-
-      LOGD("create surface");
-      CHECK_VK(wm_->createWindowSurface(context_.instance(), &surface_));
-#else
-      swapchain_.deinit(true);
-#endif
-
-      // Recreate the Swapchain.
-      swapchain_.init(context_, surface_);
+      reset_swapchain();
 
       // Signal the Renderer.
       renderer_.resize(viewport_size_.width, viewport_size_.height);
     };
-
-    default_callbacks_ = std::make_unique<DefaultAppEventCallbacks>(onResize);
+    default_callbacks_ = std::make_unique<DefaultAppEventCallbacks>(on_resize);
     Events::Get().registerCallbacks(default_callbacks_.get());
     Events::Get().registerCallbacks(this);
 
@@ -142,9 +123,6 @@ bool Application::presetup(AppData_t app_data) {
       .height = wm_->get_surface_height(),
     };
     LOGD("> (w: {}, h: {})", viewport_size_.width, viewport_size_.height);
-
-    // onResize(wm_->get_surface_width(), wm_->get_surface_height());
-    // renderer_.resize(viewport_size_.width, viewport_size_.height);
     // ---------------------------------------------
 
     // Time tracker.
@@ -176,28 +154,57 @@ presetup_fails_wm:
 bool Application::next_frame(AppData_t app_data) {
   Events::Get().prepareNextFrame();
 
-  return true
+  return wm_->poll(app_data)
 #if defined(ANDROID)
       && !app_data->destroyRequested
 #endif
-      && wm_->poll(app_data)
-  ;
+      ;
+}
+
+// ----------------------------------------------------------------------------
+
+bool Application::reset_swapchain() {
+  LOGD("[Reset Swapchain]");
+
+  auto surface_creation = VK_SUCCESS;
+
+  // Release previous swapchain if any, and create the surface when needed.
+  if (VK_NULL_HANDLE == surface_) [[unlikely]] {
+    surface_creation = wm_->createWindowSurface(context_.instance(), &surface_);
+  } else {
+#if defined(ANDROID)
+    context_.destroy_surface(surface_);
+    swapchain_.deinit();
+    surface_creation = wm_->createWindowSurface(context_.instance(), &surface_);
+#else
+    swapchain_.deinit(true);
+#endif
+  }
+  CHECK_VK(surface_creation);
+
+  // Recreate the Swapchain.
+  if (VK_SUCCESS == surface_creation) {
+    swapchain_.init(context_, surface_);
+    return true;
+  }
+  return false;
 }
 
 // ----------------------------------------------------------------------------
 
 void Application::shutdown() {
   LOGD("--- Shutdown ---");
-
   context_.device_wait_idle();
 
   release();
-  ui_->release(context_);
+
+  if (ui_) {
+    ui_->release(context_);
+  }
+
   renderer_.deinit();
-
   swapchain_.deinit();
-  vkDestroySurfaceKHR(context_.instance(), surface_, nullptr);
-
+  context_.destroy_surface(surface_);
   context_.deinit();
   wm_->shutdown();
 

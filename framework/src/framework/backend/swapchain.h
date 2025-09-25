@@ -21,7 +21,7 @@ class Swapchain {
  public:
   Swapchain() = default;
 
-  void init(Context const& context, VkSurfaceKHR const surface);
+  void init(Context const& context, VkSurfaceKHR surface);
 
   void deinit(bool keep_previous_swapchain = false);
 
@@ -31,7 +31,7 @@ class Swapchain {
 
   [[nodiscard]]
   VkExtent2D get_surface_size() const noexcept {
-    return surface_size_;
+    return swapchain_create_info_.imageExtent;
   }
 
   [[nodiscard]]
@@ -69,20 +69,15 @@ class Swapchain {
   VkSurfaceFormat2KHR select_surface_format(VkPhysicalDeviceSurfaceInfo2KHR const* surface_info2) const;
 
   [[nodiscard]]
-  VkPresentModeKHR select_present_mode(bool use_vsync) const;
+  VkPresentModeKHR select_present_mode(VkSurfaceKHR surface, bool use_vsync) const;
 
  private:
   /* Copy references */
   VkPhysicalDevice gpu_{};
   VkDevice device_{};
-  VkSurfaceKHR surface_{};
-
-  VkExtent2D surface_size_{};
-  VkFormat color_format_{};
 
   VkSwapchainCreateInfoKHR swapchain_create_info_{};
   VkSwapchainKHR swapchain_{};
-  VkSwapchainKHR old_swapchain_{};
 
   std::vector<backend::Image> swap_images_{};
   std::vector<SwapSynchronizer_t> swap_syncs_{};

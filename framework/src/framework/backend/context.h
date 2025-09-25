@@ -80,6 +80,12 @@ class Context {
     CHECK_VK(vkDeviceWaitIdle(device_));
   }
 
+  // --- Surface --
+
+  void destroy_surface(VkSurfaceKHR surface) const {
+    vkDestroySurfaceKHR(instance_, surface, nullptr);
+  }
+
   // --- Image ---
 
   [[nodiscard]]

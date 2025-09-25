@@ -57,6 +57,8 @@ class Application : public EventCallbacks
   [[nodiscard]]
   bool next_frame(AppData_t app_data);
 
+  bool reset_swapchain();
+
   void shutdown();
 
  protected:
