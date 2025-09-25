@@ -8,7 +8,7 @@
 
 /* -------------------------------------------------------------------------- */
 
-#define WINDOW_SCALE          0.67f
+#define WINDOW_SCALE          0.62f
 #define MONITOR_SCALE         1.25f
 #define WINDOW_SIZE_FACTOR    (WINDOW_SCALE / MONITOR_SCALE)
 
@@ -139,7 +139,10 @@ bool Window::init(AppData_t app_data) {
   }
 
   // Do not constraints aspect ratio.
-  glfwSetWindowAspectRatio(window_, GLFW_DONT_CARE, GLFW_DONT_CARE);
+  // glfwSetWindowAspectRatio(window_, GLFW_DONT_CARE, GLFW_DONT_CARE);
+
+  // ~Silverish / Japanese JIS B6 ratio.
+  glfwSetWindowAspectRatio(window_, 182, 128);
 
   InitializeEventsCallbacks(window_);
 
