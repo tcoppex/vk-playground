@@ -82,12 +82,12 @@ cmake --build build --config Release
 * [VK_KHR_index_type_uint8](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_index_type_uint8.html)
 * [VK_KHR_maintenance4](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_maintenance4.html)
 * [VK_KHR_maintenance5](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_maintenance5.html)
+* [VK_KHR_maintenance6](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_maintenance6.html) (_optionnal_)
 * [VK_KHR_swapchain](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_swapchain.html)
 * [VK_KHR_synchronization2](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_synchronization2.html)
 * [VK_KHR_timeline_semaphore](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_timeline_semaphore.html)
 * [VK_KHR_acceleration_structure](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_acceleration_structure.html)
-* (_optionnal_) [VK_KHR_maintenance6](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_maintenance6.html)
-* (_optionnal_) [VK_KHR_ray_tracing_pipeline](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_ray_tracing_pipeline.html)
+* [VK_KHR_ray_tracing_pipeline](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_ray_tracing_pipeline.html) (_optionnal_)
 
 ##### Android build
 
@@ -95,8 +95,10 @@ cmake --build build --config Release
  * Android NDK 29.0.14033849
  * Gradle 8.14.3
 
+###### Installing Android dependencies
+
 <details>
-  <summary><strong>Installing Android dependencies for Linux</strong></summary>
+  <summary><strong>for GNU/Linux</strong></summary>
 
 ```bash
 # Install tools and the JDK
@@ -118,7 +120,7 @@ sdkmanager "platforms;android-36" "platform-tools" "build-tools;36.0.0" "ndk;29.
 </details>
 
 <details>
-  <summary><strong>Installing Android dependencies for Windows 11</strong></summary>
+  <summary><strong>for Windows 11</strong></summary>
 
 ```bash
 # Install JDK manually on Windows (eg. Temurin 17)
@@ -137,6 +139,22 @@ export PATH=$ANDROID_SDK/cmdline-tools/latest/bin:$ANDROID_SDK/platform-tools:$P
 sdkmanager "platforms;android-36" "platform-tools" "build-tools;36.0.0" "ndk;29.0.14033849"
 ```
 </details>
+
+<br/>
+
+###### Build and Run
+
+For each Android sample a collection of CMake debug targets using the template `{prefix}{sample_name}`
+are availables to simplify development without the need to use Android Studio :
+
+| Prefix            | Description | 
+|-------------------|-------------|
+| **build_**        | build the target in debug mode |
+| **install_**      | build and install the target   |
+| **run_**          | build, install, and run the target |
+| **log_**          | build, install, run and log the target outputs |
+
+_On device targets (eg. install, run, log) require a compatible connected device to work._
 
 #### Assets
 
