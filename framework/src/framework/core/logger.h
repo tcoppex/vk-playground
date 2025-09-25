@@ -48,7 +48,7 @@ class Logger : public Singleton<Logger> {
 
   ~Logger() {
 #ifndef NDEBUG
-    // displayStats();
+    displayStats();
 #endif // NDEBUG
   }
 
