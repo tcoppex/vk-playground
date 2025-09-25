@@ -132,7 +132,7 @@ bool Renderer::resize(uint32_t w, uint32_t h) {
   LOG_CHECK(ctx_ptr_ != nullptr);
 
   /* Create a default depth stencil buffer. */
-  LOGD(" > [Renderer] Resize DepthStencil");
+  LOGD(" > Resize Renderer Depth-Stencil Buffer");
   if (depth_stencil_.valid()) {
     allocator_ptr_->destroy_image(&depth_stencil_);
   }
@@ -992,8 +992,8 @@ bool Renderer::load_image_2d(
 // ----------------------------------------------------------------------------
 
 bool Renderer::load_image_2d(
-  std::string_view const& filename,
-  backend::Image &image
+  std::string_view filename,
+  backend::Image& image
 ) const {
   auto cmd = ctx_ptr_->create_transient_command_encoder();
   bool result = load_image_2d(cmd, filename, image);
