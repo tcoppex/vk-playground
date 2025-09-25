@@ -28,7 +28,7 @@ struct AnimationClip {
 
   AnimationClip() = default;
 
-  void setup(std::string_view const& clip_name, size_t const sampleCount, float const clip_duration, size_t const jointCount) {
+  void setup(std::string_view clip_name, size_t const sampleCount, float const clip_duration, size_t const jointCount) {
     name = std::string(clip_name);
     duration = clip_duration;
     framerate = static_cast<float>(sampleCount) / linalg::max(duration, lina::kTrueEpsilon);

@@ -920,7 +920,7 @@ VkDescriptorSet Renderer::create_descriptor_set(
 
 bool Renderer::load_image_2d(
   CommandEncoder const& cmd,
-  std::string_view const& filename,
+  std::string_view filename,
   backend::Image &image
 ) const {
   uint32_t constexpr kForcedChannelCount{ 4u }; //

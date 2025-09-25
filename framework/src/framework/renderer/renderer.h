@@ -203,12 +203,12 @@ class Renderer : public backend::RTInterface {
 
   bool load_image_2d(
     CommandEncoder const& cmd,
-    std::string_view const& filename,
+    std::string_view filename,
     backend::Image& image
   ) const;
 
   bool load_image_2d(
-    std::string_view const& filename,
+    std::string_view filename,
     backend::Image& image
   ) const;
 
