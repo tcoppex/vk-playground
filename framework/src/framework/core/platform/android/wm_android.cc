@@ -10,10 +10,8 @@ struct DefaultAppCmdCallbacks final : public AppCmdCallbacks {
   {}
 
   void handleResize(android_app* app, bool signalOnResize = true) {
-    LOGD(">>> {}", __FUNCTION__);
     int32_t const iw = ANativeWindow_getWidth(app->window);
     int32_t const ih = ANativeWindow_getHeight(app->window);
-
     wma_->surface_width_ = static_cast<uint32_t>(iw);
     wma_->surface_height_ = static_cast<uint32_t>(ih);
     if (signalOnResize) {
@@ -21,7 +19,6 @@ struct DefaultAppCmdCallbacks final : public AppCmdCallbacks {
     }
   }
 
-  // -----------------------------------------
   void onInitWindow(android_app* app) final {
     LOGD("{}", __FUNCTION__);
     // (APP_CMD_INIT_WINDOW is called when app->window has a new ANativeWindow)
@@ -29,19 +26,15 @@ struct DefaultAppCmdCallbacks final : public AppCmdCallbacks {
       // We only need to create the display & context once.
       if (wma_->native_window == nullptr)
       {
-        LOGI("((( window created )))");
+        LOGV("> Native Android Window created.");
         wma_->native_window = app->window;
-
-        // (we may have to update th Asset manager too)
-
-        // we need to specify the surface res for the first initialization
+        // we need to specify the surface resolution for the first initialization
         // but we don't want to create everything as it's the true "resize"
         // event that will signal it.
         handleResize(app, false); //
       }
     }
   }
-  // -----------------------------------------
 
   void onTermWindow(android_app* app) final {
     LOGD("{}", __FUNCTION__);
@@ -84,10 +77,11 @@ struct DefaultAppCmdCallbacks final : public AppCmdCallbacks {
   }
 
   // [not always called]
-  // * On the Meta Quest 3, when a classic app (non XR) is resized
-  // to a framebuffer lower in any dimension, the app is destroyed and
-  // then recreated.
   void onDestroy(android_app* app) final {
+    /// [Important]
+    /// On Android 2D, to avoid a resizeable activity being destroyed
+    /// when resolution changes down, add in its manifest attribute:
+    /// android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|density"
     LOGD("{}", __FUNCTION__);
     wma_->native_window = nullptr;
   }
@@ -248,6 +242,9 @@ void WMAndroid::handleAppCmd(AppData_t app_data, int32_t cmd) {
       break;
       case APP_CMD_DESTROY:
         callbacks->onDestroy(app_data);
+      break;
+      case APP_CMD_CONFIG_CHANGED:
+        LOGV("APP_CMD_CONFIG_CHANGED callback is not supported.");
       break;
 
       default:
