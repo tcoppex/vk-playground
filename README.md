@@ -93,7 +93,7 @@ By default, CPM downloads and caches third-party dependencies in `./third_party/
 
 #### Android build
 
-The Android build used the following dependencies :
+The Android build use the following dependencies :
 
  * Android SDK 36
  * Android NDK 29.0.14033849
@@ -149,12 +149,12 @@ sdkmanager "platforms;android-36" "platform-tools" "build-tools;36.0.0" "ndk;29.
 Each Android sample provides a set of CMake debug targets in the form `{prefix}{sample_name}`  
 to simplify development without the need to launch Android Studio.
 
-| Prefix       | Action                                                |
-|--------------|-------------------------------------------------------|
-| **build_**   | Build the sample in debug mode                        |
-| **install_** | Build and install the sample on a connected device    |
-| **run_**     | Build, install, and run the sample                    |
-| **log_**     | Build, install, run, and stream the sample’s logcat   |
+| Prefix         | Action                                                  |
+|----------------|---------------------------------------------------------|
+| **build_\***   | _Build the sample in debug mode_                        |
+| **install_\*** | _Build and install the sample on a connected device_    |
+| **run_\***     | _Build, install, and run the sample_                    |
+| **log_\***     | _Build, install, run, and stream the sample’s logcat_   |
 
 _Device-dependent targets (**install**, **run**, **log**) require a compatible connected Android device._
 
