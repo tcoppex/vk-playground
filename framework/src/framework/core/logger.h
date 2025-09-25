@@ -192,7 +192,8 @@ class Logger : public Singleton<Logger> {
 #define LOGE(...) Logger::Get().error  ( __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
 #endif
 
-#define LOG_FATAL(...) LOGE(__VA_ARGS__); exit(-1)
+#define LOG_LINE()      LOGD("{} {}", __FUNCTION__, __LINE__)
+#define LOG_FATAL(...)  LOGE(__VA_ARGS__); exit(-1)
 
 // ----------------------------------------------------------------------------
 
@@ -203,6 +204,9 @@ class Logger : public Singleton<Logger> {
 
 #undef LOGD
 #define LOGD(...)
+
+#undef LOG_LINE
+#define LOG_LINE()
 
 #endif
 
