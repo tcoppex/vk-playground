@@ -28,7 +28,7 @@ void PostFxPipeline::setupDependencies() {
       std::vector<backend::Image> input_images;
       input_images.reserve(dep.images.size());
       for (auto const& [image_fx, index] : dep.images) {
-        // LOGD("fx %ld, image %d %s", i, index, image_fx->name().c_str());
+        // LOGD("fx {}, image {} {}", i, index, image_fx->name());
         input_images.push_back(image_fx->getImageOutput(index));
       }
       fx->setImageInputs(std::move(input_images));
@@ -38,7 +38,7 @@ void PostFxPipeline::setupDependencies() {
       std::vector<backend::Buffer> input_buffers;
       input_buffers.reserve(dep.buffers.size());
       for (auto const& [buffer_fx, index] : dep.buffers) {
-        // LOGD("fx %ld, buffer %d %s", i, index, buffer_fx->name().c_str());
+        // LOGD("fx {}, buffer {} {}", i, index, buffer_fx->name());
         input_buffers.push_back(buffer_fx->getBufferOutput(index));
       }
       fx->setBufferInputs(std::move(input_buffers));

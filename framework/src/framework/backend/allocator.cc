@@ -46,7 +46,7 @@ backend::Buffer ResourceAllocator::create_buffer(
 
   if constexpr (kAutoAlignBufferSize) {
     if (auto const new_size{ utils::AlignTo256(size) }; new_size != size) {
-      LOGW("%s: change size from %u to %u.\n", __FUNCTION__, (uint32_t)size, (uint32_t)new_size);
+      LOGW("{}: change size from {} to {}.\n", __FUNCTION__, uint32_t(size), uint32_t(new_size));
       size = new_size;
     }
   }

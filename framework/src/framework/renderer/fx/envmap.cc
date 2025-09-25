@@ -198,7 +198,7 @@ void Envmap::release() {
 
 bool Envmap::setup(std::string_view hdr_filename) {
   if (!load_diffuse_envmap(hdr_filename)) {
-    LOGE("Fail to load spherical map \"%s\".", hdr_filename.data());
+    LOGE("Fail to load spherical map \"{}\".", hdr_filename);
     return false;
   }
 

@@ -79,7 +79,7 @@ class SampleApp final : public Application {
 
       /* Load a texture using the current transient command encoder. */
       if (std::string fn{ASSETS_DIR "textures/whynot.png"}; !renderer_.load_image_2d(cmd, fn, image_)) {
-        fprintf(stderr, "The texture image '%s' could not be found.\n", fn.c_str());
+        LOGW("The texture image '{}' could not be found.", fn);
       }
 
       context_.finish_transient_command_encoder(cmd);

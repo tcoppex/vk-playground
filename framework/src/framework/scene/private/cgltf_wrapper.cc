@@ -6,7 +6,7 @@
 
 Geometry::AttributeType ConvertAttributeType(cgltf_attribute const& attribute) {
   if (attribute.index != 0u) [[unlikely]] {
-    // LOGD("[GLTF] Unsupported multiple attribute of same type %s.", attribute.name);
+    // LOGD("[GLTF] Unsupported multiple attribute of same type {}.", attribute.name);
     return Geometry::AttributeType::kUnknown;
   }
 
@@ -30,7 +30,7 @@ Geometry::AttributeType ConvertAttributeType(cgltf_attribute const& attribute) {
       return Geometry::AttributeType::Weights;
 
     default:
-      LOGD("[GLTF] Unsupported attribute type %s.", attribute.name);
+      LOGD("[GLTF] Unsupported attribute type {}.", attribute.name);
       return Geometry::AttributeType::kUnknown;
   }
 }
@@ -49,7 +49,7 @@ Geometry::AttributeFormat ConvertAttributeFormat(cgltf_accessor const* accessor)
           return Geometry::AttributeFormat::RGBA_U16;
 
         default:
-          LOGD("[GLTF] Unsupported accessor vec4 format %d", accessor->component_type);
+          LOGD("[GLTF] Unsupported accessor vec4 format {}", int(accessor->component_type));
           return Geometry::AttributeFormat::kUnknown;
       }
 
@@ -77,10 +77,10 @@ Geometry::IndexFormat ConvertIndexFormat(cgltf_accessor const* accessor) {
     } else if (accessor->component_type == cgltf_component_type_r_8u) {
       return Geometry::IndexFormat::U8;
     } else {
-      LOGD("[GLTF] Unsupported component_type %d.", accessor->component_type);
+      LOGD("[GLTF] Unsupported component_type {}.", int(accessor->component_type));
     }
   } else {
-    LOGD("[GLTF] Unsupported index type %d.", accessor->type);
+    LOGD("[GLTF] Unsupported index type {}.", int(accessor->type));
   }
 
   return Geometry::IndexFormat::kUnknown;

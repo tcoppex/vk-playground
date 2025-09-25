@@ -51,12 +51,12 @@ bool HostResources::load_file(std::string_view filename) {
   }
 
   if (result = cgltf_parse(&options, file.buffer.data(), file.buffer.size(), &data); cgltf_result_success != result) {
-    LOGE("GLTF: failed to parse file \"%s\" %d.\n", basename.c_str(), result);
+    LOGE("GLTF: failed to parse file \"{}\" {}.\n", basename, (int)result);
     return false;
   }
 
   if (result = cgltf_load_buffers(&options, data, filename.data()); cgltf_result_success != result) {
-    LOGE("GLTF: failed to load buffers in \"%s\" %d.\n", basename.c_str(), result);
+    LOGE("GLTF: failed to load buffers in \"{}\" {}.\n", basename, (int)result);
     cgltf_free(data);
     return false;
   }
@@ -220,9 +220,9 @@ bool HostResources::load_file(std::string_view filename) {
   std::cerr << "└────────────┴─────" << std::endl;
 
   // uint32_t const kMegabyte{ 1024u * 1024u };
-  // LOGI("> vertex buffer size %f Mb", vertex_buffer_size / static_cast<float>(kMegabyte));
-  // LOGI("> index buffer size %f Mb ", index_buffer_size / static_cast<float>(kMegabyte));
-  // LOGI("> total image size %f Mb ", total_image_size / static_cast<float>(kMegabyte));
+  // LOGI("> vertex buffer size {} Mb", vertex_buffer_size / static_cast<float>(kMegabyte));
+  // LOGI("> index buffer size {} Mb ", index_buffer_size / static_cast<float>(kMegabyte));
+  // LOGI("> total image size {} Mb ", total_image_size / static_cast<float>(kMegabyte));
 #endif
 
   return true;

@@ -64,6 +64,7 @@ cmake --build build --config Release
  * ImGUI (_via CPM_)
  * MikkTSpace (_via CPM_)
  * linalg v2.2 (_via CPM_)
+ * libfmt 12.0 (_via CPM_)
  * stb_image.h (_included_)
 
 ##### Vulkan device extensions

@@ -10,7 +10,7 @@ struct DefaultAppCmdCallbacks final : public AppCmdCallbacks {
   {}
 
   void handleResize(android_app* app, bool signalOnResize = true) {
-    LOGD(">>> %s", __FUNCTION__);
+    LOGD(">>> {}", __FUNCTION__);
     int32_t const iw = ANativeWindow_getWidth(app->window);
     int32_t const ih = ANativeWindow_getHeight(app->window);
 
@@ -23,7 +23,7 @@ struct DefaultAppCmdCallbacks final : public AppCmdCallbacks {
 
   // -----------------------------------------
   void onInitWindow(android_app* app) final {
-    LOGD("%s", __FUNCTION__);
+    LOGD("{}", __FUNCTION__);
     // (APP_CMD_INIT_WINDOW is called when app->window has a new ANativeWindow)
     if (app->window != nullptr) {
       // We only need to create the display & context once.
@@ -44,42 +44,42 @@ struct DefaultAppCmdCallbacks final : public AppCmdCallbacks {
   // -----------------------------------------
 
   void onTermWindow(android_app* app) final {
-    LOGD("%s", __FUNCTION__);
+    LOGD("{}", __FUNCTION__);
     wma_->native_window = nullptr;
   }
 
   void onWindowResized(android_app* app) final {
-    LOGD("%s", __FUNCTION__);
+    LOGD("{}", __FUNCTION__);
     handleResize(app);
   }
 
   void onStart(android_app* app) final {
-    LOGD("%s", __FUNCTION__);
+    LOGD("{}", __FUNCTION__);
     wma_->visible = true;
   }
 
   void onResume(android_app* app) final {
-    LOGD("%s", __FUNCTION__);
+    LOGD("{}", __FUNCTION__);
     wma_->resumed = true;
   }
 
   void onPause(android_app* app) final {
-    LOGD("%s", __FUNCTION__);
+    LOGD("{}", __FUNCTION__);
     wma_->resumed = false;
   }
 
   void onStop(android_app* app) final {
-    LOGD("%s", __FUNCTION__);
+    LOGD("{}", __FUNCTION__);
     wma_->visible = false;
   }
 
   void onGainedFocus(android_app* app) final {
-    LOGD("%s", __FUNCTION__);
+    LOGD("{}", __FUNCTION__);
     wma_->focused = true;
   }
 
   void onLostFocus(android_app* app) final {
-    LOGD("%s", __FUNCTION__);
+    LOGD("{}", __FUNCTION__);
     wma_->focused = false;
   }
 
@@ -88,7 +88,7 @@ struct DefaultAppCmdCallbacks final : public AppCmdCallbacks {
   // to a framebuffer lower in any dimension, the app is destroyed and
   // then recreated.
   void onDestroy(android_app* app) final {
-    LOGD("%s", __FUNCTION__);
+    LOGD("{}", __FUNCTION__);
     wma_->native_window = nullptr;
   }
 

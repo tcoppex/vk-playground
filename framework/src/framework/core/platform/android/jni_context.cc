@@ -35,26 +35,26 @@ bool JNIContext::readFile(std::string_view filename, std::vector<uint8_t>& buffe
 
   AAsset* asset = AAssetManager_open(asset_manager_, filename.data(), AASSET_MODE_STREAMING);
   if (!asset) {
-    LOGE("Failed to open asset: %s", filename.data());
+    LOGE("Failed to open asset: {}", filename);
     return false;
   }
 
   size_t const assetLength = AAsset_getLength(asset);
   if (assetLength <= 0) {
-    LOGE("Asset length is invalid: %s", filename.data());
+    LOGE("Asset length is invalid: {}", filename);
     AAsset_close(asset);
     return false;
   }
   buffer.resize(assetLength);
 
   if (int bytesRead = AAsset_read(asset, buffer.data(), assetLength); bytesRead <= 0) {
-    LOGE("Failed to read asset: %s", filename.data());
+    LOGE("Failed to read asset: {}", filename);
     AAsset_close(asset);
     return false;
   }
   AAsset_close(asset);
 
-  LOGD("Successfully loaded asset: %s", filename.data());
+  LOGD("Successfully loaded asset: {}", filename);
   return true;
 }
 

@@ -404,7 +404,7 @@ void Context::init_instance(std::vector<char const*> const& instance_extensions)
   CHECK_VK(vkCreateDebugUtilsMessengerEXT(instance_, &debug_info, nullptr, &debug_utils_messenger_));
 
 #ifndef NDEBUG
-  LOGD("Vulkan version required: %d.%d.%d",
+  LOGD("Vulkan version required: {}.{}.{}",
     VK_API_VERSION_MAJOR(application_info.apiVersion),
     VK_API_VERSION_MINOR(application_info.apiVersion),
     VK_API_VERSION_PATCH(application_info.apiVersion)
@@ -414,7 +414,7 @@ void Context::init_instance(std::vector<char const*> const& instance_extensions)
   if (!available_instance_layers.empty()) {
     LOGD("Available Instance layers:");
     for (const auto& layer : available_instance_layers) {
-      LOGI(" > %s", layer.layerName);
+      LOGI(" > {}", layer.layerName);
     }
     LOGD(" ");
   }
@@ -422,7 +422,7 @@ void Context::init_instance(std::vector<char const*> const& instance_extensions)
   if (!instance_extension_names_.empty()) {
     LOGD("Used Instance extensions:");
     for (auto const& name : instance_extension_names_) {
-      LOGD(" > %s", name);
+      LOGD(" > {}", name);
     }
     LOGD(" ");
   }
@@ -435,8 +435,7 @@ void Context::select_gpu() {
   uint32_t gpu_count{0u};
   CHECK_VK( vkEnumeratePhysicalDevices(instance_, &gpu_count, nullptr) );
   if (0u == gpu_count) {
-    LOGE("Vulkan: no GPUs were available.\n");
-    exit(EXIT_FAILURE);
+    LOG_FATAL("Vulkan: no GPUs were available.\n");
   }
   std::vector<VkPhysicalDevice> gpus(gpu_count);
   CHECK_VK( vkEnumeratePhysicalDevices(instance_, &gpu_count, gpus.data()) );
@@ -463,13 +462,13 @@ void Context::select_gpu() {
 
 #ifndef NDEBUG
   LOGD("Selected Device:");
-  LOGD(" - Device Name    : %s", properties_.gpu2.properties.deviceName);
-  LOGD(" - Driver version : %d.%d.%d",
+  LOGD(" - Device Name    : {}", properties_.gpu2.properties.deviceName);
+  LOGD(" - Driver version : {}.{}.{}",
     VK_API_VERSION_MAJOR(properties_.gpu2.properties.driverVersion),
     VK_API_VERSION_MINOR(properties_.gpu2.properties.driverVersion),
     VK_API_VERSION_PATCH(properties_.gpu2.properties.driverVersion)
   );
-  LOGD(" - API version    : %d.%d.%d",
+  LOGD(" - API version    : {}.{}.{}",
     VK_API_VERSION_MAJOR(properties_.gpu2.properties.apiVersion),
     VK_API_VERSION_MINOR(properties_.gpu2.properties.apiVersion),
     VK_API_VERSION_PATCH(properties_.gpu2.properties.apiVersion)
@@ -489,7 +488,7 @@ bool Context::init_device() {
 
 #ifndef NDEBUG
   // for (auto const& prop : available_device_extensions_) {
-  //   LOGI("%s", prop.extensionName);
+  //   LOGI("{}", prop.extensionName);
   // }
 #endif
 
@@ -661,13 +660,13 @@ bool Context::init_device() {
           queue_infos[i].queueFamilyIndex = i;
           queue_infos[i].pQueuePriorities = queue_priorities[i].data();
           queue_infos[i].queueCount += 1u;
-          // LOGI("%d %f %u", i, priorities[j], queue_infos[i].queueCount);
+          // LOGI("{} {} {}", i, priorities[j], queue_infos[i].queueCount);
           break;
         }
       }
 
       if (UINT32_MAX == pair.first->family_index) {
-        LOGE("Could not find a queue family with the requested support %08x.", pair.second);
+        LOGE("Could not find a queue family with the requested support {:08x}.", pair.second);
         return false;
       }
     }
@@ -707,7 +706,7 @@ bool Context::init_device() {
 #ifndef NDEBUG
   LOGD("Used Device Extensions:");
   for (auto const& name : device_extension_names_) {
-    LOGD(" > %s", name);
+    LOGD(" > {}", name);
   }
   LOGD(" ");
 #endif

@@ -32,8 +32,7 @@ VkShaderModule CreateShaderModule(
 
   utils::FileReader reader;
   if (!reader.read(filename)) {
-    fprintf(stderr, "Error: the spirv shader \"%s\" could not be found.\n", spirv_path.string().c_str());
-    exit(EXIT_FAILURE);
+    LOG_FATAL("The spirv shader \"{}\" could not be found.\n", spirv_path.string());
   }
 
   VkShaderModuleCreateInfo shader_module_info{
@@ -53,7 +52,7 @@ VkShaderModule CreateShaderModule(
 
 VkResult CheckVKResult(VkResult result, char const* file, int const line, bool const bExitOnFail) {
   if (VK_SUCCESS != result) {
-    LOGE("Vulkan error @ \"%s\" [%d] : [%s].\n", file, line, string_VkResult(result));
+    LOGE("Vulkan error @ \"{}\" [{}] : [{}].\n", file, line, string_VkResult(result));
     if (bExitOnFail) {
       exit(EXIT_FAILURE);
     }
@@ -125,7 +124,7 @@ std::tuple<VkPipelineStageFlags2, VkAccessFlags2> MakePipelineStageAccessTuple(
                             | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT);
 
     default: {
-      LOGD("%s: Unknown enum %s.", __FUNCTION__, string_VkImageLayout(state));
+      LOGD("{}: Unknown enum {}.", __FUNCTION__, string_VkImageLayout(state));
       return std::make_tuple(VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
                              VK_ACCESS_2_MEMORY_READ_BIT
                            | VK_ACCESS_2_MEMORY_WRITE_BIT);
@@ -200,7 +199,7 @@ void TransformDescriptorSetWriteEntries(
       break;
 
       default:
-        LOGE("Unknown descriptor type: %d", static_cast<int>(entry.type));
+        LOGE("Unknown descriptor type: {}", static_cast<int>(entry.type));
         continue;
     }
 
@@ -220,23 +219,23 @@ VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDebugMessage(
 
   switch (messageSeverity) {
     case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
-      LOGE("[%s]\n%s\n", errorTypeString.c_str(), pCallbackData->pMessage);
+      LOGE("[{}]\n{}\n", errorTypeString.c_str(), pCallbackData->pMessage);
       break;
 
     case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
-      LOGW("[%s]\n%s\n", errorTypeString.c_str(), pCallbackData->pMessage);
+      LOGW("[{}]\n{}\n", errorTypeString.c_str(), pCallbackData->pMessage);
       break;
 
     case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
-      LOGI("[%s]\n%s\n", errorTypeString.c_str(), pCallbackData->pMessage);
+      LOGI("[{}]\n{}\n", errorTypeString.c_str(), pCallbackData->pMessage);
       break;
 
     case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
-      LOGD("[%s]\n%s\n", errorTypeString.c_str(), pCallbackData->pMessage);
+      LOGD("[{}]\n{}\n", errorTypeString.c_str(), pCallbackData->pMessage);
       break;
 
     default:
-      LOGD("[%s]\n%s\n", errorTypeString.c_str(), pCallbackData->pMessage);
+      LOGD("[{}]\n{}\n", errorTypeString.c_str(), pCallbackData->pMessage);
       break;
   }
   return VK_FALSE;

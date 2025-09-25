@@ -189,7 +189,7 @@ class Context {
     std::vector<char const*> const& dependencies = {}
   ) {
     if (!has_extension(extension_name, available_device_extensions_)) {
-      LOGI("[Vulkan] Feature extension \"%s\" is not available.\n", extension_name);
+      LOGI("[Vulkan] Feature extension \"{:s}\" is not available.\n", extension_name);
       return false;
     }
     feature = { .sType = sType };

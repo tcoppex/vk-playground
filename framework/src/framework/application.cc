@@ -13,7 +13,7 @@ struct DefaultAppEventCallbacks final : public EventCallbacks {
   ~DefaultAppEventCallbacks() = default;
 
   void onResize(int w, int h) final {
-    LOGI("DefaultAppEventCallbacks::%s", __FUNCTION__);
+    LOGI("DefaultAppEventCallbacks::{}", __FUNCTION__);
     on_resize_cb_(w, h);
   }
 
@@ -112,12 +112,12 @@ bool Application::presetup(AppData_t app_data) {
     auto onResize = [this](int w, int h) {
       context_.device_wait_idle();
 
-      LOGW("> AppResize old(w: %u, h: %u).", viewport_size_.width, viewport_size_.height);
+      LOGW("> AppResize old(w: {}, h: {}).", viewport_size_.width, viewport_size_.height);
       viewport_size_ = {
         .width = (uint32_t)w, //wm_->get_surface_width(),
         .height = (uint32_t)h, //wm_->get_surface_height(),
       };
-      LOGW("> AppResize new(w: %u, h: %u).", viewport_size_.width, viewport_size_.height);
+      LOGW("> AppResize new(w: {}, h: {}).", viewport_size_.width, viewport_size_.height);
 
       LOGD("reset previous swapchain");
       swapchain_.deinit(true);
@@ -147,7 +147,7 @@ bool Application::presetup(AppData_t app_data) {
       .width = wm_->get_surface_width(),
       .height = wm_->get_surface_height(),
     };
-    LOGW("> (w: %u, h: %u).", viewport_size_.width, viewport_size_.height);
+    LOGW("> (w: {}, h: {}).", viewport_size_.width, viewport_size_.height);
 
     // onResize(wm_->get_surface_width(), wm_->get_surface_height());
     // renderer_.resize(viewport_size_.width, viewport_size_.height);

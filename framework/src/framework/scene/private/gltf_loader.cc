@@ -130,7 +130,7 @@ bool DecompressDracoPrimitive(cgltf_primitive const& prim, std::vector<VertexInt
         break;
 
       default:
-        LOGW("Unsupported Draco attribute type: %d", attrib.type);
+        LOGW("Unsupported Draco attribute type: {}", int(attrib.type));
         break;
     }
   }
@@ -311,7 +311,7 @@ PointerToIndexMap_t ExtractTextures(
     cgltf_texture const& gl_texture = data->textures[texture_id];
 
     if (gl_texture.sampler == nullptr) {
-      LOGD("%s : empty sampler on glTF texture.", __FUNCTION__);
+      LOGD("{} : empty sampler on glTF texture.", __FUNCTION__);
     }
     LOG_CHECK(image_indices.contains(gl_texture.image));
     LOG_CHECK(samplers_lut.contains(gl_texture.sampler));
@@ -350,7 +350,7 @@ PointerToIndexMap_t ExtractMaterials(
     auto const material_model{GetMaterialModel(mat)};
 
     if (scene::MaterialModel::Unknown == material_model) {
-      LOGW("[GLTF] Material %03u has unsupported material type.", (uint32_t)mat_id);
+      LOGW("[GLTF] Material {} has unsupported material type.", uint32_t(mat_id));
       //continue;
     }
 

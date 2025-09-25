@@ -8,8 +8,6 @@
 extern "C" {
 #if defined(ANDROID)
 #include <android/log.h>
-#else
-#include <cstdio>
 #endif
 }
 
@@ -116,7 +114,12 @@ class Logger : public Singleton<Logger> {
   }
 
   template<typename... Args>
-  void android_log(int priority, char const* tag, char const* fmt, Args&&... args) {
+  void android_log(
+    int priority,
+    char const* tag,
+    fmt::format_string<Args...> fmt,
+    Args&&... args
+  ) {
 #if defined(ANDROID)
     auto const msg = fmt::format(fmt, std::forward<Args>(args)...);
     __android_log_print(priority, tag, "%s", msg.c_str());
@@ -175,30 +178,12 @@ class Logger : public Singleton<Logger> {
 #define LOGGER_ANDROID_TAG "VkFramework"
 #endif
 
-#if 1
-
 #if defined(ANDROID)
-#define LOGV(...) ((void)__android_log_print(ANDROID_LOG_VERBOSE, LOGGER_ANDROID_TAG, __VA_ARGS__))
-#define LOGD(...) ((void)__android_log_print(ANDROID_LOG_DEBUG,   LOGGER_ANDROID_TAG, __VA_ARGS__))
-#define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO,    LOGGER_ANDROID_TAG, __VA_ARGS__))
-#define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN,    LOGGER_ANDROID_TAG, __VA_ARGS__))
-#define LOGE(...) ((void)__android_log_print(ANDROID_LOG_ERROR,   LOGGER_ANDROID_TAG, __VA_ARGS__))
-#else
-#define LOGV(...) fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n");
-#define LOGD(...) fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n");
-#define LOGI(...) fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n");
-#define LOGW(...) fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n");
-#define LOGE(...) fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n");
-#endif
-
-#else
-
-#if defined(ANDROID)
-#define LOGV(...) Logger::Get().android_log(ANDROID_LOG_VERBOSE, LOGGER_ANDROID_TAG, __VA_ARGS__))
-#define LOGD(...) Logger::Get().android_log(ANDROID_LOG_DEBUG,   LOGGER_ANDROID_TAG, __VA_ARGS__))
-#define LOGI(...) Logger::Get().android_log(ANDROID_LOG_INFO,    LOGGER_ANDROID_TAG, __VA_ARGS__))
-#define LOGW(...) Logger::Get().android_log(ANDROID_LOG_WARN,    LOGGER_ANDROID_TAG, __VA_ARGS__))
-#define LOGE(...) Logger::Get().android_log(ANDROID_LOG_ERROR,   LOGGER_ANDROID_TAG, __VA_ARGS__))
+#define LOGV(...) Logger::Get().android_log(ANDROID_LOG_VERBOSE, LOGGER_ANDROID_TAG, __VA_ARGS__)
+#define LOGD(...) Logger::Get().android_log(ANDROID_LOG_DEBUG,   LOGGER_ANDROID_TAG, __VA_ARGS__)
+#define LOGI(...) Logger::Get().android_log(ANDROID_LOG_INFO,    LOGGER_ANDROID_TAG, __VA_ARGS__)
+#define LOGW(...) Logger::Get().android_log(ANDROID_LOG_WARN,    LOGGER_ANDROID_TAG, __VA_ARGS__)
+#define LOGE(...) Logger::Get().android_log(ANDROID_LOG_ERROR,   LOGGER_ANDROID_TAG, __VA_ARGS__)
 #else
 #define LOGV(...) Logger::Get().message( __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
 #define LOGD(...) Logger::Get().message( __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
@@ -207,7 +192,7 @@ class Logger : public Singleton<Logger> {
 #define LOGE(...) Logger::Get().error  ( __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
 #endif
 
-#endif
+#define LOG_FATAL(...) LOGE(__VA_ARGS__); exit(-1)
 
 // ----------------------------------------------------------------------------
 

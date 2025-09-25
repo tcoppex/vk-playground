@@ -8,7 +8,7 @@ namespace {
 bool CheckOutOfDataResult(VkResult const result, std::string_view const& msg) {
   switch (result) {
     case VK_ERROR_OUT_OF_DATE_KHR:
-      LOGI("[TODO] The swapchain need to be rebuilt (%s).", msg.data());
+      LOGI("[TODO] The swapchain need to be rebuilt ({}).", msg.data());
     return true;
 
     case VK_SUCCESS:
@@ -16,7 +16,7 @@ bool CheckOutOfDataResult(VkResult const result, std::string_view const& msg) {
     break;
 
     default:
-      LOGE("%s : swapchain image issue.", msg.data());
+      LOGE("{} : swapchain image issue.", msg.data());
     break;
   }
 
@@ -62,7 +62,7 @@ void Swapchain::init(Context const& context, VkSurfaceKHR const surface) {
   surface_size_ = capabilities2.surfaceCapabilities.currentExtent; //
 
   image_count_ = std::clamp(preferred_image_count, min_image_count, max_image_count);
-  LOGD("Swapchain image count : %u", image_count_);
+  LOGD("Swapchain image count : {}", image_count_);
 
   VkPresentModeKHR const present_mode = select_present_mode(kUseVSync);
 

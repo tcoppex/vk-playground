@@ -96,7 +96,7 @@ VkIndexType Mesh::vk_index_type() const {
       return VK_INDEX_TYPE_UINT8;
 
     default:
-      LOGD("Unsupported IndexFormat : %d", int(format));
+      LOGD("Unsupported IndexFormat : {}", int(format));
       return VK_INDEX_TYPE_UINT8;
   }
 }
