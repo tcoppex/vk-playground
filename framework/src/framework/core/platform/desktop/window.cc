@@ -8,7 +8,7 @@
 
 /* -------------------------------------------------------------------------- */
 
-#define WINDOW_SCALE          0.48f
+#define WINDOW_SCALE          0.54f
 #define MONITOR_SCALE         1.25f
 #define WINDOW_SIZE_FACTOR    (WINDOW_SCALE / MONITOR_SCALE)
 

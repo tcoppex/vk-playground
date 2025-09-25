@@ -157,8 +157,6 @@ class Logger : public Singleton<Logger> {
   template<typename... Args>
   void fatal_error(char const* file, char const* fn, int line, fmt::format_string<Args...> fmt, Args&&... args) {
     log(file, fn, line, false, LogType::FatalError, fmt::vformat(fmt, fmt::make_format_args(args...)));
-    //throw std::runtime_error("Fatal error");
-    // std::terminate();
     std::exit(EXIT_FAILURE);
   }
 
