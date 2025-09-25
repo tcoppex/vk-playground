@@ -28,6 +28,9 @@ bool Context::init(std::vector<char const*> const& instance_extensions) {
       CHECK_VK(vkCreateCommandPool(
         device_, &command_pool_create_info, nullptr, &transient_command_pools_[target]
       ));
+      set_debug_object_name(transient_command_pools_[target],
+        "Context::TransientCommandPool::" + std::to_string(i)
+      );
     }
   }
 
@@ -121,13 +124,12 @@ backend::Image Context::create_image_2d(
     },
   };
 
-  backend::Image image;
+  backend::Image image{};
   resource_allocator_->create_image_with_view(image_info, view_info, &image);
 
-  vkutils::SetDebugObjectName(
-    device_,
+  set_debug_object_name(
     image.image,
-    debugName.empty() ? "Image2d::NoName" : debugName
+    std::string(debugName.empty() ? "Image2d::NoName" : debugName)
   );
 
   return image;
@@ -625,9 +627,8 @@ bool Context::init_device() {
     { &queues_[TargetQueue::Main],      VK_QUEUE_GRAPHICS_BIT
                                       | VK_QUEUE_TRANSFER_BIT
                                       | VK_QUEUE_COMPUTE_BIT  },
-
     { &queues_[TargetQueue::Transfer],  VK_QUEUE_TRANSFER_BIT },
-    { &queues_[TargetQueue::Compute],  VK_QUEUE_COMPUTE_BIT },
+    { &queues_[TargetQueue::Compute],   VK_QUEUE_COMPUTE_BIT  },
   };
 
   std::vector<VkDeviceQueueCreateInfo> queue_create_infos{};
@@ -703,19 +704,23 @@ bool Context::init_device() {
     bind_func(  vkCmdBindVertexBuffers2, vkCmdBindVertexBuffers2EXT);
   }
 
+  /* Retrieved requested queues. */
+  for (auto& pair : queues) {
+    auto *queue = pair.first;
+    vkGetDeviceQueue(device_, queue->family_index, queue->queue_index, &queue->queue);
+  }
+
 #ifndef NDEBUG
   LOGD("Used Device Extensions:");
   for (auto const& name : device_extension_names_) {
     LOGD(" > {}", name);
   }
   LOGD(" ");
-#endif
 
-  /* Retrieved requested queues. */
-  for (auto& pair : queues) {
-    auto *queue = pair.first;
-    vkGetDeviceQueue(device_, queue->family_index, queue->queue_index, &queue->queue);
-  }
+  set_debug_object_name(queues_[TargetQueue::Main].queue,     "Queue::Main");
+  set_debug_object_name(queues_[TargetQueue::Transfer].queue, "Queue::Transfer");
+  set_debug_object_name(queues_[TargetQueue::Compute].queue,  "Queue::Compute");
+#endif
 
   return true;
 }

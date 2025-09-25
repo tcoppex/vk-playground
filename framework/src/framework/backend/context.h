@@ -167,12 +167,17 @@ class Context {
   // --- Utils ---
 
   template <typename T>
-  void setDebugObjectName(T object, std::string const& name) const {
-    return vkutils::SetDebugObjectName(device_, object, name);
+  void set_debug_object_name(T object, std::string_view name) const {
+#ifndef NDEBUG
+    vkutils::SetDebugObjectName(device_, object, name);
+#endif
   }
 
  private:
-  bool has_extension(std::string_view const& name, std::vector<VkExtensionProperties> const& extensions) const {
+  bool has_extension(
+    std::string_view name,
+    std::vector<VkExtensionProperties> const& extensions
+  ) const {
     for (auto const& ext : extensions) {
       if (strcmp(ext.extensionName, name.data()) == 0) {
         return true;
