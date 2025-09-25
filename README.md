@@ -6,7 +6,7 @@
 
 A c++20 / Vulkan 1.1 rendering framework flavored like 1.4 and inspired by WebGPU and _vk_minimal_latest_.
 
-Runs on GNU/Linux, Windows 11 and Android 32, compiled against _GCC 11.4_, _MSVC 19.38_, and _Clang 21_.
+Runs on GNU/Linux, Windows 11 and Android 32 (_Meta Quest 3_), compiled against _GCC 11.4_, _MSVC 19.38_, and _Clang 21_.
 
 <details>
   <summary><strong>Quick start & run !</strong></summary>
@@ -46,7 +46,7 @@ cmake --build build --config Release
 * **[05_stencil_op](samples/desktop/05_stencil_op)**: Stencil operations and instancing through a multi-passes portal effect (_Stencil, instancing_).
 * **[06_blend_op](samples/desktop/06_blend_op)**: Fast & simple billboarded GPU particles with additive blending (_Blending_).
 * **[07_compute](samples/desktop/07_compute)**: Waves simulation with sorted alpha-blended particles (_Compute Pipeline, Buffer Barriers_).
-* **[08_hdr_envmap](samples/desktop/08_hdr_envmap)**: Image-based lighting from a prefiltered HDR environment map (_Texture Barriers_).
+* **[08_hdr_envmap](samples/desktop/08_hdr_envmap)**: Compute Image-Based Lighting from a HDR environment map (_Texture Barriers_).
 * **[09_post_process](samples/desktop/09_post_process)**: Screen-space contour effect via a post-processing pipeline (_Render Target_, _Blit_).
 * **[10_material](samples/desktop/10_material)**: Showcase the internal PBR material system with scene graph ordering (_Pipeline Cache_, _Specialization Constants_).
 * **[11_raytracing](samples/desktop/11_raytracing)**: Simple path tracer on a Cornell box via hardware-accelerated ray tracing (_Acceleration Structure_, _Ray Tracing Pipeline_, _Buffer Device Address_).
@@ -147,14 +147,14 @@ sdkmanager "platforms;android-36" "platform-tools" "build-tools;36.0.0" "ndk;29.
 ###### Build and Run
 
 Each Android sample provides a set of CMake debug targets in the form `{prefix}{sample_name}`  
-to simplify development without the need to launch Android Studio.
+(eg. `log_aloha`) to simplify development without the need to launch Android Studio :
 
-| Prefix         | Action                                                  |
-|----------------|---------------------------------------------------------|
-| **build_\***   | _Build the sample in debug mode_                        |
-| **install_\*** | _Build and install the sample on a connected device_    |
-| **run_\***     | _Build, install, and run the sample_                    |
-| **log_\***     | _Build, install, run, and stream the sample’s logcat_   |
+| Target Prefix | Action                                                  |
+|---------------|---------------------------------------------------------|
+| **build_**    | Build the sample in debug mode.                         |
+| **install_**  | Build and install the sample on a connected device.     |
+| **run_**      | Build, install, and run the sample.                     |
+| **log_**      | Build, install, run, and stream the sample’s logcat.    |
 
 _Device-dependent targets (**install**, **run**, **log**) require a compatible connected Android device._
 
