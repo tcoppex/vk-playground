@@ -4,8 +4,8 @@
 #
 # -----------------------------------------------------------------------------
 
-## Setup a Sample target property.
-function(add_simple_demo dirname)
+## Add  Sample target and setup its properties.
+function(add_sample dirname)
   set(SAMPLE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/${dirname})
   set(target ${dirname})
 
@@ -14,12 +14,13 @@ function(add_simple_demo dirname)
     ${SAMPLE_PATH}/*.h
   )
 
-  # if(ANDROID)
-  #   add_library(${target} MODULE ${Source})
-  # else()
-  #   add_executable(${target} ${Source})
-  # endif()
-  add_executable(${target} ${Source})
+  # (work for both, but currently only used for desktop target)
+  if(ANDROID)
+    add_library(${target} MODULE ${Source})
+  else()
+    add_executable(${target} ${Source})
+  endif()
+
   set_target_output_directory(${target} ${PROJECT_BINARY_DIR})
 
   helpers_setupTarget(
@@ -29,10 +30,8 @@ function(add_simple_demo dirname)
       ${SAMPLE_PATH}
     LIBRARIES
       ${FRAMEWORK_LIBRARIES}
-      ${SharedLibs}
     DEFINITIONS
       COMPILED_SHADERS_DIR="${SAMPLE_PATH}/shaders/spirv/"
-      ${CustomDefinitions}
   )
 
   # Compile shaders dependencies.
@@ -50,21 +49,21 @@ function(add_simple_demo dirname)
       ${shaders_src}
   )
   add_dependencies(${target} ${BuildShaderTarget})
-endfunction(add_simple_demo)
+endfunction(add_sample)
 
 # -----------------------------------------------------------------------------
 
-add_simple_demo(00_hello)
-add_simple_demo(01_triangle)
-add_simple_demo(02_push_constant)
-add_simple_demo(03_descriptor_set)
-add_simple_demo(04_texturing)
-add_simple_demo(05_stencil_op)
-add_simple_demo(06_blend_op)
-add_simple_demo(07_compute)
-add_simple_demo(08_hdr_envmap)
-add_simple_demo(09_post_process)
-add_simple_demo(10_material)
-add_simple_demo(11_raytracing)
+add_sample(00_hello)
+add_sample(01_triangle)
+add_sample(02_push_constant)
+add_sample(03_descriptor_set)
+add_sample(04_texturing)
+add_sample(05_stencil_op)
+add_sample(06_blend_op)
+add_sample(07_compute)
+add_sample(08_hdr_envmap)
+add_sample(09_post_process)
+add_sample(10_material)
+add_sample(11_raytracing)
 
 # -----------------------------------------------------------------------------

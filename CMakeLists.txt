@@ -29,7 +29,7 @@ set(FRAMEWORK_COMPILED_SHADERS_DIR  ${PROJECT_BINARY_DIR}/spirv)
 # (important)
 # Currently the framework spirv directory is also used by the Android gradle build
 # to migrate them to samples APK assets directory, so we need to specify a distinct
-# subdir for them to be in conflict with others assets (shaders or otherwhise).
+# subdir for them not to be in conflict with others assets (shaders or otherwhise).
 # [better alternative: build the framework as an AAR library]
 set(FRAMEWORK_SPIRV_ASSETS_SUBDIR   framework_shaders)
 set(FRAMEWORK_COMPILED_SHADERS_DIR  ${FRAMEWORK_COMPILED_SHADERS_DIR}/${FRAMEWORK_SPIRV_ASSETS_SUBDIR})
@@ -246,6 +246,8 @@ if(USE_GCC OR USE_CLANG)
   )
 elseif(USE_MSVC)
   list(APPEND CXX_FLAGS
+    #/GR-         # disable RTTI
+    #/EHsc-       # no exception
     /W4           # Warning level 4 (strict warnings, less noisy than /Wall)
     /w14640       # Warn about thread-unsafe static member initialization
     /w14928       # Warn about illegal copy-initialization
@@ -253,8 +255,6 @@ elseif(USE_MSVC)
     /w14555       # Warn about expressions with no effect/side-effect
     /wd4100       # Disable: "unused parameter" warnings
     /MP           # build with multiple process.
-    #/EHsc-       # no exception
-    #/GR-         # disable RTTI
     /permissive-
   )
   list(APPEND CXX_FLAGS_DEBUG           /Zi)
@@ -304,62 +304,6 @@ if(NOT DEFINED CPM_SOURCE_CACHE)
 endif()
 
 include(${CPM_DOWNLOAD_LOCATION})
-
-# -----------------------------------------------------------------------------
-# Dependencies
-# -----------------------------------------------------------------------------
-
-if(ANDROID)
-  # [SHARED] Android specifics.
-  find_library(ANDROID_LIBRARY     NAMES android)
-  find_library(ANDROID_LOG_LIBRARY NAMES log)
-
-  list(APPEND PlatformLibs
-    ${ANDROID_LIBRARY}
-    ${ANDROID_LOG_LIBRARY}
-  )
-
-  # [OBJECT] Android Native App Glue.
-  find_path(ANDROID_NATIVE_APP_GLUE_PATH android_native_app_glue.h
-    PATHS "${ANDROID_NDK}/sources/android/native_app_glue"
-  )
-  add_library(android_native_app_glue
-    OBJECT
-      "${ANDROID_NATIVE_APP_GLUE_PATH}/android_native_app_glue.c"
-  )
-  target_include_directories(android_native_app_glue
-    PUBLIC
-      "${ANDROID_NATIVE_APP_GLUE_PATH}"
-  )
-  target_compile_options(android_native_app_glue
-    PRIVATE
-      -Wno-unused-parameter
-  )
-
-  ## {MACRO} Properly add the Native App Glue dependencies to its consuming target.
-  macro(helpers_addNativeAppGlue target)
-    target_include_directories(${target} PUBLIC ${ANDROID_NATIVE_APP_GLUE_PATH})
-    target_link_libraries(${target} PUBLIC $<TARGET_OBJECTS:android_native_app_glue>)
-  endmacro()
-
-  # (Alternatively just uncomment the following line.)
-  # set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -u ANativeActivity_onCreate")
-else() # DESKTOP
-  # GLFW
-  CPMAddPackage(
-    NAME glfw
-    GITHUB_REPOSITORY glfw/glfw
-    GIT_TAG 3.4
-    OPTIONS
-      "GLFW_BUILD_DOCS OFF"
-      "GLFW_BUILD_EXAMPLES OFF"
-      "GLFW_BUILD_TESTS OFF"
-      "GLFW_BUILD_WAYLAND OFF"
-      "GLFW_INSTALL OFF"
-  )
-  list(APPEND PlatformLibs glfw)
-  list(APPEND PlatformIncludeDirs ${glfw_SOURCE_DIR}/include)
-endif()
 
 # -----------------------------------------------------------------------------
 

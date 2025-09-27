@@ -34,12 +34,12 @@ function(add_activity_target suffix)
       ${ADB_CMD} logcat -v color -v raw
     )
 
-    # list(APPEND BuildTypes "Debug")
-    # foreach(BuildType IN LISTS BuildTypes)
-      set(targetPrefix build${BuildType})
+    list(APPEND BuildTypes "Debug")
+    foreach(BuildType IN LISTS BuildTypes)
+      set(targetPrefix build)#${BuildType})
       add_custom_target(${targetPrefix}_${suffix}
         COMMAND
-          ./gradlew :${suffix}:${targetPrefix}_${suffix}
+          ./gradlew :${suffix}:assembleDebug#${targetPrefix}
         WORKING_DIRECTORY
           ${ANDROID_BUILD_DIR}
         COMMENT
@@ -47,10 +47,10 @@ function(add_activity_target suffix)
         VERBATIM
       )
 
-      set(targetPrefix install${BuildType})
+      set(targetPrefix install)#${BuildType})
       add_custom_target(${targetPrefix}_${suffix}
         COMMAND
-          ./gradlew :${suffix}:${targetPrefix}
+          ./gradlew :${suffix}:installDebug#${targetPrefix}
         WORKING_DIRECTORY
           ${ANDROID_BUILD_DIR}
         COMMENT
@@ -58,7 +58,7 @@ function(add_activity_target suffix)
         VERBATIM
       )
 
-      add_custom_target(run${BuildType}_${suffix}
+      add_custom_target(run_${suffix}#run${BuildType}_${suffix}
         COMMAND
           ${CMAKE_COMMAND} -E env bash -c "${ADB_RESOLVE_AND_LAUNCH_CMD}"
         DEPENDS
@@ -72,7 +72,7 @@ function(add_activity_target suffix)
 
       set(LOGCAT_OUTPUT_FILEPATH ${CMAKE_BINARY_DIR}/${suffix}_${BuildType}.log)
 
-      add_custom_target(log${BuildType}_${suffix}
+      add_custom_target(log_${suffix}#${BuildType}_${suffix}
         COMMAND
           ${ADB_CMD} logcat -c
         COMMAND
@@ -80,14 +80,14 @@ function(add_activity_target suffix)
           # ${ADB_LOGCAT_CMD} | grep ${LOGGER_ANDROID_TAG}
           ${ADB_LOGCAT_CMD} *:F ${LOGGER_ANDROID_TAG}:D | tee ${LOGCAT_OUTPUT_FILEPATH}
         DEPENDS
-          run${BuildType}_${suffix}
+          run_${suffix}#${BuildType}_${suffix}
         WORKING_DIRECTORY
           ${ANDROID_BUILD_DIR}
         COMMENT
           "Log Android target \"${suffix}\" on device.\n(copy at ${LOGCAT_OUTPUT_FILEPATH})"
         VERBATIM
       )
-    # endforeach()
+    endforeach()
 
   endif()
 endfunction()

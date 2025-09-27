@@ -6,6 +6,12 @@
 
 set(target vkframework)
 
+if(ANDROID)
+  # We add a suffix to  avoid collision with the Desktop build.
+  # This require to be also set in the framework build.gradle.
+  set(target ${target}_android)
+endif()
+
 # -----------------------------------------------------------------------------
 # Source dependencies.
 # -----------------------------------------------------------------------------
@@ -55,14 +61,66 @@ list(APPEND Sources
 add_library(${target} STATIC ${Sources})
 set(FRAMEWORK_LIBRARIES ${target} CACHE INTERNAL "")
 
+
+# -----------------------------------------------------------------------------
+# Platform specific Third Parties Dependencies.
+# -----------------------------------------------------------------------------
+
+if(ANDROID)
+  # [SHARED] Android specifics.
+  find_library(ANDROID_LIBRARY     NAMES android)
+  find_library(ANDROID_LOG_LIBRARY NAMES log)
+
+  list(APPEND PlatformLibs
+    ${ANDROID_LIBRARY}
+    ${ANDROID_LOG_LIBRARY}
+  )
+
+  # [OBJECT] Android Native App Glue.
+  find_path(ANDROID_NATIVE_APP_GLUE_PATH android_native_app_glue.h
+    PATHS "${ANDROID_NDK}/sources/android/native_app_glue"
+  )
+  add_library(android_native_app_glue
+    OBJECT
+      "${ANDROID_NATIVE_APP_GLUE_PATH}/android_native_app_glue.c"
+  )
+  target_include_directories(android_native_app_glue
+    PUBLIC
+      "${ANDROID_NATIVE_APP_GLUE_PATH}"
+  )
+  target_compile_options(android_native_app_glue
+    PRIVATE
+      -Wno-unused-parameter
+  )
+
+  ## {MACRO} Properly add the Native App Glue dependencies to its consuming target.
+  macro(helpers_addNativeAppGlue target)
+    target_include_directories(${target} PUBLIC ${ANDROID_NATIVE_APP_GLUE_PATH})
+    target_link_libraries(${target} PUBLIC $<TARGET_OBJECTS:android_native_app_glue>)
+  endmacro()
+
+  # (Alternatively just uncomment the following line.)
+  # set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -u ANativeActivity_onCreate")
+else() # DESKTOP
+  # GLFW
+  CPMAddPackage(
+    NAME glfw
+    GITHUB_REPOSITORY glfw/glfw
+    GIT_TAG 3.4
+    OPTIONS
+      "GLFW_BUILD_DOCS OFF"
+      "GLFW_BUILD_EXAMPLES OFF"
+      "GLFW_BUILD_TESTS OFF"
+      "GLFW_BUILD_WAYLAND OFF"
+      "GLFW_INSTALL OFF"
+  )
+  list(APPEND PlatformLibs glfw)
+  list(APPEND PlatformIncludeDirs ${glfw_SOURCE_DIR}/include)
+endif()
+
 # -----------------------------------------------------------------------------
 # Third Parties Dependencies.
 # -----------------------------------------------------------------------------
-
-if(OS_LINUX)
-  # Required to build imgui_glfw_impl
-  find_package(X11 REQUIRED)
-endif()
 
 # Vulkan
 # Headers + Utility Libraries + Volk (dynamic extension loader)
@@ -172,6 +230,11 @@ if(TRUE)
     set(IMGUI_WM_BACKEND glfw)
   endif()
 
+  if(OS_LINUX)
+    # Required to build imgui_glfw_impl
+    find_package(X11 REQUIRED)
+  endif()
+
   list(APPEND IMGUI_SOURCES
     ${imgui_SOURCE_DIR}/imgui.cpp
     ${imgui_SOURCE_DIR}/imgui.h
@@ -202,29 +265,28 @@ endif()
 # -----------------------------------------------------------------------------
 
 target_link_libraries(${target}
-  PUBLIC
+  PRIVATE
     ${PlatformLibs}
+    ${X11_LIBRARIES}
     volk
     fmt
-    ${LIBM_LIBRARIES}
-  PRIVATE
     VulkanMemoryAllocator
     mikktspace
-    ${X11_LIBRARIES}
+    ${LIBM_LIBRARIES}
 )
 
 target_include_directories(${target}
   PUBLIC
     ${FRAMEWORK_INCLUDE_DIR}
     ${PROJECT_THIRD_PARTY_DIR}
-    ${PlatformIncludeDirs}
     ${VULKAN_INCLUDE_DIR}
-    ${VMA_INCLUDE_DIR} #!
+    ${VMA_INCLUDE_DIR}
     ${FMT_INCLUDE_DIR}
     ${LINALG_INCLUDE_DIR}
     ${IMGUI_INCLUDE_DIR}
   PRIVATE
-    ${FRAMEWORK_SHADERS_DIR} #!
+    ${PlatformIncludeDirs}
+    ${FRAMEWORK_SHADERS_DIR}
     ${CGLTF_INCLUDE_DIR}
     ${MIKKTSPACE_INCLUDE_DIR}
 )
@@ -267,8 +329,6 @@ set_target_properties(${target}
   PROPERTIES
     LINK_FLAGS "${CXX_LINK_FLAGS}"
 )
-
-set_target_output_directory(${target} ${PROJECT_BINARY_DIR})
 
 # -----------------------------------------------------------------------------
 
