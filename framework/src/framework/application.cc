@@ -117,7 +117,7 @@ bool Application::presetup(AppData_t app_data) {
     Events::Get().registerCallbacks(default_callbacks_.get());
     Events::Get().registerCallbacks(this);
 
-    LOGW("> Retrieve original viewport size (might be incorrect).");
+    // LOGW("> Retrieve original viewport size (might be incorrect).");
     viewport_size_ = {
       .width = wm_->get_surface_width(),
       .height = wm_->get_surface_height(),
@@ -170,17 +170,20 @@ bool Application::reset_swapchain() {
 
   // Release previous swapchain if any, and create the surface when needed.
   if (VK_NULL_HANDLE == surface_) [[unlikely]] {
-    surface_creation = wm_->createWindowSurface(context_.instance(), &surface_);
+    surface_creation = CHECK_VK(
+      wm_->createWindowSurface(context_.instance(), &surface_)
+    );
   } else {
 #if defined(ANDROID)
     context_.destroy_surface(surface_);
     swapchain_.deinit();
-    surface_creation = wm_->createWindowSurface(context_.instance(), &surface_);
+    surface_creation = CHECK_VK(
+      wm_->createWindowSurface(context_.instance(), &surface_)
+    );
 #else
     swapchain_.deinit(true);
 #endif
   }
-  CHECK_VK(surface_creation);
 
   // Recreate the Swapchain.
   if (VK_SUCCESS == surface_creation) {
