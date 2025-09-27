@@ -6,12 +6,16 @@
 extern "C" {
 
 #if defined(ANDROID)
+#include <jni.h>
 #include <android/log.h>
-#include <android_native_app_glue.h>
 #include <android/native_window.h>
 #include <android/window.h>
 #include <android/keycodes.h>
-#include <jni.h>
+#endif
+
+//(should this be best linked to the app instead of the framework?)
+#if defined(ANDROID)
+#include <android_native_app_glue.h>
 #endif
 
 }

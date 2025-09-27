@@ -6,7 +6,14 @@ cmake_minimum_required(VERSION 3.22.1)
 
 set(PROJECT_NAME vkplayground)
 
-project(${PROJECT_NAME} VERSION 0.2 LANGUAGES CXX C)
+project(${PROJECT_NAME}
+  VERSION
+    1.0
+  LANGUAGES
+    CXX C
+  HOMEPAGE_URL
+    "https://github.com/tcoppex/vk-playground"
+)
 
 # -----------------------------------------------------------------------------
 # Paths.
@@ -53,6 +60,34 @@ set(CMAKE_CXX_STANDARD_REQUIRED     ON)
 set(CMAKE_CXX_EXTENSIONS            OFF)
 
 # -----------------------------------------------------------------------------
+# CMake includes
+# -----------------------------------------------------------------------------
+
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
+
+# Vulkan SDK helpers
+include(VulkanSDK)
+
+# Download CPM.cmake
+set(CPM_DOWNLOAD_VERSION 0.40.3)
+set(CPM_DOWNLOAD_LOCATION "${CMAKE_BINARY_DIR}/cmake/CPM_${CPM_DOWNLOAD_VERSION}.cmake")
+
+if(NOT (EXISTS ${CPM_DOWNLOAD_LOCATION}))
+  message(STATUS "Downloading CPM.cmake...")
+  file(DOWNLOAD
+    https://github.com/cpm-cmake/CPM.cmake/releases/download/v${CPM_DOWNLOAD_VERSION}/CPM.cmake
+    ${CPM_DOWNLOAD_LOCATION}
+  )
+endif()
+
+# Set a share cache for CPM if none exist.
+if(NOT DEFINED CPM_SOURCE_CACHE)
+  set(CPM_SOURCE_CACHE "${PROJECT_THIRD_PARTY_DIR}/.cpmlocalcache" CACHE PATH "")
+endif()
+
+include(${CPM_DOWNLOAD_LOCATION})
+
+# -----------------------------------------------------------------------------
 # Custom functions
 # -----------------------------------------------------------------------------
 
@@ -63,8 +98,8 @@ function(set_global_output_directory OUTPUT_DIR)
   set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${OUTPUT_DIR} CACHE PATH "")
 endfunction()
 
-# Force output directory destination, especially for MSVC (@so7747857).
 function(set_target_output_directory target output_dir)
+  # Force output directory destination, especially for MSVC (@so7747857).
   foreach(type RUNTIME LIBRARY ARCHIVE)
     set_target_properties(${target} PROPERTIES
       ${type}_OUTPUT_DIRECTORY         ${output_dir}
@@ -276,34 +311,6 @@ endif()
 foreach(flag ${CustomLinkFlags})
   set(CXX_LINK_FLAGS "${CXX_LINK_FLAGS} ${flag}")
 endforeach()
-
-# -----------------------------------------------------------------------------
-# CMake includes
-# -----------------------------------------------------------------------------
-
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
-
-# Vulkan SDK helpers
-include(VulkanSDK)
-
-# Download CPM.cmake
-set(CPM_DOWNLOAD_VERSION 0.40.3)
-set(CPM_DOWNLOAD_LOCATION "${CMAKE_BINARY_DIR}/cmake/CPM_${CPM_DOWNLOAD_VERSION}.cmake")
-
-if(NOT (EXISTS ${CPM_DOWNLOAD_LOCATION}))
-  message(STATUS "Downloading CPM.cmake...")
-  file(DOWNLOAD
-    https://github.com/cpm-cmake/CPM.cmake/releases/download/v${CPM_DOWNLOAD_VERSION}/CPM.cmake
-    ${CPM_DOWNLOAD_LOCATION}
-  )
-endif()
-
-# Set a share cache for CPM if none exist.
-if(NOT DEFINED CPM_SOURCE_CACHE)
-  set(CPM_SOURCE_CACHE "${PROJECT_THIRD_PARTY_DIR}/.cpmlocalcache" CACHE PATH "")
-endif()
-
-include(${CPM_DOWNLOAD_LOCATION})
 
 # -----------------------------------------------------------------------------
 

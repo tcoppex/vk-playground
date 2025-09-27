@@ -71,33 +71,28 @@ if(ANDROID)
   find_library(ANDROID_LIBRARY     NAMES android)
   find_library(ANDROID_LOG_LIBRARY NAMES log)
 
-  list(APPEND PlatformLibs
-    ${ANDROID_LIBRARY}
-    ${ANDROID_LOG_LIBRARY}
-  )
-
   # [OBJECT] Android Native App Glue.
   find_path(ANDROID_NATIVE_APP_GLUE_PATH android_native_app_glue.h
-    PATHS "${ANDROID_NDK}/sources/android/native_app_glue"
+    PATHS ${ANDROID_NDK}/sources/android/native_app_glue
   )
   add_library(android_native_app_glue
     OBJECT
-      "${ANDROID_NATIVE_APP_GLUE_PATH}/android_native_app_glue.c"
+      ${ANDROID_NATIVE_APP_GLUE_PATH}/android_native_app_glue.c
   )
   target_include_directories(android_native_app_glue
     PUBLIC
-      "${ANDROID_NATIVE_APP_GLUE_PATH}"
+      ${ANDROID_NATIVE_APP_GLUE_PATH}
   )
   target_compile_options(android_native_app_glue
     PRIVATE
       -Wno-unused-parameter
   )
 
-  ## {MACRO} Properly add the Native App Glue dependencies to its consuming target.
-  macro(helpers_addNativeAppGlue target)
-    target_include_directories(${target} PUBLIC ${ANDROID_NATIVE_APP_GLUE_PATH})
-    target_link_libraries(${target} PUBLIC $<TARGET_OBJECTS:android_native_app_glue>)
-  endmacro()
+  list(APPEND PlatformLibs
+    ${ANDROID_LIBRARY}
+    ${ANDROID_LOG_LIBRARY}
+    android_native_app_glue #! (prefer to link to the final app instead?)
+  )
 
   # (Alternatively just uncomment the following line.)
   # set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -u ANativeActivity_onCreate")
@@ -166,7 +161,7 @@ CPMAddPackage(
 )
 set(CGLTF_INCLUDE_DIR ${cgltf_SOURCE_DIR})
 
-# [wip] Draco (not currently supported)
+# Draco (not currently supported)
 # see https://github.com/google/draco/blob/1.5.7/BUILDING.md#cmake-build-configuration
 # option(FRAMEWORK_HAS_DRACO OFF)
 if(FRAMEWORK_HAS_DRACO)
@@ -265,8 +260,9 @@ endif()
 # -----------------------------------------------------------------------------
 
 target_link_libraries(${target}
+  PUBLIC
+    ${PlatformLibs} #!
   PRIVATE
-    ${PlatformLibs}
     ${X11_LIBRARIES}
     volk
     fmt
@@ -279,13 +275,13 @@ target_include_directories(${target}
   PUBLIC
     ${FRAMEWORK_INCLUDE_DIR}
     ${PROJECT_THIRD_PARTY_DIR}
+    ${PlatformIncludeDirs}
     ${VULKAN_INCLUDE_DIR}
     ${VMA_INCLUDE_DIR}
     ${FMT_INCLUDE_DIR}
     ${LINALG_INCLUDE_DIR}
     ${IMGUI_INCLUDE_DIR}
   PRIVATE
-    ${PlatformIncludeDirs}
     ${FRAMEWORK_SHADERS_DIR}
     ${CGLTF_INCLUDE_DIR}
     ${MIKKTSPACE_INCLUDE_DIR}
@@ -329,13 +325,6 @@ set_target_properties(${target}
   PROPERTIES
     LINK_FLAGS "${CXX_LINK_FLAGS}"
 )
-
-# -----------------------------------------------------------------------------
-
-# should probably be inside the Sample App instead..
-if(ANDROID)
-  helpers_addNativeAppGlue(${target})
-endif()
 
 # -----------------------------------------------------------------------------
 # Compile Framework shaders.

@@ -29,12 +29,12 @@ add_library(${target} MODULE ${Sources})
 #   ${FRAMEWORK_SHADERS_DIR}
 # )
 
-if (1)
+if(TRUE)
   add_dependencies(${target} BuildFrameworkShaders)
 else()
-  # Find the framework AAR from gradle config.
-  find_package(vkframework REQUIRED CONFIG)
-  target_link_libraries(${target} PRIVATE vkframework::vkframework)
+  # # Find the framework AAR from gradle config.
+  # find_package(vkframework REQUIRED CONFIG)
+  # target_link_libraries(${target} PRIVATE vkframework::vkframework)
 endif()
 
 # -----------------------------------------------------------------------------
@@ -45,15 +45,13 @@ helpers_setupTarget(
 
   INCLUDE_DIRECTORIES
     ${SAMPLE_SOURCE_DIR}
-    ${SharedIncludeDirs}
 
   LIBRARIES
-    ${FRAMEWORK_LIBRARIES} ##
-    ${SharedLibs}
+    ${FRAMEWORK_LIBRARIES}
+    # android_native_app_glue
 
   DEFINITIONS
     COMPILED_SHADERS_DIR="shaders/"
-    ${CustomDefinitions}
 )
 
 # -----------------------------------------------------------------------------
