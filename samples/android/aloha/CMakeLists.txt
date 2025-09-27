@@ -18,8 +18,7 @@ add_library(${target} MODULE ${Sources})
 
 # Here the sample's shaders will be compiled by gradle but we NEED to copy the
 # framework shaders to the assets for the package to hold them.
-#
-# for now it is handle by gradle in a semi reliable way but we might
+# For now it is handle by gradle in a semi reliable way but we might
 # have need to rethink it ulteriorly.
 
 # compile_shaders(
@@ -30,7 +29,13 @@ add_library(${target} MODULE ${Sources})
 #   ${FRAMEWORK_SHADERS_DIR}
 # )
 
-add_dependencies(${target} BuildFrameworkShaders)
+if (1)
+  add_dependencies(${target} BuildFrameworkShaders)
+else()
+  # Find the framework AAR from gradle config.
+  find_package(vkframework REQUIRED CONFIG)
+  target_link_libraries(${target} PRIVATE vkframework::vkframework)
+endif()
 
 # -----------------------------------------------------------------------------
 
@@ -43,7 +48,7 @@ helpers_setupTarget(
     ${SharedIncludeDirs}
 
   LIBRARIES
-    ${FRAMEWORK_LIBRARIES}
+    ${FRAMEWORK_LIBRARIES} ##
     ${SharedLibs}
 
   DEFINITIONS

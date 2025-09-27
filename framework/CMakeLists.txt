@@ -128,6 +128,9 @@ set_target_properties(${target}
 
 set_target_output_directory(${target} ${PROJECT_BINARY_DIR})
 
+# -----------------------------------------------------------------------------
+
+# should probably be inside the Sample App
 if (OS_ANDROID)
   helpers_addNativeAppGlue(${target})
 endif()

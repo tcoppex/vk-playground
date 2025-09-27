@@ -1,23 +1,31 @@
 pluginManagement {
-    repositories {
-        google()
-        mavenCentral()
-        gradlePluginPortal()
-    }
+  repositories {
+    google()
+    mavenCentral()
+    gradlePluginPortal()
+  }
 }
 dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-    repositories {
-        google()
-        mavenCentral()
-    }
+  repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+  repositories {
+    google()
+    mavenCentral()
+  }
 }
 
 // ----------------------------------------------------------------------------
 
 rootProject.name = "VulkanPlayground"
 
-//
+// ----------------------------------------------------------------------------
+
+include(":framework")
+project(":framework").projectDir = file("../framework")
+
+// ----------------------------------------------------------------------------
+// Samples
+// ----------------------------------------------------------------------------
+
 // As for now, every samples is its own target, which mean it will spawn
 // a complete build of the framework locally.
 //
@@ -34,9 +42,9 @@ rootProject.name = "VulkanPlayground"
 //
 
 file("../samples/android").eachDir { dir ->
-    def moduleName = dir.name
-    include(":$moduleName")
-    project(":$moduleName").projectDir = dir
+  def moduleName = dir.name
+  include(":$moduleName")
+  project(":$moduleName").projectDir = dir
 }
 
 // ----------------------------------------------------------------------------
