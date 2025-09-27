@@ -14,6 +14,28 @@ function(add_simple_demo dirname)
     ${SAMPLE_PATH}/*.h
   )
 
+  # if(ANDROID)
+  #   add_library(${target} MODULE ${Source})
+  # else()
+  #   add_executable(${target} ${Source})
+  # endif()
+  add_executable(${target} ${Source})
+  set_target_output_directory(${target} ${PROJECT_BINARY_DIR})
+
+  helpers_setupTarget(
+    TARGET
+      ${target}
+    INCLUDE_DIRECTORIES
+      ${SAMPLE_PATH}
+    LIBRARIES
+      ${FRAMEWORK_LIBRARIES}
+      ${SharedLibs}
+    DEFINITIONS
+      COMPILED_SHADERS_DIR="${SAMPLE_PATH}/shaders/spirv/"
+      ${CustomDefinitions}
+  )
+
+  # Compile shaders dependencies.
   compile_shaders(
     ${SAMPLE_PATH}/shaders/glsl
     ${SAMPLE_PATH}/shaders/spirv
@@ -21,44 +43,13 @@ function(add_simple_demo dirname)
     shaders_src
     ${FRAMEWORK_SHADERS_DIR}
   )
-
   set(BuildShaderTarget BuildSampleShaders_${target})
-  add_custom_target(
-    ${BuildShaderTarget} ALL
+  add_custom_target(${BuildShaderTarget} ALL
     DEPENDS
       ${shaders_bin}
       ${shaders_src}
   )
-
-  # if(ANDROID)
-  #   add_library(${target} MODULE ${Source})
-  # else()
-  #   add_executable(${target} ${Source})
-  # endif()
-  add_executable(${target} ${Source})
-
   add_dependencies(${target} ${BuildShaderTarget})
-
-  helpers_setupTarget(
-    TARGET
-      ${target}
-
-    INCLUDE_DIRECTORIES
-      ${SAMPLE_PATH}
-      ${SharedIncludeDirs}
-
-    LIBRARIES
-      ${FRAMEWORK_LIBRARIES}
-      ${SharedLibs}
-
-    DEFINITIONS
-      COMPILED_SHADERS_DIR="${SAMPLE_PATH}/shaders/spirv/"
-      ${CustomDefinitions}
-  )
-
-
-
-  set_target_output_directory(${dirname} ${PROJECT_BINARY_DIR})
 endfunction(add_simple_demo)
 
 # -----------------------------------------------------------------------------
