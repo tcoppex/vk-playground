@@ -21,7 +21,7 @@ plugins {
 def uberRootDir = file("../")
 
 ext {
-  orgPrefix = "com.polysfaer.vkframework"
+  orgPrefix = "cc.polysfaer.vkframework"
   rootPath = "${uberRootDir}"
   frameworkSpirvDirs = "${uberRootDir}/bin/spirv"
   sampleFrameworkSpirvAssetsSubdir = "shaders/framework"
