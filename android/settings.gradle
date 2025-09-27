@@ -47,4 +47,8 @@ file("../samples/android").eachDir { dir ->
   project(":$moduleName").projectDir = dir
 }
 
+gradle.beforeProject { p ->
+  p.buildDir = new File(rootDir, ".build_cache/${p.name}")
+}
+
 // ----------------------------------------------------------------------------

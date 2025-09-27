@@ -71,28 +71,32 @@ if(ANDROID)
   find_library(ANDROID_LIBRARY     NAMES android)
   find_library(ANDROID_LOG_LIBRARY NAMES log)
 
-  # [OBJECT] Android Native App Glue.
-  find_path(ANDROID_NATIVE_APP_GLUE_PATH android_native_app_glue.h
-    PATHS ${ANDROID_NDK}/sources/android/native_app_glue
-  )
-  add_library(android_native_app_glue
-    OBJECT
-      ${ANDROID_NATIVE_APP_GLUE_PATH}/android_native_app_glue.c
-  )
-  target_include_directories(android_native_app_glue
-    PUBLIC
-      ${ANDROID_NATIVE_APP_GLUE_PATH}
-  )
-  target_compile_options(android_native_app_glue
-    PRIVATE
-      -Wno-unused-parameter
-  )
-
   list(APPEND PlatformLibs
     ${ANDROID_LIBRARY}
     ${ANDROID_LOG_LIBRARY}
-    android_native_app_glue #! (prefer to link to the final app instead?)
   )
+
+  # {MACRO} Properly add the Native App Glue dependencies to its consuming target.
+  function(helpers_addNativeAppGlue target)
+    # [OBJECT] Android Native App Glue.
+    find_path(ANDROID_NATIVE_APP_GLUE_PATH android_native_app_glue.h
+      PATHS "${ANDROID_NDK}/sources/android/native_app_glue"
+    )
+    add_library(android_native_app_glue
+      OBJECT
+        "${ANDROID_NATIVE_APP_GLUE_PATH}/android_native_app_glue.c"
+    )
+    target_include_directories(android_native_app_glue
+      PUBLIC
+        "${ANDROID_NATIVE_APP_GLUE_PATH}"
+    )
+    target_compile_options(android_native_app_glue
+      PRIVATE
+        -Wno-unused-parameter
+    )
+    target_include_directories(${target} PUBLIC ${ANDROID_NATIVE_APP_GLUE_PATH})
+    target_link_libraries(${target} PUBLIC $<TARGET_OBJECTS:android_native_app_glue>)
+  endfunction()
 
   # (Alternatively just uncomment the following line.)
   # set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -u ANativeActivity_onCreate")
@@ -325,6 +329,12 @@ set_target_properties(${target}
   PROPERTIES
     LINK_FLAGS "${CXX_LINK_FLAGS}"
 )
+# -----------------------------------------------------------------------------
+
+# should probably be inside the Sample App instead..
+if(ANDROID)
+  helpers_addNativeAppGlue(${target})
+endif()
 
 # -----------------------------------------------------------------------------
 # Compile Framework shaders.

@@ -18,12 +18,12 @@ plugins {
 // Global variables.
 // ----------------------------------------------------------------------------
 
-def rootDir = file("../")
+def uberRootDir = file("../")
 
 ext {
   orgPrefix = "com.polysfaer.vkframework"
-  rootPath = "${rootDir}"
-  frameworkSpirvDirs = "${rootDir}/bin/spirv"
+  rootPath = "${uberRootDir}"
+  frameworkSpirvDirs = "${uberRootDir}/bin/spirv"
   sampleFrameworkSpirvAssetsSubdir = "shaders/framework"
 }
 
