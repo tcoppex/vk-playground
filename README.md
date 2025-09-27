@@ -99,7 +99,7 @@ The Android build use the following dependencies :
  * Android NDK 29.0.14033849
  * Gradle 8.14.3
 
-You can install them depending on your platform using one of those script :
+You can either install them via Android Studio (_eg. Narwhal 3 Feature Drop | 2025.1.3_) or depending on your platform using one of those script:
 
 <details>
   <summary><strong>GNU/Linux</strong></summary>
@@ -160,12 +160,11 @@ _Device-dependent targets (**install**, **run**, **log**) require a compatible c
 
 #### Assets
 
-A few assets are served via `git-lfs` but most are downloaded automatically
-as needed on CMake cache generation time.
+A few assets are served via `git-lfs` but most will be downloaded automatically on CMake Cache generation time.
 
 ### Acknowledgement
 
-This project was inspired by the work of **NVIDIA DesignWorks Samples**, in particular the _[vk_minimal_latest](https://github.com/nvpro-samples/vk_minimal_latest)_ project.
+This project was inspired by the simple expressiveness of WebGPU and the work of **NVIDIA DesignWorks Samples**, in particular the _[vk_minimal_latest](https://github.com/nvpro-samples/vk_minimal_latest)_ project.
 
 ### License
 
