@@ -147,11 +147,11 @@ sdkmanager "platforms;android-36" "platform-tools" "build-tools;36.0.0" "ndk;29.
 ###### Build and Run
 
 Each Android sample provides a set of CMake debug targets in the form `{prefix}{sample_name}`  
-(_eg. `log_aloha`_) to simplify development without the need to launch Android Studio.
+(_eg. `log_aloha`_) to simplify development without the need to launch Android Studio. All of this commands target debug builds.
 
 | Target Prefix | Action                                                  |
 |---------------|---------------------------------------------------------|
-| **build_**    | Build the sample in debug mode.                         |
+| **build_**    | Build the sample.                                       |
 | **install_**  | Build and install the sample on a connected device.     |
 | **run_**      | Build, install, and run the sample.                     |
 | **log_**      | Build, install, run, and stream the sample’s logcat.    |
