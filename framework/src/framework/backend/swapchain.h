@@ -30,37 +30,37 @@ class Swapchain {
   void present_and_swap(VkQueue const queue);
 
   [[nodiscard]]
-  VkExtent2D get_surface_size() const noexcept {
+  VkExtent2D surface_size() const noexcept {
     return swapchain_create_info_.imageExtent;
   }
 
   [[nodiscard]]
-  uint32_t get_image_count() const noexcept {
+  uint32_t image_count() const noexcept {
     return image_count_;
   }
 
   [[nodiscard]]
-  VkFormat get_color_format() const noexcept {
+  VkFormat color_format() const noexcept {
     return swap_images_[0u].format;
   }
 
   [[nodiscard]]
-  std::vector<backend::Image> const& get_swap_images() const noexcept {
+  std::vector<backend::Image> const& swap_images() const noexcept {
     return swap_images_;
   }
 
   [[nodiscard]]
-  backend::Image const& get_current_swap_image() const noexcept {
-    return swap_images_[current_swap_index_];
+  backend::Image const& current_swap_image() const noexcept {
+    return swap_images_[current_swap_index()];
   }
 
   [[nodiscard]]
-  SwapSynchronizer_t const& get_current_synchronizer() const noexcept {
-    return swap_syncs_[current_swap_index_];
+  SwapSynchronizer_t const& current_synchronizer() const noexcept {
+    return swap_syncs_[current_swap_index()];
   }
 
   [[nodiscard]]
-  uint32_t const& get_current_swap_index() const noexcept {
+  uint32_t const& current_swap_index() const noexcept {
     return current_swap_index_;
   }
 

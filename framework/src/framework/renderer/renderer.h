@@ -252,7 +252,7 @@ class Renderer : public backend::RTInterface {
   /* ----- RTInterface Overrides ----- */
 
   VkExtent2D get_surface_size() const final {
-    return swapchain_ptr_->get_surface_size();
+    return swapchain_ptr_->surface_size();
   }
 
   uint32_t get_color_attachment_count() const final {
@@ -265,7 +265,7 @@ class Renderer : public backend::RTInterface {
   }
 
   backend::Image const& get_color_attachment(uint32_t index = 0u) const final {
-    return swapchain_ptr_->get_current_swap_image();
+    return swapchain_ptr_->current_swap_image();
   }
 
   backend::Image const& get_depth_stencil_attachment() const final {
@@ -308,7 +308,7 @@ class Renderer : public backend::RTInterface {
   }
 
   uint32_t get_swap_image_count() const noexcept {
-    return swapchain_ptr_->get_image_count();
+    return swapchain_ptr_->image_count();
   }
 
  private:

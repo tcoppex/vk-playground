@@ -41,13 +41,13 @@ void Renderer::init(
   }
 
   /* Create a default depth stencil buffer. */
-  VkExtent2D const dimension{swapchain_ptr_->get_surface_size()};
+  VkExtent2D const dimension{swapchain_ptr_->surface_size()};
   resize(dimension.width, dimension.height);
 
   /* Initialize resources for the semaphore timeline. */
   LOGD(" > Timeline Semaphore Resources");
   {
-    uint64_t const frame_count = swapchain_ptr_->get_image_count();
+    uint64_t const frame_count = swapchain_ptr_->image_count();
 
     // Initialize per-frame command buffers.
     timeline_.frames.resize(frame_count);
@@ -185,9 +185,9 @@ void Renderer::end_frame() {
   //------------
 
   // Next frame index to start when this one completed.
-  frame.signal_index += swapchain_ptr_->get_image_count();
+  frame.signal_index += swapchain_ptr_->image_count();
 
-  auto const& synchronizer = swapchain_ptr_->get_current_synchronizer();
+  auto const& synchronizer = swapchain_ptr_->current_synchronizer();
 
   VkPipelineStageFlags2 const stage_mask{
     VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
@@ -243,7 +243,7 @@ void Renderer::end_frame() {
 
   /* Display and swap buffers. */
   swapchain_ptr_->present_and_swap(queue); //
-  timeline_.frame_index = swapchain_ptr_->get_current_swap_index();
+  timeline_.frame_index = swapchain_ptr_->current_swap_index();
 }
 
 // ----------------------------------------------------------------------------

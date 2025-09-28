@@ -109,7 +109,7 @@ void Framebuffer::setup(Descriptor_t const& desc) {
 
   /* Resize the buffers depending weither we wanna sync to the current swap index. */
   uint32_t const image_swap_count{
-    desc_.match_swapchain_output_count ? swapchain_ptr_->get_image_count() : 1u
+    desc_.match_swapchain_output_count ? swapchain_ptr_->image_count() : 1u
   };
   framebuffers_.resize(image_swap_count);
   for (auto& output : outputs_) {
@@ -170,7 +170,7 @@ void Framebuffer::setup(Descriptor_t const& desc) {
 // ----------------------------------------------------------------------------
 
 uint32_t Framebuffer::get_swap_index() const {
-  return desc_.match_swapchain_output_count ? swapchain_ptr_->get_current_swap_index()
+  return desc_.match_swapchain_output_count ? swapchain_ptr_->current_swap_index()
                                             : 0u
                                             ;
 }

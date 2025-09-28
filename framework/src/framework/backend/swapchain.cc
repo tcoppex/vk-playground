@@ -204,7 +204,7 @@ void Swapchain::deinit(bool keep_previous_swapchain) {
 void Swapchain::acquire_next_image() {
   LOG_CHECK(swapchain_ != VK_NULL_HANDLE);
 
-  auto const& semaphore = get_current_synchronizer().wait_image_semaphore;
+  auto const& semaphore = current_synchronizer().wait_image_semaphore;
 
   constexpr uint64_t kFiniteAcquireTimeout = 1'000'000'000ull; // 1s
   auto const acquire_result = vkAcquireNextImageKHR(
@@ -218,15 +218,17 @@ void Swapchain::acquire_next_image() {
 void Swapchain::present_and_swap(VkQueue const queue) {
   LOG_CHECK(swapchain_ != VK_NULL_HANDLE);
 
-  auto const& semaphore = get_current_synchronizer().signal_present_semaphore;
+  auto const& semaphore = current_synchronizer().signal_present_semaphore;
 
   VkPresentInfoKHR const present_info{
     .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+    .pNext = nullptr,
     .waitSemaphoreCount = 1u,
     .pWaitSemaphores = &semaphore,
     .swapchainCount = 1u,
     .pSwapchains = &swapchain_,
     .pImageIndices = &next_swap_index_,
+    .pResults = nullptr,
   };
   auto const present_result = vkQueuePresentKHR(queue, &present_info);
   need_rebuild_ = IsSwapchainInvalid(present_result, __FUNCTION__);
