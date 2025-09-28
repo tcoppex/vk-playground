@@ -23,9 +23,10 @@ set(PROJECT_ROOT_PATH               ${CMAKE_CURRENT_SOURCE_DIR})
 
 set(ANDROID_BUILD_DIR               ${PROJECT_ROOT_PATH}/android)
 set(PROJECT_ASSETS_DIR              ${PROJECT_ROOT_PATH}/assets)
-set(PROJECT_THIRD_PARTY_DIR         ${PROJECT_ROOT_PATH}/third_party)
-set(PROJECT_BINARY_DIR              ${PROJECT_ROOT_PATH}/bin)
 set(SAMPLES_PATH                    ${PROJECT_ROOT_PATH}/samples)
+set(PROJECT_BINARY_DIR              ${PROJECT_ROOT_PATH}/bin)
+set(PROJECT_THIRD_PARTY_DIR         ${PROJECT_ROOT_PATH}/third_party)
+set(DEFAULT_CPM_SOURCE_CACHE        ${PROJECT_THIRD_PARTY_DIR}/.cpmlocalcache)
 
 set(FRAMEWORK_PATH                  ${PROJECT_ROOT_PATH}/framework)
 set(FRAMEWORK_SOURCE_DIR            ${FRAMEWORK_PATH}/src)
@@ -82,7 +83,12 @@ endif()
 
 # Set a share cache for CPM if none exist.
 if(NOT DEFINED CPM_SOURCE_CACHE)
-  set(CPM_SOURCE_CACHE "${PROJECT_THIRD_PARTY_DIR}/.cpmlocalcache" CACHE PATH "")
+  if(DEFINED ENV{CPM_SOURCE_CACHE})
+    set(CPM_SOURCE_CACHE "$ENV{CPM_SOURCE_CACHE}")
+  else()
+    set(CPM_SOURCE_CACHE ${DEFAULT_CPM_SOURCE_CACHE})
+  endif()
+  set(CPM_SOURCE_CACHE "${CPM_SOURCE_CACHE}" CACHE PATH "CPM cache location")
 endif()
 
 include(${CPM_DOWNLOAD_LOCATION})
