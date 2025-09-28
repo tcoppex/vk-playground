@@ -93,7 +93,7 @@ By default, CPM downloads and caches third-party dependencies in `./third_party/
 
 #### Android build
 
-The Android build use the following dependencies :
+The Android build root project is defined in the `android/` subfolder and use the following dependencies :
 
  * Android SDK 36
  * Android NDK 29.0.14033849
@@ -105,10 +105,10 @@ You can either install them via Android Studio (_eg. Narwhal 3 Feature Drop | 20
   <summary><strong>GNU/Linux</strong></summary>
 
 ```bash
-# Install tools and the JDK
+# Install tools and the JDK.
 sudo apt-get install -y unzip wget openjdk-17-jdk
 
-# Setup ANDROID_SDK
+# Setup ANDROID_SDK.
 export ANDROID_SDK=$HOME/Android
 mkdir $ANDROID_SDK && cd $ANDROID_SDK
 
@@ -127,10 +127,11 @@ sdkmanager "platforms;android-36" "platform-tools" "build-tools;36.0.0" "ndk;29.
   <summary><strong>Windows 11</strong></summary>
 
 ```bash
-# Install JDK manually on Windows (eg. Temurin 17)
+# Install JDK manually on Windows (eg. Temurin 17), and setup the JAVA_HOME environment variable.
+#export JAVA_HOME="C:\Program Files (x86)\Eclipse Adoptium\jdk-17.0.16.8-hotspot"
 
-# Setup ANDROID_SDK
-export ANDROID_SDK=$HOME/Android
+# Setup ANDROID_SDK (also refered as $ANDROID_HOME)
+export ANDROID_SDK="$HOME/Android"
 mkdir -p $ANDROID_SDK && cd $ANDROID_SDK
 
 # Download & install Android SDK Command-line Tools 12.0.
@@ -140,7 +141,7 @@ mv cmdline-tools/cmdline-tools cmdline-tools/latest
 export PATH=$ANDROID_SDK/cmdline-tools/latest/bin:$ANDROID_SDK/platform-tools:$PATH
 
 # Install dependencies.
-sdkmanager "platforms;android-36" "platform-tools" "build-tools;36.0.0" "ndk;29.0.14033849"
+sdkmanager.bat --sdk_root=$ANDROID_SDK "platforms;android-36" "platform-tools" "build-tools;36.0.0" "ndk;29.0.14033849"
 ```
 </details>
 
