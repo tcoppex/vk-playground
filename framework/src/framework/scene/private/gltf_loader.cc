@@ -897,8 +897,9 @@ void ExtractAnimations(
 
       // Check if we need to resample outputs.
       bool const bNeedResampling{(sampleCount > 1) && (sampleCount != output->count)};
-      cgltf_size frameStart, frameEnd;
-      float lerpFactor;
+      cgltf_size frameStart{};
+      cgltf_size frameEnd{};
+      float lerpFactor{};
 
       for (cgltf_size sid = 0; sid < sampleCount; ++sid) {
         auto &pose = clip->poses[sid];

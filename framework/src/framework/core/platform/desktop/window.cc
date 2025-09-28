@@ -20,11 +20,12 @@ void InitializeEventsCallbacks(GLFWwindow *handle) noexcept {
   // Keyboard.
   glfwSetKeyCallback(handle, [](GLFWwindow *window, int key, int scancode, int action, int mods) {
     auto &events = Events::Get();
+    auto const k = static_cast<KeyCode_t>(key);
 
     if (action == GLFW_PRESS) {
-      events.onKeyPressed(key);
+      events.onKeyPressed(k);
     } else if (action == GLFW_RELEASE) {
-      events.onKeyReleased(key);
+      events.onKeyReleased(k);
     }
   });
 
