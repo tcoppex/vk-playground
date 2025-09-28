@@ -538,6 +538,12 @@ bool Context::init_device() {
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES
     );
 
+    // add_device_feature(
+    //   VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME,
+    //   feature_.swapchain_maintenance1,
+    //   VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SWAPCHAIN_MAINTENANCE_1_FEATURES_EXT
+    // );
+
     add_device_feature(
       VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME,
       feature_.synchronization2,
@@ -609,7 +615,6 @@ bool Context::init_device() {
   LOG_CHECK(feature_.descriptor_indexing.runtimeDescriptorArray);
   LOG_CHECK(feature_.descriptor_indexing.shaderSampledImageArrayNonUniformIndexing);
   LOG_CHECK(feature_.vertex_input_dynamic_state.vertexInputDynamicState);
-  LOG_CHECK(feature_.acceleration_structure.accelerationStructure);
 
 #if !defined(ANDROID)
   LOG_CHECK(feature_.ray_tracing_pipeline.rayTracingPipeline);

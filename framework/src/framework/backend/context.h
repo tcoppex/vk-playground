@@ -251,29 +251,38 @@ class Context {
 
   struct {
     VkPhysicalDeviceFeatures2 base{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
-    VkPhysicalDevice16BitStorageFeaturesKHR storage_16bit{};
-    VkPhysicalDeviceBufferDeviceAddressFeaturesKHR buffer_device_address{};
-    VkPhysicalDeviceDynamicRenderingFeaturesKHR dynamic_rendering{};
-    VkPhysicalDeviceMaintenance4FeaturesKHR maintenance4{};
-    VkPhysicalDeviceMaintenance5FeaturesKHR maintenance5{};
-    VkPhysicalDeviceMaintenance6FeaturesKHR maintenance6{};
-    VkPhysicalDeviceTimelineSemaphoreFeaturesKHR timeline_semaphore{};
-    VkPhysicalDeviceSynchronization2FeaturesKHR synchronization2{};
-    VkPhysicalDeviceDescriptorIndexingFeaturesEXT descriptor_indexing{};
+    // VkPhysicalDeviceVulkan11Features features11{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES};
+    // VkPhysicalDeviceVulkan12Features features12{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES};
+    // VkPhysicalDeviceVulkan13Features features13{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
+    // VkPhysicalDeviceVulkan14Features features14{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_4_FEATURES};
+
+    // VK_VERSION_1_1
+    VkPhysicalDeviceVertexInputDynamicStateFeaturesEXT vertex_input_dynamic_state{};
     VkPhysicalDeviceExtendedDynamicStateFeaturesEXT extended_dynamic_state{};
     VkPhysicalDeviceExtendedDynamicState2FeaturesEXT extended_dynamic_state2{};
     VkPhysicalDeviceExtendedDynamicState3FeaturesEXT extended_dynamic_state3{};
     VkPhysicalDeviceImageViewMinLodFeaturesEXT image_view_min_lod{};
-    VkPhysicalDeviceIndexTypeUint8FeaturesEXT index_type_uint8{}; //
-    VkPhysicalDeviceVertexInputDynamicStateFeaturesEXT vertex_input_dynamic_state{};
+    VkPhysicalDevice16BitStorageFeaturesKHR storage_16bit{};
+    // VkPhysicalDeviceSwapchainMaintenance1FeaturesKHR swapchain_maintenance1{}; 
+
+    // VK_VERSION_1_2
+    VkPhysicalDeviceDescriptorIndexingFeaturesEXT descriptor_indexing{};
+    VkPhysicalDeviceBufferDeviceAddressFeaturesKHR buffer_device_address{};
+    VkPhysicalDeviceTimelineSemaphoreFeaturesKHR timeline_semaphore{};
     VkPhysicalDeviceAccelerationStructureFeaturesKHR acceleration_structure{};
     // VkPhysicalDeviceRayQueryFeaturesKHR ray_query{};
-
-    // -------------------------------
-#if !defined(ANDROID)
     VkPhysicalDeviceRayTracingPipelineFeaturesKHR ray_tracing_pipeline{};
-#endif
-    // -------------------------------
+
+    // VK_VERSION_1_3
+    VkPhysicalDeviceDynamicRenderingFeaturesKHR dynamic_rendering{};
+    VkPhysicalDeviceSynchronization2FeaturesKHR synchronization2{};
+    VkPhysicalDeviceMaintenance4FeaturesKHR maintenance4{};
+
+    // VK_VERSION_1_4
+    VkPhysicalDeviceIndexTypeUint8FeaturesEXT index_type_uint8{}; //
+    VkPhysicalDeviceMaintenance5FeaturesKHR maintenance5{};
+    VkPhysicalDeviceMaintenance6FeaturesKHR maintenance6{};
+
   } feature_;
 
   VkInstance instance_{};
