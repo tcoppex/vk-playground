@@ -39,6 +39,11 @@ int Application::run(AppData_t app_data) {
     last_frame_time_ = frame_time_;
     frame_time_ = tick;
 
+    if (!wm_->isActive()) {
+      std::this_thread::sleep_for(10ms);
+      continue;
+    }
+
     ui_->beginFrame();
     build_ui();
     ui_->endFrame();
