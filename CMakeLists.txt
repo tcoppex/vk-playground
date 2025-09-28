@@ -1,30 +1,19 @@
-cmake_minimum_required(VERSION 3.21)
-
-# -----------------------------------------------------------------------------
-# CMake policies.
-# -----------------------------------------------------------------------------
-
-# Enable the use of "VERSION" for project setting in older cmake version.
-if(POLICY CMP0048)
-  cmake_policy(SET CMP0048 NEW)
-endif()
-
-# Use <PackageName>_ROOT variables.
-if(POLICY CMP0074)
-  cmake_policy(SET CMP0074 NEW)
-endif()
-
-# Honor CMAKE_REQUIRED_LIBRARIES in the include file check macros.
-if(POLICY CMP0075)
-  cmake_policy(SET CMP0075 NEW)
-endif()
+cmake_minimum_required(VERSION 3.22.1)
 
 # -----------------------------------------------------------------------------
 # Project.
 # -----------------------------------------------------------------------------
 
-set(PROJECT_NAME hello_vk)
-project(${PROJECT_NAME} VERSION 0.1 LANGUAGES CXX C)
+set(PROJECT_NAME vkplayground)
+
+project(${PROJECT_NAME}
+  VERSION
+    1.0
+  LANGUAGES
+    CXX C
+  HOMEPAGE_URL
+    "https://github.com/tcoppex/vk-playground"
+)
 
 # -----------------------------------------------------------------------------
 # Paths.
@@ -32,23 +21,22 @@ project(${PROJECT_NAME} VERSION 0.1 LANGUAGES CXX C)
 
 set(PROJECT_ROOT_PATH               ${CMAKE_CURRENT_SOURCE_DIR})
 
-set(PROJECT_THIRD_PARTY_DIR         ${PROJECT_ROOT_PATH}/third_party)
-set(PROJECT_SOURCE_DIR              ${PROJECT_ROOT_PATH}/src)
-set(PROJECT_BINARY_DIR              ${PROJECT_ROOT_PATH}/bin)
+set(ANDROID_BUILD_DIR               ${PROJECT_ROOT_PATH}/android)
 set(PROJECT_ASSETS_DIR              ${PROJECT_ROOT_PATH}/assets)
+set(SAMPLES_PATH                    ${PROJECT_ROOT_PATH}/samples)
+set(PROJECT_BINARY_DIR              ${PROJECT_ROOT_PATH}/bin)
+set(PROJECT_THIRD_PARTY_DIR         ${PROJECT_ROOT_PATH}/third_party)
+set(DEFAULT_CPM_SOURCE_CACHE        ${PROJECT_THIRD_PARTY_DIR}/.cpmlocalcache)
 
-set(FRAMEWORK_PATH                  ${PROJECT_SOURCE_DIR}/framework)
-set(SAMPLES_PATH                    ${PROJECT_SOURCE_DIR}/samples)
-
-set(FRAMEWORK_SHADERS_DIR           ${FRAMEWORK_PATH}/shaders)
+set(FRAMEWORK_PATH                  ${PROJECT_ROOT_PATH}/framework)
+set(FRAMEWORK_SOURCE_DIR            ${FRAMEWORK_PATH}/src)
+set(FRAMEWORK_INCLUDE_DIR           ${FRAMEWORK_PATH}/src) #!
+set(FRAMEWORK_SHADERS_DIR           ${FRAMEWORK_SOURCE_DIR}/framework/shaders) #!
 set(FRAMEWORK_COMPILED_SHADERS_DIR  ${PROJECT_BINARY_DIR}/spirv)
 
 # -----------------------------------------------------------------------------
 # CMake settings.
 # -----------------------------------------------------------------------------
-
-# CMake module path.
-# list(APPEND CMAKE_MODULE_PATH       ${PROJECT_TOOLS_DIR}/cmake)
 
 # Default CMake behavior.
 set(CMAKE_VERBOSE_MAKEFILE          OFF)
@@ -65,6 +53,39 @@ set(CMAKE_CXX_STANDARD_REQUIRED     ON)
 set(CMAKE_CXX_EXTENSIONS            OFF)
 
 # -----------------------------------------------------------------------------
+# CMake includes
+# -----------------------------------------------------------------------------
+
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
+
+# Vulkan SDK helpers
+include(VulkanSDK)
+
+# Download CPM.cmake
+set(CPM_DOWNLOAD_VERSION 0.40.3)
+set(CPM_DOWNLOAD_LOCATION "${CMAKE_BINARY_DIR}/cmake/CPM_${CPM_DOWNLOAD_VERSION}.cmake")
+
+if(NOT (EXISTS ${CPM_DOWNLOAD_LOCATION}))
+  message(STATUS "Downloading CPM.cmake...")
+  file(DOWNLOAD
+    https://github.com/cpm-cmake/CPM.cmake/releases/download/v${CPM_DOWNLOAD_VERSION}/CPM.cmake
+    ${CPM_DOWNLOAD_LOCATION}
+  )
+endif()
+
+# Set a share cache for CPM if none exist.
+if(NOT DEFINED CPM_SOURCE_CACHE)
+  if(DEFINED ENV{CPM_SOURCE_CACHE})
+    set(CPM_SOURCE_CACHE "$ENV{CPM_SOURCE_CACHE}")
+  else()
+    set(CPM_SOURCE_CACHE ${DEFAULT_CPM_SOURCE_CACHE})
+  endif()
+  set(CPM_SOURCE_CACHE "${CPM_SOURCE_CACHE}" CACHE PATH "CPM cache location")
+endif()
+
+include(${CPM_DOWNLOAD_LOCATION})
+
+# -----------------------------------------------------------------------------
 # Custom functions
 # -----------------------------------------------------------------------------
 
@@ -75,8 +96,8 @@ function(set_global_output_directory OUTPUT_DIR)
   set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${OUTPUT_DIR} CACHE PATH "")
 endfunction()
 
-# Force output directory destination, especially for MSVC (@so7747857).
 function(set_target_output_directory target output_dir)
+  # Force output directory destination, especially for MSVC (@so7747857).
   foreach(type RUNTIME LIBRARY ARCHIVE)
     set_target_properties(${target} PROPERTIES
       ${type}_OUTPUT_DIRECTORY         ${output_dir}
@@ -86,9 +107,7 @@ function(set_target_output_directory target output_dir)
   endforeach()
 endfunction()
 
-set_global_output_directory(${PROJECT_BINARY_DIR})
-
-function(helpers_findLibM)
+function(findLibM)
   # Chuck Atkins @ https://cmake.org/pipermail/cmake/2019-March/069168.html
   include(CheckCSourceCompiles)
   set(LIBM_TEST_SOURCE "#include<math.h>\nint main(){float f = sqrtf(4.0f);}")
@@ -104,38 +123,33 @@ function(helpers_findLibM)
     endif()
     set(LIBM_LIBRARIES m)
   endif()
-endfunction(helpers_findLibM)
+endfunction(findLibM)
 
+# -----------------------------------------------------------------------------
+# Custom macros
+# -----------------------------------------------------------------------------
 
-function(download_asset assets_dir url)
-  file(MAKE_DIRECTORY ${assets_dir})
-  get_filename_component(filename ${url} NAME)
-  set(dest "${assets_dir}/${filename}")
-  if(NOT EXISTS ${dest})
-    message(STATUS "Downloading ${filename}...")
-    file(DOWNLOAD
-      ${url}
-      ${dest}
-      SHOW_PROGRESS
-      STATUS status
-      LOG log
-    )
-    list(GET status 0 status_code)
-    if(NOT status_code EQUAL 0)
-      message(FATAL_ERROR "Failed to download ${url}: ${log}")
-    endif()
-  else()
-    message(STATUS "${filename} already exists, skipping download")
-  endif()
-endfunction()
-
-function(download_model url)
-  download_asset(${PROJECT_ASSETS_DIR}/models/ ${url})
-endfunction()
-
-function(download_texture url)
-  download_asset(${PROJECT_ASSETS_DIR}/textures/ ${url})
-endfunction()
+## {MACRO} Setup the default parameters for a target.
+##   @TARGET        : Unique name referencing the library as dependency.
+##   @INCLUDE_DIRS  : List of path for include files.
+##   @LIBRARIES     : List of libraries to link against.
+##   @DEFINITIONS   : List of definitions.
+macro(helpers_setupTarget)
+  set(oneValueArgs TARGET)
+  set(multiValueArgs INCLUDE_DIRECTORIES LIBRARIES DEFINITIONS)
+  cmake_parse_arguments(ARG "" "${oneValueArgs}" "${multiValueArgs}" "${ARGN}")
+  target_compile_options(${ARG_TARGET}
+    PRIVATE
+      "${CXX_FLAGS}"
+      "$<$<CONFIG:Debug>:${CXX_FLAGS_DEBUG}>"
+      "$<$<CONFIG:Release>:${CXX_FLAGS_RELEASE}>"
+      "$<$<CONFIG:DebugWithRelInfo>:${CXX_FLAGS_RELWITHDEBINFO}>"
+  )
+  target_include_directories(${ARG_TARGET} PRIVATE "${ARG_INCLUDE_DIRECTORIES}")
+  target_link_libraries(${ARG_TARGET} PRIVATE "${ARG_LIBRARIES}")
+  target_compile_definitions(${ARG_TARGET} PRIVATE "${ARG_DEFINITIONS}")
+  set_target_properties(${ARG_TARGET} PROPERTIES LINK_FLAGS "${CXX_LINK_FLAGS}")
+endmacro()
 
 # -----------------------------------------------------------------------------
 # Internal configuration attributes.
@@ -163,6 +177,35 @@ else()
   message(WARNING "The \"${CMAKE_SYSTEM_NAME}\" platform is not supported.")
 endif()
 
+message(STATUS "Configured for system \"${OS_NAME}\".")
+
+# Customize based on platform.
+if(ANDROID)
+  if (${ANDROID_PLATFORM_LEVEL} LESS 29)
+    message(FATAL_ERROR "Android is not supported before API level 29.")
+  endif()
+
+  # Capture renamed definitions.
+  if(NOT DEFINED ANDROID_ABI)
+    set(ANDROID_ABI ${CMAKE_ANDROID_ARCH_ABI})
+  endif()
+  if(NOT DEFINED ANDROID_NDK)
+    set(ANDROID_NDK ${CMAKE_ANDROID_NDK})
+  endif()
+
+  # Setup clang tidy.
+  if(DEBUG)
+    # message(STATUS "clang-tidy enabled.")
+    # set(CLANG_TIDY_PATH
+    #   "${ANDROID_TOOLCHAIN_ROOT}/bin/clang-tidy${ANDROID_TOOLCHAIN_SUFFIX}"
+    # )
+    # set(CMAKE_CXX_CLANG_TIDY ${CLANG_TIDY_PATH} "-checks=android-*")
+  endif()
+else()
+  # On Desktop we force all outputs to the binary directory.
+  set_global_output_directory(${PROJECT_BINARY_DIR})
+endif()
+
 # Detects the current compiler.
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
   set(USE_GCC TRUE)
@@ -171,7 +214,7 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "(Apple)?[Cc]lang")
 elseif(MSVC)
   set(USE_MSVC TRUE)
 else()
-  message(WARNING "The \"${CMAKE_CXX_COMPILER_ID}\" compiler is not supported.")
+  message(WARNING "The \"${CMAKE_CXX_COMPILER_ID}\" compiler is not officially supported.")
 endif()
 
 # -----------------------------------------------------------------------------
@@ -189,12 +232,9 @@ if(USE_GCC OR USE_CLANG)
     -Woverloaded-virtual
     -Wmisleading-indentation
     -Wduplicated-cond
-    # -Wdouble-promotion
-    # -Wuseless-cast
     -Wcast-align
     -Wlogical-op
     -Wnull-dereference
-    # -Wzero-as-null-pointer-constant
     -Wdisabled-optimization
     -Wvector-operation-performance
     -Wformat=2 -Wformat-truncation -Wformat-overflow
@@ -203,25 +243,29 @@ if(USE_GCC OR USE_CLANG)
     -Wno-unused-parameter
     -Wno-missing-field-initializers
     -Wno-invalid-offsetof
-    # -Wundef
   )
 
-  # To avoid warnings about the previous mismatched GCC / Clang options.
+  # Clang specific warnings.
   if(USE_CLANG)
-    list(APPEND CXX_FLAGS -Wno-unknown-warning-option)
+    list(APPEND CXX_FLAGS
+      -Wno-unknown-warning-option
+      -Wno-nullability-extension
+      -Wno-unused-lambda-capture
+      -Wno-missing-braces
+    )
   endif()
 
   # Features.
   list(APPEND CXX_FLAGS
-    -fdiagnostics-color
+    -fdiagnostics-color=always
+    -ffunction-sections
+    -fdata-sections
+    -funroll-loops
+    -fno-common
     # -fno-strict-aliasing
     # -fno-builtin-memcmp
-    # -fno-common
     # -fno-exceptions
-    # -ffunction-sections
-    # -fdata-sections
     # -ftree-loop-distribution
-    # -funroll-loops
   )
 
   list(APPEND CXX_FLAGS_DEBUG           -O0 -g3)
@@ -231,7 +275,35 @@ if(USE_GCC OR USE_CLANG)
   # Linker flags.
   list(APPEND CustomLinkFlags
     -Wl,--build-id
-    # -Wl,--gc-sections
+    -Wl,--gc-sections
+  )
+elseif(USE_MSVC)
+  list(APPEND CXX_FLAGS
+    # /permissive-
+    # /GR-         # disable RTTI
+    # /EHsc-       # no exception
+    # /W4           # Warning level 4 (strict warnings, less noisy than /Wall)
+    /MP           # build with multiple process.
+    /w14640       # Warn about thread-unsafe static member initialization
+    /w14928       # Warn about illegal copy-initialization
+    /w14265       # class has virtual functions but non-virtual destructor
+    /w14555       # Warn about expressions with no effect/side-effect
+    /wd4100       # Disable: "unused parameter" warnings
+    /utf-8
+  )
+  list(APPEND CXX_FLAGS_DEBUG           /Zi)
+  list(APPEND CXX_FLAGS_RELEASE         /Ox /INCREMENTAL:NO /DEBUG:NONE /DNDEBUG)
+  # list(APPEND CXX_FLAGS_RELWITHDEBINFO  ${CXX_FLAGS_RELEASE} /Ox /Zi)
+
+  list(APPEND CustomDefinitions
+    # _HAS_EXCEPTIONS=0
+    NOMINMAX
+    WIN32
+    _WINDOWS
+    _CRT_SECURE_NO_WARNINGS
+    _USE_MATH_DEFINES=1
+    VC_EXTRALEAN
+    WIN32_LEAN_AND_MEAN
   )
 endif()
 
@@ -241,155 +313,8 @@ foreach(flag ${CustomLinkFlags})
 endforeach()
 
 # -----------------------------------------------------------------------------
-# CMake includes
-# -----------------------------------------------------------------------------
 
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
-
-# Vulkan SDK helpers
-include(VulkanSDK)
-
-# Download CPM.cmake
-set(CPM_DOWNLOAD_VERSION 0.40.3)
-set(CPM_DOWNLOAD_LOCATION "${CMAKE_BINARY_DIR}/cmake/CPM_${CPM_DOWNLOAD_VERSION}.cmake")
-if(NOT (EXISTS ${CPM_DOWNLOAD_LOCATION}))
-  message(STATUS "Downloading CPM.cmake...")
-  file(DOWNLOAD https://github.com/cpm-cmake/CPM.cmake/releases/download/v${CPM_DOWNLOAD_VERSION}/CPM.cmake ${CPM_DOWNLOAD_LOCATION})
-endif()
-
-include(${CPM_DOWNLOAD_LOCATION})
-
-# -----------------------------------------------------------------------------
-# Dependencies
-# -----------------------------------------------------------------------------
-
-find_package(Vulkan 1.1 REQUIRED)
-
-# Include GLFW
-CPMAddPackage(
-  NAME glfw
-  GITHUB_REPOSITORY glfw/glfw
-  GIT_TAG 3.4
-  OPTIONS
-    "GLFW_BUILD_DOCS OFF"
-    "GLFW_BUILD_EXAMPLES OFF"
-    "GLFW_BUILD_TESTS OFF"
-    "GLFW_BUILD_WAYLAND OFF"
-    "GLFW_INSTALL OFF"
-)
-set(GLFW_INCLUDE_DIR ${glfw_SOURCE_DIR}/include)
-
-# Include CGLTF
-CPMAddPackage(
-  NAME cgltf
-  GITHUB_REPOSITORY jkuhlmann/cgltf
-  GIT_TAG v1.14
-)
-set(CGLTF_INCLUDE_DIR ${cgltf_SOURCE_DIR})
-
-
-# Include Draco
-# see https://github.com/google/draco/blob/1.5.7/BUILDING.md#cmake-build-configuration
-option(FRAMEWORK_HAS_DRACO OFF)
-
-if(FRAMEWORK_HAS_DRACO)
-  CPMAddPackage(
-    NAME Draco
-    GITHUB_REPOSITORY google/draco
-    GIT_TAG 1.5.7
-    OPTIONS
-      "DRACO_TRANSCODER_SUPPORTED OFF"
-  )
-  set(DRACO_INCLUDE_DIR  ${Draco_SOURCE_DIR})
-
-  list(APPEND SharedIncludeDirs ${DRACO_INCLUDE_DIR})
-  list(APPEND SharedLibs draco)
-endif()
-
-# Include Volk
-CPMAddPackage(
-  NAME volk
-  GITHUB_REPOSITORY zeux/volk
-  GIT_TAG 1.4.304
-)
-set(VOLK_INCLUDE_DIR ${volk_SOURCE_DIR})
-
-# Include VMA
-CPMAddPackage(
-  NAME VulkanMemoryAllocator
-  GITHUB_REPOSITORY GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator
-  GIT_TAG v3.2.0
-)
-set(VMA_INCLUDE_DIR  ${VulkanMemoryAllocator_SOURCE_DIR}/include)
-
-#include ImGui
-CPMAddPackage(
-  NAME imgui
-  GITHUB_REPOSITORY ocornut/imgui
-  GIT_TAG docking
-)
-set(IMGUI_SOURCES
-  ${imgui_SOURCE_DIR}/imgui.cpp
-  ${imgui_SOURCE_DIR}/imgui.h
-  ${imgui_SOURCE_DIR}/imgui_demo.cpp
-  ${imgui_SOURCE_DIR}/imgui_draw.cpp
-  ${imgui_SOURCE_DIR}/imgui_tables.cpp
-  ${imgui_SOURCE_DIR}/imgui_widgets.cpp
-  ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.cpp
-  ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.h
-  ${imgui_SOURCE_DIR}/backends/imgui_impl_vulkan.cpp
-  ${imgui_SOURCE_DIR}/backends/imgui_impl_vulkan.h
-)
-source_group("Imgui" FILES ${IMGUI_SOURCES})
-
-# Include linalg
-CPMAddPackage(
-  NAME linalg
-  GITHUB_REPOSITORY sgorsten/linalg
-  GIT_TAG v2.2
-  DOWNLOAD_ONLY YES
-)
-set(LINALG_INCLUDE_DIR ${linalg_SOURCE_DIR})
-
-# Include MikkTSpace
-CPMAddPackage(
-  NAME MikkTSpace
-  GITHUB_REPOSITORY mmikk/MikkTSpace
-  GIT_TAG 3e895b49d05ea07e4c2133156cfa94369e19e409
-)
-set(MikkTSpace mikktspace)
-add_library(
-  ${MikkTSpace}
-  STATIC
-  ${MikkTSpace_SOURCE_DIR}/mikktspace.c
-  ${MikkTSpace_SOURCE_DIR}/mikktspace.h
-)
-
-# Sometimes we need to link libm.
-helpers_findLibM()
-
-list(APPEND SharedLibs
-  ${LIBM_LIBRARIES}
-  volk
-  glfw
-)
-
-list(APPEND SharedIncludeDirs
-  ${FRAMEWORK_SHADERS_DIR} #!
-
-  ${GLFW_INCLUDE_DIR}
-  ${CGLTF_INCLUDE_DIR}
-  ${LINALG_INCLUDE_DIR}
-  ${PROJECT_SOURCE_DIR}
-  ${PROJECT_THIRD_PARTY_DIR}
-  ${VMA_INCLUDE_DIR}
-  ${VOLK_INCLUDE_DIR}
-  ${Vulkan_INCLUDE_DIR}
-  ${imgui_SOURCE_DIR}
-)
-
-# -----------------------------------------------------------------------------
-
+add_subdirectory(${PROJECT_ASSETS_DIR})
 add_subdirectory(${FRAMEWORK_PATH})
 add_subdirectory(${SAMPLES_PATH})
 

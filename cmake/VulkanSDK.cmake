@@ -7,7 +7,7 @@
 
 # -----------------------------------------------------------------------------
 
-## Search the GLSL Compiler binary
+## Search for the GLSL Compiler binary.
 if (WIN32)
   if (CMAKE_CL_64)
     find_program(GLSLC glslc
@@ -58,7 +58,29 @@ function(glsl2spirv input_glsl output_spirv shader_dir deps extra_args)
   endif()
 
   get_filename_component(output_dir ${output_spirv} DIRECTORY)
-  file(MAKE_DIRECTORY ${output_dir})
+
+  # ----------------------------
+
+  # Destroy the output directory on clean if it was not created by the user
+  # beforehand.
+
+  string(MAKE_C_IDENTIFIER "${output_dir}" output_dir_id)
+  set(var_name "${output_dir_id}_CREATED_BY_CMAKE")
+
+  if(NOT DEFINED ${var_name})
+    set(${var_name} OFF CACHE INTERNAL "Did CMake create ${output_dir}?")
+  endif()
+
+  if(NOT IS_DIRECTORY "${output_dir}")
+    file(MAKE_DIRECTORY "${output_dir}")
+    set(${var_name} ON CACHE INTERNAL "Did CMake create ${output_dir}?")
+  endif()
+
+  if(${var_name})
+    set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_CLEAN_FILES "${output_dir}")
+  endif()
+
+  # ----------------------------
 
   if(NOT stage OR stage STREQUAL "")
     set(command "")
@@ -84,18 +106,17 @@ function(glsl2spirv input_glsl output_spirv shader_dir deps extra_args)
       ${input_glsl}
   )
 
-# Forcing compilation can be tricky.
-# To always recompile, use 
-# add_custom_target( gen_${fn} ALL ..
-# otherwise, set the output files as dependencies.
+  # Forcing compilation can be tricky.
+  # To always recompile, use
+  # add_custom_target( gen_${fn} ALL ..
+  # otherwise, set the output files as dependencies.
 endfunction(glsl2spirv)
 
 # -----------------------------------------------------------------------------
 
-# Compile all shader from one directory to another
+## Compile all shader from one directory to another.
 function(compile_shaders GLOBAL_GLSL_DIR GLOBAL_SPIRV_DIR binaries sources extra_dir)
-
-  # retrieve all SOURCE glsl shaders
+  # Retrieve all SOURCE glsl shaders
   file(GLOB_RECURSE g_ShadersGLSL ${GLOBAL_GLSL_DIR}/*.*)
 
   # Only keep shaders of the form "filename.stage.glsl"
@@ -107,7 +128,6 @@ function(compile_shaders GLOBAL_GLSL_DIR GLOBAL_SPIRV_DIR binaries sources extra
     REGEX
     ".+\\..+\\.glsl$|${RaytraceShadersREGEX}"
   )
-
 
   file(GLOB_RECURSE ShadersDependencies
     ${GLOBAL_GLSL_DIR}/../interop.h ##
@@ -127,7 +147,7 @@ function(compile_shaders GLOBAL_GLSL_DIR GLOBAL_SPIRV_DIR binaries sources extra
   list(APPEND ShadersDependencies ${ShadersDependencies_bis})
 
 
-  # transform shader path to relative
+  # Transform shader path to relative
   foreach(glslshader IN LISTS g_ShadersGLSL)
     file(RELATIVE_PATH glslshader 
       ${GLOBAL_GLSL_DIR}

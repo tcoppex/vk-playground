@@ -1,0 +1,75 @@
+// ----------------------------------------------------------------------------
+//
+//  Framework Package Library (*.AAR)
+//
+// ----------------------------------------------------------------------------
+
+plugins {
+  id 'com.android.library'
+}
+
+// ----------------------------------------------------------------------------
+
+def appName = "vkframework" //projectDir.name
+def packageName = "${rootProject.ext.orgPrefix}.${appName}"
+
+// ----------------------------------------------------------------------------
+
+base {
+  archivesName = appName
+}
+
+android {
+  namespace = packageName
+
+  ndkVersion = "29.0.14033849"
+  compileSdk = 36
+
+  defaultConfig {
+    minSdk = 29
+    targetSdk = 32
+    versionCode = 1
+
+    versionName = "1.0"
+
+    buildFeatures {
+      prefab = true
+    }
+
+    externalNativeBuild {
+      ndk {
+        abiFilters("arm64-v8a")
+      }
+      cmake {
+        targets("${appName}_android")
+      }
+    }
+  }
+
+  externalNativeBuild {
+    cmake {
+      path(file("${rootProject.ext.rootPath}/CMakeLists.txt"))
+    }
+  }
+
+  sourceSets {
+    main {
+      assets.srcDirs = [ rootProject.ext.frameworkSpirvDirs ]
+      res.srcDirs += ["${rootDir}/shared_res"]
+    }
+  }
+
+  buildTypes {
+    release {
+      minifyEnabled false
+    }
+  }
+}
+
+// ----------------------------------------------------------------------------
+
+dependencies {
+  // implementation 'org.khronos.openxr:openxr_loader_for_android:1.1.46'
+}
+
+// ----------------------------------------------------------------------------
