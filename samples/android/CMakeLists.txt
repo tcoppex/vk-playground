@@ -4,7 +4,7 @@
 # 
 # -----------------------------------------------------------------------------
 
-set(SAMPLES_PACKAGE_NAME  com.polysfaer.vkframework.samples)
+set(SAMPLES_PACKAGE_NAME  cc.polysfaer.vkframework.samples)
 
 set(LOGGER_ANDROID_TAG    VkFramework) #!
 
