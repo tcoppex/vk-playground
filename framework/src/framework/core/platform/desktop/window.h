@@ -36,6 +36,8 @@ class Window : public WMInterface {
     return window_;
   }
 
+  bool isActive() const noexcept final;
+
  public:
   std::vector<char const*> getVulkanInstanceExtensions() const noexcept final;
 

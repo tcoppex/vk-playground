@@ -190,6 +190,12 @@ void Window::close() noexcept {
 
 // ----------------------------------------------------------------------------
 
+bool Window::isActive() const noexcept {
+  return glfwGetWindowAttrib(window_, GLFW_ICONIFIED) == GLFW_FALSE;
+}
+
+// ----------------------------------------------------------------------------
+
 std::vector<char const*> Window::getVulkanInstanceExtensions() const noexcept {
   uint32_t extension_count;
   auto extensions = glfwGetRequiredInstanceExtensions(&extension_count);
