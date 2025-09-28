@@ -34,14 +34,6 @@ set(FRAMEWORK_INCLUDE_DIR           ${FRAMEWORK_PATH}/src) #!
 set(FRAMEWORK_SHADERS_DIR           ${FRAMEWORK_SOURCE_DIR}/framework/shaders) #!
 set(FRAMEWORK_COMPILED_SHADERS_DIR  ${PROJECT_BINARY_DIR}/spirv)
 
-# (important)
-# Currently the framework spirv directory is also used by the Android gradle build
-# to migrate them to samples APK assets directory, so we need to specify a distinct
-# subdir for them not to be in conflict with others assets (shaders or otherwhise).
-# [better alternative: build the framework as an AAR library]
-set(FRAMEWORK_SPIRV_ASSETS_SUBDIR   framework_shaders)
-set(FRAMEWORK_COMPILED_SHADERS_DIR  ${FRAMEWORK_COMPILED_SHADERS_DIR}/${FRAMEWORK_SPIRV_ASSETS_SUBDIR})
-
 # -----------------------------------------------------------------------------
 # CMake settings.
 # -----------------------------------------------------------------------------
