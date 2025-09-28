@@ -198,27 +198,31 @@ class Logger : public Singleton<Logger> {
 #define LOGE(...) Logger::Get().error  ( __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
 #endif
 
-#define LOG_LINE()      LOGD("{} {}", __FUNCTION__, __LINE__)
+// ----------------------------------------------------------------------------
+// Special aliases.
+
 #define LOG_FATAL(...)  LOGE(__VA_ARGS__); exit(-1)
+#define LOG_LINE()      LOGD("{} {}", __FUNCTION__, __LINE__)
+#define LOG_CHECK(x)    assert(x)
 
 // ----------------------------------------------------------------------------
+// Disable Debug log on release.
 
-#ifdef NDEBUG
-
-#undef LOGV
-#define LOGV(...)
-
+#if defined(NDEBUG)
 #undef LOGD
 #define LOGD(...)
 
 #undef LOG_LINE
 #define LOG_LINE()
-
 #endif
 
-/* -------------------------------------------------------------------------- */
+// ----------------------------------------------------------------------------
+// Undef verbose log when not asked for.
 
-#define LOG_CHECK(x) assert(x)
+#if defined(NDEBUG) || !defined(VERBOSE_LOG)
+#undef LOGV
+#define LOGV(...)
+#endif
 
 /* -------------------------------------------------------------------------- */
 
