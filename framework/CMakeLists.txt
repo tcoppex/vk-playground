@@ -226,7 +226,7 @@ if(TRUE)
   CPMAddPackage(
     NAME imgui
     GITHUB_REPOSITORY ocornut/imgui
-    GIT_TAG docking
+    GIT_TAG v1.92.3-docking # updating this version will break
   )
 
   if(ANDROID)
