@@ -35,18 +35,28 @@ int Application::run(AppData_t app_data) {
 
   LOGD("--- Mainloop ---");
   while (next_frame(app_data)) {
+    // Update time.
     auto const tick = elapsed_time();
     last_frame_time_ = frame_time_;
     frame_time_ = tick;
 
+    // If the window is not shown, sleep the thread and skip frame.
     if (!wm_->isActive()) {
+      LOGV("sleepy thread ¤¤");
       std::this_thread::sleep_for(10ms);
       continue;
     }
 
+    // Update UI.
     ui_->beginFrame();
     build_ui();
     ui_->endFrame();
+
+    // Check swapchain state and rebuild as needed [should not happens here tho].
+    if (!swapchain_.isValid()) {
+      LOGV("The swapchain is invalid.");
+      reset_swapchain();
+    }
 
     update(delta_time());
     draw();
@@ -112,10 +122,7 @@ bool Application::presetup(AppData_t app_data) {
         .height = h,
       };
       LOGV("> AppResize (w: {}, h: {})", viewport_size_.width, viewport_size_.height);
-
       reset_swapchain();
-
-      // Signal the Renderer.
       renderer_.resize(viewport_size_.width, viewport_size_.height);
     };
     default_callbacks_ = std::make_unique<DefaultAppEventCallbacks>(on_resize);
@@ -127,7 +134,7 @@ bool Application::presetup(AppData_t app_data) {
       .width = wm_->get_surface_width(),
       .height = wm_->get_surface_height(),
     };
-    LOGD("> (w: {}, h: {})", viewport_size_.width, viewport_size_.height);
+    // LOGD("> (w: {}, h: {})", viewport_size_.width, viewport_size_.height);
     // ---------------------------------------------
 
     // Time tracker.
@@ -169,41 +176,46 @@ bool Application::next_frame(AppData_t app_data) {
 // ----------------------------------------------------------------------------
 
 bool Application::reset_swapchain() {
-  LOGD("[Reset Swapchain]");
+  LOGD("[Reset the Swapchain]");
+  
+  context_.device_wait_idle();
 
   auto surface_creation = VK_SUCCESS;
 
-  // Release previous swapchain if any, and create the surface when needed.
+  /* Release previous swapchain if any, and create the surface when needed. */
   if (VK_NULL_HANDLE == surface_) [[unlikely]] {
+    // Initial surface creation.
     surface_creation = CHECK_VK(
       wm_->createWindowSurface(context_.instance(), &surface_)
     );
   } else {
 #if defined(ANDROID)
+    // On Android we use a new window, so we recreate everything.
     context_.destroy_surface(surface_);
     swapchain_.deinit();
     surface_creation = CHECK_VK(
       wm_->createWindowSurface(context_.instance(), &surface_)
     );
 #else
+    // On Desktop we can recreate a new swapchain from the old one.
     swapchain_.deinit(true);
 #endif
   }
+  auto const surface_created{ VK_SUCCESS == surface_creation };
 
   // Recreate the Swapchain.
-  if (VK_SUCCESS == surface_creation) {
+  if (surface_created) {
     swapchain_.init(context_, surface_);
-    return true;
   }
-  return false;
+  return surface_created;
 }
 
 // ----------------------------------------------------------------------------
 
 void Application::shutdown() {
   LOGD("--- Shutdown ---");
-  context_.device_wait_idle();
 
+  context_.device_wait_idle();
   release();
 
   if (ui_) {

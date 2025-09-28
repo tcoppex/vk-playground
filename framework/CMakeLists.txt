@@ -128,13 +128,11 @@ CPMAddPackage(
   NAME VulkanHeaders
   GITHUB_REPOSITORY KhronosGroup/Vulkan-Headers
   GIT_TAG ${VULKAN_SDK_TAG}
-  # DOWNLOAD_ONLY YES
 )
 CPMAddPackage(
   NAME VulkanUtilityLibraries
   GITHUB_REPOSITORY KhronosGroup/Vulkan-Utility-Libraries
   GIT_TAG ${VULKAN_SDK_TAG}
-  # DOWNLOAD_ONLY YES
 )
 CPMAddPackage(
   NAME volk

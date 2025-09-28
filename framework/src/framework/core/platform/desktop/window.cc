@@ -130,7 +130,7 @@ bool Window::init(AppData_t app_data) {
     dpi_scale_ = xscale;
 
     GLFWvidmode const* mode = glfwGetVideoMode(monitor);
-    surface_w_  = static_cast<uint32_t>(WINDOW_SIZE_FACTOR * dpi_scale_ * mode->width);
+    surface_w_ = static_cast<uint32_t>(WINDOW_SIZE_FACTOR * dpi_scale_ * mode->width);
     surface_h_ = static_cast<uint32_t>(WINDOW_SIZE_FACTOR * dpi_scale_ * mode->height);
   }
 
