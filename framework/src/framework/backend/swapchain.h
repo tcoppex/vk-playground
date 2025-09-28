@@ -25,9 +25,14 @@ class Swapchain {
 
   void deinit(bool keep_previous_swapchain = false);
 
-  void acquire_next_image();
+  bool acquire_next_image();
 
-  void present_and_swap(VkQueue const queue);
+  bool present_and_swap(VkQueue const queue);
+
+  [[nodiscard]]
+  bool isValid() const noexcept {
+    return need_rebuild_ == false;
+  }
 
   [[nodiscard]]
   VkExtent2D surface_size() const noexcept {
@@ -51,17 +56,22 @@ class Swapchain {
 
   [[nodiscard]]
   backend::Image const& current_swap_image() const noexcept {
-    return swap_images_[current_swap_index()];
+    return swap_images_[acquired_image_index_];
   }
 
   [[nodiscard]]
-  SwapSynchronizer_t const& current_synchronizer() const noexcept {
-    return swap_syncs_[current_swap_index()];
+  VkSemaphore wait_image_semaphore() const noexcept {
+    return swap_syncs_[swap_index_].wait_image_semaphore;
   }
 
   [[nodiscard]]
-  uint32_t const& current_swap_index() const noexcept {
-    return current_swap_index_;
+  VkSemaphore signal_present_semaphore() const noexcept {
+    return swap_syncs_[acquired_image_index_].signal_present_semaphore;
+  }
+
+  [[nodiscard]]
+  uint32_t swap_index() const noexcept {
+    return swap_index_;
   }
 
  private:
@@ -82,9 +92,9 @@ class Swapchain {
   std::vector<backend::Image> swap_images_{};
   std::vector<SwapSynchronizer_t> swap_syncs_{};
 
-  uint32_t image_count_{};
-  uint32_t current_swap_index_{};
-  uint32_t next_swap_index_{};
+  uint32_t image_count_{};  // max frames in flight
+  uint32_t swap_index_{};
+  uint32_t acquired_image_index_{};
 
   bool need_rebuild_ = true;
 };

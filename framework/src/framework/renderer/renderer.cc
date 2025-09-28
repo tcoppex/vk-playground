@@ -156,7 +156,9 @@ CommandEncoder Renderer::begin_frame() {
   };
   vkWaitSemaphores(device_, &semaphore_wait_info, UINT64_MAX);
 
-  swapchain_ptr_->acquire_next_image();
+  if (!swapchain_ptr_->acquire_next_image()) {
+    LOGV("}: Invalid swapchain, should skip current frame.", __FUNCTION__);
+  }
 
   // Reset the frame command pool to record new command for this frame.
   CHECK_VK( vkResetCommandPool(device_, frame.command_pool, 0u) );
@@ -184,10 +186,13 @@ void Renderer::end_frame() {
   cmd_.end();
   //------------
 
+  if (!swapchain_ptr_->isValid()) {
+    LOGV("{}: Invalid swapchain, skip that frame.", __FUNCTION__);
+    return; 
+  }
+
   // Next frame index to start when this one completed.
   frame.signal_index += swapchain_ptr_->image_count();
-
-  auto const& synchronizer = swapchain_ptr_->current_synchronizer();
 
   VkPipelineStageFlags2 const stage_mask{
     VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
@@ -198,7 +203,7 @@ void Renderer::end_frame() {
   std::vector<VkSemaphoreSubmitInfo> const wait_semaphores{
     {
       .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
-      .semaphore = synchronizer.wait_image_semaphore,
+      .semaphore = swapchain_ptr_->wait_image_semaphore(),
       .stageMask = stage_mask,
     },
   };
@@ -217,7 +222,7 @@ void Renderer::end_frame() {
   std::vector<VkSemaphoreSubmitInfo> const signal_semaphores{
     {
       .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
-      .semaphore = synchronizer.signal_present_semaphore,
+      .semaphore = swapchain_ptr_->signal_present_semaphore(),
       .stageMask = stage_mask,
     },
     {
@@ -243,7 +248,7 @@ void Renderer::end_frame() {
 
   /* Display and swap buffers. */
   swapchain_ptr_->present_and_swap(queue); //
-  timeline_.frame_index = swapchain_ptr_->current_swap_index();
+  timeline_.frame_index = swapchain_ptr_->swap_index();
 }
 
 // ----------------------------------------------------------------------------

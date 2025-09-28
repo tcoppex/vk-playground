@@ -102,6 +102,7 @@ void Swapchain::init(Context const& context, VkSurfaceKHR surface) {
   CHECK_VK(vkCreateSwapchainKHR(
     device_, &swapchain_create_info_, nullptr, &swapchain_
   ));
+  context.set_debug_object_name(swapchain_, "Swapchain");
 
   /* Create the swapchain resources (Views + Semaphores). */
   std::vector<VkImage> images(image_count_);
@@ -109,15 +110,20 @@ void Swapchain::init(Context const& context, VkSurfaceKHR surface) {
     device_, swapchain_, &image_count_, images.data()
   ));
 
+  // Resizing everything to the exact in flight image count.
+  images.resize(image_count_);
+  swap_images_.resize(image_count_);
+  swap_syncs_.resize(image_count_);
+
   VkImageViewCreateInfo image_view_create_info{
     .sType      = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
     .viewType   = VK_IMAGE_VIEW_TYPE_2D,
     .format     = swapchain_create_info_.imageFormat,
     .components = {
-      .r = VK_COMPONENT_SWIZZLE_R,
-      .g = VK_COMPONENT_SWIZZLE_G,
-      .b = VK_COMPONENT_SWIZZLE_B,
-      .a = VK_COMPONENT_SWIZZLE_A,
+      .r = VK_COMPONENT_SWIZZLE_IDENTITY,
+      .g = VK_COMPONENT_SWIZZLE_IDENTITY,
+      .b = VK_COMPONENT_SWIZZLE_IDENTITY,
+      .a = VK_COMPONENT_SWIZZLE_IDENTITY,
     },
     .subresourceRange = {
       .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
@@ -127,22 +133,18 @@ void Swapchain::init(Context const& context, VkSurfaceKHR surface) {
       .layerCount     = 1u,
     },
   };
-
-  swap_images_.resize(image_count_);
-  swap_syncs_.resize(image_count_);
+  VkSemaphoreCreateInfo const semaphore_create_info{
+    .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO
+  };
 
   for (uint32_t i = 0u; i < image_count_; ++i) {
     auto &buffer = swap_images_[i];
-    auto &sync = swap_syncs_[i];
-
     buffer.image = images[i];
     buffer.format = swapchain_create_info_.imageFormat;
     image_view_create_info.image = buffer.image;
     CHECK_VK(vkCreateImageView(device_, &image_view_create_info, nullptr, &buffer.view));
 
-    VkSemaphoreCreateInfo const semaphore_create_info{
-      .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO
-    };
+    auto &sync = swap_syncs_[i];
     CHECK_VK(vkCreateSemaphore(device_, &semaphore_create_info, nullptr, &sync.wait_image_semaphore));
     CHECK_VK(vkCreateSemaphore(device_, &semaphore_create_info, nullptr, &sync.signal_present_semaphore));
 
@@ -175,16 +177,6 @@ void Swapchain::deinit(bool keep_previous_swapchain) {
     keep_previous_swapchain ? "" : " don't"
   );
 
-  if (swapchain_create_info_.oldSwapchain != VK_NULL_HANDLE) [[likely]] {
-    vkDestroySwapchainKHR(device_, swapchain_create_info_.oldSwapchain, nullptr);
-    swapchain_create_info_.oldSwapchain = VK_NULL_HANDLE;
-  }
-
-  if (!keep_previous_swapchain) [[unlikely]] {
-    vkDestroySwapchainKHR(device_, swapchain_, nullptr);
-    swapchain_ = VK_NULL_HANDLE;
-  }
-
   for (auto& buffer : swap_images_) {
     vkDestroyImageView(device_, buffer.view, nullptr);
   }
@@ -196,44 +188,61 @@ void Swapchain::deinit(bool keep_previous_swapchain) {
   }
   swap_syncs_.clear();
 
+  if (swapchain_create_info_.oldSwapchain != VK_NULL_HANDLE) [[likely]] {
+    vkDestroySwapchainKHR(device_, swapchain_create_info_.oldSwapchain, nullptr);
+    swapchain_create_info_.oldSwapchain = VK_NULL_HANDLE;
+  }
+
+  if (!keep_previous_swapchain) [[unlikely]] {
+    vkDestroySwapchainKHR(device_, swapchain_, nullptr);
+    swapchain_ = VK_NULL_HANDLE;
+  }
+
   need_rebuild_ = true;
 }
 
 // ----------------------------------------------------------------------------
 
-void Swapchain::acquire_next_image() {
+bool Swapchain::acquire_next_image() {
   LOG_CHECK(swapchain_ != VK_NULL_HANDLE);
-
-  auto const& semaphore = current_synchronizer().wait_image_semaphore;
 
   constexpr uint64_t kFiniteAcquireTimeout = 1'000'000'000ull; // 1s
   auto const acquire_result = vkAcquireNextImageKHR(
-    device_, swapchain_, kFiniteAcquireTimeout, semaphore, VK_NULL_HANDLE, &next_swap_index_
+    device_,
+    swapchain_, 
+    kFiniteAcquireTimeout,
+    wait_image_semaphore(), 
+    VK_NULL_HANDLE, 
+    &acquired_image_index_
   );
   need_rebuild_ = IsSwapchainInvalid(acquire_result, __FUNCTION__);
+
+  return isValid();
 }
 
 // ----------------------------------------------------------------------------
 
-void Swapchain::present_and_swap(VkQueue const queue) {
+bool Swapchain::present_and_swap(VkQueue const queue) {
   LOG_CHECK(swapchain_ != VK_NULL_HANDLE);
 
-  auto const& semaphore = current_synchronizer().signal_present_semaphore;
+  auto present_semaphore = signal_present_semaphore();
 
   VkPresentInfoKHR const present_info{
     .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
     .pNext = nullptr,
     .waitSemaphoreCount = 1u,
-    .pWaitSemaphores = &semaphore,
+    .pWaitSemaphores = &present_semaphore,
     .swapchainCount = 1u,
     .pSwapchains = &swapchain_,
-    .pImageIndices = &next_swap_index_,
+    .pImageIndices = &acquired_image_index_,
     .pResults = nullptr,
   };
   auto const present_result = vkQueuePresentKHR(queue, &present_info);
   need_rebuild_ = IsSwapchainInvalid(present_result, __FUNCTION__);
 
-  current_swap_index_ = (current_swap_index_ + 1u) % image_count_;
+  swap_index_ = (swap_index_ + 1u) % image_count_;
+
+  return isValid();
 }
 
 // ----------------------------------------------------------------------------

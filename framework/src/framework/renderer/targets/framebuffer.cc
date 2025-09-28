@@ -170,7 +170,7 @@ void Framebuffer::setup(Descriptor_t const& desc) {
 // ----------------------------------------------------------------------------
 
 uint32_t Framebuffer::get_swap_index() const {
-  return desc_.match_swapchain_output_count ? swapchain_ptr_->current_swap_index()
+  return desc_.match_swapchain_output_count ? swapchain_ptr_->swap_index()
                                             : 0u
                                             ;
 }
