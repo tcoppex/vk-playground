@@ -128,25 +128,31 @@ CPMAddPackage(
   NAME VulkanHeaders
   GITHUB_REPOSITORY KhronosGroup/Vulkan-Headers
   GIT_TAG ${VULKAN_SDK_TAG}
-  DOWNLOAD_ONLY YES
+  # DOWNLOAD_ONLY YES
 )
 CPMAddPackage(
   NAME VulkanUtilityLibraries
   GITHUB_REPOSITORY KhronosGroup/Vulkan-Utility-Libraries
   GIT_TAG ${VULKAN_SDK_TAG}
-  DOWNLOAD_ONLY YES
+  # DOWNLOAD_ONLY YES
 )
 CPMAddPackage(
   NAME volk
   GITHUB_REPOSITORY zeux/volk
   GIT_TAG ${VULKAN_SDK_TAG}
-  OPTIONS
-    "VULKAN_HEADERS_INSTALL_DIR ${VulkanHeaders_SOURCE_DIR}/include"
+  # OPTIONS
+  #   VULKAN_HEADERS_INSTALL_DIR "${VulkanHeaders_SOURCE_DIR}/include"
 )
+
+# To be sure to find vk_platform.h (on Windows).
+target_include_directories(volk PUBLIC "${VulkanHeaders_SOURCE_DIR}/include")
+# target_include_directories(volk PUBLIC "$ENV{VULKAN_SDK}/Include")
+
 list(APPEND VULKAN_INCLUDE_DIR
   ${volk_SOURCE_DIR}
   ${VulkanHeaders_SOURCE_DIR}/include
   ${VulkanUtilityLibraries_SOURCE_DIR}/include
+  $ENV{VULKAN_SDK}/Include
 )
 
 # Vulkan Memory Allocator (VMA)
@@ -246,14 +252,17 @@ if(TRUE)
     ${imgui_SOURCE_DIR}/backends/imgui_impl_${IMGUI_WM_BACKEND}.h
   )
   source_group("Imgui" FILES ${IMGUI_SOURCES})
+  # Tell Imgui to use volk's vulkan header.
   set_source_files_properties(${IMGUI_SOURCES}
     PROPERTIES
       COMPILE_DEFINITIONS
-        # Tell Imgui to use volk's vulkan header.
         IMGUI_IMPL_VULKAN_USE_VOLK
-      COMPILE_FLAGS
-        "-Wno-null-dereference"
   )
+  if(OS_LINUX)
+    set_source_files_properties(${IMGUI_SOURCES} PROPERTIES COMPILE_FLAGS
+      "-Wno-null-dereference"
+    )
+  endif()
 
   target_sources(${target} PRIVATE ${IMGUI_SOURCES})
   set(IMGUI_INCLUDE_DIR ${imgui_SOURCE_DIR})
@@ -293,8 +302,7 @@ target_include_directories(${target}
 
 target_compile_definitions(${target}
   PUBLIC
-    # For Windows build.
-    _USE_MATH_DEFINES=1
+    ${CustomDefinitions}
     # Define VK_NO_PROTOTYPES to avoid including Vulkan prototypes
     # This is necessary because we are using volk to load Vulkan functions
     VK_NO_PROTOTYPES=1
@@ -315,6 +323,7 @@ else()
     PUBLIC
       ASSETS_DIR="${PROJECT_ASSETS_DIR}/"
       FRAMEWORK_COMPILED_SHADERS_DIR="${FRAMEWORK_COMPILED_SHADERS_DIR}/" #!
+      
   )
 endif()
 

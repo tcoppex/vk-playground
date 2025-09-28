@@ -287,30 +287,32 @@ if(USE_GCC OR USE_CLANG)
   )
 elseif(USE_MSVC)
   list(APPEND CXX_FLAGS
-    #/GR-         # disable RTTI
-    #/EHsc-       # no exception
-    /W4           # Warning level 4 (strict warnings, less noisy than /Wall)
+    # /permissive-
+    # /GR-         # disable RTTI
+    # /EHsc-       # no exception
+    # /W4           # Warning level 4 (strict warnings, less noisy than /Wall)
+    /MP           # build with multiple process.
     /w14640       # Warn about thread-unsafe static member initialization
     /w14928       # Warn about illegal copy-initialization
     /w14265       # class has virtual functions but non-virtual destructor
     /w14555       # Warn about expressions with no effect/side-effect
     /wd4100       # Disable: "unused parameter" warnings
-    /MP           # build with multiple process.
-    /permissive-
+    /utf-8
   )
   list(APPEND CXX_FLAGS_DEBUG           /Zi)
   list(APPEND CXX_FLAGS_RELEASE         /Ox /INCREMENTAL:NO /DEBUG:NONE /DNDEBUG)
-  list(APPEND CXX_FLAGS_RELWITHDEBINFO  ${CXX_FLAGS_RELEASE} /Ox /Zi)
+  # list(APPEND CXX_FLAGS_RELWITHDEBINFO  ${CXX_FLAGS_RELEASE} /Ox /Zi)
 
-  # list(APPEND CustomDefinitions
-  #   NOMINMAX
-  #   WIN32
-  #   _WINDOWS
-  #   _CRT_SECURE_NO_WARNINGS
-  #   # _HAS_EXCEPTIONS=0
-  #   VC_EXTRALEAN
-  #   WIN32_LEAN_AND_MEAN
-  # )
+  list(APPEND CustomDefinitions
+    # _HAS_EXCEPTIONS=0
+    NOMINMAX
+    WIN32
+    _WINDOWS
+    _CRT_SECURE_NO_WARNINGS
+    _USE_MATH_DEFINES=1
+    VC_EXTRALEAN
+    WIN32_LEAN_AND_MEAN
+  )
 endif()
 
 # Transform linker flags from a list to a string.
