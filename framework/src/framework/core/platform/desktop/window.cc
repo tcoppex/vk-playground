@@ -85,7 +85,11 @@ void InitializeEventsCallbacks(GLFWwindow *handle) noexcept {
 
   // Framebuffer resize.
   glfwSetFramebufferSizeCallback(handle, [](GLFWwindow *window, int w, int h) {
-    Events::Get().onResize(w, h);
+    if ((w > 0) && (h > 0)) {
+      Events::Get().onResize(w, h);
+    } else {
+      LOGW("Prevent framebuffer resize with null parameters ({}, {})", w, h);
+    }
   });
 
   // Window resize.
