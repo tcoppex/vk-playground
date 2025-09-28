@@ -19,8 +19,8 @@ void HostResources::setup() {
       &_textures = this->textures,
       &_host_images = this->host_images
     ] (std::array<uint8_t, 4> const& c) -> uint32_t {
-        uint32_t const texture_id = _textures.size();
-        _textures.emplace_back( _host_images.size() );
+        uint32_t const texture_id = static_cast<uint32_t>(_textures.size());
+        _textures.emplace_back( static_cast<uint32_t>(_host_images.size()) );
         _host_images.emplace_back( c[0], c[1], c[2], c[3] );
         return texture_id;
       }

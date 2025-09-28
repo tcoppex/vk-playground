@@ -288,7 +288,8 @@ PointerToIndexMap_t ExtractImages(
     images.emplace_back();
     images.back().loadAsync(buffer_data, buffer_view->size);
 
-    image_indices.try_emplace(&gl_image, index_offset + image_id);
+    uint32_t const image_index = index_offset + static_cast<uint32_t>(image_id);
+    image_indices.try_emplace(&gl_image, image_index);
   }
 
   return image_indices;
@@ -321,7 +322,8 @@ PointerToIndexMap_t ExtractTextures(
       samplers_lut.at(gl_texture.sampler)
     );
 
-    textures_indices.try_emplace(&gl_texture, index_offset + texture_id);
+    uint32_t const texture_index = index_offset + static_cast<uint32_t>(texture_id);
+    textures_indices.try_emplace(&gl_texture, texture_index);
   }
 
   return textures_indices;
