@@ -54,5 +54,28 @@ struct AppCmdCallbacks {
 };
 
 /* -------------------------------------------------------------------------- */
+// -- Macros
+
+#if defined(ANDROID)
+
+#define ENTRY_POINT(AppClass)                         \
+extern "C" {                                          \
+  void android_main(struct android_app* app_data) {   \
+    AppClass().run(app_data);                         \
+  }                                                   \
+}
+
+#else // DESKTOP
+
+#define ENTRY_POINT(AppClass)           \
+extern "C" {                            \
+  int main(int argc, char *argv[]) {    \
+    return SampleApp().run();           \
+  }                                     \
+}
+
+#endif
+
+/* -------------------------------------------------------------------------- */
 
 #endif

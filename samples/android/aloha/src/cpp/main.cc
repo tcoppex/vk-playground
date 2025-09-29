@@ -139,10 +139,6 @@ private:
 
 // ----------------------------------------------------------------------------
 
-extern "C" {
-  void android_main(struct android_app* app_data) {
-    SampleApp().run(app_data);
-  }
-}
+ENTRY_POINT(SampleApp)
 
 /* -------------------------------------------------------------------------- */
