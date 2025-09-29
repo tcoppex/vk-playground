@@ -71,7 +71,6 @@ list(APPEND Sources
 add_library(${target} STATIC ${Sources})
 set(FRAMEWORK_LIBRARIES ${target} CACHE INTERNAL "")
 
-
 # -----------------------------------------------------------------------------
 # Platform specific Third Parties Dependencies.
 # -----------------------------------------------------------------------------
@@ -107,6 +106,9 @@ if(ANDROID)
     target_include_directories(${target} PUBLIC ${ANDROID_NATIVE_APP_GLUE_PATH})
     target_link_libraries(${target} PUBLIC $<TARGET_OBJECTS:android_native_app_glue>)
   endfunction()
+
+  # (we might prefer to link the native app to the sample in the future)
+  helpers_addNativeAppGlue(${target})
 
   # (Alternatively just uncomment the following line.)
   # set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -u ANativeActivity_onCreate")
@@ -346,12 +348,6 @@ set_target_properties(${target}
   PROPERTIES
     LINK_FLAGS "${CXX_LINK_FLAGS}"
 )
-# -----------------------------------------------------------------------------
-
-# should probably be inside the Sample App instead..
-if(ANDROID)
-  helpers_addNativeAppGlue(${target})
-endif()
 
 # -----------------------------------------------------------------------------
 # Compile Framework shaders.
