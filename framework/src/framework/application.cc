@@ -151,8 +151,7 @@ bool Application::presetup(AppData_t app_data) {
 
   // [just for the hellish fun of it]
 presetup_fails_ui:
-  renderer_.deinit();
-  swapchain_.deinit();
+  shutdown();
 presetup_fails_surface:
   context_.deinit();
 presetup_fails_context:
@@ -226,7 +225,10 @@ void Application::shutdown() {
   swapchain_.deinit();
   context_.destroy_surface(surface_);
   context_.deinit();
-  wm_->shutdown();
+
+  if (wm_) {
+    wm_->shutdown();
+  }
 
   Events::Deinitialize();
   Logger::Deinitialize();

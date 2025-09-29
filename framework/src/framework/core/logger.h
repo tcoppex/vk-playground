@@ -3,20 +3,22 @@
 
 /* -------------------------------------------------------------------------- */
 
-#include "framework/core/singleton.h"
-
-extern "C" {
-#if defined(ANDROID)
-#include <android/log.h>
-#endif
-}
+#include <cassert>
 
 #include <iostream>
 #include <sstream>
 #include <string>
 #include <unordered_map>
 
+#if defined(ANDROID)
+extern "C" {
+#include <android/log.h>
+}
+#endif
+
 #include "fmt/core.h" // (c++20 format require gcc13+)
+
+#include "framework/core/singleton.h"
 
 /* -------------------------------------------------------------------------- */
 
