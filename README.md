@@ -1,15 +1,17 @@
 ![language: c++20](https://img.shields.io/badge/c++-20-blue.svg)
-![api: vulkan1.1](https://img.shields.io/badge/vulkan-1.1-red.svg)
+![api: vulkan1.3](https://img.shields.io/badge/vulkan-1.3-red.svg)
+![api: openxr1.1](https://img.shields.io/badge/openxr-1.1-purple.svg)
+![api: android32](https://img.shields.io/badge/android-32-green.svg)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-# :fire: vk-playground :fire:
+# aer
 
-A c++20 / Vulkan 1.1 rendering framework flavored like 1.4 and inspired by WebGPU and _vk_minimal_latest_.
+A real-time 3d rendering framework, inspired by WebGPU and _vk\_minimal\_latest_.
 
-Runs on GNU/Linux, Windows 11 and Android 32 (_Meta Quest 3_), compiled against _GCC 11.4_, _MSVC 19.38_, and _Clang 21_.
+Runs on GNU/Linux, Windows 11 and Android 12L (_Meta Quest 3_).
 
 <details>
-  <summary><strong>Quick start & run !</strong></summary>
+  <summary><strong>Quick start & run!</strong></summary>
 
 ```bash
 # [Optional] Retrieve system build dependencies with Synaptic.
@@ -33,140 +35,31 @@ cmake --build build --config Release
 # cmake --build build --target run_aloha
 ```
 
+See [BUILD.md](BUILD.md) for detailed build instructions.
+
 </details>
 
+### Samples
 
-### Demos
-
-* **[00_hello](samples/desktop/00_hello)**: Display a surface and clear its color (_Device, Swapchain, dynamic rendering_).
-* **[01_triangle](samples/desktop/01_triangle)**: Display a simple triangle (_Shader, Graphics Pipeline, Vertex Buffer, Commands_).
-* **[02_push_constant](samples/desktop/02_push_constant)**: Update per-frame values via push constants and dynamic states (_Push Constant_).
-* **[03_descriptor_set](samples/desktop/03_descriptor_set)**: Initialize & update a descriptor set on a single uniform buffer (_Descriptor Set_).
-* **[04_texturing](samples/desktop/04_texturing)**: Display a textured cube with a linear sampler (_Image, Sampler_).
-* **[05_stencil_op](samples/desktop/05_stencil_op)**: Stencil operations and instancing through a multi-passes portal effect (_Stencil, instancing_).
-* **[06_blend_op](samples/desktop/06_blend_op)**: Fast & simple billboarded GPU particles with additive blending (_Blending_).
-* **[07_compute](samples/desktop/07_compute)**: Waves simulation with sorted alpha-blended particles (_Compute Pipeline, Buffer Barriers_).
-* **[08_hdr_envmap](samples/desktop/08_hdr_envmap)**: Compute Image-Based Lighting from a HDR environment map (_Texture Barriers_).
-* **[09_post_process](samples/desktop/09_post_process)**: Screen-space contour effect via a post-processing pipeline (_Render Target_, _Blit_).
-* **[10_material](samples/desktop/10_material)**: Showcase the internal PBR material system with scene graph ordering (_Pipeline Cache_, _Specialization Constants_).
-* **[11_raytracing](samples/desktop/11_raytracing)**: Simple path tracer on a Cornell box via hardware-accelerated ray tracing (_Acceleration Structure_, _Ray Tracing Pipeline_, _Buffer Device Address_).
-
-### Dependencies
-
-##### Third parties
-
- * CMake 3.22.1
- * CPM 0.40.3 (_downloaded automatically_)
- * Vulkan SDK 1.1 (_1.4.321.0 headers downloaded via CPM_)
- * Volk 1.4.321.0 (_via CPM_)
- * VulkanMemoryAllocator 3.2.0 (_via CPM_)
- * GLFW 3.4 (_via CPM_)
- * ImGUI Docker (_via CPM_)
- * MikkTSpace (_via CPM_)
- * linalg v2.2 (_via CPM_)
- * libfmt 12.0.0 (_via CPM_)
- * stb_image.h (_included_)
-
-By default, CPM downloads and caches third-party dependencies in `./third_party/.cpmlocalcache/`.
-
-##### Vulkan device extensions
-
-* [VK_EXT_descriptor_indexing](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_EXT_descriptor_indexing.html)
-* [VK_EXT_extended_dynamic_state](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_EXT_extended_dynamic_state.html)
-* [VK_EXT_extended_dynamic_state2](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_EXT_extended_dynamic_state2.html)
-* [VK_EXT_extended_dynamic_state3](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_EXT_extended_dynamic_state3.html)
-* [VK_EXT_image_view_min_lod](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_EXT_image_view_min_lod.html)
-* [VK_EXT_vertex_input_dynamic_state](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_EXT_vertex_input_dynamic_state.html)
-* [VK_KHR_buffer_device_address]( https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_buffer_device_address.html)
-* [VK_KHR_create_renderpass2](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_create_renderpass2.html)
-* [VK_KHR_depth_stencil_resolve](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_depth_stencil_resolve.html)
-* [VK_KHR_dynamic_rendering](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_dynamic_rendering.html)
-* [VK_KHR_index_type_uint8](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_index_type_uint8.html)
-* [VK_KHR_maintenance4](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_maintenance4.html)
-* [VK_KHR_maintenance5](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_maintenance5.html)
-* [VK_KHR_maintenance6](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_maintenance6.html) (_optionnal_)
-* [VK_KHR_swapchain](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_swapchain.html)
-* [VK_KHR_synchronization2](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_synchronization2.html)
-* [VK_KHR_timeline_semaphore](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_timeline_semaphore.html)
-* [VK_KHR_acceleration_structure](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_acceleration_structure.html)
-* [VK_KHR_ray_tracing_pipeline](https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_ray_tracing_pipeline.html) (_optionnal_)
-
-#### Android build
-
-The Android build root project is defined in the `android/` subfolder and use the following dependencies :
-
- * Android SDK 36
- * Android NDK 29.0.14033849
- * Gradle 8.14.3
-
-You can either install them via Android Studio (_eg. Narwhal 3 Feature Drop | 2025.1.3_) or depending on your platform using one of those script:
-
-<details>
-  <summary><strong>GNU/Linux</strong></summary>
-
-```bash
-# Install tools and the JDK.
-sudo apt-get install -y unzip wget openjdk-17-jdk
-
-# Setup ANDROID_SDK.
-export ANDROID_SDK=$HOME/Android
-mkdir $ANDROID_SDK && cd $ANDROID_SDK
-
-# Download & install Android SDK Command-line Tools 12.0.
-wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
-unzip commandlinetools-linux-11076708_latest.zip -d cmdline-tools
-mv cmdline-tools/cmdline-tools cmdline-tools/latest
-export PATH=$ANDROID_SDK/cmdline-tools/latest/bin:$ANDROID_SDK/platform-tools:$PATH
-
-# Install dependencies.
-sdkmanager "platforms;android-36" "platform-tools" "build-tools;36.0.0" "ndk;29.0.14033849"
-```
-</details>
-
-<details>
-  <summary><strong>Windows 11</strong></summary>
-
-```bash
-# Install JDK manually on Windows (eg. Temurin 17), and setup the JAVA_HOME environment variable.
-#export JAVA_HOME="C:\Program Files (x86)\Eclipse Adoptium\jdk-17.0.16.8-hotspot"
-
-# Setup ANDROID_SDK (also refered as $ANDROID_HOME)
-export ANDROID_SDK="$HOME/Android"
-mkdir -p $ANDROID_SDK && cd $ANDROID_SDK
-
-# Download & install Android SDK Command-line Tools 12.0.
-curl -O https://dl.google.com/android/repository/commandlinetools-win-11076708_latest.zip
-unzip commandlinetools-win-11076708_latest.zip -d cmdline-tools
-mv cmdline-tools/cmdline-tools cmdline-tools/latest
-export PATH=$ANDROID_SDK/cmdline-tools/latest/bin:$ANDROID_SDK/platform-tools:$PATH
-
-# Install dependencies.
-sdkmanager.bat --sdk_root=$ANDROID_SDK "platforms;android-36" "platform-tools" "build-tools;36.0.0" "ndk;29.0.14033849"
-```
-</details>
-
-###### Build and Run
-
-Each Android sample provides a set of CMake debug targets in the form `{prefix}{sample_name}`  
-(_eg. `log_aloha`_) to simplify development without the need to launch Android Studio. All of this commands target debug builds.
-
-| Target Prefix | Action                                                  |
-|---------------|---------------------------------------------------------|
-| **build_**    | Build the sample.                                       |
-| **install_**  | Build and install the sample on a connected device.     |
-| **run_**      | Build, install, and run the sample.                     |
-| **log_**      | Build, install, run, and stream the sample’s logcat.    |
-
-_Device-dependent targets (**install**, **run**, **log**) require a compatible connected Android device._
-
-#### Assets
-
-A few assets are served via `git-lfs` but most will be downloaded automatically on CMake Cache generation time.
+* **[00_hello](samples/desktop/00_hello/main.cc)**: Display a surface and clear its color (_Device, Swapchain, dynamic rendering_).
+* **[01_triangle](samples/desktop/01_triangle/main.cc)**: Display a simple triangle (_Shader, Graphics Pipeline, Vertex Buffer, Commands_).
+* **[02_push_constant](samples/desktop/02_push_constant/main.cc)**: Update per-frame values via push constants and dynamic states (_Push Constant_).
+* **[03_descriptor_set](samples/desktop/03_descriptor_set/main.cc)**: Initialize & update a descriptor set on a single uniform buffer (_Descriptor Set_).
+* **[04_texturing](samples/desktop/04_texturing/main.cc)**: Display a textured cube with a linear sampler (_Image, Sampler_).
+* **[05_stencil_op](samples/desktop/05_stencil_op/main.cc)**: Stencil operations and instancing through a multi-passes portal effect (_Stencil, instancing_).
+* **[06_blend_op](samples/desktop/06_blend_op/main.cc)**: Fast & simple billboarded GPU particles with additive blending (_Blending_).
+* **[07_compute](samples/desktop/07_compute/main.cc)**: Waves simulation with sorted alpha-blended particles (_Compute Pipeline, Buffer Barriers_).
+* **[08_hdr_envmap](samples/desktop/08_hdr_envmap/main.cc)**: Compute Image-Based Lighting from a HDR environment map (_Texture Barriers_).
+* **[09_post_process](samples/desktop/09_post_process/main.cc)**: Screen-space contour effect via a post-processing pipeline (_Render Target_, _Blit_).
+* **[10_material](samples/desktop/10_material/main.cc)**: Showcase the internal PBR material system with scene graph ordering (_Pipeline Cache_, _Specialization Constants_).
+* **[11_raytracing](samples/desktop/11_raytracing/main.cc)**: Simple path tracer on a Cornell box via hardware-accelerated ray tracing (_Acceleration Structure_, _Ray Tracing Pipeline_, _Buffer Device Address_).
 
 ### Acknowledgement
 
-This project was inspired by the simple expressiveness of WebGPU and the work of **NVIDIA DesignWorks Samples**, in particular the _[vk_minimal_latest](https://github.com/nvpro-samples/vk_minimal_latest)_ project.
+This project was inspired by the expressiveness of WebGPU and the work of **NVIDIA DesignWorks Samples**, in particular the _[vk_minimal_latest](https://github.com/nvpro-samples/vk_minimal_latest)_ project.
 
 ### License
 
-*vk-playground* is released under the *MIT* license.
+This project is released under the _MIT License_.
+
+:leaves:
