@@ -22,45 +22,33 @@ struct DefaultAppEventCallbacks final : public EventCallbacks {
 /* -------------------------------------------------------------------------- */
 
 int Application::run(AppData_t app_data) {
+  /* Framework initialization. */
   if (!presetup(app_data)) {
     return EXIT_FAILURE;
   }
 
-  LOGD("--- App Setup ---");
-  if (!setup()) {
-    shutdown();
-    return EXIT_FAILURE;
-  }
-  context_.allocator().clear_staging_buffers();
-
-  LOGD("--- Mainloop ---");
-  while (next_frame(app_data)) {
-    // Update time.
-    auto const tick = elapsed_time();
-    last_frame_time_ = frame_time_;
-    frame_time_ = tick;
-
-    // If the window is not shown, sleep the thread and skip frame.
-    if (!wm_->isActive()) {
-      LOGV("sleepy thread ¤¤");
-      std::this_thread::sleep_for(10ms);
-      continue;
+  /* User initialization. */
+  {
+    LOGD("--- App Setup ---");
+    if (!setup()) {
+      shutdown();
+      return EXIT_FAILURE;
     }
-
-    // Update UI.
-    ui_->beginFrame();
-    build_ui();
-    ui_->endFrame();
-
-    // Check swapchain state and rebuild as needed [should not happens here tho].
-    if (!swapchain_.isValid()) {
-      LOGV("The swapchain is invalid.");
-      reset_swapchain();
-    }
-
-    update(delta_time());
-    draw();
+    context_.allocator().clear_staging_buffers();
   }
+
+  if (xr_) {
+    // LOGD("--- Start XR Session ---");
+    // xrStartSession();
+  }
+
+  mainloop(app_data);
+
+  if (xr_) {
+    // LOGD("--- End XR Session ---");
+    // xrEndSession();
+  }
+
   shutdown();
 
   return EXIT_SUCCESS;
@@ -76,6 +64,8 @@ float Application::elapsed_time() const noexcept {
 // ----------------------------------------------------------------------------
 
 bool Application::presetup(AppData_t app_data) {
+  auto const app_name = "VkFramework::AppName"; //
+
   /* Singletons. */
   {
     Logger::Initialize();
@@ -108,15 +98,24 @@ bool Application::presetup(AppData_t app_data) {
   /* User Interface. */
   if (ui_ = std::make_unique<UIController>(); !ui_ || !ui_->init(renderer_, *wm_)) {
     LOGE("UI creation fails");
-    goto presetup_fails_ui;
+    goto presetup_fails;
   }
 
-  /* Framework internal data. */
+  /* OpenXR */
+  #if 0
   {
-    // ---------------------------------------------
+    xr_ = std::make_unique<OpenXRContext>(wm_, context_);
+    if (!xr_ || !xr_->init(app_name, xrGetExtensions())) {
+      LOGE("Fails to initialize XR.");
+      goto presetup_fails;
+    }
+  }
+  #endif
+
+  // [~] Capture & handle surface resolution changes.
+  {
     auto on_resize = [this](uint32_t w, uint32_t h) {
       context_.device_wait_idle();
-
       viewport_size_ = {
         .width = w,
         .height = h,
@@ -127,20 +126,24 @@ bool Application::presetup(AppData_t app_data) {
     };
     default_callbacks_ = std::make_unique<DefaultAppEventCallbacks>(on_resize);
     Events::Get().registerCallbacks(default_callbacks_.get());
-    Events::Get().registerCallbacks(this);
 
-    // LOGW("> Retrieve original viewport size (might be incorrect).");
+    // LOGW("> Retrieve original viewport size.");
     viewport_size_ = {
       .width = wm_->get_surface_width(),
       .height = wm_->get_surface_height(),
     };
-    // LOGD("> (w: {}, h: {})", viewport_size_.width, viewport_size_.height);
-    // ---------------------------------------------
+    // LOGI("> (w: {}, h: {})", viewport_size_.width, viewport_size_.height);
+  }
+
+  /* Framework internal data. */
+  {
+    // Register user's app callbacks.
+    Events::Get().registerCallbacks(this);
 
     // Time tracker.
     chrono_ = std::chrono::high_resolution_clock::now();
 
-    // Initialize the standard C RNG seed, if any lib use it.
+    // Initialize the standard C RNG seed, in cases any lib use it.
     rand_seed_ = static_cast<uint32_t>(std::time(nullptr));
     std::srand(rand_seed_);
   }
@@ -150,7 +153,7 @@ bool Application::presetup(AppData_t app_data) {
   return true;
 
   // [just for the hellish fun of it]
-presetup_fails_ui:
+presetup_fails:
   shutdown();
 presetup_fails_surface:
   context_.deinit();
@@ -170,6 +173,74 @@ bool Application::next_frame(AppData_t app_data) {
       && !app_data->destroyRequested
 #endif
       ;
+}
+
+// ----------------------------------------------------------------------------
+
+void Application::update_timer() noexcept {
+  auto const tick = elapsed_time();
+  last_frame_time_ = frame_time_;
+  frame_time_ = tick;
+}
+
+// ----------------------------------------------------------------------------
+
+void Application::update_ui() noexcept {
+  ui_->beginFrame();
+  build_ui();
+  ui_->endFrame();
+}
+
+// ----------------------------------------------------------------------------
+
+void Application::mainloop(AppData_t app_data) {
+  using frame_fn = std::function<bool()>;
+
+  // ----------------------
+  // XR
+  // ----------------------
+  frame_fn xrFrame{[this]() -> bool {
+    xr_->pollEvents();
+
+    if (xr_->shouldStopRender()) {
+      return false;
+    }
+    // update_ui(); //
+
+    if (xr_->isSessionRunning()) [[likely]] {
+      xr_->processFrame(
+        [this](auto const& frameData) { /*app_->xrUpdate(frameData);*/ },
+        [this](auto const& frameView) { /*app_->xrDraw(frameView);*/ }
+      );
+    } else {
+      std::this_thread::sleep_for(10ms);
+    }
+    return true;
+  }};
+
+  // ----------------------
+  // Non XR
+  // ----------------------
+  frame_fn classicFrame{[this]() -> bool {
+    if (wm_->isActive()) [[likely]] {
+      update_ui();
+      update(delta_time());
+      draw();
+    } else {
+      std::this_thread::sleep_for(10ms);
+    }
+    return true;
+  }};
+
+  auto frame{xr_ ? xrFrame : classicFrame};
+
+  LOGD("--- Mainloop ---");
+  while (next_frame(app_data)) {
+    update_timer();
+    if (!frame()) {
+      break;
+    }
+  }
 }
 
 // ----------------------------------------------------------------------------
@@ -217,8 +288,14 @@ void Application::shutdown() {
   context_.device_wait_idle();
   release();
 
+  if (xr_) {
+    xr_->terminate();
+    xr_.reset();
+  }
+
   if (ui_) {
     ui_->release(context_);
+    ui_.reset();
   }
 
   renderer_.deinit();
@@ -228,6 +305,7 @@ void Application::shutdown() {
 
   if (wm_) {
     wm_->shutdown();
+    wm_.reset();
   }
 
   Events::Deinitialize();

@@ -12,6 +12,7 @@ using namespace std::chrono_literals;
 #include "framework/core/platform/event_callbacks.h"
 #include "framework/core/platform/wm_interface.h"
 #include "framework/core/platform/ui_controller.h"
+#include "framework/core/platform/xr_interface.h"
 
 #include "framework/backend/context.h"
 #include "framework/backend/swapchain.h"
@@ -57,6 +58,12 @@ class Application : public EventCallbacks
   [[nodiscard]]
   bool next_frame(AppData_t app_data);
 
+  void update_timer() noexcept;
+
+  void update_ui() noexcept;
+
+  void mainloop(AppData_t app_data);
+
   bool reset_swapchain();
 
   void shutdown();
@@ -64,6 +71,7 @@ class Application : public EventCallbacks
  protected:
   std::unique_ptr<WMInterface> wm_{};
   std::unique_ptr<UIController> ui_{};
+  std::unique_ptr<XRInterface> xr_{};
 
   Context context_{};
   Swapchain swapchain_{};
