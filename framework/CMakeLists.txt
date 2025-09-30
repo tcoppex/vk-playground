@@ -49,14 +49,14 @@ file(GLOB PlatformCommonSources CONFIGURE_DEPENDS
 
 # Add back target platform specifics sources.
 if(ANDROID)
-  set(FRAMEWORK_PLATFORM_SRC_DIR ${FRAMEWORK_PLATFORM_SRC_DIR}/android)
+  set(FRAMEWORK_PLATFORM_SRC_SUB_DIR ${FRAMEWORK_PLATFORM_SRC_DIR}/android)
 else()
-  set(FRAMEWORK_PLATFORM_SRC_DIR ${FRAMEWORK_PLATFORM_SRC_DIR}/desktop)
+  set(FRAMEWORK_PLATFORM_SRC_SUB_DIR ${FRAMEWORK_PLATFORM_SRC_DIR}/desktop)
 endif()
 file(GLOB_RECURSE PlatformSources CONFIGURE_DEPENDS
   LIST_DIRECTORIES FALSE
-  ${FRAMEWORK_PLATFORM_SRC_DIR}/*.cc
-  ${FRAMEWORK_PLATFORM_SRC_DIR}/*.h
+  ${FRAMEWORK_PLATFORM_SRC_SUB_DIR}/*.cc
+  ${FRAMEWORK_PLATFORM_SRC_SUB_DIR}/*.h
 )
 
 list(APPEND Sources
@@ -127,6 +127,51 @@ else() # DESKTOP
   )
   list(APPEND PlatformLibs glfw)
   list(APPEND PlatformIncludeDirs ${glfw_SOURCE_DIR}/include)
+endif()
+
+# -----------------------------------------------------------------------------
+# OpenXR SDK Loader
+# -----------------------------------------------------------------------------
+
+if(TRUE)
+  CPMAddPackage(
+    NAME sanitizers
+    GITHUB_REPOSITORY arsenm/sanitizers-cmake
+    GIT_TAG master
+    DOWNLOAD_ONLY YES
+  )
+  list(APPEND CMAKE_MODULE_PATH ${sanitizers_SOURCE_DIR}/cmake)
+
+  CPMAddPackage(
+    NAME OPENXR_SDK
+    GITHUB_REPOSITORY KhronosGroup/OpenXR-SDK
+    GIT_TAG release-1.1.52
+    # DOWNLOAD_ONLY YES
+  )
+  set(OPENXR_INCLUDE_DIRS ${OPENXR_SDK_SOURCE_DIR}/include)
+  set(OPENXR_LOADER_SHARED_LIBRARY OpenXR::openxr_loader)
+
+  # ----
+
+  target_include_directories(${target} PUBLIC ${OPENXR_INCLUDE_DIRS})
+  target_link_libraries(${target} PUBLIC ${OPENXR_LOADER_SHARED_LIBRARY})
+  target_compile_definitions(${target}
+    PUBLIC
+      USE_OPENXR=1 #!
+      XR_USE_GRAPHICS_API_VULKAN=1
+  )
+  if(OS_ANDROID)
+    target_compile_definitions(${target}
+      PUBLIC
+        XR_USE_PLATFORM_ANDROID=1
+    )
+  endif()
+
+  # Add OpenXR specific sources.
+  file(GLOB XRSources LIST_DIRECTORIES FALSE
+    ${FRAMEWORK_PLATFORM_SRC_DIR}/openxr/*.cc   ## !
+  )
+  target_sources(${target} PRIVATE ${XRSources})
 endif()
 
 # -----------------------------------------------------------------------------
@@ -276,48 +321,6 @@ if(TRUE)
 
   target_sources(${target} PRIVATE ${IMGUI_SOURCES})
   set(IMGUI_INCLUDE_DIR ${imgui_SOURCE_DIR})
-endif()
-
-# OpenXR SDK Loader
-if(TRUE)
-  CPMAddPackage(
-    NAME sanitizers
-    GITHUB_REPOSITORY arsenm/sanitizers-cmake
-    GIT_TAG master
-    DOWNLOAD_ONLY YES
-  )
-  list(APPEND CMAKE_MODULE_PATH ${sanitizers_SOURCE_DIR}/cmake)
-
-  CPMAddPackage(
-    NAME OPENXR_SDK
-    GITHUB_REPOSITORY KhronosGroup/OpenXR-SDK
-    GIT_TAG release-1.1.52
-    # DOWNLOAD_ONLY YES
-  )
-  set(OPENXR_INCLUDE_DIRS ${OPENXR_SDK_SOURCE_DIR}/include)
-  set(OPENXR_LOADER_SHARED_LIBRARY OpenXR::openxr_loader)
-
-  # ----
-
-  target_include_directories(${target} PUBLIC ${OPENXR_INCLUDE_DIRS})
-  target_link_libraries(${target} PUBLIC ${OPENXR_LOADER_SHARED_LIBRARY})
-  target_compile_definitions(${target}
-    PUBLIC
-      USE_OPENXR=1 #!
-      XR_USE_GRAPHICS_API_VULKAN=1
-  )
-  if(OS_ANDROID)
-    target_compile_definitions(${target}
-      PUBLIC
-        XR_USE_PLATFORM_ANDROID=1
-    )
-  endif()
-
-  # Add OpenXR specific sources.
-  file(GLOB XRSources LIST_DIRECTORIES FALSE
-    ${FRAMEWORK_SOURCE_DIR}/core/openxr/*.cc   ## !
-  )
-  target_sources(${target} PRIVATE ${XRSources})
 endif()
 
 # -----------------------------------------------------------------------------

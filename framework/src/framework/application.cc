@@ -77,20 +77,56 @@ bool Application::presetup(AppData_t app_data) {
   /* Window manager. */
   if (wm_ = std::make_unique<Window>(); !wm_ || !wm_->init(app_data)) {
     LOGE("Window creation fails");
-    goto presetup_fails_wm;
+    goto presetup_fails;
+  }
+
+  // ---------------------------------------
+  static constexpr bool kEnableXR = false;
+
+  /* OpenXR */
+  if constexpr (kEnableXR) {
+    if (xr_ = std::make_unique<OpenXRContext>(); xr_) {
+      if (!xr_->init(wm_->xrPlatformInterface(), app_name, xrExtensions())) {
+        LOGE("XR initialization fails.");
+        goto presetup_fails;
+      }
+    }
+
+    vulkan_xr_ = xr_->graphicsInterface();
   }
 
   /* Vulkan context. */
-  if (!context_.init(wm_->getVulkanInstanceExtensions())) {
+  if (!context_.init(wm_->vulkanInstanceExtensions(),
+                     vulkanDeviceExtensions(),
+                     vulkan_xr_))
+  {
     LOGE("Vulkan context initialization fails");
-    goto presetup_fails_context;
+    goto presetup_fails;
+  }
+
+  /* Initialize OpenXR Sessions. */
+  if (xr_) {
+    if (!xr_->initSession()) {
+      LOGE("OpenXR sessions initialization fails.");
+      goto presetup_fails;
+    }
   }
 
   /* Surface & Swapchain. */
   if (!reset_swapchain()) {
     LOGE("Surface creation fails");
-    goto presetup_fails_surface;
+    goto presetup_fails;
   }
+
+  // [TODO] finish openxr setup.. (Controllers & Spaces)
+  if (xr_) {
+    if (!xr_->completeSetup()) {
+      LOGE("OpenXR initialization completion fails.");
+      goto presetup_fails;
+    }
+  }
+
+  // ---------------------------------------
 
   /* Internal Renderer. */
   renderer_.init(context_, swapchain_, context_.allocator());
@@ -100,17 +136,6 @@ bool Application::presetup(AppData_t app_data) {
     LOGE("UI creation fails");
     goto presetup_fails;
   }
-
-  /* OpenXR */
-  #if 0
-  {
-    xr_ = std::make_unique<OpenXRContext>(wm_, context_);
-    if (!xr_ || !xr_->init(app_name, xrGetExtensions())) {
-      LOGE("Fails to initialize XR.");
-      goto presetup_fails;
-    }
-  }
-  #endif
 
   // [~] Capture & handle surface resolution changes.
   {
@@ -129,8 +154,8 @@ bool Application::presetup(AppData_t app_data) {
 
     // LOGW("> Retrieve original viewport size.");
     viewport_size_ = {
-      .width = wm_->get_surface_width(),
-      .height = wm_->get_surface_height(),
+      .width = wm_->surface_width(),
+      .height = wm_->surface_height(),
     };
     // LOGI("> (w: {}, h: {})", viewport_size_.width, viewport_size_.height);
   }
@@ -155,11 +180,6 @@ bool Application::presetup(AppData_t app_data) {
   // [just for the hellish fun of it]
 presetup_fails:
   shutdown();
-presetup_fails_surface:
-  context_.deinit();
-presetup_fails_context:
-  wm_->shutdown();
-presetup_fails_wm:
   return false;
 }
 
@@ -288,11 +308,6 @@ void Application::shutdown() {
   context_.device_wait_idle();
   release();
 
-  if (xr_) {
-    xr_->terminate();
-    xr_.reset();
-  }
-
   if (ui_) {
     ui_->release(context_);
     ui_.reset();
@@ -302,6 +317,11 @@ void Application::shutdown() {
   swapchain_.deinit();
   context_.destroy_surface(surface_);
   context_.deinit();
+
+  if (xr_) {
+    xr_->terminate();
+    xr_.reset();
+  }
 
   if (wm_) {
     wm_->shutdown();

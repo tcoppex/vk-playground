@@ -3,6 +3,7 @@
 
 #include "framework/core/common.h"
 #include "framework/core/platform/common.h"
+#include "framework/core/platform/openxr/xr_platform_interface.h"
 
 #include "framework/backend/vk_utils.h"
 
@@ -38,9 +39,15 @@ struct WMInterface {
     return true;
   }
 
- public:
+  // --- OpenXR ---
+
   [[nodiscard]]
-  virtual std::vector<char const*> getVulkanInstanceExtensions() const noexcept = 0;
+  virtual XRPlatformInterface const& xrPlatformInterface() const noexcept = 0;
+
+  // --- Vulkan ---
+
+  [[nodiscard]]
+  virtual std::vector<char const*> vulkanInstanceExtensions() const noexcept = 0;
 
   [[nodiscard]]
   virtual VkResult createWindowSurface(VkInstance instance, VkSurfaceKHR *surface) const noexcept = 0;

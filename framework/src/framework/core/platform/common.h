@@ -20,8 +20,17 @@ extern "C" {
 
 }
 
-/* -------------------------------------------------------------------------- */
+#if defined(USE_OPENXR)
 
+#include "framework/core/platform/openxr/openxr_context.h"
+
+// #if defined(XR_USE_PLATFORM_ANDROID)
+// #include "framework/core/platform/android/xr_android.h"
+// #endif
+
+#endif
+
+/* -------------------------------------------------------------------------- */
 // -- Structures
 
 #if defined(ANDROID)

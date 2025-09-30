@@ -7,19 +7,33 @@
 
 #include "framework/core/common.h"
 #include "framework/core/platform/openxr/xr_common.h"
+#include "framework/core/platform/openxr/xr_platform_interface.h"
 
 /* -------------------------------------------------------------------------- */
 
 class XRInterface {
  public:
-  XRInterface() = default;
-
+  // XRInterface() = default;
   virtual ~XRInterface() = default;
 
-  virtual void terminate() = 0;
-
   [[nodiscard]]
-  virtual bool init(std::string_view appName, std::vector<char const*> const& appExtensions) = 0;
+  virtual bool init(
+    XRPlatformInterface const& platform,
+    std::string_view appName,
+    std::vector<char const*> const& appExtensions
+  ) = 0;
+
+  // ---
+  
+  virtual bool initSession() = 0;
+
+  virtual bool createSwapchains() = 0;
+
+  virtual bool completeSetup() = 0;
+
+  // ---
+
+  virtual void terminate() = 0;
 
   virtual void pollEvents() = 0;
 

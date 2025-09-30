@@ -44,11 +44,26 @@ class Application : public EventCallbacks
   }
 
  protected:
-  virtual bool setup() { return true; }
+  virtual bool setup() {
+    return true;
+  }
+
   virtual void release() {}
+
+  [[nodiscard]]
+  std::vector<char const*> xrExtensions() const noexcept {
+    return {};
+  }
+
+  [[nodiscard]]
+  std::vector<char const*> vulkanDeviceExtensions() const noexcept {
+    return {};
+  }
+
   virtual void build_ui() {}
 
   virtual void update(float const dt) {}
+
   virtual void draw() {}
 
  private:
@@ -71,12 +86,14 @@ class Application : public EventCallbacks
  protected:
   std::unique_ptr<WMInterface> wm_{};
   std::unique_ptr<UIController> ui_{};
-  std::unique_ptr<XRInterface> xr_{};
+
+  // std::unique_ptr<XRInterface> xr_{}; //
+  std::unique_ptr<OpenXRContext> xr_{}; //
+  std::shared_ptr<XRVulkanInterface> vulkan_xr_{}; //
 
   Context context_{};
   Swapchain swapchain_{};
   Renderer renderer_{};
-
   VkExtent2D viewport_size_{}; //
 
  private:

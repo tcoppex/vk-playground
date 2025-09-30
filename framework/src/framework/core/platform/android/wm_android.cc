@@ -1,3 +1,7 @@
+#include <thread>
+#include <chrono>
+using namespace std::chrono_literals;
+
 #include "framework/core/platform/android/wm_android.h"
 #include "framework/core/platform/android/jni_context.h"
 #include "framework/core/platform/events.h"
@@ -105,7 +109,13 @@ bool WMAndroid::init(AppData_t app_data) {
   LOG_CHECK(app_data != nullptr);
 
   JNIContext::Initialize(app_data);
+  xr_android_.init(JNIContext::Get());
+
+  // Mainly an XR thing.
   ANativeActivity_setWindowFlags(app_data->activity, AWINDOW_FLAG_KEEP_SCREEN_ON, 0);
+
+  // [optionnal, rename the thread]
+  // prctl(PR_SET_NAME, (long)"VKFramework::Sample::MainThread", 0, 0, 0);
 
   app_data->userData = this;
   app_data->onAppCmd = [](struct android_app* _app, int32_t cmd) {
@@ -119,6 +129,7 @@ bool WMAndroid::init(AppData_t app_data) {
 
   // Wait for the APP_CMD_INIT_WINDOW event which should create the native window.
   while (!app_data->destroyRequested && poll(app_data) && !native_window) {
+    std::this_thread::sleep_for(10ms);
   }
 
   if (!native_window) {
@@ -178,7 +189,7 @@ void WMAndroid::close() noexcept {
 
 // ----------------------------------------------------------------------------
 
-std::vector<char const*> WMAndroid::getVulkanInstanceExtensions() const noexcept {
+std::vector<char const*> WMAndroid::vulkanInstanceExtensions() const noexcept {
   return {
     VK_KHR_SURFACE_EXTENSION_NAME,
     VK_KHR_ANDROID_SURFACE_EXTENSION_NAME,

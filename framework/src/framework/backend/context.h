@@ -7,6 +7,8 @@
 #include "framework/backend/command_encoder.h"
 #include "framework/backend/allocator.h"
 
+#include "framework/core/platform/openxr/xr_graphics_interface.h" //
+
 /* -------------------------------------------------------------------------- */
 
 class Context {

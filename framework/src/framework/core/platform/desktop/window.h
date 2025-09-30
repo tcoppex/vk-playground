@@ -1,7 +1,8 @@
-#ifndef VKFRAMEWORK_CORE_PLATEFORM_WINDOW_H
-#define VKFRAMEWORK_CORE_PLATEFORM_WINDOW_H
+#ifndef VKFRAMEWORK_CORE_PLATEFORM_DESKTOP_WINDOW_H_
+#define VKFRAMEWORK_CORE_PLATEFORM_DESKTOP_WINDOW_H_
 
 #include "framework/core/platform/wm_interface.h"
+#include "framework/core/platform/desktop/xr_desktop.h"
 
 #define GLFW_INCLUDE_NONE
 #include "GLFW/glfw3.h"
@@ -14,37 +15,50 @@ class Window : public WMInterface {
 
   virtual ~Window() = default;
 
+  [[nodiscard]]
   bool init(AppData_t app_data) final;
 
   void shutdown() final;
 
+  [[nodiscard]]
   bool poll(AppData_t app_data) noexcept final;
 
   void setTitle(std::string_view title) const noexcept final;
 
   void close() noexcept final;
 
-  uint32_t get_surface_width() const noexcept final {
+  [[nodiscard]]
+  uint32_t surface_width() const noexcept final {
     return surface_w_;
   }
 
-  uint32_t get_surface_height() const noexcept final {
+  [[nodiscard]]
+  uint32_t surface_height() const noexcept final {
     return surface_h_;
   }
 
+  [[nodiscard]]
   void* get_handle() const noexcept final {
     return window_;
   }
 
+  [[nodiscard]]
   bool isActive() const noexcept final;
 
- public:
-  std::vector<char const*> getVulkanInstanceExtensions() const noexcept final;
+  [[nodiscard]]
+  XRPlatformInterface const& xrPlatformInterface() const noexcept final {
+    return xr_desktop_;
+  }
 
+  [[nodiscard]]
+  std::vector<char const*> vulkanInstanceExtensions() const noexcept final;
+
+  [[nodiscard]]
   VkResult createWindowSurface(VkInstance instance, VkSurfaceKHR *surface) const noexcept final;
 
  private:
   GLFWwindow* window_{};
+  XRPlatformDesktop xr_desktop_{};
   float dpi_scale_{};
   uint32_t surface_w_{};
   uint32_t surface_h_{};
@@ -52,4 +66,4 @@ class Window : public WMInterface {
 
 /* -------------------------------------------------------------------------- */
 
-#endif  // VKFRAMEWORK_WINDOW_H
+#endif  // VKFRAMEWORK_WINDOW_H_

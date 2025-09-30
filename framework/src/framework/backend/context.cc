@@ -5,9 +5,14 @@
 
 /* -------------------------------------------------------------------------- */
 
-bool Context::init(std::vector<char const*> const& instance_extensions) {
+bool Context::init(
+  std::vector<char const*> const& instance_extensions,
+  std::vector<char const*> const& device_extensions,
+  std::shared_ptr<XRVulkanInterface> vulkan_xr
+) {
   CHECK_VK(volkInitialize());
 
+  vulkan_xr_ = vulkan_xr;
   init_instance(instance_extensions);
   select_gpu();
 
@@ -397,7 +402,12 @@ void Context::init_instance(std::vector<char const*> const& instance_extensions)
     .enabledExtensionCount = static_cast<uint32_t>(instance_extension_names_.size()),
     .ppEnabledExtensionNames = instance_extension_names_.data(),
   };
-  CHECK_VK( vkCreateInstance(&instance_create_info, nullptr, &instance_) );
+
+  if (vulkan_xr_) {
+    CHECK_VK(vulkan_xr_->createVulkanInstance(&instance_create_info, nullptr, &instance_));
+  } else {
+    CHECK_VK(vkCreateInstance(&instance_create_info, nullptr, &instance_));
+  }
 
   volkLoadInstance(instance_);
 
@@ -434,33 +444,43 @@ void Context::init_instance(std::vector<char const*> const& instance_extensions)
 // ----------------------------------------------------------------------------
 
 void Context::select_gpu() {
-  uint32_t gpu_count{0u};
-  CHECK_VK( vkEnumeratePhysicalDevices(instance_, &gpu_count, nullptr) );
-  if (0u == gpu_count) {
-    LOG_FATAL("Vulkan: no GPUs were available.\n");
-  }
-  std::vector<VkPhysicalDevice> gpus(gpu_count);
-  CHECK_VK( vkEnumeratePhysicalDevices(instance_, &gpu_count, gpus.data()) );
-
-  /* Search for a discrete GPU. */
-  uint32_t selected_index{0u};
-  VkPhysicalDeviceProperties2 props{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
-  for (uint32_t i = 0u; i < gpu_count; ++i) {
-    vkGetPhysicalDeviceProperties2(gpus[i], &props);
-    if (VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU == props.properties.deviceType) {
-      selected_index = i;
-      break;
+  if (vulkan_xr_) {
+    vulkan_xr_->getGraphicsDevice(&gpu_);
+  } else {
+    uint32_t gpu_count{0u};
+    CHECK_VK( vkEnumeratePhysicalDevices(instance_, &gpu_count, nullptr) );
+    if (0u == gpu_count) {
+      LOG_FATAL("Vulkan: no GPUs were available.\n");
     }
+    std::vector<VkPhysicalDevice> gpus(gpu_count);
+    CHECK_VK( vkEnumeratePhysicalDevices(instance_, &gpu_count, gpus.data()) );
+
+    /* Search for a discrete GPU. */
+    uint32_t selected_index{0u};
+    VkPhysicalDeviceProperties2 props{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
+    for (uint32_t i = 0u; i < gpu_count; ++i) {
+      vkGetPhysicalDeviceProperties2(gpus[i], &props);
+      if (VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU == props.properties.deviceType) {
+        selected_index = i;
+        break;
+      }
+    }
+    gpu_ = gpus[selected_index];
   }
-  gpu_ = gpus[selected_index];
 
   /* Retrieve differents GPU properties. */
   vkGetPhysicalDeviceProperties2(gpu_, &properties_.gpu2);
   vkGetPhysicalDeviceMemoryProperties2(gpu_, &properties_.memory2);
+
   uint32_t queue_family_count{0u};
   vkGetPhysicalDeviceQueueFamilyProperties2(gpu_, &queue_family_count, nullptr);
-  properties_.queue_families2.resize(queue_family_count, {.sType = VK_STRUCTURE_TYPE_QUEUE_FAMILY_PROPERTIES_2});
-  vkGetPhysicalDeviceQueueFamilyProperties2(gpu_, &queue_family_count, properties_.queue_families2.data());
+
+  properties_.queue_families2.resize(queue_family_count, {
+    .sType = VK_STRUCTURE_TYPE_QUEUE_FAMILY_PROPERTIES_2
+  });
+  vkGetPhysicalDeviceQueueFamilyProperties2(
+    gpu_, &queue_family_count, properties_.queue_families2.data()
+  );
 
 #ifndef NDEBUG
   LOGD("Selected Device:");
@@ -693,7 +713,12 @@ bool Context::init_device() {
     .enabledExtensionCount = static_cast<uint32_t>(device_extension_names_.size()),
     .ppEnabledExtensionNames = device_extension_names_.data(),
   };
-  CHECK_VK( vkCreateDevice(gpu_, &device_info, nullptr, &device_) );
+
+  if (vulkan_xr_) {
+    CHECK_VK( vulkan_xr_->createVulkanDevice(gpu_, &device_info, nullptr, &device_) );
+  } else {
+    CHECK_VK( vkCreateDevice(gpu_, &device_info, nullptr, &device_) );
+  }
 
   /* Load device extensions. */
   volkLoadDevice(device_);
@@ -713,6 +738,10 @@ bool Context::init_device() {
   for (auto& pair : queues) {
     auto *queue = pair.first;
     vkGetDeviceQueue(device_, queue->family_index, queue->queue_index, &queue->queue);
+  }
+  if (vulkan_xr_) {
+    auto const& Q = queues_[TargetQueue::Main];
+    vulkan_xr_->setBindingQueue(Q.family_index, Q.queue_index);
   }
 
 #ifndef NDEBUG
