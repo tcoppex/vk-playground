@@ -52,13 +52,13 @@ class Framebuffer final : public backend::RPInterface {
 
   void resize(VkExtent2D const dimension);
 
-  backend::Image get_color_attachment() const {
+  backend::Image color_attachment() const {
     return outputs_[BufferName::Color][get_swap_index()];
   }
 
   // ----- RPInterface Overrides -----
 
-  VkExtent2D get_surface_size() const final {
+  VkExtent2D surface_size() const final {
     return desc_.dimension;
   }
 

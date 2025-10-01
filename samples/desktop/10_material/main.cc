@@ -73,7 +73,7 @@ class SampleApp final : public Application {
       scene_ = future_scene_.get();
     }
     if (scene_) {
-      scene_->update(camera_, renderer_.get_surface_size(), elapsed_time());
+      scene_->update(camera_, renderer_.surface_size(), elapsed_time());
     }
   }
 

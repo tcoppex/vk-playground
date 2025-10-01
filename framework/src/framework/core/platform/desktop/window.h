@@ -38,7 +38,7 @@ class Window : public WMInterface {
   }
 
   [[nodiscard]]
-  void* get_handle() const noexcept final {
+  void* handle() const noexcept final {
     return window_;
   }
 

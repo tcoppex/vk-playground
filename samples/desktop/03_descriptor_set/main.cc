@@ -170,7 +170,7 @@ class SampleApp final : public Application {
             .module = shaders[1u].module,
             .targets = {
               {
-                .format = renderer_.get_color_attachment().format,
+                .format = renderer_.color_attachment().format,
                 .writeMask = VK_COLOR_COMPONENT_R_BIT
                            | VK_COLOR_COMPONENT_G_BIT
                            | VK_COLOR_COMPONENT_B_BIT
@@ -180,7 +180,7 @@ class SampleApp final : public Application {
             },
           },
           .depthStencil = {
-            .format = renderer_.get_depth_stencil_attachment().format,
+            .format = renderer_.depth_stencil_attachment().format,
             .depthTestEnable = VK_TRUE,
             .depthWriteEnable = VK_TRUE,
             .depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL,
@@ -202,7 +202,7 @@ class SampleApp final : public Application {
     context_.destroy_descriptor_set_layout(descriptor_set_layout_);
 
     /* As we've created the pipeline layout externally we should destroy it manually.
-     * We could also use 'graphics_pipeline_.get_layout()'' if we didn't kept it. */
+     * We could also use 'graphics_pipeline_.layout()'' if we didn't kept it. */
     context_.destroy_pipeline_layout(pipeline_layout_);
 
     context_.destroy_pipeline(graphics_pipeline_);

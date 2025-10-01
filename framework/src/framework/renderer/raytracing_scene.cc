@@ -353,7 +353,7 @@ void RayTracingScene::build_acceleration_structure(
       &buildRangeInfo
     };
     vkCmdBuildAccelerationStructuresKHR(
-      cmd.get_handle(),
+      cmd.handle(),
       1,
       &as->build_geometry_info,
       build_range_infos.data()
@@ -371,7 +371,7 @@ void RayTracingScene::build_acceleration_structure(
       .memoryBarrierCount = 1,
       .pMemoryBarriers = &barrier
     };
-    vkCmdPipelineBarrier2(cmd.get_handle(), &depInfo);
+    vkCmdPipelineBarrier2(cmd.handle(), &depInfo);
   }
   context_ptr_->finish_transient_command_encoder(cmd);
 

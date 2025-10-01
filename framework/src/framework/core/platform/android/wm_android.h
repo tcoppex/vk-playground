@@ -38,7 +38,7 @@ struct WMAndroid final : public WMInterface {
   }
 
   [[nodiscard]]
-  void* get_handle() const noexcept final {
+  void* handle() const noexcept final {
     return native_window;
   }
 

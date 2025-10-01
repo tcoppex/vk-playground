@@ -125,8 +125,8 @@ class SceneFx final : public RenderTargetFx {
       .fragment = {
         .module = shaders[1u].module,
         .targets = {
-          { .format = render_target_->get_color_attachment(0).format },
-          { .format = render_target_->get_color_attachment(1).format }
+          { .format = render_target_->color_attachment(0).format },
+          { .format = render_target_->color_attachment(1).format }
         },
       },
       .depthStencil = {
@@ -291,7 +291,7 @@ class SampleApp final : public Application {
 
     /* Fx Pipeline. */
     toon_pipeline_.init(renderer_);
-    toon_pipeline_.setup(renderer_.get_surface_size());
+    toon_pipeline_.setup(renderer_.surface_size());
 
     if (auto sceneFx = toon_pipeline_.getEntryFx(); sceneFx) {
       sceneFx->setModel(gltf_scene);

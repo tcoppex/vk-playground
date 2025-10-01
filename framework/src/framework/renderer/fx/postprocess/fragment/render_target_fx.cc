@@ -46,13 +46,13 @@ void RenderTargetFx::execute(CommandEncoder& cmd) const {
 // ----------------------------------------------------------------------------
 
 backend::Image RenderTargetFx::getImageOutput(uint32_t index) const {
-  return render_target_->get_color_attachment(index); //
+  return render_target_->color_attachment(index); //
 }
 
 // ----------------------------------------------------------------------------
 
 std::vector<backend::Image> RenderTargetFx::getImageOutputs() const {
-  return render_target_->get_color_attachments();
+  return render_target_->color_attachments();
 }
 
 // ----------------------------------------------------------------------------
@@ -67,7 +67,7 @@ GraphicsPipelineDescriptor_t RenderTargetFx::getGraphicsPipelineDescriptor(
     .fragment = {
       .module = shaders[1u].module,
       .targets = {
-        { .format = render_target_->get_color_attachment().format },
+        { .format = render_target_->color_attachment().format },
       }
     },
     .primitive = {
@@ -80,7 +80,7 @@ GraphicsPipelineDescriptor_t RenderTargetFx::getGraphicsPipelineDescriptor(
 // ----------------------------------------------------------------------------
 
 VkExtent2D RenderTargetFx::getRenderSurfaceSize() const {
-  return render_target_->get_surface_size();
+  return render_target_->surface_size();
 }
 
 // ----------------------------------------------------------------------------

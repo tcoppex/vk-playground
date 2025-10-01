@@ -353,7 +353,7 @@ void GPUResources::upload_images(Context const& context) {
     );
     for (uint32_t i = 0u; i < device_images.size(); ++i) {
       vkCmdCopyBufferToImage(
-        cmd.get_handle(),
+        cmd.handle(),
         staging_buffer.buffer,
         device_images[i].image,
         transfer_layout,

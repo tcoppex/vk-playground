@@ -27,7 +27,7 @@ class GenericCommandEncoder {
   virtual ~GenericCommandEncoder() = default;
 
   [[nodiscard]]
-  VkCommandBuffer get_handle() const noexcept {
+  VkCommandBuffer handle() const noexcept {
     return command_buffer_;
   }
 
@@ -40,11 +40,11 @@ class GenericCommandEncoder {
 
   void bind_pipeline(backend::PipelineInterface const& pipeline) {
     currently_bound_pipeline_ = &pipeline;
-    vkCmdBindPipeline(command_buffer_, pipeline.get_bind_point(), pipeline.get_handle());
+    vkCmdBindPipeline(command_buffer_, pipeline.bind_point(), pipeline.handle());
   }
 
   void bind_pipeline(backend::PipelineInterface const& pipeline) const {
-    vkCmdBindPipeline(command_buffer_, pipeline.get_bind_point(), pipeline.get_handle());
+    vkCmdBindPipeline(command_buffer_, pipeline.bind_point(), pipeline.handle());
   }
 
   // --- Descriptor Sets ---
@@ -61,7 +61,7 @@ class GenericCommandEncoder {
     VkShaderStageFlags stage_flags
   ) const {
     LOG_CHECK(nullptr != currently_bound_pipeline_);
-    bind_descriptor_set(descriptor_set, currently_bound_pipeline_->get_layout(), stage_flags);
+    bind_descriptor_set(descriptor_set, currently_bound_pipeline_->layout(), stage_flags);
   }
 
   void push_descriptor_set(
@@ -126,13 +126,13 @@ class GenericCommandEncoder {
   template<typename T> requires (!SpanConvertible<T>)
   void push_constant(T const& value, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS, uint32_t const offset = 0u) const {
     LOG_CHECK(nullptr != currently_bound_pipeline_);
-    push_constant(value, currently_bound_pipeline_->get_layout(), stage_flags, offset);
+    push_constant(value, currently_bound_pipeline_->layout(), stage_flags, offset);
   }
 
   template<typename T> requires (SpanConvertible<T>)
   void push_constants(T const& values, VkShaderStageFlags const stage_flags = VK_SHADER_STAGE_ALL_GRAPHICS, uint32_t const offset = 0u) const {
     LOG_CHECK(nullptr != currently_bound_pipeline_);
-    push_constants(values, currently_bound_pipeline_->get_layout(), stage_flags, offset);
+    push_constants(values, currently_bound_pipeline_->layout(), stage_flags, offset);
   }
 
   // --- Pipeline Barrier ---

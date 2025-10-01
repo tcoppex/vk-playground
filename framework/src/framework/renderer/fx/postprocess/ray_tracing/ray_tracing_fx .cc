@@ -196,7 +196,7 @@ void RayTracingFx::buildShaderBindingTable(RayTracingPipelineDescriptor_t const&
   std::vector<std::byte> shader_handles(numGroups * handleSize);
   CHECK_VK(vkGetRayTracingShaderGroupHandlesKHR(
     context_ptr_->device(),
-    pipeline_.get_handle(),
+    pipeline_.handle(),
     0,
     numGroups,
     shader_handles.size(),

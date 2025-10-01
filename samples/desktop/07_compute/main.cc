@@ -227,7 +227,7 @@ class SampleApp final : public Application {
           .module = shaders[1u].module,
           .targets = {
             {
-              .format = renderer_.get_color_attachment().format,
+              .format = renderer_.color_attachment().format,
               .writeMask = VK_COLOR_COMPONENT_R_BIT
                          | VK_COLOR_COMPONENT_G_BIT
                          | VK_COLOR_COMPONENT_B_BIT
@@ -250,7 +250,7 @@ class SampleApp final : public Application {
           },
         },
         .depthStencil = {
-          .format = renderer_.get_depth_stencil_attachment().format, //
+          .format = renderer_.depth_stencil_attachment().format, //
         },
         .primitive = {
           .topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP,

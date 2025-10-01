@@ -128,7 +128,7 @@ class Renderer : public backend::RTInterface {
   /* ----- RTInterface Overrides ----- */
 
   [[nodiscard]]
-  VkExtent2D get_surface_size() const final {
+  VkExtent2D surface_size() const final {
     LOG_CHECK(swapchain_ptr_ != nullptr);
     return swapchain_ptr_->surface_size();
     // LOG_CHECK(swapchain_ptr_ || xr_);
@@ -138,42 +138,42 @@ class Renderer : public backend::RTInterface {
   }
 
   [[nodiscard]]
-  uint32_t get_color_attachment_count() const final {
+  uint32_t color_attachment_count() const final {
     return 1u;
   }
 
   [[nodiscard]]
-  std::vector<backend::Image> get_color_attachments() const final {
-    return { get_color_attachment() };
+  std::vector<backend::Image> color_attachments() const final {
+    return { color_attachment() };
   }
 
   [[nodiscard]]
-  backend::Image get_color_attachment(uint32_t index = 0u) const final {
+  backend::Image color_attachment(uint32_t index = 0u) const final {
     LOG_CHECK(swapchain_ptr_ != nullptr);
     return swapchain_ptr_->current_swap_image();
   }
 
   // VkFormat color_attachment_format(uint32_t index = 0u) const {
-  //   return get_color_attachment(index).format;
+  //   return color_attachment(index).format;
   // }
 
   [[nodiscard]]
-  backend::Image get_depth_stencil_attachment() const final {
+  backend::Image depth_stencil_attachment() const final {
     return depth_stencil_;
   }
 
   [[nodiscard]]
-  VkClearValue get_color_clear_value(uint32_t index = 0u) const final {
+  VkClearValue color_clear_value(uint32_t index = 0u) const final {
     return color_clear_value_;
   }
 
   [[nodiscard]]
-  VkClearValue get_depth_stencil_clear_value() const final {
+  VkClearValue depth_stencil_clear_value() const final {
     return depth_stencil_clear_value_;
   }
 
   [[nodiscard]]
-  VkAttachmentLoadOp get_color_load_op(uint32_t index = 0u) const final {
+  VkAttachmentLoadOp color_load_op(uint32_t index = 0u) const final {
     return color_load_op_;
   }
 

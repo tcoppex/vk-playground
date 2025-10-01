@@ -62,7 +62,7 @@ void FragmentFx::createPipeline() {
 // ----------------------------------------------------------------------------
 
 VkExtent2D FragmentFx::getRenderSurfaceSize() const {
-  return renderer_ptr_->get_surface_size();
+  return renderer_ptr_->surface_size();
 }
 
 /* -------------------------------------------------------------------------- */

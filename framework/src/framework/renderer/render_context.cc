@@ -408,9 +408,9 @@ Pipeline RenderContext::create_raytracing_pipeline(
 // ----------------------------------------------------------------------------
 
 void RenderContext::destroy_pipeline(Pipeline const& pipeline) const {
-  vkDestroyPipeline(device(), pipeline.get_handle(), nullptr);
+  vkDestroyPipeline(device(), pipeline.handle(), nullptr);
   if (pipeline.use_internal_layout_) {
-    destroy_pipeline_layout(pipeline.get_layout());
+    destroy_pipeline_layout(pipeline.layout());
   }
 }
 

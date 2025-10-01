@@ -260,10 +260,10 @@ std::unique_ptr<RenderTarget> Renderer::create_default_render_target(
   RenderTarget::Descriptor_t desc{
     .color_formats = {},
     .depth_stencil_format = valid_depth_format(),
-    .size = get_surface_size(),
+    .size = surface_size(),
     .sampler = context().default_sampler(),
   };
-  desc.color_formats.resize(num_color_outputs, get_color_attachment().format);
+  desc.color_formats.resize(num_color_outputs, color_attachment().format);
   return ctx_ptr_->create_render_target(desc);
 }
 
@@ -312,7 +312,7 @@ VkGraphicsPipelineCreateInfo Renderer::create_graphics_pipeline_create_info(
     /* (~) If no depth format is setup, use the renderer's one. */
     VkFormat const depth_format{
       (desc.depthStencil.format != VK_FORMAT_UNDEFINED) ? desc.depthStencil.format
-                                                        : get_depth_stencil_attachment().format
+                                                        : depth_stencil_attachment().format
     };
 
     VkFormat const stencil_format{
@@ -330,7 +330,7 @@ VkGraphicsPipelineCreateInfo Renderer::create_graphics_pipeline_create_info(
       /* (~) If no color format is setup, use the renderer's one. */
       VkFormat const color_format{
         (target.format != VK_FORMAT_UNDEFINED) ? target.format
-                                               : get_color_attachment(i).format
+                                               : color_attachment(i).format
       };
 
       data.color_attachments[i] = color_format;

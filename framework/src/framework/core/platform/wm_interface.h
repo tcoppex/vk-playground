@@ -32,7 +32,7 @@ struct WMInterface {
   virtual uint32_t surface_height() const noexcept = 0;
 
   [[nodiscard]]
-  virtual void* get_handle() const noexcept = 0;
+  virtual void* handle() const noexcept = 0;
 
   [[nodiscard]]
   virtual bool isActive() const noexcept {

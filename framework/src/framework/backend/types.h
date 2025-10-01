@@ -155,15 +155,15 @@ class PipelineInterface {
 
   virtual ~PipelineInterface() {}
 
-  VkPipelineLayout get_layout() const {
+  VkPipelineLayout layout() const {
     return pipeline_layout_;
   }
 
-  VkPipeline get_handle() const {
+  VkPipeline handle() const {
     return pipeline_;
   }
 
-  VkPipelineBindPoint get_bind_point() const {
+  VkPipelineBindPoint bind_point() const {
     return bind_point_;
   }
 
@@ -194,21 +194,21 @@ struct RTInterface {
 
   // -- Getters --
 
-  virtual VkExtent2D get_surface_size() const = 0;
+  virtual VkExtent2D surface_size() const = 0;
 
-  virtual uint32_t get_color_attachment_count() const = 0;
+  virtual uint32_t color_attachment_count() const = 0;
 
-  virtual std::vector<backend::Image> get_color_attachments() const = 0;
+  virtual std::vector<backend::Image> color_attachments() const = 0;
 
-  virtual backend::Image get_color_attachment(uint32_t i = 0u) const = 0;
+  virtual backend::Image color_attachment(uint32_t i = 0u) const = 0;
 
-  virtual backend::Image get_depth_stencil_attachment() const = 0;
+  virtual backend::Image depth_stencil_attachment() const = 0;
 
-  virtual VkClearValue get_color_clear_value(uint32_t i = 0u) const = 0;
+  virtual VkClearValue color_clear_value(uint32_t i = 0u) const = 0;
 
-  virtual VkClearValue get_depth_stencil_clear_value() const = 0;
+  virtual VkClearValue depth_stencil_clear_value() const = 0;
 
-  virtual VkAttachmentLoadOp get_color_load_op(uint32_t i = 0u) const = 0;
+  virtual VkAttachmentLoadOp color_load_op(uint32_t i = 0u) const = 0;
 
   // -- Setters --
 
@@ -233,7 +233,7 @@ struct RPInterface {
 
   virtual VkFramebuffer get_swap_attachment() const = 0;
 
-  virtual VkExtent2D get_surface_size() const = 0;
+  virtual VkExtent2D surface_size() const = 0;
 
   virtual std::vector<VkClearValue> const& get_clear_values() const = 0;
 };

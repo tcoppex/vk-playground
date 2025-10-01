@@ -39,7 +39,7 @@ bool UIController::init(Renderer const& renderer, WMInterface const& wm) {
   ImGui::CreateContext();
   ImGui::StyleColorsDark();
 
-  if (!ImGui_ImplGlfw_InitForVulkan(reinterpret_cast<GLFWwindow*>(wm.get_handle()), true)) {
+  if (!ImGui_ImplGlfw_InitForVulkan(reinterpret_cast<GLFWwindow*>(wm.handle()), true)) {
     return false;
   }
 
@@ -60,10 +60,10 @@ bool UIController::init(Renderer const& renderer, WMInterface const& wm) {
   CHECK_VK(vkCreateDescriptorPool(context.device(), &desc_pool_info, nullptr, &imgui_descriptor_pool_));
 
   VkFormat const formats[]{
-    renderer.get_color_attachment().format
+    renderer.color_attachment().format
   };
   VkFormat const depth_stencil_format{
-    renderer.get_depth_stencil_attachment().format
+    renderer.depth_stencil_attachment().format
   };
   auto const main_queue{ context.queue() };
   ImGui_ImplVulkan_InitInfo info{
@@ -113,7 +113,7 @@ void UIController::beginFrame() {
   // [todo] OnViewportSizeChange
   {
     float xscale, yscale;
-    glfwGetWindowContentScale(reinterpret_cast<GLFWwindow*>(wm_ptr_->get_handle()), &xscale, &yscale);
+    glfwGetWindowContentScale(reinterpret_cast<GLFWwindow*>(wm_ptr_->handle()), &xscale, &yscale);
     ImGui::GetIO().FontGlobalScale = xscale;
   }
 }

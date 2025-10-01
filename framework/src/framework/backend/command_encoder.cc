@@ -29,7 +29,7 @@ void GenericCommandEncoder::bind_descriptor_set(
   {
     vkCmdBindDescriptorSets(
       command_buffer_,
-      currently_bound_pipeline_->get_bind_point(),
+      currently_bound_pipeline_->bind_point(),
       pipeline_layout,
       first_set,
       1,
@@ -58,8 +58,8 @@ void GenericCommandEncoder::push_descriptor_set(
   LOG_CHECK(vkCmdPushDescriptorSetKHR != nullptr);
   vkCmdPushDescriptorSetKHR(
     command_buffer_,
-    pipeline.get_bind_point(),
-    pipeline.get_layout(),
+    pipeline.bind_point(),
+    pipeline.layout(),
     set,
     static_cast<uint32_t>(out.write_descriptor_sets.size()),
     out.write_descriptor_sets.data()
@@ -226,8 +226,8 @@ void CommandEncoder::blit(PostFxInterface const& fx_src, backend::RTInterface co
   LOG_CHECK(false == fx_src.getImageOutputs().empty());
   blit_image_2d(
     fx_src.getImageOutput(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-    rt_dst.get_color_attachment(), VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-    rt_dst.get_surface_size()
+    rt_dst.color_attachment(), VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+    rt_dst.surface_size()
   );
 }
 
@@ -300,9 +300,9 @@ RenderPassEncoder CommandEncoder::begin_rendering(RenderPassDescriptor const& de
 // ----------------------------------------------------------------------------
 
 RenderPassEncoder CommandEncoder::begin_rendering(backend::RTInterface const& render_target) {
-  // LOG_CHECK( render_target.get_color_attachment_count() == 1u );
+  // LOG_CHECK( render_target.color_attachment_count() == 1u );
 
-  auto const& colors = render_target.get_color_attachments();
+  auto const& colors = render_target.color_attachments();
 
   /* Dynamic rendering required color images to be in color_attachment layout. */
   transition_images_layout(
@@ -315,21 +315,21 @@ RenderPassEncoder CommandEncoder::begin_rendering(backend::RTInterface const& re
     .colorAttachments = {},
     .depthAttachment = {
       .sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
-      .imageView   = render_target.get_depth_stencil_attachment().view,
+      .imageView   = render_target.depth_stencil_attachment().view,
       .imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR,
       .loadOp      = VK_ATTACHMENT_LOAD_OP_CLEAR,
       .storeOp     = VK_ATTACHMENT_STORE_OP_STORE,
-      .clearValue  = render_target.get_depth_stencil_clear_value(),
+      .clearValue  = render_target.depth_stencil_clear_value(),
     },
     .stencilAttachment = {
       .sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
-      .imageView   = render_target.get_depth_stencil_attachment().view,
+      .imageView   = render_target.depth_stencil_attachment().view,
       .imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR,
       .loadOp      = VK_ATTACHMENT_LOAD_OP_CLEAR,
       .storeOp     = VK_ATTACHMENT_STORE_OP_STORE,
-      .clearValue  = render_target.get_depth_stencil_clear_value(),
+      .clearValue  = render_target.depth_stencil_clear_value(),
     },
-    .renderArea = {{0, 0}, render_target.get_surface_size()},
+    .renderArea = {{0, 0}, render_target.surface_size()},
   };
 
   rp_desc.colorAttachments.resize(colors.size(), {
@@ -341,8 +341,8 @@ RenderPassEncoder CommandEncoder::begin_rendering(backend::RTInterface const& re
   for (size_t i = 0u; i < colors.size(); ++i) {
     auto& attach = rp_desc.colorAttachments[i];
     attach.imageView  = colors[i].view;
-    attach.loadOp     = render_target.get_color_load_op(i);
-    attach.clearValue = render_target.get_color_clear_value(i);
+    attach.loadOp     = render_target.color_load_op(i);
+    attach.clearValue = render_target.color_clear_value(i);
   }
 
   auto pass_encoder = begin_rendering(rp_desc);
@@ -363,7 +363,7 @@ RenderPassEncoder CommandEncoder::begin_rendering(std::shared_ptr<backend::RTInt
 RenderPassEncoder CommandEncoder::begin_rendering() {
   LOG_CHECK( default_render_target_ptr_ != nullptr );
   auto pass = begin_rendering( *default_render_target_ptr_ );
-  pass.set_viewport_scissor(default_render_target_ptr_->get_surface_size()); //
+  pass.set_viewport_scissor(default_render_target_ptr_->surface_size()); //
   return pass;
 }
 
@@ -373,7 +373,7 @@ void CommandEncoder::end_rendering() {
   vkCmdEndRendering(command_buffer_);
 
   if (current_render_target_ptr_ != nullptr) [[likely]] {
-    // LOG_CHECK( current_render_target_ptr_->get_color_attachment_count() == 1u ); //
+    // LOG_CHECK( current_render_target_ptr_->color_attachment_count() == 1u ); //
 
     // Automatically transition the image depending on the render target.
     VkImageLayout const dst_layout{
@@ -381,7 +381,7 @@ void CommandEncoder::end_rendering() {
                                                                  : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
     };
     transition_images_layout(
-      current_render_target_ptr_->get_color_attachments(),
+      current_render_target_ptr_->color_attachments(),
       VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
       dst_layout
     );
@@ -400,7 +400,7 @@ RenderPassEncoder CommandEncoder::begin_render_pass(backend::RPInterface const& 
     .renderPass = render_pass.get_render_pass(),
     .framebuffer = render_pass.get_swap_attachment(),
     .renderArea = {
-      .extent = render_pass.get_surface_size(),
+      .extent = render_pass.surface_size(),
     },
     .clearValueCount = static_cast<uint32_t>(clear_values.size()),
     .pClearValues = clear_values.data(),
@@ -419,12 +419,12 @@ void CommandEncoder::end_render_pass() const {
 // ----------------------------------------------------------------------------
 
 void CommandEncoder::render_ui(backend::RTInterface &render_target) {
-  auto const load_op = render_target.get_color_load_op();
+  auto const load_op = render_target.color_load_op();
   render_target.set_color_load_op(VK_ATTACHMENT_LOAD_OP_LOAD);
 
   auto cmd = begin_rendering(render_target);
   // ----------------------------------------
-  ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd.get_handle()); // XXX
+  ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd.handle()); // XXX
   // ----------------------------------------
   end_rendering();
 

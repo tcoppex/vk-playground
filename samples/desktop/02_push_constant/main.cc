@@ -110,7 +110,7 @@ class SampleApp final : public Application {
             .module = shaders[1u].module,
             .targets = {
               {
-                .format = renderer_.get_color_attachment().format,
+                .format = renderer_.color_attachment().format,
                 .writeMask = VK_COLOR_COMPONENT_R_BIT
                            | VK_COLOR_COMPONENT_G_BIT
                            | VK_COLOR_COMPONENT_B_BIT
@@ -120,7 +120,7 @@ class SampleApp final : public Application {
             },
           },
           .depthStencil = {
-            .format = renderer_.get_depth_stencil_attachment().format,
+            .format = renderer_.depth_stencil_attachment().format,
             .depthTestEnable = VK_TRUE,
             .depthWriteEnable = VK_TRUE,
             .depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL,
@@ -167,7 +167,7 @@ class SampleApp final : public Application {
     {
       /* By specifying the pipeline layout to target, we can push constants
        * before the actual pipeline is bound. */
-      cmd.push_constant(tick * 1.4f, graphics_pipeline_.get_layout());
+      cmd.push_constant(tick * 1.4f, graphics_pipeline_.layout());
 
       auto pass = cmd.begin_rendering();
       {
