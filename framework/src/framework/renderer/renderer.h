@@ -45,9 +45,8 @@ class Renderer : public backend::RTInterface {
   ~Renderer() {}
 
   void init(
-    Context const& context,
-    Swapchain& swapchain,
-    ResourceAllocator& allocator
+    Context& context,
+    Swapchain& swapchain
   );
 
   void deinit();
@@ -312,6 +311,9 @@ class Renderer : public backend::RTInterface {
   }
 
  private:
+  void init_view_resources(Swapchain& swapchain);
+  void deinit_view_resources();
+
   VkFormat get_valid_depth_format() const noexcept {
     return VK_FORMAT_D24_UNORM_S8_UINT
            // VK_FORMAT_D16_UNORM  //
@@ -336,17 +338,30 @@ class Renderer : public backend::RTInterface {
   };
 
  private:
-  /* References for quick access */
-  Context const* ctx_ptr_{};
+  // --- [View Dependent] ---
+
   Swapchain* swapchain_ptr_{};
-  ResourceAllocator* allocator_ptr_{};
-  VkDevice device_{};
 
   /* Default depth-stencil buffer */
-  backend::Image depth_stencil_{};
+  backend::Image depth_stencil_{}; //
 
   /* Timeline frame resources */
   Timeline_t timeline_{};
+
+  // Proxy to const ref return the swapbuffer..
+  mutable std::vector<backend::Image> proxy_swap_attachment_{}; //
+
+  // Reference to the current CommandEncoder returned by 'begin_frame'
+  CommandEncoder cmd_{}; //
+
+  // ----------------
+
+  // --- [Shared Resources] ---
+
+  /* References for quick access */
+  Context const* ctx_ptr_{};
+  ResourceAllocator* allocator_ptr_{};
+  VkDevice device_{};
 
   /* Pipeline Cache */
   VkPipelineCache pipeline_cache_{};
@@ -354,25 +369,14 @@ class Renderer : public backend::RTInterface {
   /* Descriptor registry and allocator */
   DescriptorSetRegistry descriptor_set_registry_{};
 
-  // ----------------
-
   /* Utils */
   SamplerPool sampler_pool_{};
-  Skybox skybox_{}; // (higher level..)
-
-  // ----------------
+  Skybox skybox_{}; //
 
   /* Miscs resources */
-
-  // Proxy to const ref return the swapbuffer..
-  mutable std::vector<backend::Image> proxy_swap_attachment_{}; //
-
   VkClearValue color_clear_value_{kDefaultColorClearValue};
   VkClearValue depth_stencil_clear_value_{{{1.0f, 0u}}};
   VkAttachmentLoadOp color_load_op_{VK_ATTACHMENT_LOAD_OP_CLEAR};
-
-  // Reference to the current CommandEncoder returned by 'begin_frame'
-  CommandEncoder cmd_{}; //
 };
 
 /* -------------------------------------------------------------------------- */

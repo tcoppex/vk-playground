@@ -12,17 +12,16 @@ char const* kDefaulShaderEntryPoint{
 /* -------------------------------------------------------------------------- */
 
 void Renderer::init(
-  Context const& context,
-  Swapchain& swapchain,
-  ResourceAllocator& allocator
+  Context& context,
+  Swapchain& swapchain //
 ) {
-  ctx_ptr_ = &context;
-  swapchain_ptr_ = &swapchain;
-  allocator_ptr_ = &allocator;
-
-  device_ = context.device();
-
   LOGD("-- Renderer --");
+
+  ctx_ptr_ = &context;
+  device_ = context.device();
+  allocator_ptr_ = &context.allocator();
+
+  init_view_resources(swapchain);
 
   /* Create the shared pipeline cache. */
   LOGD(" > PipelineCacheInfo");
@@ -39,56 +38,6 @@ void Renderer::init(
       &pipeline_cache_
     ));
   }
-
-  /* Create a default depth stencil buffer. */
-  VkExtent2D const dimension{swapchain_ptr_->surface_size()};
-  resize(dimension.width, dimension.height);
-
-  /* Initialize resources for the semaphore timeline. */
-  LOGD(" > Timeline Semaphore Resources");
-  {
-    uint64_t const frame_count = swapchain_ptr_->image_count();
-
-    // Initialize per-frame command buffers.
-    timeline_.frames.resize(frame_count);
-    VkCommandPoolCreateInfo const command_pool_create_info{
-      .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-      .queueFamilyIndex = context.queue(Context::TargetQueue::Main).family_index,
-    };
-    for (uint64_t i = 0u; i < frame_count; ++i) {
-      auto& frame = timeline_.frames[i];
-      frame.signal_index = i;
-
-      CHECK_VK(vkCreateCommandPool(
-        device_, &command_pool_create_info, nullptr, &frame.command_pool
-      ));
-      VkCommandBufferAllocateInfo const cb_alloc_info{
-        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-        .commandPool = frame.command_pool,
-        .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-        .commandBufferCount = 1u,
-      };
-      CHECK_VK(vkAllocateCommandBuffers(
-        device_, &cb_alloc_info, &frame.command_buffer
-      ));
-    }
-
-    // Create the timeline semaphore.
-    VkSemaphoreTypeCreateInfo const semaphore_type_create_info{
-      .sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO,
-      .semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE,
-      .initialValue = frame_count - 1u,
-    };
-    VkSemaphoreCreateInfo const semaphore_create_info{
-      .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
-      .pNext = &semaphore_type_create_info,
-    };
-    CHECK_VK(vkCreateSemaphore(
-      device_, &semaphore_create_info, nullptr, &timeline_.semaphore
-    ));
-  }
-
-  // --------------------------
 
   // Handle Descriptor Set allocation through the framework.
   LOGD(" > Descriptor Registry");
@@ -107,21 +56,80 @@ void Renderer::init(
 
 // ----------------------------------------------------------------------------
 
-void Renderer::deinit() {
-  assert(device_ != VK_NULL_HANDLE);
+void Renderer::init_view_resources(Swapchain& swapchain) {
+  swapchain_ptr_ = &swapchain; //
 
-  skybox_.release(*this); //
-  sampler_pool_.deinit();
-  descriptor_set_registry_.release();
+  /* Create a default depth stencil buffer. */
+  VkExtent2D const dimension{swapchain_ptr_->surface_size()};
+  resize(dimension.width, dimension.height);
+
+  /* Initialize resources for the semaphore timeline. */
+  LOGD(" > Timeline Semaphore Resources");
+  uint64_t const frame_count = swapchain_ptr_->image_count();
+
+  // Initialize per-frame command buffers.
+  timeline_.frames.resize(frame_count);
+  VkCommandPoolCreateInfo const command_pool_create_info{
+    .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+    .queueFamilyIndex = ctx_ptr_->queue(Context::TargetQueue::Main).family_index,
+  };
+  for (uint64_t i = 0u; i < frame_count; ++i) {
+    auto& frame = timeline_.frames[i];
+    frame.signal_index = i;
+
+    CHECK_VK(vkCreateCommandPool(
+      device_, &command_pool_create_info, nullptr, &frame.command_pool
+    ));
+    VkCommandBufferAllocateInfo const cb_alloc_info{
+      .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+      .commandPool = frame.command_pool,
+      .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+      .commandBufferCount = 1u,
+    };
+    CHECK_VK(vkAllocateCommandBuffers(
+      device_, &cb_alloc_info, &frame.command_buffer
+    ));
+  }
+
+  // Create the timeline semaphore.
+  VkSemaphoreTypeCreateInfo const semaphore_type_create_info{
+    .sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO,
+    .semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE,
+    .initialValue = frame_count - 1u,
+  };
+  VkSemaphoreCreateInfo const semaphore_create_info{
+    .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+    .pNext = &semaphore_type_create_info,
+  };
+  CHECK_VK(vkCreateSemaphore(
+    device_, &semaphore_create_info, nullptr, &timeline_.semaphore
+  ));
+}
+
+// ----------------------------------------------------------------------------
+
+void Renderer::deinit_view_resources() {
+  LOG_CHECK(device_ != VK_NULL_HANDLE);
 
   vkDestroySemaphore(device_, timeline_.semaphore, nullptr);
   for (auto & frame : timeline_.frames) {
     vkFreeCommandBuffers(device_, frame.command_pool, 1u, &frame.command_buffer);
     vkDestroyCommandPool(device_, frame.command_pool, nullptr);
   }
-
   allocator_ptr_->destroy_image(&depth_stencil_);
+}
+
+// ----------------------------------------------------------------------------
+
+void Renderer::deinit() {
+  LOG_CHECK(device_ != VK_NULL_HANDLE);
+
+  skybox_.release(*this); //
+  sampler_pool_.deinit();
+  descriptor_set_registry_.release();
   vkDestroyPipelineCache(device_, pipeline_cache_, nullptr);
+
+  deinit_view_resources();
 
   *this = {};
 }
@@ -143,7 +151,7 @@ bool Renderer::resize(uint32_t w, uint32_t h) {
 // ----------------------------------------------------------------------------
 
 CommandEncoder Renderer::begin_frame() {
-  assert(device_ != VK_NULL_HANDLE);
+  LOG_CHECK(device_ != VK_NULL_HANDLE);
 
   auto &frame{ timeline_.current_frame() };
 
