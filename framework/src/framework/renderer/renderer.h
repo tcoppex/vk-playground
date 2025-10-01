@@ -223,7 +223,6 @@ class Renderer : public backend::RTInterface {
   // --- [Shared Resources] ---
 
   /* References for quick access */
-  // RenderContext const* ctx_ptr_{};
   RenderContext* ctx_ptr_{};
   ResourceAllocator* allocator_ptr_{};
   VkDevice device_{};
@@ -249,8 +248,6 @@ class Renderer : public backend::RTInterface {
   // Reference to the current CommandEncoder returned by 'begin_frame'
   CommandEncoder cmd_{}; //
 
-  // ----------------
-
   // --- [Miscs utility] ---
 
   Skybox skybox_{}; //
@@ -258,4 +255,4 @@ class Renderer : public backend::RTInterface {
 
 /* -------------------------------------------------------------------------- */
 
-#endif
+#endif // VKFRAMEWORK_RENDERER_RENDERER_H_

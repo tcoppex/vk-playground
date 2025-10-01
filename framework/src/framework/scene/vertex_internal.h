@@ -69,6 +69,16 @@ struct VertexInternal_t : material_shader_interop::Vertex {
       { Geometry::AttributeType::Texcoord,  buffer_offset },
     };
   }
+
+  static
+  scene::Mesh::AttributeLocationMap GetDefaultAttributeLocationMap() {
+    return {
+      { Geometry::AttributeType::Position, material_shader_interop::kAttribLocation_Position },
+      { Geometry::AttributeType::Normal,   material_shader_interop::kAttribLocation_Normal },
+      { Geometry::AttributeType::Tangent,  material_shader_interop::kAttribLocation_Tangent }, //
+      { Geometry::AttributeType::Texcoord, material_shader_interop::kAttribLocation_Texcoord },
+    };
+  };
 };
 
 // ----------------------------------------------------------------------------

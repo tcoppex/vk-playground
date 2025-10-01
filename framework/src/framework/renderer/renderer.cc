@@ -1,7 +1,7 @@
 #include "framework/renderer/renderer.h"
 
 #include "framework/renderer/render_context.h"
-#include "framework/shaders/material/interop.h" // for kAttribLocation_*
+#include "framework/scene/vertex_internal.h"
 
 /* -------------------------------------------------------------------------- */
 
@@ -605,20 +605,7 @@ GLTFScene Renderer::load_gltf(
 // ----------------------------------------------------------------------------
 
 GLTFScene Renderer::load_gltf(std::string_view gltf_filename) {
-  // -----------------------
-  // -----------------------
-  // [temporary, this should be set elsewhere ideally]
-  static const scene::Mesh::AttributeLocationMap kDefaultFxPipelineAttributeLocationMap{
-    {
-      { Geometry::AttributeType::Position, kAttribLocation_Position },
-      { Geometry::AttributeType::Normal,   kAttribLocation_Normal },
-      { Geometry::AttributeType::Texcoord, kAttribLocation_Texcoord },
-      { Geometry::AttributeType::Tangent,  kAttribLocation_Tangent }, //
-    }
-  };
-  // -----------------------
-  // -----------------------
-  return load_gltf(gltf_filename, kDefaultFxPipelineAttributeLocationMap);
+  return load_gltf(gltf_filename, VertexInternal_t::GetDefaultAttributeLocationMap());
 }
 
 /* -------------------------------------------------------------------------- */
