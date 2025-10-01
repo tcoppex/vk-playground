@@ -10,8 +10,8 @@ extern "C" {
 }
 
 #include "framework/core/common.h"
+#include "framework/core/platform/common.h" //
 #include "framework/core/singleton.h"
-#include "framework/core/platform/common.h"
 
 /* -------------------------------------------------------------------------- */
 

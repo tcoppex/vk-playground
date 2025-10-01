@@ -1,9 +1,3 @@
-/* -------------------------------------------------------------------------- */
-//
-//
-//
-/* -------------------------------------------------------------------------- */
-
 #ifndef VKFRAMEWORK_CORE_PLATFORM_OPENXR_XR_COMMON_H_
 #define VKFRAMEWORK_CORE_PLATFORM_OPENXR_XR_COMMON_H_
 
@@ -33,48 +27,50 @@ enum XRSpaceId : uint32_t {
   kNumSpaceId
 };
 
+// ----------------------------------------------------------------------------
+
 template<typename T>
 using XRSidedBuffer_t = std::array<T, XRSide::kNumSide>;
 
-using XRImageHandle_t = uint64_t; //
+// using XRImageHandle_t = uint64_t; //
 
 // ----------------------------------------------------------------------------
 
 // [Match Oculus Touch controls]
 struct XRControlState_t {
-  XrActionSet action_set = XR_NULL_HANDLE;
+  XrActionSet action_set{};
 
   struct Handness {
-    XRSidedBuffer_t<XrPath> path;
-    XRSidedBuffer_t<XrSpace> aim_space;
-    XRSidedBuffer_t<XrSpace> grip_space;
+    XRSidedBuffer_t<XrPath> path{};
+    XRSidedBuffer_t<XrSpace> aim_space{};
+    XRSidedBuffer_t<XrSpace> grip_space{};
   } hand{};
 
   struct Action {
-    XrAction aim_pose = XR_NULL_HANDLE;
-    XrAction grip_pose = XR_NULL_HANDLE;
-    XrAction index_trigger = XR_NULL_HANDLE;
-    XrAction grip_squeeze = XR_NULL_HANDLE;
+    XrAction aim_pose{};
+    XrAction grip_pose{};
+    XrAction index_trigger{};
+    XrAction grip_squeeze{};
 
-    XrAction joystick = XR_NULL_HANDLE;
-    XrAction click_joystick = XR_NULL_HANDLE;
+    XrAction joystick{};
+    XrAction click_joystick{};
 
-    XrAction button_x = XR_NULL_HANDLE;
-    XrAction button_y = XR_NULL_HANDLE;
-    XrAction button_menu = XR_NULL_HANDLE;
-    XrAction button_a = XR_NULL_HANDLE;
-    XrAction button_b = XR_NULL_HANDLE;
-    XrAction button_system = XR_NULL_HANDLE;
+    XrAction button_x{};
+    XrAction button_y{};
+    XrAction button_menu{};
+    XrAction button_a{};
+    XrAction button_b{};
+    XrAction button_system{};
 
-    XrAction touch_trigger = XR_NULL_HANDLE;
-    XrAction touch_joystick = XR_NULL_HANDLE;
-    XrAction touch_x = XR_NULL_HANDLE;
-    XrAction touch_y = XR_NULL_HANDLE;
-    XrAction touch_a = XR_NULL_HANDLE;
-    XrAction touch_b = XR_NULL_HANDLE;
+    XrAction touch_trigger{};
+    XrAction touch_joystick{};
+    XrAction touch_x{};
+    XrAction touch_y{};
+    XrAction touch_a{};
+    XrAction touch_b{};
 
     // output
-    XrAction vibrate = XR_NULL_HANDLE;
+    XrAction vibrate{};
   } action;
 
   // Per-frame input values.
@@ -115,36 +111,32 @@ struct XRControlState_t {
 // ----------------------------------------------------------------------------
 
 struct XRFrameData_t {
-  static constexpr uint32_t kNumEyes = 2u; // (already declared in OpenXRContext)
-
-  // ---
-
-  double predictedDisplayTime = 0.0;
+  double predictedDisplayTime{};
   // float deltaTime = 0.0f;
 
-  std::array<mat4f, kNumEyes> viewMatrices;
-  std::array<mat4f, kNumEyes> projMatrices;
+  std::array<mat4f, XRSide::kNumSide> viewMatrices{};
+  std::array<mat4f, XRSide::kNumSide> projMatrices{};
 
   std::array<mat4f const*, XRSpaceId::kNumSpaceId> spaceMatrices{}; //
 
   //ControlState_t::Frame const& input;
-  XRControlState_t::Frame *inputs = nullptr;
+  XRControlState_t::Frame *inputs{};
 };
 
 // ----------------------------------------------------------------------------
 
 struct XRFrameView_t {
-  uint32_t eyeId{};
+  uint32_t viewId{};
 
   struct {
-    mat4f view;
-    mat4f proj;
-    mat4f viewProj;
+    mat4f view{};
+    mat4f proj{};
+    mat4f viewProj{};
   } transform;
 
   std::array<int32_t, 4u> viewport{0, 0, 0, 0};
-  XRImageHandle_t colorImage = 0u;
-  XRImageHandle_t depthStencilImage = 0u;
+  // XRImageHandle_t colorImage{};
+  // XRImageHandle_t depthStencilImage{};
 };
 
 // ----------------------------------------------------------------------------

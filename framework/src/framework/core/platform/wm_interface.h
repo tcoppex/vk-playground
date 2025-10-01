@@ -26,10 +26,10 @@ struct WMInterface {
   virtual void close() noexcept = 0;
 
   [[nodiscard]]
-  virtual uint32_t get_surface_width() const noexcept = 0;
+  virtual uint32_t surface_width() const noexcept = 0;
 
   [[nodiscard]]
-  virtual uint32_t get_surface_height() const noexcept = 0;
+  virtual uint32_t surface_height() const noexcept = 0;
 
   [[nodiscard]]
   virtual void* get_handle() const noexcept = 0;

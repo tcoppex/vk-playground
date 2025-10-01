@@ -196,7 +196,7 @@ bool Window::isActive() const noexcept {
 
 // ----------------------------------------------------------------------------
 
-std::vector<char const*> Window::getVulkanInstanceExtensions() const noexcept {
+std::vector<char const*> Window::vulkanInstanceExtensions() const noexcept {
   uint32_t extension_count;
   auto extensions = glfwGetRequiredInstanceExtensions(&extension_count);
 
