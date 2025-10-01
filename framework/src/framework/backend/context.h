@@ -7,7 +7,7 @@
 #include "framework/backend/command_encoder.h"
 #include "framework/backend/allocator.h"
 
-#include "framework/core/platform/openxr/xr_graphics_interface.h" //
+#include "framework/core/platform/openxr/xr_vulkan_interface.h" //
 
 /* -------------------------------------------------------------------------- */
 
@@ -21,15 +21,13 @@ class Context {
   };
 
  public:
-  Context() :
-    instance_{VK_NULL_HANDLE},
-    gpu_{VK_NULL_HANDLE},
-    device_{VK_NULL_HANDLE}
-  {}
+  Context() = default;
 
-  ~Context() {}
-
-  bool init(std::vector<char const*> const& instance_extensions);
+  bool init(
+    std::vector<char const*> const& instance_extensions,
+    std::vector<char const*> const& device_extensions,
+    std::shared_ptr<XRVulkanInterface> vulkan_xr
+  );
 
   void deinit();
 
@@ -286,6 +284,8 @@ class Context {
     VkPhysicalDeviceMaintenance6FeaturesKHR maintenance6{};
 
   } feature_;
+
+  std::shared_ptr<XRVulkanInterface> vulkan_xr_{}; //
 
   VkInstance instance_{};
   VkPhysicalDevice gpu_{};

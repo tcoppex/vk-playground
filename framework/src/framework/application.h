@@ -87,12 +87,10 @@ class Application : public EventCallbacks
   std::unique_ptr<WMInterface> wm_{};
   std::unique_ptr<UIController> ui_{};
 
-  // std::unique_ptr<XRInterface> xr_{}; //
   std::unique_ptr<OpenXRContext> xr_{}; //
-  std::shared_ptr<XRVulkanInterface> vulkan_xr_{}; //
-
   Context context_{};
-  Swapchain swapchain_{};
+  Swapchain swapchain_{}; // (VK vs XR)
+
   Renderer renderer_{};
   VkExtent2D viewport_size_{}; //
 

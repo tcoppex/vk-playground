@@ -77,10 +77,12 @@ bool Application::presetup(AppData_t app_data) {
   /* Window manager. */
   if (wm_ = std::make_unique<Window>(); !wm_ || !wm_->init(app_data)) {
     LOGE("Window creation fails");
-    goto presetup_fails;
+    shutdown();
+    return false;
   }
 
   // ---------------------------------------
+
   static constexpr bool kEnableXR = false;
 
   /* OpenXR */
@@ -88,53 +90,57 @@ bool Application::presetup(AppData_t app_data) {
     if (xr_ = std::make_unique<OpenXRContext>(); xr_) {
       if (!xr_->init(wm_->xrPlatformInterface(), app_name, xrExtensions())) {
         LOGE("XR initialization fails.");
-        goto presetup_fails;
+        shutdown();
+        return false;
       }
     }
-
-    vulkan_xr_ = xr_->graphicsInterface();
   }
 
   /* Vulkan context. */
   if (!context_.init(wm_->vulkanInstanceExtensions(),
                      vulkanDeviceExtensions(),
-                     vulkan_xr_))
+                     xr_ ? xr_->graphicsInterface() : nullptr))
   {
     LOGE("Vulkan context initialization fails");
-    goto presetup_fails;
+    shutdown();
+    return false;
   }
 
   /* Initialize OpenXR Sessions. */
   if (xr_) {
     if (!xr_->initSession()) {
       LOGE("OpenXR sessions initialization fails.");
-      goto presetup_fails;
+      shutdown();
+      return false;
     }
   }
 
   /* Surface & Swapchain. */
   if (!reset_swapchain()) {
     LOGE("Surface creation fails");
-    goto presetup_fails;
+    shutdown();
+    return false;
   }
+
+  // ---------------------------------------
 
   // [TODO] finish openxr setup.. (Controllers & Spaces)
   if (xr_) {
     if (!xr_->completeSetup()) {
       LOGE("OpenXR initialization completion fails.");
-      goto presetup_fails;
+      shutdown();
+      return false;
     }
   }
 
-  // ---------------------------------------
-
   /* Internal Renderer. */
-  renderer_.init(context_, swapchain_, context_.allocator());
+  renderer_.init(context_, swapchain_); //
 
   /* User Interface. */
   if (ui_ = std::make_unique<UIController>(); !ui_ || !ui_->init(renderer_, *wm_)) {
     LOGE("UI creation fails");
-    goto presetup_fails;
+    shutdown();
+    return false;
   }
 
   // [~] Capture & handle surface resolution changes.
@@ -176,11 +182,6 @@ bool Application::presetup(AppData_t app_data) {
   LOGD("--------------------------------------------\n");
 
   return true;
-
-  // [just for the hellish fun of it]
-presetup_fails:
-  shutdown();
-  return false;
 }
 
 // ----------------------------------------------------------------------------
@@ -269,6 +270,10 @@ bool Application::reset_swapchain() {
   LOGD("[Reset the Swapchain]");
   
   context_.device_wait_idle();
+
+  if (xr_) {
+    return xr_->createSwapchains();
+  }
 
   auto surface_creation = VK_SUCCESS;
 
