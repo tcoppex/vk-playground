@@ -262,11 +262,11 @@ void CommandEncoder::transfer_host_to_device(
 // ----------------------------------------------------------------------------
 
 backend::Buffer CommandEncoder::create_buffer_and_upload(void const* host_data, size_t const host_data_size, VkBufferUsageFlags2KHR const usage, size_t const device_buffer_offset, size_t const device_buffer_size) const {
-  assert(host_data != nullptr);
-  assert(host_data_size > 0u);
+  LOG_CHECK(host_data != nullptr);
+  LOG_CHECK(host_data_size > 0u);
 
   size_t const buffer_bytesize = (device_buffer_size > 0) ? device_buffer_size : host_data_size;
-  assert(host_data_size <= buffer_bytesize);
+  LOG_CHECK(host_data_size <= buffer_bytesize);
 
   auto device_buffer{allocator_ptr_->create_buffer(
     static_cast<VkDeviceSize>(buffer_bytesize),
@@ -300,7 +300,7 @@ RenderPassEncoder CommandEncoder::begin_rendering(RenderPassDescriptor const& de
 // ----------------------------------------------------------------------------
 
 RenderPassEncoder CommandEncoder::begin_rendering(backend::RTInterface const& render_target) {
-  // assert( render_target.get_color_attachment_count() == 1u );
+  // LOG_CHECK( render_target.get_color_attachment_count() == 1u );
 
   auto const& colors = render_target.get_color_attachments();
 
@@ -361,7 +361,7 @@ RenderPassEncoder CommandEncoder::begin_rendering(std::shared_ptr<backend::RTInt
 // ----------------------------------------------------------------------------
 
 RenderPassEncoder CommandEncoder::begin_rendering() {
-  assert( default_render_target_ptr_ != nullptr );
+  LOG_CHECK( default_render_target_ptr_ != nullptr );
   auto pass = begin_rendering( *default_render_target_ptr_ );
   pass.set_viewport_scissor(default_render_target_ptr_->get_surface_size()); //
   return pass;
@@ -373,7 +373,7 @@ void CommandEncoder::end_rendering() {
   vkCmdEndRendering(command_buffer_);
 
   if (current_render_target_ptr_ != nullptr) [[likely]] {
-    // assert( current_render_target_ptr_->get_color_attachment_count() == 1u ); //
+    // LOG_CHECK( current_render_target_ptr_->get_color_attachment_count() == 1u ); //
 
     // Automatically transition the image depending on the render target.
     VkImageLayout const dst_layout{

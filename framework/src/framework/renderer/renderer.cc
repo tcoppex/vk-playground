@@ -25,6 +25,7 @@ void Renderer::init(
   device_ = context.device();
   allocator_ptr_ = &context.allocator();
 
+  LOGD(" > View Resources");
   init_view_resources(swapchain);
 
   // Renderer internal effects.
@@ -45,7 +46,6 @@ void Renderer::init_view_resources(Swapchain& swapchain) {
   resize(dimension.width, dimension.height);
 
   /* Initialize resources for the semaphore timeline. */
-  LOGD(" > Timeline Semaphore Resources");
   uint64_t const frame_count = swapchain_ptr_->image_count();
 
   // Initialize per-frame command buffers.

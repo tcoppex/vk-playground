@@ -20,11 +20,11 @@ bool RenderContext::init(
   std::vector<char const*> const& device_extensions,
   std::shared_ptr<XRVulkanInterface> vulkan_xr
 ) {
-  LOGD("-- RenderContext --");
-
   if (!Context::init(instance_extensions, device_extensions, vulkan_xr)) {
     return false;
   }
+
+  LOGD("-- RenderContext --");
 
   /* Create the shared pipeline cache. */
   LOGD(" > PipelineCacheInfo");
@@ -55,15 +55,15 @@ bool RenderContext::init(
 // ----------------------------------------------------------------------------
 
 void RenderContext::deinit() {
-  LOG_CHECK(device() != VK_NULL_HANDLE);
+  if (device() == VK_NULL_HANDLE) {
+    return;
+  }
 
-  // skybox_.release(*this); //
   sampler_pool_.deinit();
   descriptor_set_registry_.release();
   vkDestroyPipelineCache(device(), pipeline_cache_, nullptr);
 
   Context::deinit();
-  // *this = {};
 }
 
 // ----------------------------------------------------------------------------
@@ -232,7 +232,7 @@ void RenderContext::create_compute_pipelines(
   std::vector<backend::ShaderModule> const& modules,
   Pipeline *pipelines
 ) const {
-  assert(pipelines != nullptr);
+  LOG_CHECK(pipelines != nullptr);
 
   std::vector<VkComputePipelineCreateInfo> pipeline_infos(modules.size(), {
     .sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,

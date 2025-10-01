@@ -32,7 +32,7 @@ void RenderTarget::setup(Descriptor_t const& desc) {
 // ----------------------------------------------------------------------------
 
 void RenderTarget::release() {
-  assert(context_ptr_ != nullptr);
+  LOG_CHECK(context_ptr_ != nullptr);
 
   auto allocator = context_ptr_->allocator();
   allocator.destroy_image(&depth_stencil_);

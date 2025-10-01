@@ -38,14 +38,14 @@ int Application::run(AppData_t app_data) {
   }
 
   if (xr_) {
-    // LOGD("--- Start XR Session ---");
+    LOGD("--- Start XR Session ---");
     // xrStartSession();
   }
 
   mainloop(app_data);
 
   if (xr_) {
-    // LOGD("--- End XR Session ---");
+    LOGD("--- End XR Session ---");
     // xrEndSession();
   }
 

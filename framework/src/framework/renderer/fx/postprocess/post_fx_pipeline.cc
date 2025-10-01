@@ -15,8 +15,8 @@ void PostFxPipeline::init(Renderer const& renderer) {
 }
 
 void PostFxPipeline::setupDependencies() {
-  assert(context_ptr_ != nullptr);
-  assert(!effects_.empty());
+  LOG_CHECK(context_ptr_ != nullptr);
+  LOG_CHECK(!effects_.empty());
 
   context_ptr_->device_wait_idle();
 

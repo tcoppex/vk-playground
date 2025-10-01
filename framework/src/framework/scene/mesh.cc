@@ -31,7 +31,7 @@ void Mesh::initialize_submesh_descriptors(AttributeLocationMap const& attribute_
 // ----------------------------------------------------------------------------
 
 PipelineVertexBufferDescriptors Mesh::pipeline_vertex_buffer_descriptors() const {
-  assert( !submeshes.empty() );
+  LOG_CHECK( !submeshes.empty() );
   auto const& vi{ submeshes[0u].draw_descriptor.vertexInput };
 
   PipelineVertexBufferDescriptors result(vi.bindings.size());

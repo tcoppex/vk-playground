@@ -72,7 +72,7 @@ bool DecompressDracoPrimitive(cgltf_primitive const& prim, std::vector<VertexInt
     }
 
     cgltf_buffer_view const* view = draco.buffer_view; //pos_accessor->buffer_view;
-    assert(view);
+    LOG_CHECK(view);
 
     cgltf_buffer const* buffer = view->buffer;
     uint8_t const* draco_data = reinterpret_cast<const uint8_t*>(buffer->data) + view->offset;
@@ -161,7 +161,7 @@ void ExtractPrimitiveVertices(cgltf_primitive const& prim, std::vector<VertexInt
   for (cgltf_size attrib_index = 0; attrib_index < prim.attributes_count; ++attrib_index) {
     cgltf_attribute const& attrib{ prim.attributes[attrib_index] };
     cgltf_accessor const* accessor = attrib.data;
-    assert(accessor->count == vertex_count);
+    LOG_CHECK(accessor->count == vertex_count);
 
     // Positions.
     if (attrib.type == cgltf_attribute_type_position) {
