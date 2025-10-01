@@ -4,6 +4,10 @@
 #include <list>
 #include <map>
 
+#if defined(ANDROID)
+#include <jni.h>
+#endif
+
 #include "framework/core/platform/openxr/xr_graphics_interface.h"
 #include "framework/core/platform/openxr/xr_utils.h"
 
