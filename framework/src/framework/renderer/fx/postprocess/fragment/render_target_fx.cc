@@ -51,7 +51,7 @@ backend::Image RenderTargetFx::getImageOutput(uint32_t index) const {
 
 // ----------------------------------------------------------------------------
 
-std::vector<backend::Image> const& RenderTargetFx::getImageOutputs() const {
+std::vector<backend::Image> RenderTargetFx::getImageOutputs() const {
   return render_target_->get_color_attachments();
 }
 

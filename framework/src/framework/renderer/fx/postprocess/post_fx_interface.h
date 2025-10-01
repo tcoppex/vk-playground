@@ -14,11 +14,11 @@ class PostFxInterface : public virtual FxInterface {
 
   virtual backend::Image getImageOutput(uint32_t index = 0u) const = 0;
 
-  virtual std::vector<backend::Image> const& getImageOutputs() const = 0;
+  virtual std::vector<backend::Image> getImageOutputs() const = 0;
 
   virtual backend::Buffer getBufferOutput(uint32_t index = 0u) const = 0;
 
-  virtual std::vector<backend::Buffer> const& getBufferOutputs() const = 0;
+  virtual std::vector<backend::Buffer> getBufferOutputs() const = 0;
 
  protected:
   // virtual void releaseImagesAndBuffers() = 0;

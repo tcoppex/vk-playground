@@ -85,7 +85,7 @@ class RayTracingFx : public PostGenericFx {
     return out_images_[index];
   }
 
-  std::vector<backend::Image> const& getImageOutputs() const final {
+  std::vector<backend::Image> /*const&*/ getImageOutputs() const final {
     return out_images_;
   }
 
@@ -93,7 +93,7 @@ class RayTracingFx : public PostGenericFx {
     return out_buffers_[index];
   }
 
-  std::vector<backend::Buffer> const& getBufferOutputs() const final {
+  std::vector<backend::Buffer> /*const&*/ getBufferOutputs() const final {
     return out_buffers_;
   }
 

@@ -75,6 +75,7 @@ backend::Image Context::create_image_2d(
   VkImageUsageFlags const extra_usage,
   std::string_view debugName
 ) const {
+  LOG_CHECK( width > 0 && height > 0 );
   VkImageUsageFlags usage{
       VK_IMAGE_USAGE_SAMPLED_BIT
     | extra_usage

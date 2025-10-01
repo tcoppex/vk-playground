@@ -22,13 +22,13 @@ class RenderTargetFx : public FragmentFx
 
   backend::Image getImageOutput(uint32_t index = 0u) const override;
 
-  virtual std::vector<backend::Image> const& getImageOutputs() const override;
+  virtual std::vector<backend::Image> getImageOutputs() const override;
 
   backend::Buffer getBufferOutput(uint32_t index = 0u) const override {
     return unused_buffers_[index];
   }
 
-  std::vector<backend::Buffer> const& getBufferOutputs() const override {
+  std::vector<backend::Buffer> getBufferOutputs() const override {
     return unused_buffers_;
   }
 

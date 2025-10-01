@@ -198,11 +198,11 @@ struct RTInterface {
 
   virtual uint32_t get_color_attachment_count() const = 0;
 
-  virtual std::vector<backend::Image> const& get_color_attachments() const = 0;
+  virtual std::vector<backend::Image> get_color_attachments() const = 0;
 
-  virtual backend::Image const& get_color_attachment(uint32_t i = 0u) const = 0;
+  virtual backend::Image get_color_attachment(uint32_t i = 0u) const = 0;
 
-  virtual backend::Image const& get_depth_stencil_attachment() const = 0;
+  virtual backend::Image get_depth_stencil_attachment() const = 0;
 
   virtual VkClearValue get_color_clear_value(uint32_t i = 0u) const = 0;
 

@@ -100,7 +100,7 @@ class PostFxPipeline : public PostFxInterface {
     return effects_.back()->getImageOutput(index);
   }
 
-  std::vector<backend::Image> const& getImageOutputs() const override {
+  std::vector<backend::Image> getImageOutputs() const override {
     LOG_CHECK(!effects_.empty());
     return effects_.back()->getImageOutputs();
   }
@@ -109,7 +109,7 @@ class PostFxPipeline : public PostFxInterface {
     return effects_.back()->getBufferOutput(index);
   }
 
-  std::vector<backend::Buffer> const& getBufferOutputs() const override {
+  std::vector<backend::Buffer> getBufferOutputs() const override {
     return effects_.back()->getBufferOutputs();
   }
 
@@ -223,7 +223,7 @@ class PassDataNoFx final : public PostFxInterface {
     return images_[index];
   }
 
-  std::vector<backend::Image> const& getImageOutputs() const override {
+  std::vector<backend::Image> /*const&*/ getImageOutputs() const override {
     return images_;
   }
 
@@ -232,7 +232,7 @@ class PassDataNoFx final : public PostFxInterface {
     return buffers_[index];
   }
 
-  std::vector<backend::Buffer> const& getBufferOutputs() const final {
+  std::vector<backend::Buffer> /*const&*/ getBufferOutputs() const final {
     return buffers_;
   }
 

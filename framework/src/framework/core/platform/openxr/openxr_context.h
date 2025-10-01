@@ -140,6 +140,28 @@ class OpenXRContext : public XRInterface {
     return spaceLocationVelocity(space, time).second;
   }
 
+ public:
+  //------------------
+  void beginFrame();
+  void endFrame();
+  void updateFrame(XRUpdateFunc_t const& update_frame_cb);
+  void renderFrame(XRRenderFunc_t const& render_view_cb);
+  //------------------
+
+  uint32_t swapchainImageCount() const noexcept {
+    return image_count_;
+  }
+
+  VkExtent2D swapchainExtent() const noexcept {
+    auto const& extent = swapchains_[0].extent();
+    return {
+      .width = static_cast<uint32_t>(extent.width),
+      .height = static_cast<uint32_t>(extent.height),
+    };
+  }
+
+
+
  private:
   // -- Instance fixed methods --
 
@@ -191,6 +213,7 @@ class OpenXRContext : public XRInterface {
   int64_t color_swapchain_format_{};
   XRStereoBuffer_t<Swapchain_t> swapchains_{};
   XRSwapchainImagesMap swapchain_images_{}; //
+  uint32_t image_count_{};
 
   XRStereoBuffer_t<XrCompositionLayerProjectionView> layer_projection_views_{}; //
   std::array<CompositorLayerUnion_t, kMaxNumCompositionLayers> layers_{};
@@ -199,6 +222,8 @@ class OpenXRContext : public XRInterface {
 
   XRControlState_t controls_{};
   XRFrameData_t frameData_{}; //
+  std::vector<XrCompositionLayerBaseHeader const*> composition_layers_{};
+  bool shouldRender_{};
 };
 
 /* -------------------------------------------------------------------------- */

@@ -155,15 +155,25 @@ void ResourceAllocator::clear_staging_buffers() const {
 
 // ----------------------------------------------------------------------------
 
-void ResourceAllocator::create_image(VkImageCreateInfo const& image_info, backend::Image *image) const {
+void ResourceAllocator::create_image(
+  VkImageCreateInfo const& image_info,
+  backend::Image *image
+) const {
+  LOG_CHECK( image != nullptr );
   LOG_CHECK( image_info.format != VK_FORMAT_UNDEFINED );
+  LOG_CHECK( image_info.extent.width > 0 && image_info.extent.height > 0 );
 
   VmaAllocationCreateInfo const alloc_create_info{
     .usage = VMA_MEMORY_USAGE_GPU_ONLY,
   };
   VmaAllocationInfo alloc_info{};
   CHECK_VK(vmaCreateImage(
-    allocator_, &image_info, &alloc_create_info, &image->image, &image->allocation, &alloc_info
+    allocator_,
+    &image_info,
+    &alloc_create_info,
+    &image->image,
+    &image->allocation,
+    &alloc_info
   ));
   image->format = image_info.format;
 }

@@ -17,7 +17,8 @@ char const* kDefaulShaderEntryPoint{
 
 void Renderer::init(
   RenderContext& context,
-  Swapchain& swapchain //
+  Swapchain& swapchain,
+  OpenXRContext *xr //
 ) {
   LOGD("-- Renderer --");
 
@@ -25,29 +26,41 @@ void Renderer::init(
   device_ = context.device();
   allocator_ptr_ = &context.allocator();
 
-  LOGD(" > View Resources");
+  // [really bad]
+  // ----------------
+  if (xr) {
+    xr_ = xr;
+  } else {
+    swapchain_ptr_ = &swapchain; //
+  }
+  // ----------------
+
   init_view_resources(swapchain);
 
   // Renderer internal effects.
-  LOGD(" > Internal Fx");
   {
-    // [should condition creation on some config]
+    LOGD(" > Internal Fx");
     skybox_.init(*this);
   }
 }
 
 // ----------------------------------------------------------------------------
 
-void Renderer::init_view_resources(Swapchain& swapchain) {
-  swapchain_ptr_ = &swapchain; //
+void Renderer::init_view_resources(
+  Swapchain& swapchain
+) {
+  auto const dimension = xr_ ? xr_->swapchainExtent()
+                             : swapchain_ptr_->surface_size()
+                             ;
+  auto const frame_count = xr_ ? xr_->swapchainImageCount()
+                               : swapchain_ptr_->image_count()
+                               ;
 
   /* Create a default depth stencil buffer. */
-  VkExtent2D const dimension{swapchain_ptr_->surface_size()};
   resize(dimension.width, dimension.height);
 
   /* Initialize resources for the semaphore timeline. */
-  uint64_t const frame_count = swapchain_ptr_->image_count();
-
+  LOGD(" > Timeline Resources");
   // Initialize per-frame command buffers.
   timeline_.frames.resize(frame_count);
   VkCommandPoolCreateInfo const command_pool_create_info{
@@ -115,9 +128,10 @@ void Renderer::deinit() {
 
 bool Renderer::resize(uint32_t w, uint32_t h) {
   LOG_CHECK(ctx_ptr_ != nullptr);
+  LOG_CHECK( w > 0 && h > 0 );
 
   /* Create a default depth stencil buffer. */
-  LOGD(" > Resize Renderer Depth-Stencil Buffer");
+  LOGD(" > Resize Renderer Depth-Stencil Buffer ({}, {})", w, h);
   if (depth_stencil_.valid()) {
     allocator_ptr_->destroy_image(&depth_stencil_);
   }
@@ -298,6 +312,7 @@ VkGraphicsPipelineCreateInfo Renderer::create_graphics_pipeline_create_info(
       (desc.depthStencil.format != VK_FORMAT_UNDEFINED) ? desc.depthStencil.format
                                                         : get_depth_stencil_attachment().format
     };
+
     VkFormat const stencil_format{
       vkutils::IsValidStencilFormat(depth_format) ? depth_format : VK_FORMAT_UNDEFINED
     };
@@ -306,6 +321,7 @@ VkGraphicsPipelineCreateInfo Renderer::create_graphics_pipeline_create_info(
       data.color_attachments.size(),
       data.color_blend_attachments[0u]
     );
+
     for (size_t i = 0; i < data.color_attachments.size(); ++i) {
       auto &target = desc.fragment.targets[i];
 
@@ -314,6 +330,7 @@ VkGraphicsPipelineCreateInfo Renderer::create_graphics_pipeline_create_info(
         (target.format != VK_FORMAT_UNDEFINED) ? target.format
                                                : get_color_attachment(i).format
       };
+
       data.color_attachments[i] = color_format;
 
       data.color_blend_attachments[i] = {
@@ -336,7 +353,6 @@ VkGraphicsPipelineCreateInfo Renderer::create_graphics_pipeline_create_info(
       .stencilAttachmentFormat = stencil_format,
     };
   }
-
 
   /* Shaders stages */
   auto getShaderEntryPoint{[](std::string const& entryPoint) -> char const* {

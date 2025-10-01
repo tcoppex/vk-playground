@@ -96,10 +96,13 @@ bool Application::presetup(AppData_t app_data) {
     }
   }
 
+  // [tmp] handle to xr graphics specifics, if any
+  auto vulkan_xr = xr_ ? xr_->graphicsInterface() : nullptr;
+
   /* Vulkan context. */
   if (!context_.init(wm_->vulkanInstanceExtensions(),
                      vulkanDeviceExtensions(),
-                     xr_ ? xr_->graphicsInterface() : nullptr))
+                     vulkan_xr))
   {
     LOGE("Vulkan context initialization fails");
     shutdown();
@@ -133,12 +136,19 @@ bool Application::presetup(AppData_t app_data) {
     }
   }
 
+  // [todo]
+  // We should wrap classical vulkan swapchain and OpenXR swapchainS
+  // into a common object...
+
   /* Internal Renderer. */
   renderer_.init(
     context_,
+    // -------------------------
     // We should sent an abstract object that is either a classic
     // Vulkan Swapchain or a multi-view vector of OpenXR swapchains
-    swapchain_ //
+    swapchain_, // xxx not valid for XR xxx
+    xr_ ? xr_.get() : nullptr
+    // -------------------------
   );
 
   /* User Interface. */
@@ -149,7 +159,7 @@ bool Application::presetup(AppData_t app_data) {
   }
 
   // [~] Capture & handle surface resolution changes.
-  {
+  if (!xr_) {
     auto on_resize = [this](uint32_t w, uint32_t h) {
       context_.device_wait_idle();
       viewport_size_ = {
@@ -163,12 +173,14 @@ bool Application::presetup(AppData_t app_data) {
     default_callbacks_ = std::make_unique<DefaultAppEventCallbacks>(on_resize);
     Events::Get().registerCallbacks(default_callbacks_.get());
 
-    // LOGW("> Retrieve original viewport size.");
+    LOGI("> Retrieve original viewport size.");
     viewport_size_ = {
       .width = wm_->surface_width(),
       .height = wm_->surface_height(),
-    };
-    // LOGI("> (w: {}, h: {})", viewport_size_.width, viewport_size_.height);
+    }; //
+    LOGI("> (w: {}, h: {})", viewport_size_.width, viewport_size_.height);
+  } else {
+    LOGI("On resize not setup for XR.");
   }
 
   /* Framework internal data. */

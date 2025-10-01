@@ -6,11 +6,14 @@
 #include "framework/core/common.h"
 
 #include "framework/backend/swapchain.h"
-#include "framework/backend/command_encoder.h"
+// #include "framework/core/platform/openxr/xr_vulkan_interface.h" //
+#include "framework/core/platform/openxr/openxr_context.h" //
 
 #include "framework/renderer/render_context.h"
-#include "framework/renderer/gpu_resources.h" // (for GLTFScene)
+#include "framework/backend/command_encoder.h"
+
 #include "framework/renderer/fx/skybox.h"
+#include "framework/renderer/gpu_resources.h" // (for GLTFScene)
 
 /* -------------------------------------------------------------------------- */
 
@@ -38,7 +41,11 @@ class Renderer : public backend::RTInterface {
   Renderer() = default;
   ~Renderer() {}
 
-  void init(RenderContext& context, Swapchain& swapchain);
+  void init(
+    RenderContext& context,
+    Swapchain& swapchain, //
+    OpenXRContext *xr //
+  );
 
   void deinit();
 
@@ -131,18 +138,18 @@ class Renderer : public backend::RTInterface {
   }
 
   [[nodiscard]]
-  std::vector<backend::Image> const& get_color_attachments() const final {
-    proxy_swap_attachment_ = { get_color_attachment() };
-    return proxy_swap_attachment_;
+  std::vector<backend::Image> get_color_attachments() const final {
+    return { get_color_attachment() };
   }
 
   [[nodiscard]]
-  backend::Image const& get_color_attachment(uint32_t index = 0u) const final {
+  backend::Image get_color_attachment(uint32_t index = 0u) const final {
+    LOG_CHECK(swapchain_ptr_ != nullptr);
     return swapchain_ptr_->current_swap_image();
   }
 
   [[nodiscard]]
-  backend::Image const& get_depth_stencil_attachment() const final {
+  backend::Image get_depth_stencil_attachment() const final {
     return depth_stencil_;
   }
 
@@ -190,7 +197,9 @@ class Renderer : public backend::RTInterface {
   }
 
  private:
-  void init_view_resources(Swapchain& swapchain);
+  void init_view_resources(
+    Swapchain& swapchain
+  );
 
   void deinit_view_resources();
 
@@ -227,6 +236,8 @@ class Renderer : public backend::RTInterface {
   ResourceAllocator* allocator_ptr_{};
   VkDevice device_{};
 
+  OpenXRContext *xr_;
+
   /* Miscs resources */
   VkClearValue color_clear_value_{kDefaultColorClearValue};
   VkClearValue depth_stencil_clear_value_{{{1.0f, 0u}}};
@@ -243,7 +254,7 @@ class Renderer : public backend::RTInterface {
   Timeline_t timeline_{};
 
   // Proxy to const ref return the swapbuffer..
-  mutable std::vector<backend::Image> proxy_swap_attachment_{}; //
+  // mutable std::vector<backend::Image> proxy_swap_attachment_{}; //
 
   // Reference to the current CommandEncoder returned by 'begin_frame'
   CommandEncoder cmd_{}; //

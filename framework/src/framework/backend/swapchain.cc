@@ -222,7 +222,7 @@ bool Swapchain::acquire_next_image() {
 
 // ----------------------------------------------------------------------------
 
-bool Swapchain::present_and_swap(VkQueue const queue) {
+bool Swapchain::present_and_swap(VkQueue queue) {
   LOG_CHECK(swapchain_ != VK_NULL_HANDLE);
 
   auto present_semaphore = signal_present_semaphore();

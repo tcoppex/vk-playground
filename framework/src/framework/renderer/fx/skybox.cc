@@ -15,6 +15,7 @@ void Skybox::init(Renderer& renderer) {
   renderer_ptr_ = &renderer;
   auto const& context = renderer.context();
 
+  LOGD(" - Init Skybox -");
   envmap_.init(context);
 
   /* Precalculate the BRDF LUT. */
@@ -101,34 +102,32 @@ void Skybox::init(Renderer& renderer) {
     })};
 
     /* Setup the graphics pipeline. */
-    {
-      graphics_pipeline_ = renderer.create_graphics_pipeline(pipeline_layout_, {
-        .vertex = {
-          .module = shaders[0u].module,
-          .buffers = cube_.pipeline_vertex_buffer_descriptors(),
+    graphics_pipeline_ = renderer.create_graphics_pipeline(pipeline_layout_, {
+      .vertex = {
+        .module = shaders[0u].module,
+        .buffers = cube_.pipeline_vertex_buffer_descriptors(),
+      },
+      .fragment = {
+        .module = shaders[1u].module,
+        .targets = {
+          {
+            .writeMask = VK_COLOR_COMPONENT_R_BIT
+                       | VK_COLOR_COMPONENT_G_BIT
+                       | VK_COLOR_COMPONENT_B_BIT
+                       | VK_COLOR_COMPONENT_A_BIT
+                       ,
+          }
         },
-        .fragment = {
-          .module = shaders[1u].module,
-          .targets = {
-            {
-              .writeMask = VK_COLOR_COMPONENT_R_BIT
-                         | VK_COLOR_COMPONENT_G_BIT
-                         | VK_COLOR_COMPONENT_B_BIT
-                         | VK_COLOR_COMPONENT_A_BIT
-                         ,
-            }
-          },
-        },
-        .depthStencil = {
-          .depthTestEnable = VK_TRUE,
-          .depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL,
-        },
-        .primitive = {
-          .topology = cube_.vk_primitive_topology(),
-          .cullMode = VK_CULL_MODE_NONE,
-        }
-      });
-    }
+      },
+      .depthStencil = {
+        .depthTestEnable = VK_TRUE,
+        .depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL,
+      },
+      .primitive = {
+        .topology = cube_.vk_primitive_topology(),
+        .cullMode = VK_CULL_MODE_NONE,
+      }
+    });
 
     context.release_shader_modules(shaders);
   }

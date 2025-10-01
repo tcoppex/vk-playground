@@ -27,7 +27,7 @@ class Swapchain {
 
   bool acquire_next_image();
 
-  bool present_and_swap(VkQueue const queue);
+  bool present_and_swap(VkQueue queue);
 
   [[nodiscard]]
   bool isValid() const noexcept {

@@ -51,15 +51,15 @@ class RenderTarget : public backend::RTInterface {
     return static_cast<uint32_t>(colors_.size());
   }
 
-  std::vector<backend::Image> const& get_color_attachments() const final {
+  std::vector<backend::Image> get_color_attachments() const final {
     return colors_;
   }
 
-  backend::Image const& get_color_attachment(uint32_t i = 0u) const final {
+  backend::Image get_color_attachment(uint32_t i = 0u) const final {
     return colors_[i];
   }
 
-  backend::Image const& get_depth_stencil_attachment() const final {
+  backend::Image get_depth_stencil_attachment() const final {
     return depth_stencil_;
   }
 
