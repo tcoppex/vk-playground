@@ -143,6 +143,7 @@ bool Renderer::resize(uint32_t w, uint32_t h) {
 
 CommandEncoder Renderer::begin_frame() {
   LOG_CHECK(device_ != VK_NULL_HANDLE);
+  LOG_CHECK(swapchain_ptr_);
 
   auto &frame{ timeline_.current_frame() };
 
@@ -179,6 +180,7 @@ CommandEncoder Renderer::begin_frame() {
 // ----------------------------------------------------------------------------
 
 void Renderer::end_frame() {
+  LOG_CHECK(swapchain_ptr_);
   auto &frame{ timeline_.current_frame() };
 
   //------------
@@ -191,7 +193,7 @@ void Renderer::end_frame() {
   }
 
   // Next frame index to start when this one completed.
-  frame.signal_index += swapchain_ptr_->image_count();
+  frame.signal_index += swap_image_count();
 
   VkPipelineStageFlags2 const stage_mask{
     VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT

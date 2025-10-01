@@ -129,7 +129,12 @@ class Renderer : public backend::RTInterface {
 
   [[nodiscard]]
   VkExtent2D get_surface_size() const final {
+    LOG_CHECK(swapchain_ptr_ != nullptr);
     return swapchain_ptr_->surface_size();
+    // LOG_CHECK(swapchain_ptr_ || xr_);
+    // return swapchain_ptr_ ? swapchain_ptr_->surface_size()
+    //                       : xr_->swapchainExtent()
+    //                       ;
   }
 
   [[nodiscard]]
@@ -147,6 +152,10 @@ class Renderer : public backend::RTInterface {
     LOG_CHECK(swapchain_ptr_ != nullptr);
     return swapchain_ptr_->current_swap_image();
   }
+
+  // VkFormat color_attachment_format(uint32_t index = 0u) const {
+  //   return get_color_attachment(index).format;
+  // }
 
   [[nodiscard]]
   backend::Image get_depth_stencil_attachment() const final {
@@ -193,6 +202,7 @@ class Renderer : public backend::RTInterface {
 
   [[nodiscard]]
   uint32_t swap_image_count() const noexcept {
+    LOG_CHECK(swapchain_ptr_ != nullptr);
     return swapchain_ptr_->image_count();
   }
 
