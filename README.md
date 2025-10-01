@@ -1,14 +1,14 @@
 ![language: c++20](https://img.shields.io/badge/c++-20-blue.svg)
-![api: vulkan1.3](https://img.shields.io/badge/vulkan-1.3-red.svg)
-![api: openxr1.1](https://img.shields.io/badge/openxr-1.1-purple.svg)
-![api: android32](https://img.shields.io/badge/android-32-green.svg)
+![api: vulkan1.3](https://img.shields.io/badge/Vulkan-1.3-red.svg)
+![api: openxr1.1](https://img.shields.io/badge/OpenXR-1.1-purple.svg)
+![api: android32](https://img.shields.io/badge/Android_API-32-green.svg)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 # aer
 
 A real-time 3d rendering framework, inspired by WebGPU and _vk\_minimal\_latest_.
 
-Runs on GNU/Linux, Windows 11 and Android 12L (_Meta Quest 3_).
+Runs on GNU/Linux, Windows 11 and Android 12L (_Meta Quest 3_). See [BUILD.md](BUILD.md) for detailed build instructions.
 
 <details>
   <summary><strong>Quick start & run!</strong></summary>
@@ -35,9 +35,8 @@ cmake --build build --config Release
 # cmake --build build --target run_aloha
 ```
 
-See [BUILD.md](BUILD.md) for detailed build instructions.
-
 </details>
+
 
 ### Samples
 
