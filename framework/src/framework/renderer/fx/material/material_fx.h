@@ -2,9 +2,10 @@
 #define VKFRAMEWORK_RENDERER_FX_MATERIAL_MATERIAL_FX_H_
 
 #include "framework/core/common.h"
-#include "framework/backend/context.h"
-#include "framework/renderer/renderer.h"
 #include "framework/scene/material.h"
+
+#include "framework/renderer/render_context.h"
+#include "framework/renderer/renderer.h"
 
 /* -------------------------------------------------------------------------- */
 
@@ -54,7 +55,7 @@ class MaterialFx {
   virtual void createPipelineLayout();
 
   virtual void createDescriptorSets() {
-    descriptor_set_ = renderer_ptr_->create_descriptor_set(descriptor_set_layout_); //
+    descriptor_set_ = context_ptr_->create_descriptor_set(descriptor_set_layout_); //
   }
 
  protected:
@@ -79,7 +80,7 @@ class MaterialFx {
   virtual void pushMaterialStorageBuffer() const = 0;
 
  protected:
-  Context const* context_ptr_{};
+  RenderContext const* context_ptr_{};
   Renderer const* renderer_ptr_{};
   ResourceAllocator const* allocator_ptr_{};
 

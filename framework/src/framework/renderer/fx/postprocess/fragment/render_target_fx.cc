@@ -91,13 +91,13 @@ void RenderTargetFx::createRenderTarget(VkExtent2D const dimension) {
 #if 1
   render_target_ = renderer_ptr_->create_default_render_target();
 #else
-  render_target_ = renderer_ptr_->create_render_target({
+  render_target_ = context_ptr_->create_render_target({
     .color_formats = {
       VK_FORMAT_R32G32B32A32_SFLOAT,
     },
     .depth_stencil_format = VK_FORMAT_D24_UNORM_S8_UINT, //
     .size = dimension,
-    .sampler = renderer_ptr_->default_sampler(),
+    .sampler = context_ptr_->default_sampler(),
   });
 #endif
 

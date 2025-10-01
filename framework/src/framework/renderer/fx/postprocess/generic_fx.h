@@ -38,7 +38,7 @@ class GenericFx : public virtual FxInterface {
   virtual void createPipeline() = 0;
 
  protected:
-  Context const* context_ptr_{};
+  RenderContext const* context_ptr_{};
   Renderer const* renderer_ptr_{};
   ResourceAllocator const* allocator_ptr_{};
 

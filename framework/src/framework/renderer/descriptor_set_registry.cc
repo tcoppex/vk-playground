@@ -9,10 +9,12 @@
 /* -------------------------------------------------------------------------- */
 
 /* Allocate the main DescriptorSets. */
-void DescriptorSetRegistry::init(Renderer const& renderer, uint32_t const max_sets) {
-  renderer_ptr_ = &renderer;
-  context_ptr_ = &renderer.context();
-  device_ = renderer.context().device();
+void DescriptorSetRegistry::init(
+  Context const& context,
+  uint32_t const max_sets
+) {
+  context_ptr_ = &context;
+  device_ = context.device();
   init_descriptor_pool(max_sets);
   init_descriptor_sets();
 }
@@ -133,8 +135,7 @@ void DescriptorSetRegistry::update_scene_textures(std::vector<VkDescriptorImageI
 
 // ----------------------------------------------------------------------------
 
-void DescriptorSetRegistry::update_scene_ibl() const {
-  auto const& skybox = renderer_ptr_->skybox();
+void DescriptorSetRegistry::update_scene_ibl(Skybox const& skybox) const {
   auto const& ibl_sampler = skybox.sampler(); // ClampToEdge Linear MipMap
 
   context_ptr_->update_descriptor_set(

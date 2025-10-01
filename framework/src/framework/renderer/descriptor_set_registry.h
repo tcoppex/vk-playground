@@ -4,7 +4,7 @@
 #include "framework/backend/types.h"
 
 class Context;
-class Renderer;
+class Skybox;
 class RayTracingSceneInterface;
 
 /* -------------------------------------------------------------------------- */
@@ -41,7 +41,7 @@ class DescriptorSetRegistry {
   DescriptorSetRegistry() = default;
 
   /* Allocate the main DescriptorSets. */
-  void init(Renderer const& renderer, uint32_t const max_sets);
+  void init(Context const& context, uint32_t const max_sets);
   void release();
 
   /* Return an internal main DescriptorSet. */
@@ -75,7 +75,7 @@ class DescriptorSetRegistry {
 
   void update_scene_textures(std::vector<VkDescriptorImageInfo> image_infos) const;
 
-  void update_scene_ibl() const;
+  void update_scene_ibl(Skybox const& skybox) const;
 
   void update_ray_tracing_scene(RayTracingSceneInterface const* rt_scene) const;
 
@@ -92,7 +92,6 @@ class DescriptorSetRegistry {
   );
 
  private:
-  Renderer const* renderer_ptr_{};
   Context const* context_ptr_{}; //
   VkDevice device_{}; //
 

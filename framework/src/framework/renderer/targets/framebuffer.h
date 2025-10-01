@@ -75,8 +75,6 @@ class Framebuffer final : public backend::RPInterface {
   }
 
  private:
-  friend class Renderer;
-
   Framebuffer(Context const& context, Swapchain const& swapchain);
 
   void setup(Descriptor_t const& desc);
@@ -97,6 +95,9 @@ class Framebuffer final : public backend::RPInterface {
   VkRenderPass render_pass_{};
   std::vector<VkFramebuffer> framebuffers_{};
   SwapBuffer outputs_{};
+
+ private:
+  friend class RenderContext;
 };
 
 /* -------------------------------------------------------------------------- */

@@ -89,7 +89,7 @@ class SampleApp final : public Application {
         | VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT
       };
 
-      graphics_.descriptor_set_layout = renderer_.create_descriptor_set_layout({
+      graphics_.descriptor_set_layout = context_.create_descriptor_set_layout({
         {
           .binding = shader_interop::kDescriptorSetBinding_UniformBuffer,
           .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
@@ -119,7 +119,7 @@ class SampleApp final : public Application {
         },
       });
 
-      graphics_.descriptor_set = renderer_.create_descriptor_set(graphics_.descriptor_set_layout, {
+      graphics_.descriptor_set = context_.create_descriptor_set(graphics_.descriptor_set_layout, {
         {
           .binding = shader_interop::kDescriptorSetBinding_UniformBuffer,
           .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
@@ -138,7 +138,7 @@ class SampleApp final : public Application {
       });
     }
 
-    graphics_.pipeline_layout = renderer_.create_pipeline_layout({
+    graphics_.pipeline_layout = context_.create_pipeline_layout({
       .setLayouts = { graphics_.descriptor_set_layout },
       .pushConstantRanges = {
         {
@@ -203,9 +203,9 @@ class SampleApp final : public Application {
   }
 
   void release() final {
-    renderer_.destroy_pipeline(graphics_.pipeline);
-    renderer_.destroy_descriptor_set_layout(graphics_.descriptor_set_layout);
-    renderer_.destroy_pipeline_layout(graphics_.pipeline_layout);
+    context_.destroy_pipeline(graphics_.pipeline);
+    context_.destroy_descriptor_set_layout(graphics_.descriptor_set_layout);
+    context_.destroy_pipeline_layout(graphics_.pipeline_layout);
 
     auto allocator = context_.allocator();
     allocator.destroy_buffer(point_grid_.index);

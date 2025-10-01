@@ -113,7 +113,7 @@ void GPUResources::upload_to_device(bool const bReleaseHostDataOnUpload) {
 
   /* Update Global Descriptor Set bindings. */
   {
-    auto const& DSR = renderer_ptr_->descriptor_set_registry();
+    auto const& DSR = context_ptr_->descriptor_set_registry();
 
     DSR.update_frame_ubo(frame_ubo_);
 
@@ -150,7 +150,7 @@ std::vector<VkDescriptorImageInfo> GPUResources::descriptor_image_infos() const 
   }
   image_infos.reserve(textures.size());
 
-  auto const& sampler_pool = renderer_ptr_->sampler_pool();
+  auto const& sampler_pool = context_ptr_->sampler_pool();
   for (auto const& texture : textures) {
     auto const& img = device_images.at(texture.channel_index());
     image_infos.push_back({

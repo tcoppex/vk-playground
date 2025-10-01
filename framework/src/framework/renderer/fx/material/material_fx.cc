@@ -6,8 +6,8 @@
 /* -------------------------------------------------------------------------- */
 
 void MaterialFx::init(Renderer const& renderer) {
-  context_ptr_ = &renderer.context(); //
   renderer_ptr_ = &renderer;
+  context_ptr_ = &renderer.context(); //
   allocator_ptr_ = context_ptr_->allocator_ptr();
 }
 
@@ -16,10 +16,10 @@ void MaterialFx::init(Renderer const& renderer) {
 void MaterialFx::release() {
   if (pipeline_layout_ != VK_NULL_HANDLE) {
     for (auto [_, pipeline] : pipelines_) {
-      renderer_ptr_->destroy_pipeline(pipeline);
+      context_ptr_->destroy_pipeline(pipeline);
     }
-    renderer_ptr_->destroy_pipeline_layout(pipeline_layout_); //
-    renderer_ptr_->destroy_descriptor_set_layout(descriptor_set_layout_);
+    context_ptr_->destroy_pipeline_layout(pipeline_layout_); //
+    context_ptr_->destroy_descriptor_set_layout(descriptor_set_layout_);
     pipeline_layout_ = VK_NULL_HANDLE;
   }
 }
@@ -61,7 +61,7 @@ void MaterialFx::prepareDrawState(
   pass.bind_pipeline(pipelines_[states]);
 
   // ----------------------------
-  auto const& DSR = renderer_ptr_->descriptor_set_registry();
+  auto const& DSR = context_ptr_->descriptor_set_registry();
   VkShaderStageFlags const stage_flags{
       VK_SHADER_STAGE_VERTEX_BIT
     | VK_SHADER_STAGE_FRAGMENT_BIT
@@ -93,14 +93,14 @@ void MaterialFx::prepareDrawState(
 // ----------------------------------------------------------------------------
 
 void MaterialFx::createPipelineLayout() {
-  LOG_CHECK(renderer_ptr_);
+  LOG_CHECK(context_ptr_);
 
-  descriptor_set_layout_ = renderer_ptr_->create_descriptor_set_layout(
+  descriptor_set_layout_ = context_ptr_->create_descriptor_set_layout(
     getDescriptorSetLayoutParams()
   );
 
-  auto const& DSR = renderer_ptr_->descriptor_set_registry();
-  pipeline_layout_ = renderer_ptr_->create_pipeline_layout({
+  auto const& DSR = context_ptr_->descriptor_set_registry();
+  pipeline_layout_ = context_ptr_->create_pipeline_layout({
     .setLayouts = {
       descriptor_set_layout_,
       DSR.descriptor(DescriptorSetRegistry::Type::Frame).layout,

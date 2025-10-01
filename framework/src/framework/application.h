@@ -14,9 +14,9 @@ using namespace std::chrono_literals;
 #include "framework/core/platform/ui_controller.h"
 #include "framework/core/platform/xr_interface.h"
 
-#include "framework/backend/context.h"
 #include "framework/backend/swapchain.h"
 
+#include "framework/renderer/render_context.h"
 #include "framework/renderer/renderer.h"
 
 /* -------------------------------------------------------------------------- */
@@ -88,10 +88,11 @@ class Application : public EventCallbacks
   std::unique_ptr<UIController> ui_{};
 
   std::unique_ptr<OpenXRContext> xr_{}; //
-  Context context_{};
+  RenderContext context_{};
   Swapchain swapchain_{}; // (VK vs XR)
 
   Renderer renderer_{};
+
   VkExtent2D viewport_size_{}; //
 
  private:

@@ -64,14 +64,14 @@ class SceneFx final : public RenderTargetFx {
   }
 
   void createRenderTarget(VkExtent2D const dimension) final {
-    render_target_ = renderer_ptr_->create_render_target({
+    render_target_ = context_ptr_->create_render_target({
       .color_formats = {
         VK_FORMAT_R32G32B32A32_SFLOAT,
         VK_FORMAT_R32G32B32A32_SFLOAT,
       },
       .depth_stencil_format = VK_FORMAT_D24_UNORM_S8_UINT,
       .size = dimension,
-      .sampler = renderer_ptr_->default_sampler(),
+      .sampler = context_ptr_->default_sampler(),
     });
 
     // Set the clear values for color attachments.
@@ -283,7 +283,7 @@ class SampleApp final : public Application {
       "DamagedHelmet.glb"
     };
 
-    auto gltf_scene = renderer_.load_and_upload(gltf_filename, {
+    auto gltf_scene = renderer_.load_gltf(gltf_filename, {
       { Geometry::AttributeType::Position,  shader_interop::kAttribLocation_Position },
       { Geometry::AttributeType::Texcoord,  shader_interop::kAttribLocation_Texcoord },
       { Geometry::AttributeType::Normal,    shader_interop::kAttribLocation_Normal   },

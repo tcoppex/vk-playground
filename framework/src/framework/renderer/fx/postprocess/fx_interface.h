@@ -6,6 +6,7 @@
 #include "framework/backend/types.h"
 
 class Renderer;
+class RenderContext;
 class CommandEncoder;
 
 /* -------------------------------------------------------------------------- */

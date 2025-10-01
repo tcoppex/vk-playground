@@ -10,7 +10,7 @@ void RayTracingFx::execute(CommandEncoder& cmd) const {
 
   // Bind descriptor sets.
   {
-    auto const& DSR = renderer_ptr_->descriptor_set_registry();
+    auto const& DSR = context_ptr_->descriptor_set_registry();
 
     VkShaderStageFlags const stage_flags{
         VK_SHADER_STAGE_RAYGEN_BIT_KHR
@@ -156,7 +156,7 @@ void RayTracingFx::createPipeline() {
 
   auto pipeline_desc = pipelineDescriptor(shaders_map);
 
-  pipeline_ = renderer_ptr_->create_raytracing_pipeline(
+  pipeline_ = context_ptr_->create_raytracing_pipeline(
     pipeline_layout_,
     pipeline_desc
   );

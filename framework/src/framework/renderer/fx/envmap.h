@@ -11,7 +11,7 @@ namespace shader_interop::envmap {
 #include "framework/shaders/envmap/interop.h"
 }
 
-class Context;
+class RenderContext;
 class Renderer;
 
 /* -------------------------------------------------------------------------- */
@@ -55,7 +55,7 @@ class Envmap {
  public:
   Envmap() = default;
 
-  void init(Renderer const& renderer);
+  void init(RenderContext const& context);
 
   void release();
 
@@ -79,9 +79,7 @@ class Envmap {
   void compute_specular();
 
  private:
-  Context const* context_{};
-  Renderer const* renderer_{};
-
+  RenderContext const* context_{};
   ResourceAllocator const* allocator_ptr_{};
 
   VkDescriptorSetLayout descriptor_set_layout_{};

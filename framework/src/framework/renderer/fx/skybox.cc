@@ -13,14 +13,15 @@
 
 void Skybox::init(Renderer& renderer) {
   renderer_ptr_ = &renderer;
+  auto const& context = renderer.context();
 
-  envmap_.init(renderer);
+  envmap_.init(context);
 
   /* Precalculate the BRDF LUT. */
   compute_specular_brdf_lut(renderer); //
 
   /* Internal sampler */
-  sampler_LinearClampMipMap_ = renderer.sampler_pool().get({
+  sampler_LinearClampMipMap_ = context.sampler_pool().get({
     .magFilter = VK_FILTER_LINEAR,
     .minFilter = VK_FILTER_LINEAR,
     .mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
@@ -30,8 +31,6 @@ void Skybox::init(Renderer& renderer) {
     .anisotropyEnable = VK_FALSE,
     .maxLod = VK_LOD_CLAMP_NONE,
   });
-
-  Context const& context = renderer.context();
 
   /* Create the skybox geometry on the device. */
   {
@@ -58,7 +57,7 @@ void Skybox::init(Renderer& renderer) {
 
   /* Descriptor sets */
   {
-    descriptor_set_layout_ = renderer.create_descriptor_set_layout({
+    descriptor_set_layout_ = context.create_descriptor_set_layout({
       {
         .binding = shader_interop::skybox::kDescriptorSetBinding_Skybox_Sampler,
         .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
@@ -67,7 +66,7 @@ void Skybox::init(Renderer& renderer) {
       },
     });
 
-    descriptor_set_ = renderer.create_descriptor_set(descriptor_set_layout_, {
+    descriptor_set_ = context.create_descriptor_set(descriptor_set_layout_, {
       {
         .binding = shader_interop::skybox::kDescriptorSetBinding_Skybox_Sampler,
         .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
@@ -82,7 +81,7 @@ void Skybox::init(Renderer& renderer) {
     });
   }
 
-  pipeline_layout_ = renderer.create_pipeline_layout({
+  pipeline_layout_ = context.create_pipeline_layout({
     .setLayouts = { descriptor_set_layout_ },
     .pushConstantRanges = {
       {
@@ -138,13 +137,14 @@ void Skybox::init(Renderer& renderer) {
 // ----------------------------------------------------------------------------
 
 void Skybox::release(Renderer const& renderer) {
-  auto allocator = renderer.context().allocator();
+  auto const& context = renderer.context();
+  auto allocator = context.allocator();
 
   allocator.destroy_image(&specular_brdf_lut_);
 
-  renderer.destroy_pipeline(graphics_pipeline_);
-  renderer.destroy_pipeline_layout(pipeline_layout_);
-  renderer.destroy_descriptor_set_layout(descriptor_set_layout_);
+  context.destroy_pipeline(graphics_pipeline_);
+  context.destroy_pipeline_layout(pipeline_layout_);
+  context.destroy_descriptor_set_layout(descriptor_set_layout_);
 
   allocator.destroy_buffer(index_buffer_);
   allocator.destroy_buffer(vertex_buffer_);
@@ -156,11 +156,10 @@ void Skybox::release(Renderer const& renderer) {
 
 bool Skybox::setup(std::string_view hdr_filename) {
   setuped_ = envmap_.setup(hdr_filename);
-
   if (setuped_) {
-    renderer_ptr_->descriptor_set_registry().update_scene_ibl();
+    auto const& context = renderer_ptr_->context();
+    context.descriptor_set_registry().update_scene_ibl(*this);
   }
-
   return setuped_;
 }
 

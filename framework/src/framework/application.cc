@@ -134,7 +134,12 @@ bool Application::presetup(AppData_t app_data) {
   }
 
   /* Internal Renderer. */
-  renderer_.init(context_, swapchain_); //
+  renderer_.init(
+    context_,
+    // We should sent an abstract object that is either a classic
+    // Vulkan Swapchain or a multi-view vector of OpenXR swapchains
+    swapchain_ //
+  );
 
   /* User Interface. */
   if (ui_ = std::make_unique<UIController>(); !ui_ || !ui_->init(renderer_, *wm_)) {

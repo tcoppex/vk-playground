@@ -92,8 +92,6 @@ class RenderTarget : public backend::RTInterface {
  private:
   RenderTarget(Context const& context);
 
-  friend class Renderer;
-
  private:
   Context const* context_ptr_{};
 
@@ -108,6 +106,9 @@ class RenderTarget : public backend::RTInterface {
   VkClearValue depth_stencil_clear_value_{};
 
   std::vector<VkAttachmentLoadOp> color_load_ops_{};
+
+ private:
+  friend class RenderContext;
 };
 
 /* -------------------------------------------------------------------------- */

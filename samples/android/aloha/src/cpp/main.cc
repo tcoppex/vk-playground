@@ -107,7 +107,7 @@ private:
   }
 
   void release() final {
-    renderer_.destroy_pipeline(graphics_pipeline_);
+    context_.destroy_pipeline(graphics_pipeline_);
     context_.allocator().destroy_buffer(vertex_buffer_);
   }
 

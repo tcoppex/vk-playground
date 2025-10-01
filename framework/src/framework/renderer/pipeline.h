@@ -19,7 +19,9 @@ class Pipeline : public backend::PipelineInterface {
  private:
   bool use_internal_layout_{};
 
-  friend class Renderer;
+ private:
+  friend class Renderer; //
+  friend class RenderContext;
 };
 
 // ----------------------------------------------------------------------------

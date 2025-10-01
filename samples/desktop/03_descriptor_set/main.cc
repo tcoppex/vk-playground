@@ -99,7 +99,7 @@ class SampleApp final : public Application {
     {
       uint32_t const kDescSetUniformBinding = 0u;
 
-      descriptor_set_layout_ = renderer_.create_descriptor_set_layout({
+      descriptor_set_layout_ = context_.create_descriptor_set_layout({
         {
           .binding = kDescSetUniformBinding,
           .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
@@ -116,7 +116,7 @@ class SampleApp final : public Application {
        * Create a descriptor set from a layout and update it directly (optionnal).
        * The descriptor set can be update later on by calling 'update_descriptor_set'.
        **/
-      descriptor_set_ = renderer_.create_descriptor_set(descriptor_set_layout_, {
+      descriptor_set_ = context_.create_descriptor_set(descriptor_set_layout_, {
         {
           .binding = kDescSetUniformBinding,
           .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
@@ -133,7 +133,7 @@ class SampleApp final : public Application {
     /* Setup the graphics pipeline. */
     {
       /* Here we create the the pipeline layout externally. */
-      pipeline_layout_ = renderer_.create_pipeline_layout({
+      pipeline_layout_ = context_.create_pipeline_layout({
         .setLayouts = { descriptor_set_layout_ },
         .pushConstantRanges = {
           {
@@ -199,13 +199,13 @@ class SampleApp final : public Application {
   }
 
   void release() final {
-    renderer_.destroy_descriptor_set_layout(descriptor_set_layout_);
+    context_.destroy_descriptor_set_layout(descriptor_set_layout_);
 
     /* As we've created the pipeline layout externally we should destroy it manually.
      * We could also use 'graphics_pipeline_.get_layout()'' if we didn't kept it. */
-    renderer_.destroy_pipeline_layout(pipeline_layout_);
+    context_.destroy_pipeline_layout(pipeline_layout_);
 
-    renderer_.destroy_pipeline(graphics_pipeline_);
+    context_.destroy_pipeline(graphics_pipeline_);
 
     allocator_ptr_->destroy_buffer(index_buffer_);
     allocator_ptr_->destroy_buffer(vertex_buffer_);

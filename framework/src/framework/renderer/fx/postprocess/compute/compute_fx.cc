@@ -112,7 +112,7 @@ void ComputeFx::releaseImagesAndBuffers() {
 
 void ComputeFx::createPipeline() {
   auto cs_shader{context_ptr_->create_shader_module( getShaderName() )};
-  pipeline_ = renderer_ptr_->create_compute_pipeline(pipeline_layout_, cs_shader);
+  pipeline_ = context_ptr_->create_compute_pipeline(pipeline_layout_, cs_shader);
   context_ptr_->release_shader_modules({ cs_shader });
 }
 

@@ -126,7 +126,7 @@ class RayTracingFx : public PostGenericFx {
   }
 
   std::vector<VkDescriptorSetLayout> getDescriptorSetLayouts() const override {
-    auto const& DSR = renderer_ptr_->descriptor_set_registry();
+    auto const& DSR = context_ptr_->descriptor_set_registry();
     return {
       descriptor_set_layout_,
       DSR.descriptor(DescriptorSetRegistry::Type::Frame).layout,

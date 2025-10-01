@@ -2,12 +2,14 @@
 #define VKFRAMEWORK_RENDERER_GPU_RESOURCES_H
 
 #include "framework/scene/host_resources.h"
-#include "framework/renderer/fx/material/material_fx_registry.h"
-#include "framework/renderer/raytracing_scene.h"
 
-class Context;
+#include "framework/renderer/raytracing_scene.h"
+#include "framework/renderer/fx/material/material_fx_registry.h"
+
+class RenderContext; //
 class ResourceAllocator;
-class SamplerPool;
+
+// class SamplerPool;
 class RenderPassEncoder;
 class Camera;
 class RayTracingFx; //
@@ -89,7 +91,7 @@ struct GPUResources : scene::HostResources {
 
  private:
   Renderer const* renderer_ptr_{};
-  Context const* context_ptr_{};
+  RenderContext const* context_ptr_{};
   ResourceAllocator const* allocator_ptr_{};
   uint32_t frame_index_{};
 };

@@ -44,9 +44,9 @@ class SampleApp final : public Application {
     };
 
     if constexpr(true) {
-      future_scene_ = renderer_.async_load_to_device(gtlf_filename);
+      future_scene_ = renderer_.async_load_gltf(gtlf_filename);
     } else {
-      scene_ = renderer_.load_and_upload(gtlf_filename);
+      scene_ = renderer_.load_gltf(gtlf_filename);
     }
 
     return true;

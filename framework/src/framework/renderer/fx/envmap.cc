@@ -5,9 +5,8 @@
 
 /* -------------------------------------------------------------------------- */
 
-void Envmap::init(Renderer const& renderer) {
-  context_ = &renderer.context();
-  renderer_ = &renderer;
+void Envmap::init(RenderContext const& context) {
+  context_ = &context;
   allocator_ptr_ = context_->allocator_ptr();
 
   irradiance_matrices_buffer_ = allocator_ptr_->create_buffer(
@@ -76,7 +75,7 @@ void Envmap::init(Renderer const& renderer) {
       | VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT
     };
 
-    descriptor_set_layout_ = renderer.create_descriptor_set_layout({
+    descriptor_set_layout_ = context_->create_descriptor_set_layout({
       {
         .binding = shader_interop::envmap::kDescriptorSetBinding_Sampler,
         .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
@@ -114,7 +113,7 @@ void Envmap::init(Renderer const& renderer) {
       },
     });
 
-    descriptor_set_ = renderer.create_descriptor_set(descriptor_set_layout_, {
+    descriptor_set_ = context_->create_descriptor_set(descriptor_set_layout_, {
       {
         .binding = shader_interop::envmap::kDescriptorSetBinding_StorageImage,
         .type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
@@ -133,7 +132,7 @@ void Envmap::init(Renderer const& renderer) {
     });
   }
 
-  pipeline_layout_ = renderer.create_pipeline_layout({
+  pipeline_layout_ = context_->create_pipeline_layout({
     .setLayouts = { descriptor_set_layout_ },
     .pushConstantRanges = {
       {
@@ -154,7 +153,7 @@ void Envmap::init(Renderer const& renderer) {
       "irradiance_convolution.comp.glsl",
       "specular_convolution.comp.glsl",
     })};
-    renderer.create_compute_pipelines(pipeline_layout_, shaders, compute_pipelines_.data());
+    context_->create_compute_pipelines(pipeline_layout_, shaders, compute_pipelines_.data());
     context_->release_shader_modules(shaders);
   }
 
@@ -188,10 +187,10 @@ void Envmap::release() {
     allocator_ptr_->destroy_image(&image);
   }
   for (auto pipeline : compute_pipelines_) {
-    renderer_->destroy_pipeline(pipeline);
+    context_->destroy_pipeline(pipeline);
   }
-  renderer_->destroy_pipeline_layout(pipeline_layout_);
-  renderer_->destroy_descriptor_set_layout(descriptor_set_layout_);
+  context_->destroy_pipeline_layout(pipeline_layout_);
+  context_->destroy_descriptor_set_layout(descriptor_set_layout_);
 }
 
 // ----------------------------------------------------------------------------
@@ -227,7 +226,7 @@ bool Envmap::setup(std::string_view hdr_filename) {
 
 bool Envmap::load_diffuse_envmap(std::string_view hdr_filename) {
   backend::Image spherical_envmap{};
-  if (!renderer_->load_image_2d(hdr_filename, spherical_envmap)) {
+  if (!context_->load_image_2d(hdr_filename, spherical_envmap)) {
     return false;
   }
 
