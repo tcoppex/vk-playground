@@ -46,6 +46,12 @@ using AppData_t = void*;
 // #endif
 // };
 
+// [wip] Android user data for AppData_t->userData.
+struct UserData {
+  void *self;
+  XRInterface *xr;
+};
+
 // [used only by Android app]
 struct AppCmdCallbacks {
   virtual ~AppCmdCallbacks() {}

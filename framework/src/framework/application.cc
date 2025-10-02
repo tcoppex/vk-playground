@@ -74,6 +74,10 @@ bool Application::presetup(AppData_t app_data) {
 
   LOGD("--- Framework Setup ---");
 
+#if defined(ANDROID)
+  app_data->userData = (void*)&user_data_;
+#endif
+
   /* Window manager. */
   if (wm_ = std::make_unique<Window>(); !wm_ || !wm_->init(app_data)) {
     LOGE("Window creation fails");
@@ -88,6 +92,7 @@ bool Application::presetup(AppData_t app_data) {
   /* OpenXR */
   if constexpr (kEnableXR) {
     if (xr_ = std::make_unique<OpenXRContext>(); xr_) {
+      user_data_.xr = xr_.get(); //
       if (!xr_->init(wm_->xrPlatformInterface(), app_name, xrExtensions())) {
         LOGE("XR initialization fails.");
         shutdown();

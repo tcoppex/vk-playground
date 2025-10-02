@@ -27,7 +27,7 @@ class Application : public EventCallbacks
   Application() = default;
   virtual ~Application() {}
 
-  int run(AppData_t app_data = nullptr);
+  int run(AppData_t app_data = {});
 
  protected:
   [[nodiscard]]
@@ -94,11 +94,15 @@ class Application : public EventCallbacks
   VkExtent2D viewport_size_{}; //
 
  private:
-  // Only used by non-XR.
+  // |Android only]
+  UserData user_data_{};
+
+  // [Desktop only]
+  std::unique_ptr<EventCallbacks> default_callbacks_{};
+
+  // [non-XR only]
   VkSurfaceKHR surface_{};
   Swapchain swapchain_{};
-
-  std::unique_ptr<EventCallbacks> default_callbacks_{};
 
   std::chrono::time_point<std::chrono::high_resolution_clock> chrono_{};
   float frame_time_{};

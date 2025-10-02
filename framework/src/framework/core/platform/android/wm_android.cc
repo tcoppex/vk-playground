@@ -109,7 +109,6 @@ bool WMAndroid::init(AppData_t app_data) {
   LOG_CHECK(app_data != nullptr);
 
   JNIContext::Initialize(app_data);
-  xr_android_.init(JNIContext::Get());
 
   // Mainly an XR thing.
   ANativeActivity_setWindowFlags(app_data->activity, AWINDOW_FLAG_KEEP_SCREEN_ON, 0);
@@ -117,13 +116,17 @@ bool WMAndroid::init(AppData_t app_data) {
   // [optionnal, rename the thread]
   // prctl(PR_SET_NAME, (long)"VKFramework::Sample::MainThread", 0, 0, 0);
 
-  app_data->userData = this;
+  auto user_data{reinterpret_cast<UserData*>(app_data->userData)};
+  user_data->self = this;
+
   app_data->onAppCmd = [](struct android_app* _app, int32_t cmd) {
-    auto self = reinterpret_cast<WMAndroid*>(_app->userData);
+    auto user_data = reinterpret_cast<UserData*>(_app->userData);
+    auto self = reinterpret_cast<WMAndroid*>(user_data->self);
     self->handleAppCmd(_app, cmd);
   };
   app_data->onInputEvent = [](struct android_app* _app, AInputEvent* event) -> int32_t {
-    auto self = reinterpret_cast<WMAndroid*>(_app->userData);
+    auto user_data = reinterpret_cast<UserData*>(_app->userData);
+    auto self = reinterpret_cast<WMAndroid*>(user_data->self);
     return self->handleInputEvent(event) ? 1 : 0;
   };
 
@@ -149,8 +152,8 @@ void WMAndroid::shutdown() {
 // ----------------------------------------------------------------------------
 
 bool WMAndroid::poll(AppData_t app_data) noexcept {
-  // auto Fmwk{reinterpret_cast<Framework*>(app->userData)};
-  // auto xr = Fmwk->xr();
+  auto user_data = reinterpret_cast<UserData*>(app_data->userData);
+  auto xr = user_data->xr;
 
   while (true) {
     int events{};
@@ -158,7 +161,7 @@ bool WMAndroid::poll(AppData_t app_data) noexcept {
 
     bool const do_not_wait = app_data->destroyRequested
                           || (isActive() && native_window)
-                          // || (xr && xr->isSessionRunning()) // xxx
+                          || (xr && xr->isSessionRunning()) // xxx
                           ;
 
     auto const poll_id = ALooper_pollOnce(
