@@ -28,15 +28,17 @@ struct DefaultAppCmdCallbacks final : public AppCmdCallbacks {
     // (APP_CMD_INIT_WINDOW is called when app->window has a new ANativeWindow)
     if (app->window != nullptr) {
       // We only need to create the display & context once.
-      if (wma_->native_window == nullptr)
-      {
+      if (wma_->native_window == nullptr) {
         LOGV("> Native Android Window created.");
-        wma_->native_window = app->window;
-        // we need to specify the surface resolution for the first initialization
-        // but we don't want to create everything as it's the true "resize"
-        // event that will signal it.
-        handleResize(app, false); //
+        // wma_->native_window = app->window;
+        // handleResize(app, false); //
       }
+      wma_->native_window = app->window;
+
+      // we need to specify the surface resolution for the first initialization
+      // but we don't want to create everything as it's the true "resize"
+      // event that will signal it.
+      handleResize(app, false); //
     }
   }
 
