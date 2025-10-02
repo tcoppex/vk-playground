@@ -6,72 +6,66 @@
 #include "framework/backend/types.h"
 class Context;
 
+#include "framework/core/platform/swapchain_interface.h" //
+
 /* -------------------------------------------------------------------------- */
 
-class Swapchain {
+class Swapchain : public SwapchainInterface {
  public:
   static constexpr uint32_t kPreferredMaxImageCount{ 3u };
   static constexpr bool kUseVSync{ true };
 
-  struct SwapSynchronizer_t {
-    VkSemaphore wait_image_semaphore{};
-    VkSemaphore signal_present_semaphore{};
-  };
-
  public:
   Swapchain() = default;
+  virtual ~Swapchain() = default;
 
   void init(Context const& context, VkSurfaceKHR surface);
 
   void deinit(bool keep_previous_swapchain = false);
 
-  bool acquire_next_image();
+  [[nodiscard]]
+  uint32_t swap_index() const noexcept {
+    return swap_index_;
+  }
 
-  bool present_and_swap(VkQueue queue);
+  [[nodiscard]]
+  std::vector<backend::Image> const& images() const noexcept {
+    return images_;
+  }
 
   [[nodiscard]]
   bool isValid() const noexcept {
     return need_rebuild_ == false;
   }
 
+ public:
   [[nodiscard]]
-  VkExtent2D surface_size() const noexcept {
+  bool acquireNextImage() final;
+
+  [[nodiscard]]
+  bool submitFrame(VkQueue queue, VkCommandBuffer command_buffer) final;
+
+  [[nodiscard]]
+  bool finishFrame(VkQueue queue) final;
+
+  [[nodiscard]]
+  VkExtent2D surfaceSize() const noexcept final {
     return swapchain_create_info_.imageExtent;
   }
 
   [[nodiscard]]
-  uint32_t image_count() const noexcept {
+  uint32_t imageCount() const noexcept final {
     return image_count_;
   }
 
   [[nodiscard]]
-  VkFormat color_format() const noexcept {
-    return swap_images_[0u].format;
+  VkFormat format() const noexcept final {
+    return images_[0u].format;
   }
 
   [[nodiscard]]
-  std::vector<backend::Image> const& swap_images() const noexcept {
-    return swap_images_;
-  }
-
-  [[nodiscard]]
-  backend::Image const& current_swap_image() const noexcept {
-    return swap_images_[acquired_image_index_];
-  }
-
-  [[nodiscard]]
-  VkSemaphore wait_image_semaphore() const noexcept {
-    return swap_syncs_[swap_index_].wait_image_semaphore;
-  }
-
-  [[nodiscard]]
-  VkSemaphore signal_present_semaphore() const noexcept {
-    return swap_syncs_[acquired_image_index_].signal_present_semaphore;
-  }
-
-  [[nodiscard]]
-  uint32_t swap_index() const noexcept {
-    return swap_index_;
+  backend::Image current_image() const noexcept final {
+    return images_[acquired_image_index_];
   }
 
  private:
@@ -81,16 +75,42 @@ class Swapchain {
   [[nodiscard]]
   VkPresentModeKHR select_present_mode(VkSurfaceKHR surface, bool use_vsync) const;
 
+  [[nodiscard]]
+  VkSemaphore wait_image_semaphore() const noexcept {
+    return synchronizers_[swap_index_].wait_image_semaphore;
+  }
+
+  [[nodiscard]]
+  VkSemaphore signal_present_semaphore() const noexcept {
+    return synchronizers_[acquired_image_index_].signal_present_semaphore;
+  }
+
+  [[nodiscard]]
+  uint64_t* timeline_signal_index_ptr() noexcept {
+    return &timeline_.signal_indices[swap_index_];
+  }
+
  private:
-  /* Copy references */
+  struct Synchronizer {
+    VkSemaphore wait_image_semaphore{};
+    VkSemaphore signal_present_semaphore{};
+  };
+
+  struct Timeline {
+    std::vector<uint64_t> signal_indices{};
+    VkSemaphore semaphore{};
+  };
+
   VkPhysicalDevice gpu_{};
   VkDevice device_{};
 
   VkSwapchainCreateInfoKHR swapchain_create_info_{};
-  VkSwapchainKHR swapchain_{};
+  VkSwapchainKHR handle_{};
 
-  std::vector<backend::Image> swap_images_{};
-  std::vector<SwapSynchronizer_t> swap_syncs_{};
+  std::vector<backend::Image> images_{};
+  std::vector<Synchronizer> synchronizers_{};
+
+  Timeline timeline_{};
 
   uint32_t image_count_{};  // max frames in flight
   uint32_t swap_index_{};

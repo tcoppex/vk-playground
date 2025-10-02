@@ -39,12 +39,11 @@ class Renderer : public backend::RTInterface {
 
  public:
   Renderer() = default;
-  ~Renderer() {}
+  ~Renderer() = default;
 
   void init(
     RenderContext& context,
-    Swapchain& swapchain, //
-    OpenXRContext *xr //
+    SwapchainInterface* swapchain_ptr
   );
 
   void deinit();
@@ -130,11 +129,7 @@ class Renderer : public backend::RTInterface {
   [[nodiscard]]
   VkExtent2D surface_size() const final {
     LOG_CHECK(swapchain_ptr_ != nullptr);
-    return swapchain_ptr_->surface_size();
-    // LOG_CHECK(swapchain_ptr_ || xr_);
-    // return swapchain_ptr_ ? swapchain_ptr_->surface_size()
-    //                       : xr_->swapchainExtent()
-    //                       ;
+    return swapchain_ptr_->surfaceSize();
   }
 
   [[nodiscard]]
@@ -150,7 +145,7 @@ class Renderer : public backend::RTInterface {
   [[nodiscard]]
   backend::Image color_attachment(uint32_t index = 0u) const final {
     LOG_CHECK(swapchain_ptr_ != nullptr);
-    return swapchain_ptr_->current_swap_image();
+    return swapchain_ptr_->current_image();
   }
 
   // VkFormat color_attachment_format(uint32_t index = 0u) const {
@@ -203,73 +198,50 @@ class Renderer : public backend::RTInterface {
   [[nodiscard]]
   uint32_t swap_image_count() const noexcept {
     LOG_CHECK(swapchain_ptr_ != nullptr);
-    return swapchain_ptr_->image_count();
+    return swapchain_ptr_->imageCount();
   }
 
  private:
-  void init_view_resources(
-    Swapchain& swapchain
-  );
-
+  void init_view_resources();
   void deinit_view_resources();
 
+  // ------------------------------------------
   [[nodiscard]]
   VkFormat valid_depth_format() const noexcept {
-    return VK_FORMAT_D24_UNORM_S8_UINT
-           // VK_FORMAT_D16_UNORM  //
+    return VK_FORMAT_D24_UNORM_S8_UINT //
            ;
   }
+  // ------------------------------------------
 
  private:
-  struct TimelineFrame_t {
-    uint64_t signal_index{};
+  struct FrameResources {
     VkCommandPool command_pool{};
     VkCommandBuffer command_buffer{};
   };
-
-  struct Timeline_t {
-    std::vector<TimelineFrame_t> frames{};
-    uint32_t frame_index{};
-    VkSemaphore semaphore{};
-
-    [[nodiscard]]
-    TimelineFrame_t& current_frame() noexcept {
-      return frames[frame_index];
-    }
-  };
-
- private:
-  // --- [Shared Resources] ---
 
   /* References for quick access */
   RenderContext* ctx_ptr_{};
   ResourceAllocator* allocator_ptr_{};
   VkDevice device_{};
 
-  OpenXRContext *xr_;
+  SwapchainInterface* swapchain_ptr_{};
+
+  /* Default depth-stencil buffer. */
+  backend::Image depth_stencil_{}; // xxx
+
+  /* Timeline frame resources */
+  std::vector<FrameResources> frames_{};
+  uint32_t frame_index_{};
 
   /* Miscs resources */
   VkClearValue color_clear_value_{kDefaultColorClearValue};
   VkClearValue depth_stencil_clear_value_{{{1.0f, 0u}}};
   VkAttachmentLoadOp color_load_op_{VK_ATTACHMENT_LOAD_OP_CLEAR};
 
-  // --- [View Dependent] ---
-
-  Swapchain* swapchain_ptr_{};
-
-  /* Default depth-stencil buffer */
-  backend::Image depth_stencil_{}; //
-
-  /* Timeline frame resources */
-  Timeline_t timeline_{};
-
-  // Proxy to const ref return the swapbuffer..
-  // mutable std::vector<backend::Image> proxy_swap_attachment_{}; //
-
-  // Reference to the current CommandEncoder returned by 'begin_frame'
+  /* Reference to the current CommandEncoder returned by 'begin_frame' */
   CommandEncoder cmd_{}; //
 
-  // --- [Miscs utility] ---
+  // ----------
 
   Skybox skybox_{}; //
 };

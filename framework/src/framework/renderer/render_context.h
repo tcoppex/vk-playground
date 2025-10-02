@@ -12,6 +12,8 @@
 #include "framework/renderer/sampler_pool.h"
 #include "framework/renderer/descriptor_set_registry.h" //
 
+class SwapchainInterface;
+
 /* -------------------------------------------------------------------------- */
 
 ///
@@ -48,12 +50,12 @@ class RenderContext : public Context {
 
   [[nodiscard]]
   std::unique_ptr<Framebuffer> create_framebuffer(
-    Swapchain const& swapchain
+    SwapchainInterface const& swapchain
   ) const;
 
   [[nodiscard]]
   std::unique_ptr<Framebuffer> create_framebuffer(
-    Swapchain const& swapchain,
+    SwapchainInterface const& swapchain,
     Framebuffer::Descriptor_t const& desc
   ) const;
 

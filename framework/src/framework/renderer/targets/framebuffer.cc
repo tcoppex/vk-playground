@@ -1,8 +1,8 @@
 #include "framework/renderer/targets/framebuffer.h"
 
 #include "framework/backend/context.h"
-#include "framework/backend/swapchain.h"
 #include "framework/renderer/targets/render_target.h" // (for kDefaultImageUsageFlags)
+#include "framework/core/platform/swapchain_interface.h"
 
 /* -------------------------------------------------------------------------- */
 
@@ -16,9 +16,9 @@ void Framebuffer::release() {
 // ----------------------------------------------------------------------------
 
 void Framebuffer::resize(VkExtent2D const dimension) {
-  if ( (dimension.width == desc_.dimension.width)
-    && (dimension.height == desc_.dimension.height)
-    && (framebuffers_[0u] != VK_NULL_HANDLE)) {
+  if ((dimension.width == desc_.dimension.width)
+   && (dimension.height == desc_.dimension.height)
+   && (framebuffers_[0u] != VK_NULL_HANDLE)) {
     return;
   }
 
@@ -76,7 +76,7 @@ void Framebuffer::resize(VkExtent2D const dimension) {
 
 /* -------------------------------------------------------------------------- */
 
-Framebuffer::Framebuffer(Context const& context, Swapchain const& swapchain)
+Framebuffer::Framebuffer(Context const& context, SwapchainInterface const& swapchain)
   : context_ptr_(&context)
   , swapchain_ptr_(&swapchain)
 {}
@@ -109,7 +109,7 @@ void Framebuffer::setup(Descriptor_t const& desc) {
 
   /* Resize the buffers depending weither we wanna sync to the current swap index. */
   uint32_t const image_swap_count{
-    desc_.match_swapchain_output_count ? swapchain_ptr_->image_count() : 1u
+    desc_.match_swapchain_output_count ? swapchain_ptr_->imageCount() : 1u
   };
   framebuffers_.resize(image_swap_count);
   for (auto& output : outputs_) {
@@ -118,9 +118,7 @@ void Framebuffer::setup(Descriptor_t const& desc) {
 
   /* Setup the render pass. */
   {
-    std::vector<VkAttachmentDescription> attachment_descs{
-      desc_.color_desc
-    };
+    std::vector<VkAttachmentDescription> attachment_descs{desc_.color_desc};
     if (use_depth_stencil_) {
       attachment_descs.push_back(
         {
@@ -170,9 +168,11 @@ void Framebuffer::setup(Descriptor_t const& desc) {
 // ----------------------------------------------------------------------------
 
 uint32_t Framebuffer::get_swap_index() const {
-  return desc_.match_swapchain_output_count ? swapchain_ptr_->swap_index()
-                                            : 0u
-                                            ;
+  LOGW("{} not implemented", __FUNCTION__);
+  return 0;
+  // return desc_.match_swapchain_output_count ? swapchain_ptr_->swap_index()
+  //                                           : 0u
+  //                                           ;
 }
 
 /* -------------------------------------------------------------------------- */

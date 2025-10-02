@@ -27,7 +27,7 @@ struct SwapchainImageContext {
 
     std::vector<XrSwapchainImageBaseHeader*> bases(capacity);
     for (uint32_t i = 0; i < capacity; ++i) {
-      images[i] = { .type = imageType() };
+      images[i] = { .type = XR_TYPE_SWAPCHAIN_IMAGE_VULKAN_KHR };
       bases[i] = reinterpret_cast<XrSwapchainImageBaseHeader*>(&images[i]);
     }
 
@@ -47,10 +47,6 @@ struct SwapchainImageContext {
     // -------------
 
     return bases;
-  }
-
-  XrStructureType imageType() const noexcept {
-    return XR_TYPE_SWAPCHAIN_IMAGE_VULKAN_KHR;
   }
 
  public:

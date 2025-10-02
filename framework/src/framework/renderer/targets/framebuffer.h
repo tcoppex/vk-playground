@@ -7,7 +7,7 @@
 #include "framework/backend/types.h"
 
 class Context;
-class Swapchain;
+class SwapchainInterface;
 
 /* -------------------------------------------------------------------------- */
 
@@ -24,7 +24,6 @@ class Framebuffer final : public backend::RPInterface {
   enum class BufferName {
     Color,
     DepthStencil,
-
     kCount,
   };
 
@@ -85,7 +84,7 @@ class Framebuffer final : public backend::RPInterface {
 
  private:
   Context const* context_ptr_{};
-  Swapchain const* swapchain_ptr_{};
+  SwapchainInterface const* swapchain_ptr_{};
 
   Descriptor_t desc_{}; //
   bool use_depth_stencil_{};

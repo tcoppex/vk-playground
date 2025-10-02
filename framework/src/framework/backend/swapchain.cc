@@ -50,7 +50,7 @@ void Swapchain::init(Context const& context, VkSurfaceKHR surface) {
   // ---------
 
   /* Configure the swapchain creation info. */
-  if ((swapchain_ == VK_NULL_HANDLE) && (swapchain_create_info_.oldSwapchain == VK_NULL_HANDLE))
+  if ((handle_ == VK_NULL_HANDLE) && (swapchain_create_info_.oldSwapchain == VK_NULL_HANDLE))
   {
     // [we do not need to repeat this step when we kept the previous swapchain]
 
@@ -89,31 +89,53 @@ void Swapchain::init(Context const& context, VkSurfaceKHR surface) {
       .clipped          = VK_TRUE,
       .oldSwapchain     = VK_NULL_HANDLE,
     };
+
+    /* Build timeline resources */
+    if (timeline_.semaphore == VK_NULL_HANDLE)
+    {
+      timeline_.signal_indices.resize(image_count_);
+      for (uint64_t i = 0u; i < image_count_; ++i) {
+        timeline_.signal_indices[i] = i;
+      }
+      // Create the timeline semaphore.
+      VkSemaphoreTypeCreateInfo const semaphore_type_create_info{
+        .sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO,
+        .semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE,
+        .initialValue = image_count_ - 1u,
+      };
+      VkSemaphoreCreateInfo const semaphore_create_info{
+        .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+        .pNext = &semaphore_type_create_info,
+      };
+      CHECK_VK(vkCreateSemaphore(
+        device_, &semaphore_create_info, nullptr, &timeline_.semaphore
+      ));
+    }
   }
 
   swapchain_create_info_.surface      = surface;
   swapchain_create_info_.imageExtent  = surface_capabilities.currentExtent;
-  swapchain_create_info_.oldSwapchain = swapchain_;
+  swapchain_create_info_.oldSwapchain = handle_;
 
   // ---------
 
   /* Create the swapchain image. */
-  swapchain_ = VK_NULL_HANDLE;
+  handle_ = VK_NULL_HANDLE;
   CHECK_VK(vkCreateSwapchainKHR(
-    device_, &swapchain_create_info_, nullptr, &swapchain_
+    device_, &swapchain_create_info_, nullptr, &handle_
   ));
-  context.set_debug_object_name(swapchain_, "Swapchain");
+  context.set_debug_object_name(handle_, "Swapchain");
 
   /* Create the swapchain resources (Views + Semaphores). */
   std::vector<VkImage> images(image_count_);
   CHECK_VK(vkGetSwapchainImagesKHR(
-    device_, swapchain_, &image_count_, images.data()
+    device_, handle_, &image_count_, images.data()
   ));
 
   // Resizing everything to the exact in flight image count.
   images.resize(image_count_);
-  swap_images_.resize(image_count_);
-  swap_syncs_.resize(image_count_);
+  images_.resize(image_count_);
+  synchronizers_.resize(image_count_);
 
   VkImageViewCreateInfo image_view_create_info{
     .sType      = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
@@ -138,13 +160,13 @@ void Swapchain::init(Context const& context, VkSurfaceKHR surface) {
   };
 
   for (uint32_t i = 0u; i < image_count_; ++i) {
-    auto &buffer = swap_images_[i];
+    auto &buffer = images_[i];
     buffer.image = images[i];
     buffer.format = swapchain_create_info_.imageFormat;
     image_view_create_info.image = buffer.image;
     CHECK_VK(vkCreateImageView(device_, &image_view_create_info, nullptr, &buffer.view));
 
-    auto &sync = swap_syncs_[i];
+    auto &sync = synchronizers_[i];
     CHECK_VK(vkCreateSemaphore(device_, &semaphore_create_info, nullptr, &sync.wait_image_semaphore));
     CHECK_VK(vkCreateSemaphore(device_, &semaphore_create_info, nullptr, &sync.signal_present_semaphore));
 
@@ -163,7 +185,7 @@ void Swapchain::init(Context const& context, VkSurfaceKHR surface) {
   }
 
   /* When using timeline semaphore, we need to transition images layout to present. */
-  context.transition_images_layout(swap_images_,
+  context.transition_images_layout(images_,
     VK_IMAGE_LAYOUT_UNDEFINED,
     VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
   );
@@ -177,16 +199,16 @@ void Swapchain::deinit(bool keep_previous_swapchain) {
     keep_previous_swapchain ? "" : " don't"
   );
 
-  for (auto& buffer : swap_images_) {
+  for (auto& buffer : images_) {
     vkDestroyImageView(device_, buffer.view, nullptr);
   }
-  swap_images_.clear();
+  images_.clear();
 
-  for (auto& frame_sync : swap_syncs_) {
+  for (auto& frame_sync : synchronizers_) {
     vkDestroySemaphore(device_, frame_sync.wait_image_semaphore, nullptr);
     vkDestroySemaphore(device_, frame_sync.signal_present_semaphore, nullptr);
   }
-  swap_syncs_.clear();
+  synchronizers_.clear();
 
   if (swapchain_create_info_.oldSwapchain != VK_NULL_HANDLE) [[likely]] {
     vkDestroySwapchainKHR(device_, swapchain_create_info_.oldSwapchain, nullptr);
@@ -194,25 +216,38 @@ void Swapchain::deinit(bool keep_previous_swapchain) {
   }
 
   if (!keep_previous_swapchain) [[unlikely]] {
-    vkDestroySwapchainKHR(device_, swapchain_, nullptr);
-    swapchain_ = VK_NULL_HANDLE;
+    vkDestroySwapchainKHR(device_, handle_, nullptr);
+    handle_ = VK_NULL_HANDLE;
+
+    vkDestroySemaphore(device_, timeline_.semaphore, nullptr);
+    timeline_.semaphore = VK_NULL_HANDLE;
   }
 
   need_rebuild_ = true;
 }
 
 // ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
 
-bool Swapchain::acquire_next_image() {
-  LOG_CHECK(swapchain_ != VK_NULL_HANDLE);
+bool Swapchain::acquireNextImage() {
+  LOG_CHECK(handle_ != VK_NULL_HANDLE);
+
+  // Wait for the GPU to have finished using this frame resources.
+  VkSemaphoreWaitInfo const semaphore_wait_info{
+    .sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
+    .semaphoreCount = 1u,
+    .pSemaphores = &timeline_.semaphore,
+    .pValues = timeline_signal_index_ptr(),
+  };
+  CHECK_VK(vkWaitSemaphores(device_, &semaphore_wait_info, UINT64_MAX));
 
   constexpr uint64_t kFiniteAcquireTimeout = 1'000'000'000ull; // 1s
   auto const acquire_result = vkAcquireNextImageKHR(
     device_,
-    swapchain_, 
+    handle_,
     kFiniteAcquireTimeout,
-    wait_image_semaphore(), 
-    VK_NULL_HANDLE, 
+    wait_image_semaphore(),
+    VK_NULL_HANDLE,
     &acquired_image_index_
   );
   need_rebuild_ = IsSwapchainInvalid(acquire_result, __FUNCTION__);
@@ -222,9 +257,69 @@ bool Swapchain::acquire_next_image() {
 
 // ----------------------------------------------------------------------------
 
-bool Swapchain::present_and_swap(VkQueue queue) {
-  LOG_CHECK(swapchain_ != VK_NULL_HANDLE);
+bool Swapchain::submitFrame(VkQueue queue, VkCommandBuffer command_buffer) {
+  LOG_CHECK(handle_ != VK_NULL_HANDLE);
 
+  VkPipelineStageFlags2 constexpr kStageMask{
+    VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
+  };
+
+  // Next frame index to start when this one completed.
+  uint64_t *signal_index = timeline_signal_index_ptr();
+  *signal_index += static_cast<uint64_t>(imageCount());
+
+  // Semaphore(s) to wait for:
+  //    - Image available.
+  std::vector<VkSemaphoreSubmitInfo> const wait_semaphores{
+    {
+      .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+      .semaphore = wait_image_semaphore(),
+      .stageMask = kStageMask,
+    },
+  };
+
+  // Array of command buffers to submit (here, just one).
+  std::vector<VkCommandBufferSubmitInfo> const cb_submit_infos{
+    {
+      .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
+      .commandBuffer = command_buffer,
+    },
+  };
+
+  // Semaphores to signal when terminating:
+  //    - Ready to present,
+  //    - Next frame to render,
+  std::vector<VkSemaphoreSubmitInfo> const signal_semaphores{
+    {
+      .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+      .semaphore = signal_present_semaphore(),
+      .stageMask = kStageMask,
+    },
+    {
+      .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+      .semaphore = timeline_.semaphore,
+      .value = *signal_index,
+      .stageMask = kStageMask,
+    },
+  };
+
+  VkSubmitInfo2 const submit_info_2{
+    .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
+    .waitSemaphoreInfoCount = static_cast<uint32_t>(wait_semaphores.size()),
+    .pWaitSemaphoreInfos = wait_semaphores.data(),
+    .commandBufferInfoCount = static_cast<uint32_t>(cb_submit_infos.size()),
+    .pCommandBufferInfos = cb_submit_infos.data(),
+    .signalSemaphoreInfoCount = static_cast<uint32_t>(signal_semaphores.size()),
+    .pSignalSemaphoreInfos = signal_semaphores.data(),
+  };
+  CHECK_VK( vkQueueSubmit2(queue, 1u, &submit_info_2, nullptr) );
+
+  return isValid();
+}
+
+// ----------------------------------------------------------------------------
+
+bool Swapchain::finishFrame(VkQueue queue) {
   auto present_semaphore = signal_present_semaphore();
 
   VkPresentInfoKHR const present_info{
@@ -233,7 +328,7 @@ bool Swapchain::present_and_swap(VkQueue queue) {
     .waitSemaphoreCount = 1u,
     .pWaitSemaphores = &present_semaphore,
     .swapchainCount = 1u,
-    .pSwapchains = &swapchain_,
+    .pSwapchains = &handle_,
     .pImageIndices = &acquired_image_index_,
     .pResults = nullptr,
   };

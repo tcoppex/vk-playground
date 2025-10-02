@@ -1,7 +1,9 @@
 #include "framework/renderer/render_context.h"
 
+#include "framework/core/platform/swapchain_interface.h" //
 #include "framework/scene/image_data.h" // ~
 #include "framework/shaders/material/interop.h" // for kAttribLocation_*
+
 
 /* -------------------------------------------------------------------------- */
 
@@ -87,7 +89,7 @@ std::unique_ptr<RenderTarget> RenderContext::create_render_target(
 // ----------------------------------------------------------------------------
 
 std::unique_ptr<Framebuffer> RenderContext::create_framebuffer(
-  Swapchain const& swapchain
+  SwapchainInterface const& swapchain
 ) const {
   return std::unique_ptr<Framebuffer>(new Framebuffer(*this, swapchain));
 }
@@ -95,7 +97,7 @@ std::unique_ptr<Framebuffer> RenderContext::create_framebuffer(
 // ----------------------------------------------------------------------------
 
 std::unique_ptr<Framebuffer> RenderContext::create_framebuffer(
-  Swapchain const& swapchain,
+  SwapchainInterface const& swapchain,
   Framebuffer::Descriptor_t const& desc
 ) const {
   if (auto framebuffer = create_framebuffer(swapchain); framebuffer) {

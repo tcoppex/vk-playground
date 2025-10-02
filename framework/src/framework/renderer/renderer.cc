@@ -7,9 +7,7 @@
 
 namespace {
 
-char const* kDefaulShaderEntryPoint{
-  "main"
-};
+char const* kDefaulShaderEntryPoint{ "main" }; //
 
 }
 
@@ -17,25 +15,16 @@ char const* kDefaulShaderEntryPoint{
 
 void Renderer::init(
   RenderContext& context,
-  Swapchain& swapchain,
-  OpenXRContext *xr //
+  SwapchainInterface* swapchain_ptr
 ) {
   LOGD("-- Renderer --");
 
   ctx_ptr_ = &context;
   device_ = context.device();
   allocator_ptr_ = &context.allocator();
+  swapchain_ptr_ = swapchain_ptr; //
 
-  // [really bad]
-  // ----------------
-  if (xr) {
-    xr_ = xr;
-  } else {
-    swapchain_ptr_ = &swapchain; //
-  }
-  // ----------------
-
-  init_view_resources(swapchain);
+  init_view_resources();
 
   // Renderer internal effects.
   {
@@ -46,31 +35,26 @@ void Renderer::init(
 
 // ----------------------------------------------------------------------------
 
-void Renderer::init_view_resources(
-  Swapchain& swapchain
-) {
-  auto const dimension = xr_ ? xr_->swapchainExtent()
-                             : swapchain_ptr_->surface_size()
-                             ;
-  auto const frame_count = xr_ ? xr_->swapchainImageCount()
-                               : swapchain_ptr_->image_count()
-                               ;
+void Renderer::init_view_resources() {
+  LOG_CHECK(swapchain_ptr_);
 
   /* Create a default depth stencil buffer. */
+  auto const dimension = swapchain_ptr_->surfaceSize();
   resize(dimension.width, dimension.height);
 
   /* Initialize resources for the semaphore timeline. */
-  LOGD(" > Timeline Resources");
+  LOGD(" > Frames Resources");
+  auto const frame_count = swapchain_ptr_->imageCount();
+  LOG_CHECK(frame_count > 0u);
+
   // Initialize per-frame command buffers.
-  timeline_.frames.resize(frame_count);
   VkCommandPoolCreateInfo const command_pool_create_info{
     .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
     .queueFamilyIndex = ctx_ptr_->queue(Context::TargetQueue::Main).family_index,
   };
-  for (uint64_t i = 0u; i < frame_count; ++i) {
-    auto& frame = timeline_.frames[i];
-    frame.signal_index = i;
 
+  frames_.resize(frame_count);
+  for (auto& frame : frames_) {
     CHECK_VK(vkCreateCommandPool(
       device_, &command_pool_create_info, nullptr, &frame.command_pool
     ));
@@ -84,20 +68,6 @@ void Renderer::init_view_resources(
       device_, &cb_alloc_info, &frame.command_buffer
     ));
   }
-
-  // Create the timeline semaphore.
-  VkSemaphoreTypeCreateInfo const semaphore_type_create_info{
-    .sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO,
-    .semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE,
-    .initialValue = frame_count - 1u,
-  };
-  VkSemaphoreCreateInfo const semaphore_create_info{
-    .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
-    .pNext = &semaphore_type_create_info,
-  };
-  CHECK_VK(vkCreateSemaphore(
-    device_, &semaphore_create_info, nullptr, &timeline_.semaphore
-  ));
 }
 
 // ----------------------------------------------------------------------------
@@ -105,8 +75,7 @@ void Renderer::init_view_resources(
 void Renderer::deinit_view_resources() {
   LOG_CHECK(device_ != VK_NULL_HANDLE);
 
-  vkDestroySemaphore(device_, timeline_.semaphore, nullptr);
-  for (auto & frame : timeline_.frames) {
+  for (auto & frame : frames_) {
     vkFreeCommandBuffers(device_, frame.command_pool, 1u, &frame.command_buffer);
     vkDestroyCommandPool(device_, frame.command_pool, nullptr);
   }
@@ -120,8 +89,7 @@ void Renderer::deinit() {
 
   skybox_.release(*this); //
   deinit_view_resources();
-
-  *this = {};
+  // *this = {};
 }
 
 // ----------------------------------------------------------------------------
@@ -145,34 +113,24 @@ CommandEncoder Renderer::begin_frame() {
   LOG_CHECK(device_ != VK_NULL_HANDLE);
   LOG_CHECK(swapchain_ptr_);
 
-  auto &frame{ timeline_.current_frame() };
-
-  // Wait for the GPU to have finished using this frame resources.
-  VkSemaphoreWaitInfo const semaphore_wait_info{
-    .sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
-    .semaphoreCount = 1u,
-    .pSemaphores = &timeline_.semaphore,
-    .pValues = &frame.signal_index,
-  };
-  vkWaitSemaphores(device_, &semaphore_wait_info, UINT64_MAX);
-
-  if (!swapchain_ptr_->acquire_next_image()) {
-    LOGV("}: Invalid swapchain, should skip current frame.", __FUNCTION__);
+  // Acquire next availables image in the swapchain.
+  if (!swapchain_ptr_->acquireNextImage()) {
+    LOGV("{}: Invalid swapchain, should skip current frame.", __FUNCTION__);
   }
 
   // Reset the frame command pool to record new command for this frame.
+  auto &frame = frames_[frame_index_];
   CHECK_VK( vkResetCommandPool(device_, frame.command_pool, 0u) );
 
-  //------------
+  // Create a new command buffer wrapper.
   cmd_ = CommandEncoder(
     frame.command_buffer,
-    (uint32_t)Context::TargetQueue::Main,
+    static_cast<uint32_t>(Context::TargetQueue::Main),
     device_,
     allocator_ptr_
   );
   cmd_.default_render_target_ptr_ = this;
   cmd_.begin();
-  //------------
 
   return cmd_;
 }
@@ -181,75 +139,18 @@ CommandEncoder Renderer::begin_frame() {
 
 void Renderer::end_frame() {
   LOG_CHECK(swapchain_ptr_);
-  auto &frame{ timeline_.current_frame() };
 
-  //------------
   cmd_.end();
-  //------------
 
-  if (!swapchain_ptr_->isValid()) {
+  auto const& queue = ctx_ptr_->queue(Context::TargetQueue::Main).queue;
+  auto command_buffer = frames_[frame_index_].command_buffer; //cmd_.handle();
+
+  if (!swapchain_ptr_->submitFrame(queue, command_buffer)) {
     LOGV("{}: Invalid swapchain, skip that frame.", __FUNCTION__);
     return; 
   }
-
-  // Next frame index to start when this one completed.
-  frame.signal_index += swap_image_count();
-
-  VkPipelineStageFlags2 const stage_mask{
-    VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
-  };
-
-  // Semaphore(s) to wait for:
-  //    - Image available.
-  std::vector<VkSemaphoreSubmitInfo> const wait_semaphores{
-    {
-      .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
-      .semaphore = swapchain_ptr_->wait_image_semaphore(),
-      .stageMask = stage_mask,
-    },
-  };
-
-  // Array of command buffers to submit (here, just one).
-  std::vector<VkCommandBufferSubmitInfo> const cb_submit_infos{
-    {
-      .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
-      .commandBuffer = frame.command_buffer,
-    },
-  };
-
-  // Semaphores to signal when terminating:
-  //    - Ready to present,
-  //    - Next frame to render,
-  std::vector<VkSemaphoreSubmitInfo> const signal_semaphores{
-    {
-      .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
-      .semaphore = swapchain_ptr_->signal_present_semaphore(),
-      .stageMask = stage_mask,
-    },
-    {
-      .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
-      .semaphore = timeline_.semaphore,
-      .value = frame.signal_index,
-      .stageMask = stage_mask,
-    },
-  };
-
-  VkSubmitInfo2 const submit_info_2{
-    .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
-    .waitSemaphoreInfoCount = static_cast<uint32_t>(wait_semaphores.size()),
-    .pWaitSemaphoreInfos = wait_semaphores.data(),
-    .commandBufferInfoCount = static_cast<uint32_t>(cb_submit_infos.size()),
-    .pCommandBufferInfos = cb_submit_infos.data(),
-    .signalSemaphoreInfoCount = static_cast<uint32_t>(signal_semaphores.size()),
-    .pSignalSemaphoreInfos = signal_semaphores.data(),
-  };
-
-  VkQueue const queue{ctx_ptr_->queue(Context::TargetQueue::Main).queue};
-  CHECK_VK( vkQueueSubmit2(queue, 1u, &submit_info_2, nullptr) );
-
-  /* Display and swap buffers. */
-  swapchain_ptr_->present_and_swap(queue); //
-  timeline_.frame_index = swapchain_ptr_->swap_index();
+  swapchain_ptr_->finishFrame(queue);
+  frame_index_ = (frame_index_ + 1u) % swapchain_ptr_->imageCount();
 }
 
 // ----------------------------------------------------------------------------

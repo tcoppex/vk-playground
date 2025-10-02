@@ -96,13 +96,10 @@ bool Application::presetup(AppData_t app_data) {
     }
   }
 
-  // [tmp] handle to xr graphics specifics, if any
-  auto vulkan_xr = xr_ ? xr_->graphicsInterface() : nullptr;
-
   /* Vulkan context. */
   if (!context_.init(wm_->vulkanInstanceExtensions(),
                      vulkanDeviceExtensions(),
-                     vulkan_xr))
+                     xr_ ? xr_->graphicsInterface() : nullptr))
   {
     LOGE("Vulkan context initialization fails");
     shutdown();
@@ -127,7 +124,7 @@ bool Application::presetup(AppData_t app_data) {
 
   // ---------------------------------------
 
-  // [TODO] finish openxr setup.. (Controllers & Spaces)
+  // Complete OpenXR setup (Controllers & Spaces).
   if (xr_) {
     if (!xr_->completeSetup()) {
       LOGE("OpenXR initialization completion fails.");
@@ -136,20 +133,13 @@ bool Application::presetup(AppData_t app_data) {
     }
   }
 
-  // [todo]
-  // We should wrap classical vulkan swapchain and OpenXR swapchainS
-  // into a common object...
-
   /* Internal Renderer. */
-  renderer_.init(
-    context_,
-    // -------------------------
-    // We should sent an abstract object that is either a classic
-    // Vulkan Swapchain or a multi-view vector of OpenXR swapchains
-    swapchain_, // xxx not valid for XR xxx
-    xr_ ? xr_.get() : nullptr
-    // -------------------------
-  );
+  {
+    auto *swapchain_interface = xr_ ? xr_->swapchain_ptr()
+                                    : &swapchain_
+                                    ;
+    renderer_.init(context_, swapchain_interface);
+  }
 
   /* User Interface. */
   if (ui_ = std::make_unique<UIController>(); !ui_ || !ui_->init(renderer_, *wm_)) {
@@ -288,9 +278,12 @@ bool Application::reset_swapchain() {
   
   context_.device_wait_idle();
 
+  // -------------------------------
+  // [OpenXR bypass traditionnal Surface+Swapchain creation]
   if (xr_) {
     return xr_->createSwapchains();
   }
+  // -------------------------------
 
   auto surface_creation = VK_SUCCESS;
 
@@ -328,6 +321,7 @@ void Application::shutdown() {
   LOGD("--- Shutdown ---");
 
   context_.device_wait_idle();
+
   release();
 
   if (ui_) {

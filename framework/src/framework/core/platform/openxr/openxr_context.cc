@@ -17,6 +17,8 @@ static constexpr char const* kEngineName{FRAMEWORK_NAME}; //
 
 /* -------------------------------------------------------------------------- */
 
+SwapchainInterface::~SwapchainInterface() = default;
+
 namespace {
 
 /* Localized an input parameter name : "new_param" to "New Param". */
@@ -167,12 +169,10 @@ bool OpenXRContext::createSwapchains() {
   LOG_CHECK(XR_NULL_HANDLE != instance_);
   LOG_CHECK(XR_NULL_HANDLE != session_);
 
-
   /// NOTE:
   /// We need to use one swapchain per view, each of this swapchain
   /// will use N-in flights images and will require their own
   /// vulkan command buffer / render target.
-
 
   XrSystemProperties systemProperties{XR_TYPE_SYSTEM_PROPERTIES};
   CHECK_XR_RET(xrGetSystemProperties(instance_, system_id_, &systemProperties))
@@ -189,70 +189,45 @@ bool OpenXRContext::createSwapchains() {
     views_.fill({XR_TYPE_VIEW});
 
     CHECK_XR_RET(xrEnumerateViewConfigurationViews(
-      instance_, system_id_, kViewConfigurationType, viewCount, &viewCount, view_config_views_.data()
+      instance_,
+      system_id_,
+      kViewConfigurationType,
+      viewCount,
+      &viewCount,
+      view_config_views_.data()
     ))
   }
 
-  /* Select swapchain color format. */
-  {
-    uint32_t formatCount(0u);
-    CHECK_XR(xrEnumerateSwapchainFormats(session_, 0, &formatCount, nullptr));
-    std::vector<int64_t> formats(formatCount);
-    CHECK_XR_RET(xrEnumerateSwapchainFormats(
-      session_, formatCount, &formatCount, formats.data()
-    ))
-
-    color_swapchain_format_ = graphics_->selectColorSwapchainFormat(formats);
-
-    if (color_swapchain_format_ <= 0) [[unlikely]] {
-      LOGE("OpenXRContext: invalid color swapchain format.");
-      return false;
-    }
-  }
+  /* Retrieve swapchain formats. */
+  uint32_t formatCount(0u);
+  CHECK_XR(xrEnumerateSwapchainFormats(session_, 0, &formatCount, nullptr));
+  std::vector<int64_t> formats(formatCount);
+  CHECK_XR_RET(xrEnumerateSwapchainFormats(
+    session_, formatCount, &formatCount, formats.data()
+  ))
 
   /* Create the main color swapchain. */
-  for (uint32_t i = 0u; i < kNumEyes; ++i) {
-    auto& config_view{ view_config_views_[i] };
-    auto& swapchain{ swapchains_[i] };
-
-    swapchain = {
-      .width = config_view.recommendedImageRectWidth,
-      .height = config_view.recommendedImageRectHeight,
-    };
+  {
+    auto& config_view{ view_config_views_[0] };
 
     XrSwapchainCreateInfo create_info{
-      .type = XR_TYPE_SWAPCHAIN_CREATE_INFO,
-      .createFlags = 0,
-      .usageFlags = XR_SWAPCHAIN_USAGE_COLOR_ATTACHMENT_BIT
-                  | XR_SWAPCHAIN_USAGE_SAMPLED_BIT
-                  ,
-      .format = color_swapchain_format_,
-      .sampleCount = graphics_->supportedSampleCount(config_view),
-      .width = swapchain.width,
-      .height = swapchain.height,
-      .faceCount = 1,
-      .arraySize = 1,
-      .mipCount = 1,
+      .type         = XR_TYPE_SWAPCHAIN_CREATE_INFO,
+      .createFlags  = 0,
+      .usageFlags   = XR_SWAPCHAIN_USAGE_COLOR_ATTACHMENT_BIT
+                    | XR_SWAPCHAIN_USAGE_SAMPLED_BIT
+                    ,
+      .format       = graphics_->selectColorSwapchainFormat(formats),
+      .sampleCount  = graphics_->supportedSampleCount(config_view),
+      .width        = config_view.recommendedImageRectWidth,
+      .height       = config_view.recommendedImageRectHeight,
+      .faceCount    = 1,
+      .arraySize    = kNumEyes,
+      .mipCount     = 1,
     };
-    CHECK_XR_RET(xrCreateSwapchain(session_, &create_info, &swapchain.handle))
 
-    // Image allocation.
-    CHECK_XR(xrEnumerateSwapchainImages(swapchain.handle, 0, &image_count_, nullptr));
-
-    // ------------------
-    auto swapchain_images = graphics_->allocateSwapchainImage(
-      image_count_, create_info
-    );
-    // ------------------
-
-    CHECK_XR_RET(xrEnumerateSwapchainImages(
-      swapchain.handle, image_count_, &image_count_, swapchain_images.front()
-    ))
-
-    // [should we keep them here or let graphics_ handled them ?]
-    swapchain_images_.insert(
-      std::make_pair(swapchain.handle, std::move(swapchain_images))
-    );
+    if (!swapchain_.create(session_, create_info, graphics_)) {
+      return false;
+    }
   }
 
   // note: we need a depth swapchain only to alter the perception of depth
@@ -265,7 +240,7 @@ bool OpenXRContext::createSwapchains() {
 
 bool OpenXRContext::completeSetup() {
   LOG_CHECK(XR_NULL_HANDLE != session_);
-  LOG_CHECK(XR_NULL_HANDLE != swapchains_[0].handle);
+  LOG_CHECK(XR_NULL_HANDLE != swapchain_.handle);
 
   // Default controllers.
   if (!initControllers()) [[unlikely]] {
@@ -294,9 +269,7 @@ void OpenXRContext::terminate() {
     xrDestroyActionSet(controls_.action_set);
     controls_.action_set = XR_NULL_HANDLE;
   }
-  for (auto &swapchain : swapchains_) {
-    xrDestroySwapchain(swapchain.handle);
-  }
+  swapchain_.destroy();
   for (auto &space : spaces_) {
     xrDestroySpace(space);
   }
@@ -412,7 +385,6 @@ void OpenXRContext::beginFrame() {
     // Check our buffers are well sized.
     LOG_CHECK(viewCountOutput == viewCapacityInput);
     LOG_CHECK(viewCountOutput == view_config_views_.size());
-    LOG_CHECK(viewCountOutput == swapchains_.size());
     LOG_CHECK(viewCountOutput == kNumEyes);
 
     // Check the views have tracking poses.
@@ -925,25 +897,17 @@ void OpenXRContext::handleControls() {
 // -----------------------------------------------------------------------------
 
 void OpenXRContext::renderProjectionLayer(XRRenderFunc_t const& render_view_cb) {
+
+  if (!swapchain_.acquireNextImage()) {
+    LOGE("fails to acquire next image.");
+  }
+
+  /* Acquire swapchain image. */
+  auto swapchain_image = swapchain_.images[swapchain_.current_image_index];
+
   /* Setup projection layers for each Eyes. */
   for (uint32_t view_id = 0u; view_id < kNumEyes; ++view_id) {
-    auto const& swapchain{ swapchains_[view_id] };
     auto const& view{ views_[view_id] };
-
-    /* Acquire swapchain image. */
-    auto swapchain_image{([&]() {
-      XrSwapchainImageAcquireInfo acquire_info{XR_TYPE_SWAPCHAIN_IMAGE_ACQUIRE_INFO};
-      uint32_t swapchain_image_index(0u);
-      CHECK_XR(xrAcquireSwapchainImage(swapchain.handle, &acquire_info, &swapchain_image_index));
-
-      XrSwapchainImageWaitInfo wait_info{
-        .type = XR_TYPE_SWAPCHAIN_IMAGE_WAIT_INFO,
-        .timeout = XR_INFINITE_DURATION,
-      };
-      CHECK_XR(xrWaitSwapchainImage(swapchain.handle, &wait_info));
-      
-      return swapchain_images_[swapchain.handle][swapchain_image_index];
-    })()};
 
     /* Set projection view. */
     layer_projection_views_[view_id] = XrCompositionLayerProjectionView{
@@ -951,52 +915,42 @@ void OpenXRContext::renderProjectionLayer(XRRenderFunc_t const& render_view_cb) 
       .pose = view.pose,
       .fov = view.fov,
       .subImage = {
-        .swapchain = swapchain.handle,
-        .imageRect = swapchain.rect(),
-        .imageArrayIndex = 0u
+        .swapchain = swapchain_.handle,
+        .imageRect = swapchain_.rect(),
+        .imageArrayIndex = view_id,
       }
     };
 
-    // ---------------
+    /* Setup frame view parameters. */
+    auto const& viewMatrix = frameData_.viewMatrices[view_id];
+    auto const& projMatrix = frameData_.projMatrices[view_id];
+    auto const& layerProjView = layer_projection_views_[view_id];
+    auto const& imageRect = layerProjView.subImage.imageRect;
+    XRFrameView_t const frameView{
+      .viewId = view_id,
+      .transform = {
+        .view = viewMatrix,
+        .proj = projMatrix,
+        .viewProj = linalg::mul(projMatrix, viewMatrix),
+      },
+      .viewport = {
+        imageRect.offset.x,
+        imageRect.offset.y,
+        imageRect.extent.width,
+        imageRect.extent.height,
+      },
+      // [TODO]
+      // .colorView = graphics_->colorImage(swapchain_image),
+      // .depthStencilView = graphics_->depthStencilImage(swapchain_image),
+    };
 
-    {
-      auto const& viewMatrix = frameData_.viewMatrices[view_id];
-      auto const& projMatrix = frameData_.projMatrices[view_id];
-      auto const& layerProjView = layer_projection_views_[view_id];
-      auto const& imageRect = layerProjView.subImage.imageRect;
-
-      XRFrameView_t const frameView{
-        .viewId = view_id,
-        .transform = {
-          .view = viewMatrix,
-          .proj = projMatrix,
-          .viewProj = linalg::mul(projMatrix, viewMatrix),
-        },
-        .viewport = {
-          imageRect.offset.x,
-          imageRect.offset.y,
-          imageRect.extent.width,
-          imageRect.extent.height,
-        },
-
-        // [TODO] resource for the current view.
-        //.context = graphics_->frameContext(swapchain_image),
-
-        // .colorImage = graphics_->colorImage(swapchain_image),
-        // .depthStencilImage = graphics_->depthStencilImage(swapchain_image),
-      };
-
-      render_view_cb(frameView);
-    }
-
-    // ---------------
-
-    /* Release the swapchain image. */
-    {
-      XrSwapchainImageReleaseInfo releaseInfo{XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO};
-      CHECK_XR(xrReleaseSwapchainImage(swapchain.handle, &releaseInfo));
-    }
+    /* Render the view. */
+    render_view_cb(frameView);
   }
+
+  LOGW("swapchain submitFrame TODO !!");
+  // swapchain_.submitFrame(queue, command_buffer);
+  // swapchain_.finishFrame(queue);
 }
 
 /* -------------------------------------------------------------------------- */

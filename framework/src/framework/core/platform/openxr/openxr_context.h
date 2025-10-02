@@ -3,22 +3,21 @@
 
 /* -------------------------------------------------------------------------- */
 
-#include <map>
-
 #include "framework/core/common.h"
 
 #include "framework/core/platform/xr_interface.h"
 #include "framework/core/platform/openxr/xr_common.h"
 #include "framework/core/platform/openxr/xr_utils.h"
+
 #include "framework/core/platform/openxr/xr_platform_interface.h"
 #include "framework/core/platform/openxr/xr_vulkan_interface.h" //
+#include "framework/core/platform/openxr/xr_swapchain.h"
 
 /* -------------------------------------------------------------------------- */
 
 class OpenXRContext : public XRInterface {
  private:
   // Generic parameters for a stereoscopic VR Headset.
-
   static constexpr XrFormFactor kHMDFormFactor{
     XR_FORM_FACTOR_HEAD_MOUNTED_DISPLAY
   };
@@ -29,28 +28,6 @@ class OpenXRContext : public XRInterface {
   static constexpr uint32_t kMaxNumCompositionLayers{16u};
 
  public:
-  struct Swapchain_t {
-    XrSwapchain handle{XR_NULL_HANDLE};
-    uint32_t width{};
-    uint32_t height{};
-
-    [[nodiscard]]
-    XrExtent2Di extent() const noexcept {
-      return {
-        .width = static_cast<int32_t>(width),
-        .height = static_cast<int32_t>(height)
-      };
-    }
-
-    [[nodiscard]]
-    XrRect2Di rect() const noexcept {
-      return {
-        .offset = XrOffset2Di{0, 0}, 
-        .extent = extent()
-      };
-    }
-  };
-
   union CompositorLayerUnion_t {
     XrCompositionLayerProjection projection;
     XrCompositionLayerQuad quad;
@@ -60,8 +37,7 @@ class OpenXRContext : public XRInterface {
     XrCompositionLayerPassthroughFB passthrough;
   };
 
-  template<typename T> using XRStereoBuffer_t = std::array<T, kNumEyes>;
-
+  template<typename T> using XRStereoBuffer = std::array<T, kNumEyes>;
 
  public:
   // -- Public XR Interface --
@@ -110,9 +86,6 @@ class OpenXRContext : public XRInterface {
     return end_render_loop_;
   }
 
-  std::shared_ptr<XRVulkanInterface> graphicsInterface() noexcept {
-    return graphics_; //
-  }
 
   // -- Public instance getters / helpers --
 
@@ -140,6 +113,17 @@ class OpenXRContext : public XRInterface {
     return spaceLocationVelocity(space, time).second;
   }
 
+  [[nodiscard]]
+  std::shared_ptr<XRVulkanInterface> graphicsInterface() noexcept {
+    return graphics_; //
+  }
+
+  [[nodiscard]]
+  SwapchainInterface* swapchain_ptr() noexcept {
+    return &swapchain_;
+  }
+
+
  public:
   //------------------
   void beginFrame();
@@ -147,20 +131,6 @@ class OpenXRContext : public XRInterface {
   void updateFrame(XRUpdateFunc_t const& update_frame_cb);
   void renderFrame(XRRenderFunc_t const& render_view_cb);
   //------------------
-
-  uint32_t swapchainImageCount() const noexcept {
-    return image_count_;
-  }
-
-  VkExtent2D swapchainExtent() const noexcept {
-    auto const& extent = swapchains_[0].extent();
-    return {
-      .width = static_cast<uint32_t>(extent.width),
-      .height = static_cast<uint32_t>(extent.height),
-    };
-  }
-
-
 
  private:
   // -- Instance fixed methods --
@@ -204,18 +174,12 @@ class OpenXRContext : public XRInterface {
 
   // -----
 
-  XRStereoBuffer_t<XrViewConfigurationView> view_config_views_{}; //
-  XRStereoBuffer_t<XrView> views_{}; //
+  XRStereoBuffer<XrViewConfigurationView> view_config_views_{}; //
+  XRStereoBuffer<XrView> views_{}; //
 
-  // [swapchain framebuffer alloc should be managed from its own wrapper]
-  using XRSwapchainImageBuffer = std::vector<XrSwapchainImageBaseHeader*>;
-  using XRSwapchainImagesMap = std::map<XrSwapchain, XRSwapchainImageBuffer>;
-  int64_t color_swapchain_format_{};
-  XRStereoBuffer_t<Swapchain_t> swapchains_{};
-  XRSwapchainImagesMap swapchain_images_{}; //
-  uint32_t image_count_{};
+  OpenXRSwapchain swapchain_{}; // color swapchain
 
-  XRStereoBuffer_t<XrCompositionLayerProjectionView> layer_projection_views_{}; //
+  XRStereoBuffer<XrCompositionLayerProjectionView> layer_projection_views_{}; //
   std::array<CompositorLayerUnion_t, kMaxNumCompositionLayers> layers_{};
 
   // -----

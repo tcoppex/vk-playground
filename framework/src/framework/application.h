@@ -85,18 +85,18 @@ class Application : public EventCallbacks
 
  protected:
   std::unique_ptr<WMInterface> wm_{};
+  std::unique_ptr<OpenXRContext> xr_{}; //
   std::unique_ptr<UIController> ui_{};
 
-  std::unique_ptr<OpenXRContext> xr_{}; //
   RenderContext context_{};
-  Swapchain swapchain_{}; // (VK vs XR)
-
   Renderer renderer_{};
 
   VkExtent2D viewport_size_{}; //
 
  private:
+  // Only used by non-XR.
   VkSurfaceKHR surface_{};
+  Swapchain swapchain_{};
 
   std::unique_ptr<EventCallbacks> default_callbacks_{};
 
