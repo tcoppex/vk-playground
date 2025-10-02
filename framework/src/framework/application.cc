@@ -322,28 +322,39 @@ void Application::shutdown() {
 
   context_.device_wait_idle();
 
+  LOGD("> Application");
   release();
 
   if (ui_) {
+    LOGD("> UI");
     ui_->release(context_);
     ui_.reset();
   }
 
+
+  LOGD("> Renderer");
   renderer_.deinit();
-  swapchain_.deinit();
-  context_.destroy_surface(surface_);
-  context_.deinit();
 
   if (xr_) {
+    LOGD("> OpenXR");
     xr_->terminate();
     xr_.reset();
+  } else {
+    LOGD("> Swapchain");
+    swapchain_.deinit();
+    context_.destroy_surface(surface_);
   }
 
+  LOGD("> Render Context");
+  context_.deinit();
+
   if (wm_) {
+    LOGD("> Window Manager");
     wm_->shutdown();
     wm_.reset();
   }
 
+  LOGD("> Singletons");
   Events::Deinitialize();
   Logger::Deinitialize();
 }

@@ -57,9 +57,9 @@ void Context::deinit() {
   vkDeviceWaitIdle(device_);
 
   resource_allocator_->deinit();
-  vkDestroyCommandPool(device_, transient_command_pools_[TargetQueue::Main], nullptr); //
-  vkDestroyCommandPool(device_, transient_command_pools_[TargetQueue::Transfer], nullptr); //
-  vkDestroyCommandPool(device_, transient_command_pools_[TargetQueue::Compute], nullptr); //
+  for (auto &pool : transient_command_pools_) {
+    vkDestroyCommandPool(device_, pool, nullptr); //
+  }
   vkDestroyDevice(device_, nullptr);
 
   vkDestroyDebugUtilsMessengerEXT(instance_, debug_utils_messenger_, nullptr);

@@ -269,7 +269,7 @@ void OpenXRContext::terminate() {
     xrDestroyActionSet(controls_.action_set);
     controls_.action_set = XR_NULL_HANDLE;
   }
-  swapchain_.destroy();
+  swapchain_.destroy(graphics_);
   for (auto &space : spaces_) {
     xrDestroySpace(space);
   }
@@ -280,6 +280,8 @@ void OpenXRContext::terminate() {
 
   xrDestroyInstance(instance_);
   instance_ = XR_NULL_HANDLE;
+
+  graphics_.reset();
 }
 
 // ----------------------------------------------------------------------------
