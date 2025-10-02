@@ -30,6 +30,11 @@ class JNIContext final : public Singleton<JNIContext> {
   }
 
   [[nodiscard]]
+  jobject jni_activity() const {
+    return app_->activity->clazz;
+  }
+
+  [[nodiscard]]
   std::vector<uint8_t> const& buffer() const noexcept {
     return buffer_;
   }
@@ -45,6 +50,7 @@ class JNIContext final : public Singleton<JNIContext> {
  private:
   struct android_app* app_{};
   JavaVM* jvm_{};
+
   AAssetManager* asset_manager_{};
   std::vector<uint8_t> buffer_{};
 };

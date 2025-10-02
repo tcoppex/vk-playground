@@ -7,12 +7,11 @@ extern "C" {
 /* -------------------------------------------------------------------------- */
 
 JNIContext::JNIContext(struct android_app* app) {
-  JNIEnv* env{nullptr};
-
   app_            = app;
   jvm_            = app->activity->vm;
   asset_manager_  = app->activity->assetManager;
 
+  JNIEnv* env{nullptr};
   jvm_->AttachCurrentThread(&env, nullptr);
 }
 

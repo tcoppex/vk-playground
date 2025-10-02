@@ -17,18 +17,21 @@ struct XRPlatformAndroid final : XRPlatformInterface {
   XRPlatformAndroid() = default;
 
   void init(JNIContext const& jni) {
+    // auto &jni{JNIContext::Get()};
     auto vm{jni.jvm()};
     auto activity{jni.activity()};
+
+    LOG_CHECK(activity != nullptr);
 
     loader_init_info = {
       .type = XR_TYPE_LOADER_INIT_INFO_ANDROID_KHR,
       .applicationVM = vm,
-      .applicationContext = activity,
+      .applicationContext = activity->clazz,
     };
     instance_create_info = {
       .type = XR_TYPE_INSTANCE_CREATE_INFO_ANDROID_KHR,
       .applicationVM = vm,
-      .applicationActivity = activity,
+      .applicationActivity = activity->clazz,
     };
   }
 
