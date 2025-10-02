@@ -6,6 +6,7 @@
 /* -------------------------------------------------------------------------- */
 
 bool Context::init(
+  std::string_view app_name,
   std::vector<char const*> const& instance_extensions,
   std::vector<char const*> const& device_extensions,
   std::shared_ptr<XRVulkanInterface> vulkan_xr
@@ -13,7 +14,7 @@ bool Context::init(
   CHECK_VK(volkInitialize());
 
   vulkan_xr_ = vulkan_xr;
-  init_instance(instance_extensions);
+  init_instance(app_name, instance_extensions);
   select_gpu();
 
   if (!init_device()) {
@@ -328,7 +329,10 @@ void Context::update_descriptor_set(
 /* -------------------------------------------------------------------------- */
 /* -------------------------------------------------------------------------- */
 
-void Context::init_instance(std::vector<char const*> const& instance_extensions) {
+void Context::init_instance(
+  std::string_view app_name,
+  std::vector<char const*> const& instance_extensions
+) {
   std::vector<VkLayerProperties> available_instance_layers{};
   std::vector<VkExtensionProperties> available_instance_extensions{};
 
@@ -385,7 +389,7 @@ void Context::init_instance(std::vector<char const*> const& instance_extensions)
   );
 
   VkApplicationInfo const application_info{
-    .pApplicationName = "hello_vulkan_sample_app", //
+    .pApplicationName = app_name.data(), //
     .applicationVersion = VK_MAKE_VERSION(1, 0, 0),
     .pEngineName = "vk_framework",
     .engineVersion = VK_MAKE_VERSION(1, 0, 0),

@@ -64,7 +64,7 @@ float Application::elapsed_time() const noexcept {
 // ----------------------------------------------------------------------------
 
 bool Application::presetup(AppData_t app_data) {
-  auto const app_name = "VkFramework::AppName"; //
+  auto const app_name = "VkFramework::DefaultAppName"; //
 
   /* Singletons. */
   {
@@ -97,7 +97,8 @@ bool Application::presetup(AppData_t app_data) {
   }
 
   /* Vulkan context. */
-  if (!context_.init(wm_->vulkanInstanceExtensions(),
+  if (!context_.init(app_name,
+                     wm_->vulkanInstanceExtensions(),
                      vulkanDeviceExtensions(),
                      xr_ ? xr_->graphicsInterface() : nullptr))
   {
