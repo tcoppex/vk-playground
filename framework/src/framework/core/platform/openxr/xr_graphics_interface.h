@@ -5,6 +5,8 @@
 
 // ----------------------------------------------------------------------------
 
+// [kind of useless, use xr_vulkan_interface directly]
+
 // Interface to graphics API specific code.
 struct XRGraphicsInterface {
   XRGraphicsInterface(XrInstance instance, XrSystemId system_id)
@@ -23,8 +25,8 @@ struct XRGraphicsInterface {
   [[nodiscard]]
   virtual uint32_t supportedSampleCount(XrViewConfigurationView const& view) const = 0;
 
-  [[nodiscard]]
-  virtual std::vector<XrSwapchainImageBaseHeader*> allocateSwapchainImage(uint32_t capacity, XrSwapchainCreateInfo const& createInfo) = 0;
+  // [[nodiscard]]
+  // virtual std::vector<XrSwapchainImageBaseHeader*> allocateSwapchainImage(uint32_t capacity, XrSwapchainCreateInfo const& createInfo) = 0;
 
   // [[nodiscard]]
   // virtual XRImageHandle_t colorImage(XrSwapchainImageBaseHeader const* swapchain_image) const = 0;

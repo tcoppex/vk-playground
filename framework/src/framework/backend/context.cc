@@ -27,7 +27,6 @@ bool Context::init(
       .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
       .flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
     };
-
     for (uint32_t i = 0u; i < static_cast<uint32_t>(TargetQueue::kCount); ++i) {
       auto const target = static_cast<TargetQueue>(i);
       command_pool_create_info.queueFamilyIndex = queue(target).family_index;

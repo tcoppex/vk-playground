@@ -113,6 +113,7 @@ class Context {
   std::vector<backend::ShaderModule> create_shader_modules(std::vector<std::string_view> const& filepaths) const;
 
   void release_shader_module(backend::ShaderModule const& shader) const;
+
   void release_shader_modules(std::vector<backend::ShaderModule> const& shaders) const;
 
   // --- Command Encoder ---
@@ -181,6 +182,7 @@ class Context {
   }
 
  private:
+  [[nodiscard]]
   bool has_extension(
     std::string_view name,
     std::vector<VkExtensionProperties> const& extensions
@@ -217,8 +219,14 @@ class Context {
     return true;
   }
 
-  void init_instance(std::vector<char const*> const& instance_extensions);
+  void init_instance(
+    std::string_view app_name,
+    std::vector<char const*> const& instance_extensions
+  );
+
   void select_gpu();
+
+  [[nodiscard]]
   bool init_device();
 
  private:

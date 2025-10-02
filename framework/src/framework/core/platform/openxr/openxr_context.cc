@@ -210,6 +210,7 @@ bool OpenXRContext::createSwapchains() {
   {
     auto& config_view{ view_config_views_[0] };
 
+    // A swapchain image is a 2D array image with 2 layers (left eye, right eye).
     XrSwapchainCreateInfo create_info{
       .type         = XR_TYPE_SWAPCHAIN_CREATE_INFO,
       .createFlags  = 0,
@@ -906,6 +907,10 @@ void OpenXRContext::renderProjectionLayer(XRRenderFunc_t const& render_view_cb) 
 
   /* Acquire swapchain image. */
   auto swapchain_image = swapchain_.images[swapchain_.current_image_index];
+
+  // ----------------
+  // REMEMBER, both eyes are in the same swapchain images, on different layers.
+  // ----------------
 
   /* Setup projection layers for each Eyes. */
   for (uint32_t view_id = 0u; view_id < kNumEyes; ++view_id) {

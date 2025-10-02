@@ -1,12 +1,11 @@
 #ifndef VKFRAMEWORK_CORE_PLATFORM_OPENXR_XR_VULKAN_INTERFACE_H_
 #define VKFRAMEWORK_CORE_PLATFORM_OPENXR_XR_VULKAN_INTERFACE_H_
 
-#include <list>
-#include <map>
-
 #if defined(ANDROID)
-#include <jni.h>
+#include <jni.h> //
 #endif
+
+#include "framework/backend/types.h" // (for backend::Image)
 
 #include "framework/core/platform/openxr/xr_graphics_interface.h"
 #include "framework/core/platform/openxr/xr_utils.h"
@@ -16,61 +15,13 @@
 
 // ----------------------------------------------------------------------------
 
-struct SwapchainImageContext {
-  SwapchainImageContext() = default;
-
-  std::vector<XrSwapchainImageBaseHeader*> allocate(
-    uint32_t capacity,
-    XrSwapchainCreateInfo const& swapchainCreateInfo
-  ) {
-    images.resize(capacity);
-
-    std::vector<XrSwapchainImageBaseHeader*> bases(capacity);
-    for (uint32_t i = 0; i < capacity; ++i) {
-      images[i] = { .type = XR_TYPE_SWAPCHAIN_IMAGE_VULKAN_KHR };
-      bases[i] = reinterpret_cast<XrSwapchainImageBaseHeader*>(&images[i]);
-    }
-
-    // TODO
-    // auto const depthFormat = VK_FORMAT_D32_SFLOAT;
-    // depthBuffer.Create(namer, m_vkDevice, memAllocator, depthFormat, swapchainCreateInfo);
-
-    // -------------
-    // auto const colorFormat = (VkFormat)swapchainCreateInfo.format;
-    // rp.Create(namer, m_vkDevice, colorFormat, depthFormat);
-    // size = {swapchainCreateInfo.width, swapchainCreateInfo.height};
-    // pipe.Create(m_vkDevice, size, layout, rp, sp, vb);
-    // renderTarget.resize(capacity);
-    // if (!cmdBuffer.Init(namer, device, queueFamilyIndex)) {
-    //     THROW("Failed to create command buffer");
-    // }
-    // -------------
-
-    return bases;
-  }
-
- public:
-  std::vector<XrSwapchainImageVulkan2KHR> images{};
-
-  // std::vector<RenderTarget> renderTarget;
-  // VkExtent2D size{};
-  // DepthBuffer depthBuffer{};
-  // CmdBuffer cmdBuffer{};
-};
-
-// ----------------------------------------------------------------------------
-
 struct XRVulkanInterface : public XRGraphicsInterface {
- public:
-  struct SwapchainImage {
-    XrStructureType type{};
-    std::vector<XrSwapchainImageVulkan2KHR> images{};
-  };
-
  public:
   XRVulkanInterface(XrInstance instance, XrSystemId system_id)
     : XRGraphicsInterface(instance, system_id)
   {}
+
+  virtual ~XRVulkanInterface() {}
 
   VkResult createVulkanInstance(
     VkInstanceCreateInfo const* create_info,
