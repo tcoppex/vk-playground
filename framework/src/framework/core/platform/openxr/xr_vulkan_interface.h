@@ -123,27 +123,29 @@ struct XRVulkanInterface : public XRGraphicsInterface {
     return VK_SAMPLE_COUNT_1_BIT;
   }
 
-  [[nodiscard]]
-  std::vector<XrSwapchainImageBaseHeader*> allocateSwapchainImage(
-    uint32_t capacity,
-    XrSwapchainCreateInfo const& createInfo
-  ) final {
-    // Add a new swapchain image context.
-    swapchain_image_contexts_.emplace_back();
-    auto& swapchain_image_context = swapchain_image_contexts_.back();
+  void allocateSwapchainImage(
+    std::vector<XrSwapchainImageVulkanKHR> const& base_images,
+    VkImageViewCreateInfo view_info,
+    std::vector<backend::Image> &images
+  ) {
+    images.clear(); //
+    images.reserve(base_images.size());
+    for (auto const& base : base_images) {
+      VkImageView image_view{};
+      view_info.image = base.image,
+      vkCreateImageView(binding_.device, &view_info, nullptr, &image_view);
+      images.push_back(backend::Image{
+        .image = base.image,
+        .view = image_view,
+        .format = view_info.format,
+      });
+    }
+  }
 
-    // Retrieve its base images.
-    auto bases = swapchain_image_context.allocate(
-      capacity,
-      createInfo
-    );
-
-    // Map every swapchainImage base pointer to this context
-    // for (auto& base : bases) {
-    //   swapchain_image_context_map[base] = &swapchain_image_context;
-    // }
-
-    return bases;
+  void releaseSwapchainImage(std::vector<backend::Image> &images) {
+    for (auto & img : images) {
+      vkDestroyImageView(binding_.device, img.view, nullptr);
+    }
   }
 
  private:
@@ -208,7 +210,8 @@ struct XRVulkanInterface : public XRGraphicsInterface {
  private:
   XrGraphicsBindingVulkan2KHR binding_{XR_TYPE_GRAPHICS_BINDING_VULKAN2_KHR};
 
-  std::list<SwapchainImageContext> swapchain_image_contexts_{};
+  // std::vector<backend::Image> images_{};
+  // std::list<SwapchainImageContext> swapchain_image_contexts_{};
   // std::map<XrSwapchainImageBaseHeader const*, SwapchainImageContext*> swapchain_image_context_map_{};
 };
 
