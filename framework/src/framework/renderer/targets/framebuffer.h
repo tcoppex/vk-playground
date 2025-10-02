@@ -61,20 +61,20 @@ class Framebuffer final : public backend::RPInterface {
     return desc_.dimension;
   }
 
-  std::vector<VkClearValue> const& get_clear_values() const final {
+  std::vector<VkClearValue> const& clear_values() const final {
     return clear_values_;
   }
 
-  VkRenderPass get_render_pass() const final {
+  VkRenderPass render_pass() const final {
     return render_pass_;
   }
 
-  VkFramebuffer get_swap_attachment() const final {
+  VkFramebuffer swap_attachment() const final {
     return framebuffers_[get_swap_index()];
   }
 
  private:
-  Framebuffer(Context const& context, Swapchain const& swapchain);
+  Framebuffer(Context const& context, SwapchainInterface const& swapchain);
 
   void setup(Descriptor_t const& desc);
 

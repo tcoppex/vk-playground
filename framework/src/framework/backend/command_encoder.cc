@@ -393,12 +393,12 @@ void CommandEncoder::end_rendering() {
 // ----------------------------------------------------------------------------
 
 RenderPassEncoder CommandEncoder::begin_render_pass(backend::RPInterface const& render_pass) const {
-  auto const& clear_values = render_pass.get_clear_values();
+  auto const& clear_values = render_pass.clear_values();
 
   VkRenderPassBeginInfo const render_pass_begin_info{
     .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-    .renderPass = render_pass.get_render_pass(),
-    .framebuffer = render_pass.get_swap_attachment(),
+    .renderPass = render_pass.render_pass(),
+    .framebuffer = render_pass.swap_attachment(),
     .renderArea = {
       .extent = render_pass.surface_size(),
     },

@@ -229,13 +229,13 @@ struct RPInterface {
 
   virtual ~RPInterface() {}
 
-  virtual VkRenderPass get_render_pass() const = 0;
+  virtual VkRenderPass render_pass() const = 0;
 
-  virtual VkFramebuffer get_swap_attachment() const = 0;
+  virtual VkFramebuffer swap_attachment() const = 0;
 
   virtual VkExtent2D surface_size() const = 0;
 
-  virtual std::vector<VkClearValue> const& get_clear_values() const = 0;
+  virtual std::vector<VkClearValue> const& clear_values() const = 0;
 };
 
 } // namespace "backend"
