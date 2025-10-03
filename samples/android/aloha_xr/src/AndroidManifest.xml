@@ -10,6 +10,18 @@
     android:version="1"
     />
 
+  <uses-feature
+      android:name="com.oculus.experimental.enabled"
+      android:required="true"
+      />
+
+  <!-- Tell the system this app can handle tracked remotes and hands -->
+  <uses-permission android:name="com.oculus.permission.HAND_TRACKING" />
+  <uses-feature
+      android:name="oculus.software.handtracking"
+      android:required="false"
+      />
+
   <!-- Recommended for haptic feedback -->
   <uses-permission android:name="android.permission.VIBRATE" />
 
