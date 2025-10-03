@@ -38,7 +38,8 @@ void HostResources::setup() {
 // ----------------------------------------------------------------------------
 
 bool HostResources::load_file(std::string_view filename) {
-  std::string const basename{ utils::ExtractBasename(filename) };
+  auto const basename{ utils::ExtractBasename(filename) };
+  auto const ext{ utils::ExtractExtension(filename) };
 
   cgltf_options options{};
   cgltf_result result{};
@@ -208,8 +209,8 @@ bool HostResources::load_file(std::string_view filename) {
   reset_internal_descriptors();
 
 #ifndef NDEBUG
+  LOGI("> \"{}.{}\" has been loaded successfully.", basename, ext);
   // This will also display the extra data procedurally created.
-  std::cout << basename << " loaded." << std::endl;
   std::cout << "┌────────────┬───── " << std::endl;
   std::cout << "│ Images     │ " << host_images.size() << std::endl;
   std::cout << "│ Textures   │ " << textures.size() << std::endl;

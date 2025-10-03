@@ -111,12 +111,14 @@ bool Renderer::resize(uint32_t w, uint32_t h) {
 
 CommandEncoder Renderer::begin_frame() {
   LOG_CHECK(device_ != VK_NULL_HANDLE);
-  LOG_CHECK(swapchain_ptr_);
 
+  // -----------------------------------
+  LOG_CHECK(swapchain_ptr_);
   // Acquire next availables image in the swapchain.
   if (!swapchain_ptr_->acquireNextImage()) {
     LOGV("{}: Invalid swapchain, should skip current frame.", __FUNCTION__);
   }
+  // -----------------------------------
 
   // Reset the frame command pool to record new command for this frame.
   auto &frame = frames_[frame_index_];
@@ -138,19 +140,21 @@ CommandEncoder Renderer::begin_frame() {
 // ----------------------------------------------------------------------------
 
 void Renderer::end_frame() {
-  LOG_CHECK(swapchain_ptr_);
-
   cmd_.end();
 
+  // -----------------------------------
+  LOG_CHECK(swapchain_ptr_);
   auto const& queue = ctx_ptr_->queue(Context::TargetQueue::Main).queue;
-  auto command_buffer = frames_[frame_index_].command_buffer; //cmd_.handle();
-
-  if (!swapchain_ptr_->submitFrame(queue, command_buffer)) {
+  if (!swapchain_ptr_->submitFrame(queue, cmd_.handle())) {
     LOGV("{}: Invalid swapchain, skip that frame.", __FUNCTION__);
     return; 
   }
+  // -----------------------------------
+
+  // -----------------------------------
   swapchain_ptr_->finishFrame(queue);
   frame_index_ = (frame_index_ + 1u) % swapchain_ptr_->imageCount();
+  // -----------------------------------
 }
 
 // ----------------------------------------------------------------------------

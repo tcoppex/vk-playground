@@ -14,6 +14,7 @@ class SwapchainInterface {
 
   virtual bool acquireNextImage() = 0;
 
+  // [todo: transform to accept a span of VkCommandBuffer]
   virtual bool submitFrame(VkQueue queue, VkCommandBuffer command_buffer) {
     std::vector<VkCommandBufferSubmitInfo> const cb_submit_infos{{
       .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,

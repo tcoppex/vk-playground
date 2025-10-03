@@ -342,7 +342,7 @@ void Context::init_instance(
 
 #ifndef NDEBUG
   auto hasLayer = [&](char const* layerName) {
-    for (const auto& layer : available_instance_layers) {
+    for (auto const& layer : available_instance_layers) {
       if (std::string(layer.layerName) == std::string(layerName)) {
         return true;
       }
@@ -429,7 +429,7 @@ void Context::init_instance(
 
   if (!available_instance_layers.empty()) {
     LOGD("Available Instance layers:");
-    for (const auto& layer : available_instance_layers) {
+    for (auto const& layer : available_instance_layers) {
       LOGD(" > {}", layer.layerName);
     }
     LOGD(" ");

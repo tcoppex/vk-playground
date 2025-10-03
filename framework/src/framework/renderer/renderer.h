@@ -70,6 +70,9 @@ class Renderer : public backend::RTInterface {
   ) const;
 
   // --- Graphics Pipelines ---
+  // [those methods are specialization of those found in RenderContext
+  // to use internal color/depth buffer by default when unspecified.
+  // Ideally it should be remove from here altogether]
 
   [[nodiscard]]
   VkGraphicsPipelineCreateInfo create_graphics_pipeline_create_info(

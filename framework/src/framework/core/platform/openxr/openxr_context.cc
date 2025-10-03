@@ -37,7 +37,7 @@ std::string LocalizeString(std::string s) {
 }
 
 void CopyStringWithSafety(char *const dst, std::string const& src, size_t size) {
-  assert(size > 0);
+  LOG_CHECK(size > 0);
   strncpy(dst, src.c_str(), size - 1);
   dst[size - 1] = '\0';
 }
@@ -93,14 +93,14 @@ bool OpenXRContext::init(
       // XR_KHR_COMPOSITION_LAYER_COLOR_SCALE_BIAS_EXTENSION_NAME,
       // XR_KHR_COMPOSITION_LAYER_CUBE_EXTENSION_NAME,
     };
-    auto platform_ext = platform.instanceExtensions(); // XXX
+    auto const& platform_ext = platform.instanceExtensions();
     unique_exts.insert(platform_ext.cbegin(), platform_ext.cend());
     unique_exts.insert(appExtensions.cbegin(), appExtensions.cend());
 
     // [it's safe to push string_view ptr into extensions because we don't keep
     //  the data post unique_exts lifetime].
     extensions.reserve(unique_exts.size());
-    for (const auto& ext : unique_exts) {
+    for (auto const& ext : unique_exts) {
       extensions.push_back(ext.data());
     }
 
@@ -152,7 +152,7 @@ bool OpenXRContext::initSession() {
   LOG_CHECK(XR_NULL_SYSTEM_ID != system_id_);
   LOG_CHECK(XR_NULL_HANDLE == session_);
 
-  XrSessionCreateInfo create_info{
+  XrSessionCreateInfo const create_info{
     .type = XR_TYPE_SESSION_CREATE_INFO,
     .next = graphics_->binding(),
     .createFlags = 0,
@@ -231,8 +231,9 @@ bool OpenXRContext::createSwapchains() {
     }
   }
 
+  // [todo]
   // note: we need a depth swapchain only to alter the perception of depth
-  // for specific XR techniques. [todo]
+  // for specific XR techniques.
 
   return true;
 }
@@ -339,6 +340,7 @@ void OpenXRContext::pollEvents() {
 // ----------------------------------------------------------------------------
 
 void OpenXRContext::beginFrame() {
+  LOGD("-- OpenXRContext::beginFrame -- ");
   auto& frameState = controls_.frame.state;
 
   shouldRender_ = false;
@@ -382,10 +384,15 @@ void OpenXRContext::beginFrame() {
     uint32_t const viewCapacityInput{static_cast<uint32_t>(views_.size())};
     uint32_t viewCountOutput{};
     CHECK_XR(xrLocateViews(
-      session_, &viewLocateInfo, &viewState, viewCapacityInput, &viewCountOutput, views_.data()
+      session_,
+      &viewLocateInfo,
+      &viewState,
+      viewCapacityInput,
+      &viewCountOutput,
+      views_.data()
     ));
 
-    // Check our buffers are well sized.
+    // Check our buffers are correctly sized.
     LOG_CHECK(viewCountOutput == viewCapacityInput);
     LOG_CHECK(viewCountOutput == view_config_views_.size());
     LOG_CHECK(viewCountOutput == kNumEyes);
@@ -792,7 +799,7 @@ bool OpenXRContext::initControllers() {
 // ----------------------------------------------------------------------------
 
 void OpenXRContext::createReferenceSpaces() {
-  assert(XR_NULL_HANDLE != session_);
+  LOG_CHECK(XR_NULL_HANDLE != session_);
 
   bool const stageSupported{[this]()-> bool {
     uint32_t spaceCount(0u);
@@ -805,7 +812,7 @@ void OpenXRContext::createReferenceSpaces() {
       return space == XR_REFERENCE_SPACE_TYPE_STAGE;
     });
   }()};
-  assert(stageSupported);
+  LOG_CHECK(stageSupported);
 
   XrReferenceSpaceCreateInfo create_info{
     .type = XR_TYPE_REFERENCE_SPACE_CREATE_INFO,
