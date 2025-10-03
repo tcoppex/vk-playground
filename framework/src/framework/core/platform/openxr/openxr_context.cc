@@ -940,19 +940,19 @@ void OpenXRContext::handleControls() {
 
     // Thumbstick.
     frame.button_thumbstick[side] = xrutils::GetBoolean(session_, touch.click_joystick);
-    frame.touch_thumbstick[side] = xrutils::GetBoolean(session_, touch.touch_joystick);
+    frame.touch_thumbstick[side]  = xrutils::GetBoolean(session_, touch.touch_joystick);
   }
 
-  frame.button_x = xrutils::HasButtonSwitched(session_, touch.button_x); //xrutils::getBoolean(session_, touch.button_x);
-  frame.button_y = xrutils::GetBoolean(session_, touch.button_y);
-  frame.touch_x = xrutils::GetBoolean(session_, touch.touch_x);
-  frame.touch_y = xrutils::GetBoolean(session_, touch.touch_y);
-  frame.button_menu = xrutils::GetBoolean(session_, touch.button_menu);
+  frame.button_x      = xrutils::HasButtonSwitched(session_, touch.button_x);
+  frame.button_y      = xrutils::HasButtonSwitched(session_, touch.button_y);
+  frame.touch_x       = xrutils::GetBoolean(session_, touch.touch_x);
+  frame.touch_y       = xrutils::GetBoolean(session_, touch.touch_y);
+  frame.button_menu   = xrutils::GetBoolean(session_, touch.button_menu);
 
-  frame.button_a = xrutils::HasButtonSwitched(session_, touch.button_a); //xrutils::getBoolean(session_, touch.button_a);
-  frame.button_b = xrutils::HasButtonSwitched(session_, touch.button_b); //xrutils::getBoolean(session_, touch.button_b);
-  frame.touch_a = xrutils::GetBoolean(session_, touch.touch_a);
-  frame.touch_b = xrutils::GetBoolean(session_, touch.touch_b);
+  frame.button_a      = xrutils::HasButtonSwitched(session_, touch.button_a);
+  frame.button_b      = xrutils::HasButtonSwitched(session_, touch.button_b);
+  frame.touch_a       = xrutils::GetBoolean(session_, touch.touch_a);
+  frame.touch_b       = xrutils::GetBoolean(session_, touch.touch_b);
   frame.button_system = xrutils::GetBoolean(session_, touch.button_system);
 }
 
