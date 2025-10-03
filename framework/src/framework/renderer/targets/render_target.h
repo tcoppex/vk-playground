@@ -43,36 +43,49 @@ class RenderTarget : public backend::RTInterface {
  public:
   // ----- RTInterface Overrides -----
 
+  [[nodiscard]]
   VkExtent2D surface_size() const final {
     return extent_;
   }
 
+  [[nodiscard]]
   uint32_t color_attachment_count() const final {
     return static_cast<uint32_t>(colors_.size());
   }
 
+  [[nodiscard]]
   std::vector<backend::Image> color_attachments() const final {
     return colors_;
   }
 
+  [[nodiscard]]
   backend::Image color_attachment(uint32_t i = 0u) const final {
     return colors_[i];
   }
 
+  [[nodiscard]]
   backend::Image depth_stencil_attachment() const final {
     return depth_stencil_;
   }
 
+  [[nodiscard]]
   VkClearValue color_clear_value(uint32_t i = 0u) const final {
     return color_clear_values_[i];
   }
 
+  [[nodiscard]]
   VkClearValue depth_stencil_clear_value() const final {
     return depth_stencil_clear_value_;
   }
 
-  VkAttachmentLoadOp color_load_op(uint32_t i = 0u) const {
+  [[nodiscard]]
+  VkAttachmentLoadOp color_load_op(uint32_t i = 0u) const final {
     return color_load_ops_[i];
+  }
+
+  [[nodiscard]]
+  backend::RenderingViewInfo rendering_view_info() const noexcept final {
+    return backend::RenderingViewInfo{};
   }
 
   void set_color_clear_value(VkClearColorValue clear_color, uint32_t i = 0u) final {

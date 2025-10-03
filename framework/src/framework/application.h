@@ -51,12 +51,12 @@ class Application : public EventCallbacks
   virtual void release() {}
 
   [[nodiscard]]
-  std::vector<char const*> xrExtensions() const noexcept {
+  virtual std::vector<char const*> xrExtensions() const noexcept {
     return {};
   }
 
   [[nodiscard]]
-  std::vector<char const*> vulkanDeviceExtensions() const noexcept {
+  virtual std::vector<char const*> vulkanDeviceExtensions() const noexcept {
     return {};
   }
 

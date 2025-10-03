@@ -63,8 +63,15 @@ class Swapchain : public SwapchainInterface {
     return images_[0u].format;
   }
 
+  backend::RenderingViewInfo renderingViewInfo() const noexcept final {
+    return {
+      .layerCount = 1u,
+      .viewMask = 0b0,
+    };
+  }
+
   [[nodiscard]]
-  backend::Image current_image() const noexcept final {
+  backend::Image currentImage() const noexcept final {
     return images_[acquired_image_index_];
   }
 

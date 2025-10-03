@@ -47,7 +47,14 @@ struct OpenXRSwapchain : public SwapchainInterface {
     return (VkFormat)create_info.format;
   }
 
-  backend::Image current_image() const noexcept final {
+  backend::RenderingViewInfo renderingViewInfo() const noexcept final {
+    return {
+      .layerCount = 2u,
+      .viewMask = 0b11,
+    };
+  }
+
+  backend::Image currentImage() const noexcept final {
     return images[current_image_index];
   }
 

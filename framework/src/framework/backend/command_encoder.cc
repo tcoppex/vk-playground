@@ -284,9 +284,11 @@ backend::Buffer CommandEncoder::create_buffer_and_upload(void const* host_data, 
 RenderPassEncoder CommandEncoder::begin_rendering(RenderPassDescriptor const& desc) const {
   VkRenderingInfoKHR const rendering_info{
     .sType                = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR,
-    .flags                = 0,
+    .pNext                = nullptr,
+    .flags                = 0b0u,
     .renderArea           = desc.renderArea,
-    .layerCount           = 1u,
+    .layerCount           = desc.renderingViewInfo.layerCount,
+    .viewMask             = desc.renderingViewInfo.viewMask,
     .colorAttachmentCount = static_cast<uint32_t>(desc.colorAttachments.size()),
     .pColorAttachments    = desc.colorAttachments.data(),
     .pDepthAttachment     = &desc.depthAttachment,
@@ -337,6 +339,8 @@ RenderPassEncoder CommandEncoder::begin_rendering(backend::RTInterface const& re
     .imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR,
     .storeOp     = VK_ATTACHMENT_STORE_OP_STORE,
   });
+
+  rp_desc.renderingViewInfo = render_target.rendering_view_info();
 
   for (size_t i = 0u; i < colors.size(); ++i) {
     auto& attach = rp_desc.colorAttachments[i];

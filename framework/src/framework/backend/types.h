@@ -186,6 +186,13 @@ struct RayTracingAddressRegion {
 
 // ----------------------------------------------------------------------------
 
+struct RenderingViewInfo {
+  uint32_t layerCount{1u};
+  uint32_t viewMask{0b0u};
+};
+
+// ----------------------------------------------------------------------------
+
 /* Interface for dynamic rendering. */
 struct RTInterface {
   RTInterface() = default;
@@ -209,6 +216,8 @@ struct RTInterface {
   virtual VkClearValue depth_stencil_clear_value() const = 0;
 
   virtual VkAttachmentLoadOp color_load_op(uint32_t i = 0u) const = 0;
+
+  virtual RenderingViewInfo rendering_view_info() const noexcept = 0;
 
   // -- Setters --
 
@@ -245,11 +254,13 @@ struct RPInterface {
 
 // [to be moved elsewhere (probably Renderer)]
 
+
 struct RenderPassDescriptor {
   std::vector<VkRenderingAttachmentInfo> colorAttachments{};
   VkRenderingAttachmentInfo depthAttachment{.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR};
   VkRenderingAttachmentInfo stencilAttachment{.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR};
   VkRect2D renderArea{};
+  backend::RenderingViewInfo renderingViewInfo{};
 };
 
 struct DescriptorSetLayoutParams {

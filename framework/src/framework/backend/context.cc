@@ -521,6 +521,12 @@ bool Context::init_device() {
   /* Vulkan GPU features. */
   {
     add_device_feature(
+      VK_KHR_MULTIVIEW_EXTENSION_NAME,
+      feature_.multiview,
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_FEATURES
+    );
+
+    add_device_feature(
       VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
       feature_.buffer_device_address,
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_KHR
@@ -642,6 +648,9 @@ bool Context::init_device() {
 
 #if !defined(ANDROID)
   LOG_CHECK(feature_.ray_tracing_pipeline.rayTracingPipeline);
+  if (vulkan_xr_) {
+    LOG_CHECK(feature_.multiview.multiview);
+  }
 #endif
 
   // --------------------

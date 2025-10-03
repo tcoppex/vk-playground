@@ -32,7 +32,7 @@ class OpenXRContext : public XRInterface {
     XrCompositionLayerProjection projection;
     XrCompositionLayerQuad quad;
     XrCompositionLayerCylinderKHR cylinder;
-    XrCompositionLayerCubeKHR cube;
+    // XrCompositionLayerCubeKHR cube;
     XrCompositionLayerEquirectKHR equirect;
     XrCompositionLayerPassthroughFB passthrough;
   };
@@ -128,8 +128,6 @@ class OpenXRContext : public XRInterface {
   //------------------
   void beginFrame();
   void endFrame();
-  void updateFrame(XRUpdateFunc_t const& update_frame_cb);
-  void renderFrame(XRRenderFunc_t const& render_view_cb);
   //------------------
 
  private:
@@ -181,6 +179,7 @@ class OpenXRContext : public XRInterface {
 
   XRStereoBuffer<XrCompositionLayerProjectionView> layer_projection_views_{}; //
   std::array<CompositorLayerUnion_t, kMaxNumCompositionLayers> layers_{};
+  uint32_t num_layers_{};
 
   // -----
 

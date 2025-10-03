@@ -121,6 +121,8 @@ struct XRFrameData_t {
 
   //ControlState_t::Frame const& input;
   XRControlState_t::Frame *inputs{};
+
+  bool shouldRender{};
 };
 
 // ----------------------------------------------------------------------------

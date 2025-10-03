@@ -155,7 +155,7 @@ bool Application::presetup(AppData_t app_data) {
   }
 
   // [~] Capture & handle surface resolution changes.
-  if (!xr_) {
+  {
     auto on_resize = [this](uint32_t w, uint32_t h) {
       context_.device_wait_idle();
       viewport_size_ = {
@@ -175,8 +175,6 @@ bool Application::presetup(AppData_t app_data) {
       .height = wm_->surface_height(),
     }; //
     LOGI("> (w: {}, h: {})", viewport_size_.width, viewport_size_.height);
-  } else {
-    LOGI("On resize not setup for XR.");
   }
 
   /* Framework internal data. */
@@ -243,8 +241,8 @@ void Application::mainloop(AppData_t app_data) {
 
     if (xr_->isSessionRunning()) [[likely]] {
       xr_->processFrame(
-        [this](auto const& frameData) { /*app_->xrUpdate(frameData);*/ },
-        [this](auto const& frameView) { /*app_->xrDraw(frameView);*/ }
+        [this](auto const& frameData) { update(delta_time()); },
+        [this](auto const& frameView) { draw(); }
       );
     } else {
       std::this_thread::sleep_for(10ms);

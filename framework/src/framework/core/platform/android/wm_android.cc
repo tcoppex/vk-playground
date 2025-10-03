@@ -111,6 +111,7 @@ bool WMAndroid::init(AppData_t app_data) {
   LOG_CHECK(app_data != nullptr);
 
   JNIContext::Initialize(app_data);
+  xr_android_.init(JNIContext::Get());
 
   // Mainly an XR thing.
   ANativeActivity_setWindowFlags(app_data->activity, AWINDOW_FLAG_KEEP_SCREEN_ON, 0);

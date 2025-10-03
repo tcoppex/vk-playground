@@ -35,9 +35,9 @@ class SwapchainInterface {
 
   virtual VkFormat format() const noexcept = 0;
 
-  // --------
+  virtual backend::RenderingViewInfo renderingViewInfo() const noexcept = 0;
 
-  virtual backend::Image current_image() const noexcept = 0;
+  virtual backend::Image currentImage() const noexcept = 0;
 
   // virtual VkImage current_image() const noexcept;
   // virtual VkImageView current_image_view() const noexcept;

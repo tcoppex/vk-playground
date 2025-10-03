@@ -279,10 +279,10 @@ void OpenXRContext::terminate() {
     session_ = XR_NULL_HANDLE;
   }
 
+  graphics_.reset();
+
   xrDestroyInstance(instance_);
   instance_ = XR_NULL_HANDLE;
-
-  graphics_.reset();
 }
 
 // ----------------------------------------------------------------------------
@@ -401,13 +401,14 @@ void OpenXRContext::beginFrame() {
 // ----------------------------------------------------------------------------
 
 void OpenXRContext::endFrame() {
+  LOGD("-- OpenXRContext::endFrame -- ");
   auto& frameState = controls_.frame.state;
 
   XrFrameEndInfo frameEndInfo{
     .type = XR_TYPE_FRAME_END_INFO,
     .displayTime = frameState.predictedDisplayTime,
     .environmentBlendMode = XR_ENVIRONMENT_BLEND_MODE_OPAQUE, // << App Specific
-    .layerCount = static_cast<uint32_t>(composition_layers_.size()),
+    .layerCount = num_layers_, //,
     .layers = composition_layers_.data(),
   };
   end_render_loop_ = CHECK_XR(xrEndFrame(session_, &frameEndInfo)) < 0;
@@ -416,91 +417,142 @@ void OpenXRContext::endFrame() {
 
 // ----------------------------------------------------------------------------
 
-void OpenXRContext::updateFrame(
-  XRUpdateFunc_t const& update_frame_cb
-) {
-  auto& frameState = controls_.frame.state;
-  float const nearZ = 0.05f; //
-  float const farZ = 150.0f; //
-
-  // Calculate space matrices.
-  for (uint32_t i = 0u; i < spaces_.size(); ++i) {
-    auto const spaceLoc = spaceLocation(spaces_[i], frameState.predictedDisplayTime);
-    if (xrutils::IsSpaceLocationValid(spaceLoc)) {
-      spaceMatrices_[i] = xrutils::PoseMatrix(spaceLoc.pose);
-      frameData_.spaceMatrices[i] = &spaceMatrices_[i];
-    } else {
-      frameData_.spaceMatrices[i] = nullptr;
-    }
-  }
-
-  // Calculate transforms for each view.
-  for (uint32_t i = 0u; i < kNumEyes; ++i) {
-    auto const &view = views_[i];
-    auto const pose{xrutils::PoseMatrix(view.pose)};
-    frameData_.viewMatrices[i] = lina::rigidbody_inverse(pose); //
-    frameData_.projMatrices[i] = xrutils::ProjectionMatrix(view.fov, nearZ, farZ);
-  }
-  // frameData_.headMatrix = xrutils::PoseMatrix(controls_.frame.head_pose);
-  // frameData_.predictedDisplayTime = 1.0e9 * static_cast<double>(frameState.predictedDisplayTime); //
-
-  frameData_.inputs = &controls_.frame; //
-
-  update_frame_cb(frameData_);
-}
-
-// ----------------------------------------------------------------------------
-
-void OpenXRContext::renderFrame(
-  XRRenderFunc_t const& render_view_cb
-) {
-  uint32_t num_layers = 0u;
-  layers_.fill(CompositorLayerUnion_t{});
-
-  // [todo: add system to handle user specific layers]
-  if (shouldRender_)
-  {
-    renderProjectionLayer(render_view_cb);
-
-    // Add the world view projection layer to the composition.
-    layers_[num_layers++].projection = XrCompositionLayerProjection{
-      .type = XR_TYPE_COMPOSITION_LAYER_PROJECTION,
-      .layerFlags = 0
-                  | XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT
-                  | XR_COMPOSITION_LAYER_CORRECT_CHROMATIC_ABERRATION_BIT
-                  | XR_COMPOSITION_LAYER_UNPREMULTIPLIED_ALPHA_BIT
-                  ,
-      .space = baseSpace(), //
-      .viewCount = kNumEyes,
-      .views = layer_projection_views_.data()
-    };
-  }
-
-  for (auto & layer : layers_) {
-    composition_layers_.push_back(
-      reinterpret_cast<XrCompositionLayerBaseHeader const*>(&layer)
-    );
-  }
-}
-
-// ----------------------------------------------------------------------------
-
 void OpenXRContext::processFrame(
-  XRUpdateFunc_t const& update_frame_cb,
-  XRRenderFunc_t const& render_view_cb
+  XRUpdateFunc_t const& update_cb,
+  XRRenderFunc_t const& render_cb
 ) {
   LOG_CHECK(XR_NULL_HANDLE != session_);
 
   beginFrame();
-  updateFrame(update_frame_cb);
-  renderFrame(render_view_cb);
+  {
+    // shouldRender_ might be false here, but we still call update.
+
+    // UPDATE.
+    {
+      auto& frameState = controls_.frame.state;
+      float const nearZ = 0.05f; //
+      float const farZ = 150.0f; //
+
+      // Calculate space matrices.
+      for (uint32_t i = 0u; i < spaces_.size(); ++i) {
+        auto const spaceLoc = spaceLocation(spaces_[i], frameState.predictedDisplayTime);
+        if (xrutils::IsSpaceLocationValid(spaceLoc)) {
+          spaceMatrices_[i] = xrutils::PoseMatrix(spaceLoc.pose);
+          frameData_.spaceMatrices[i] = &spaceMatrices_[i];
+        } else {
+          frameData_.spaceMatrices[i] = nullptr;
+        }
+      }
+
+      // Calculate transforms for each view.
+      for (uint32_t i = 0u; i < kNumEyes; ++i) {
+        auto const &view = views_[i];
+        auto const pose{xrutils::PoseMatrix(view.pose)};
+        frameData_.viewMatrices[i] = lina::rigidbody_inverse(pose); //
+        frameData_.projMatrices[i] = xrutils::ProjectionMatrix(view.fov, nearZ, farZ);
+      }
+      // frameData_.headMatrix = xrutils::PoseMatrix(controls_.frame.head_pose);
+      // frameData_.predictedDisplayTime = 1.0e9 * static_cast<double>(frameState.predictedDisplayTime); //
+
+      frameData_.inputs = &controls_.frame; //
+      frameData_.shouldRender = shouldRender_;
+
+      update_cb(frameData_);
+    }
+
+    // RENDER
+    {
+      num_layers_ = 0u;
+      layers_.fill(CompositorLayerUnion_t{});
+
+      // -------------------------------------------------
+      if (shouldRender_) {
+        renderProjectionLayer(render_cb);
+
+        // [TODO: add system to handle user specific layers]
+        // Add the world view projection layer to the composition.
+        layers_[num_layers_++].projection = XrCompositionLayerProjection{
+          .type       = XR_TYPE_COMPOSITION_LAYER_PROJECTION,
+          .layerFlags = 0
+                      | XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT
+                      | XR_COMPOSITION_LAYER_CORRECT_CHROMATIC_ABERRATION_BIT
+                      | XR_COMPOSITION_LAYER_UNPREMULTIPLIED_ALPHA_BIT
+                      ,
+          .space      = baseSpace(), //
+          .viewCount  = kNumEyes,
+          .views      = layer_projection_views_.data()
+        };
+      } else {
+        LOGV("shouldRender_ is set to false");
+      }
+      // -------------------------------------------------
+
+      for (auto & layer : layers_) {
+        composition_layers_.push_back(
+          reinterpret_cast<XrCompositionLayerBaseHeader const*>(&layer)
+        );
+      }
+    }
+  }
   endFrame();
+}
+
+// -----------------------------------------------------------------------------
+
+void OpenXRContext::renderProjectionLayer(XRRenderFunc_t const& render_cb) {
+  // LOGD(">>> OpenXRContext::renderProjectionLayer ");
+
+  /* BEGIN_FRAME: Acquire next swapchain image. */
+  // LOGD("XR Swapchain AcquireNextImage ");
+  // if (!swapchain_.acquireNextImage()) {
+  //   LOGE("fails to acquire next image.");
+  // }
+
+  /* DRAW */
+  {
+    // ----------------
+    // REMEMBER, both eyes are in the same swapchain image, on different layers.
+    // ----------------
+
+    // auto swapchain_image = swapchain_.currentImage();
+
+    /* Render **all* the view. */
+    XRFrameView_t frameView{}; // [not used anymore..]
+    render_cb(frameView);
+  }
+
+  /* END_FRAME: Submit render commands to the graphics queue. */
+  {
+    // LOGW("[TODO] XR Swapchain SubmitFrame / FinishFrame");
+
+    // [best to send all the view command buffer together]
+    // swapchain_.submitFrame(queue, command_buffer);
+
+    // swapchain_.finishFrame(queue);
+  }
+
+  // ----------------------------
+
+  /* Setup projection layers for each Eyes. */
+  for (uint32_t view_id = 0u; view_id < kNumEyes; ++view_id) {
+    auto const& view{ views_[view_id] };
+    layer_projection_views_[view_id] = XrCompositionLayerProjectionView{
+      .type = XR_TYPE_COMPOSITION_LAYER_PROJECTION_VIEW,
+      .pose = view.pose,
+      .fov = view.fov,
+      .subImage = {
+        .swapchain = swapchain_.handle,
+        .imageRect = swapchain_.rect(),
+        .imageArrayIndex = view_id,
+      }
+    };
+  }
 }
 
 /* -------------------------------------------------------------------------- */
 
 bool OpenXRContext::initControllers() {
-  assert(XR_NULL_HANDLE != session_);
+  LOG_CHECK(XR_NULL_HANDLE != session_);
 
   // Shortcut to Oculus Touch like actions & hand sideness params.
   auto& touch{ controls_.action };
@@ -895,69 +947,6 @@ void OpenXRContext::handleControls() {
   frame.touch_a = xrutils::GetBoolean(session_, touch.touch_a);
   frame.touch_b = xrutils::GetBoolean(session_, touch.touch_b);
   frame.button_system = xrutils::GetBoolean(session_, touch.button_system);
-}
-
-// -----------------------------------------------------------------------------
-
-void OpenXRContext::renderProjectionLayer(XRRenderFunc_t const& render_view_cb) {
-
-  if (!swapchain_.acquireNextImage()) {
-    LOGE("fails to acquire next image.");
-  }
-
-  /* Acquire swapchain image. */
-  auto swapchain_image = swapchain_.images[swapchain_.current_image_index];
-
-  // ----------------
-  // REMEMBER, both eyes are in the same swapchain images, on different layers.
-  // ----------------
-
-  /* Setup projection layers for each Eyes. */
-  for (uint32_t view_id = 0u; view_id < kNumEyes; ++view_id) {
-    auto const& view{ views_[view_id] };
-
-    /* Set projection view. */
-    layer_projection_views_[view_id] = XrCompositionLayerProjectionView{
-      .type = XR_TYPE_COMPOSITION_LAYER_PROJECTION_VIEW,
-      .pose = view.pose,
-      .fov = view.fov,
-      .subImage = {
-        .swapchain = swapchain_.handle,
-        .imageRect = swapchain_.rect(),
-        .imageArrayIndex = view_id,
-      }
-    };
-
-    /* Setup frame view parameters. */
-    auto const& viewMatrix = frameData_.viewMatrices[view_id];
-    auto const& projMatrix = frameData_.projMatrices[view_id];
-    auto const& layerProjView = layer_projection_views_[view_id];
-    auto const& imageRect = layerProjView.subImage.imageRect;
-    XRFrameView_t const frameView{
-      .viewId = view_id,
-      .transform = {
-        .view = viewMatrix,
-        .proj = projMatrix,
-        .viewProj = linalg::mul(projMatrix, viewMatrix),
-      },
-      .viewport = {
-        imageRect.offset.x,
-        imageRect.offset.y,
-        imageRect.extent.width,
-        imageRect.extent.height,
-      },
-      // [TODO]
-      // .colorView = graphics_->colorImage(swapchain_image),
-      // .depthStencilView = graphics_->depthStencilImage(swapchain_image),
-    };
-
-    /* Render the view. */
-    render_view_cb(frameView);
-  }
-
-  LOGW("swapchain submitFrame TODO !!");
-  // swapchain_.submitFrame(queue, command_buffer);
-  // swapchain_.finishFrame(queue);
 }
 
 /* -------------------------------------------------------------------------- */

@@ -145,7 +145,7 @@ class Renderer : public backend::RTInterface {
   [[nodiscard]]
   backend::Image color_attachment(uint32_t index = 0u) const final {
     LOG_CHECK(swapchain_ptr_ != nullptr);
-    return swapchain_ptr_->current_image();
+    return swapchain_ptr_->currentImage();
   }
 
   // VkFormat color_attachment_format(uint32_t index = 0u) const {
@@ -170,6 +170,12 @@ class Renderer : public backend::RTInterface {
   [[nodiscard]]
   VkAttachmentLoadOp color_load_op(uint32_t index = 0u) const final {
     return color_load_op_;
+  }
+
+  [[nodiscard]]
+  backend::RenderingViewInfo rendering_view_info() const noexcept final {
+    LOG_CHECK(swapchain_ptr_ != nullptr);
+    return swapchain_ptr_->renderingViewInfo();
   }
 
   void set_color_clear_value(VkClearColorValue clear_color, uint32_t index = 0u) final {

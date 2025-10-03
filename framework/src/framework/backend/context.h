@@ -272,6 +272,7 @@ class Context {
     VkPhysicalDeviceExtendedDynamicState3FeaturesEXT extended_dynamic_state3{};
     VkPhysicalDeviceImageViewMinLodFeaturesEXT image_view_min_lod{};
     VkPhysicalDevice16BitStorageFeaturesKHR storage_16bit{};
+    VkPhysicalDeviceMultiviewFeaturesKHR multiview{};
     // VkPhysicalDeviceSwapchainMaintenance1FeaturesKHR swapchain_maintenance1{}; 
 
     // VK_VERSION_1_2
