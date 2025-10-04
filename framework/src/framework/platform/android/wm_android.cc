@@ -2,9 +2,9 @@
 #include <chrono>
 using namespace std::chrono_literals;
 
+#include "framework/core/events.h"
 #include "framework/platform/android/wm_android.h"
 #include "framework/platform/android/jni_context.h"
-#include "framework/platform/events.h"
 
 /* -------------------------------------------------------------------------- */
 
