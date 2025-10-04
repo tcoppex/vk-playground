@@ -6,8 +6,6 @@
 #endif
 
 #include "framework/backend/types.h" // (for backend::Image)
-
-#include "framework/core/platform/openxr/xr_graphics_interface.h"
 #include "framework/core/platform/openxr/xr_utils.h"
 
 #include "volk.h"
@@ -15,10 +13,11 @@
 
 // ----------------------------------------------------------------------------
 
-struct XRVulkanInterface : public XRGraphicsInterface {
+struct XRVulkanInterface {
  public:
   XRVulkanInterface(XrInstance instance, XrSystemId system_id)
-    : XRGraphicsInterface(instance, system_id)
+    : instance_(instance)
+    , system_id_(system_id)
   {}
 
   virtual ~XRVulkanInterface() {}
@@ -93,13 +92,13 @@ struct XRVulkanInterface : public XRGraphicsInterface {
     binding_.queueIndex = queue_index;
   }
 
- public:
   [[nodiscard]]
-  XrBaseInStructure const* binding() const final {
+  XrBaseInStructure const* binding() const noexcept {
     return reinterpret_cast<XrBaseInStructure const*>(&binding_);
   }
+
   [[nodiscard]]
-  int64_t selectColorSwapchainFormat(std::vector<int64_t> const& formats) const final {
+  int64_t selectColorSwapchainFormat(std::vector<int64_t> const& formats) const {
     constexpr std::array<VkFormat, 4> kSupportedColorSwapchainFormats{
       VK_FORMAT_B8G8R8A8_SRGB,
       VK_FORMAT_R8G8B8A8_SRGB,
@@ -116,11 +115,6 @@ struct XRVulkanInterface : public XRGraphicsInterface {
       return VK_FORMAT_UNDEFINED;
     }
     return *it;
-  }
-
-  [[nodiscard]]
-  uint32_t supportedSampleCount(XrViewConfigurationView const& view) const final {
-    return view.recommendedSwapchainSampleCount; //VK_SAMPLE_COUNT_1_BIT;
   }
 
   void allocateSwapchainImage(
@@ -144,7 +138,7 @@ struct XRVulkanInterface : public XRGraphicsInterface {
     }
   }
 
-  void releaseSwapchainImage(std::vector<backend::Image> &images) {
+  void releaseSwapchainImage(std::vector<backend::Image> &images) const noexcept {
     for (auto & img : images) {
       vkDestroyImageView(binding_.device, img.view, nullptr);
     }
@@ -171,7 +165,7 @@ struct XRVulkanInterface : public XRGraphicsInterface {
     XrInstance instance,
     XrSystemId systemId,
     XrGraphicsRequirementsVulkan2KHR* graphicsRequirements
-  ) {
+  ) const {
     PFN_xrGetVulkanGraphicsRequirements2KHR pfnGetVulkanGraphicsRequirements2KHR{};
     CHECK_XR(xrGetInstanceProcAddr(
       instance,
@@ -185,7 +179,7 @@ struct XRVulkanInterface : public XRGraphicsInterface {
     XrInstance instance,
     XrVulkanGraphicsDeviceGetInfoKHR *const getInfo,
     VkPhysicalDevice* vulkanPhysicalDevice
-  ) {
+  ) const {
     PFN_xrGetVulkanGraphicsDevice2KHR pfnGetVulkanGraphicsDevice2KHR{};
     CHECK_XR(xrGetInstanceProcAddr(
       instance,
@@ -200,7 +194,7 @@ struct XRVulkanInterface : public XRGraphicsInterface {
     XrVulkanDeviceCreateInfoKHR *const createInfo,
     VkDevice* vulkanDevice,
     VkResult* vulkanResult
-  ) {
+  ) const {
     PFN_xrCreateVulkanDeviceKHR pfnCreateVulkanDeviceKHR{};
     CHECK_XR(xrGetInstanceProcAddr(
       instance,
@@ -211,11 +205,10 @@ struct XRVulkanInterface : public XRGraphicsInterface {
   }
 
  private:
-  XrGraphicsBindingVulkan2KHR binding_{XR_TYPE_GRAPHICS_BINDING_VULKAN2_KHR};
+  XrInstance instance_{XR_NULL_HANDLE};
+  XrSystemId system_id_{XR_NULL_SYSTEM_ID};
 
-  // std::vector<backend::Image> images_{};
-  // std::list<SwapchainImageContext> swapchain_image_contexts_{};
-  // std::map<XrSwapchainImageBaseHeader const*, SwapchainImageContext*> swapchain_image_context_map_{};
+  XrGraphicsBindingVulkan2KHR binding_{XR_TYPE_GRAPHICS_BINDING_VULKAN2_KHR};
 };
 
 // ----------------------------------------------------------------------------
