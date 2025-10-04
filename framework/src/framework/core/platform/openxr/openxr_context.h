@@ -32,7 +32,7 @@ class OpenXRContext : public XRInterface {
     XrCompositionLayerProjection projection;
     XrCompositionLayerQuad quad;
     XrCompositionLayerCylinderKHR cylinder;
-    // XrCompositionLayerCubeKHR cube;
+    XrCompositionLayerCubeKHR cube;
     XrCompositionLayerEquirectKHR equirect;
     XrCompositionLayerPassthroughFB passthrough;
   };
@@ -58,18 +58,16 @@ class OpenXRContext : public XRInterface {
   bool createSwapchains() final;
 
   [[nodiscard]]
-  bool completeSetup() final; //
-
-  // ----
+  bool completeSetup() final;
 
   void terminate() final;
 
-  void pollEvents() override; //
+  void pollEvents() final;
 
   void processFrame(
     XRUpdateFunc_t const& update_frame_cb,
     XRRenderFunc_t const& render_view_cb
-  ) override; //
+  ) final;
 
   [[nodiscard]]
   bool isSessionRunning() const noexcept final {
@@ -88,10 +86,6 @@ class OpenXRContext : public XRInterface {
 
 
   // -- Public instance getters / helpers --
-
-  // inline XRControlState_t::Frame const& frameControlState() const {
-  //   return controls_.frame;
-  // }
 
   [[nodiscard]]
   XrSpace baseSpace() const {
@@ -123,6 +117,15 @@ class OpenXRContext : public XRInterface {
     return &swapchain_;
   }
 
+  [[nodiscard]]
+  XRFrameData_t const& frameData() const noexcept {
+    return frameData_;
+  }
+
+  [[nodiscard]]
+  XRControlState_t::Frame const& frameControlState() const noexcept {
+    return controls_.frame;
+  }
 
  public:
   //------------------
@@ -131,22 +134,18 @@ class OpenXRContext : public XRInterface {
   //------------------
 
  private:
-  // -- Instance fixed methods --
-
   [[nodiscard]]
   bool initControllers();
 
   void createReferenceSpaces();
 
-  // -- Instance virtual methods --
-
-  virtual void handleSessionStateChangedEvent(
+  void handleSessionStateChangedEvent(
     XrEventDataSessionStateChanged const& sessionStateChanged
   );
 
-  virtual void handleControls();
+  void handleControls();
 
-  virtual void renderProjectionLayer(XRRenderFunc_t const& render_view_cb);
+  void renderProjectionLayer(XRRenderFunc_t const& render_view_cb);
 
  protected:
   XrInstance instance_{XR_NULL_HANDLE};
@@ -168,24 +167,25 @@ class OpenXRContext : public XRInterface {
 
   uint32_t base_space_index_{XRSpaceId::Head};
   std::array<XrSpace, XRSpaceId::kNumSpaceId> spaces_{};
-  std::array<mat4f, XRSpaceId::kNumSpaceId> spaceMatrices_{}; //
+  std::array<mat4f, XRSpaceId::kNumSpaceId> spaceMatrices_{};
 
   // -----
 
-  XRStereoBuffer<XrViewConfigurationView> view_config_views_{}; //
-  XRStereoBuffer<XrView> views_{}; //
+  XRStereoBuffer<XrViewConfigurationView> view_config_views_{};
+  XRStereoBuffer<XrView> views_{};
 
   OpenXRSwapchain swapchain_{}; // color swapchain
 
-  XRStereoBuffer<XrCompositionLayerProjectionView> layer_projection_views_{}; //
+  XRStereoBuffer<XrCompositionLayerProjectionView> layer_projection_views_{};
   std::array<CompositorLayerUnion_t, kMaxNumCompositionLayers> layers_{};
   uint32_t num_layers_{};
+
+  std::vector<XrCompositionLayerBaseHeader const*> composition_layers_{};
 
   // -----
 
   XRControlState_t controls_{};
   XRFrameData_t frameData_{}; //
-  std::vector<XrCompositionLayerBaseHeader const*> composition_layers_{};
   bool shouldRender_{};
 };
 

@@ -242,8 +242,8 @@ void Application::mainloop(AppData_t app_data) {
 
     if (xr_->isSessionRunning()) [[likely]] {
       xr_->processFrame(
-        [this](auto const& frameData) { update_xr(frameData); },
-        [this](auto const& frameView) { draw(); }
+        [this]() { update(delta_time()); },
+        [this]() { draw(); }
       );
     } else {
       std::this_thread::sleep_for(10ms);

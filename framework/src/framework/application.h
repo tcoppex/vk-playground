@@ -64,7 +64,7 @@ class Application : public EventCallbacks
 
   virtual void update(float const dt) {}
 
-  virtual void update_xr(XRFrameData_t const& frame) {} // tmp
+  // virtual void update_xr(XRFrameData_t const& frame) {} // tmp
 
   virtual void draw() {}
 

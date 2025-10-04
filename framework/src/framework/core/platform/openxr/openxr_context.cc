@@ -65,7 +65,7 @@ bool OpenXRContext::init(
   std::string_view appName,
   std::vector<char const*> const& appExtensions
 ) {
-  /* Initialize the loader if available. */
+  /* Initialize the loader when available. */
   {
     PFN_xrInitializeLoaderKHR initializeLoader{nullptr};
     CHECK_XR_RET(xrGetInstanceProcAddr(
@@ -210,7 +210,7 @@ bool OpenXRContext::createSwapchains() {
   {
     auto& config_view{ view_config_views_[0] };
 
-    // A swapchain image is a 2D array image with 2 layers (left eye, right eye).
+    // A multiview swapchain image is a 2D array image with 2 layers (left eye, right eye).
     XrSwapchainCreateInfo create_info{
       .type         = XR_TYPE_SWAPCHAIN_CREATE_INFO,
       .createFlags  = 0,
@@ -218,7 +218,7 @@ bool OpenXRContext::createSwapchains() {
                     | XR_SWAPCHAIN_USAGE_SAMPLED_BIT
                     ,
       .format       = graphics_->selectColorSwapchainFormat(formats),
-      .sampleCount  = graphics_->supportedSampleCount(config_view),
+      .sampleCount  = config_view.recommendedSwapchainSampleCount,
       .width        = config_view.recommendedImageRectWidth,
       .height       = config_view.recommendedImageRectHeight,
       .faceCount    = 1,
@@ -231,8 +231,8 @@ bool OpenXRContext::createSwapchains() {
     }
   }
 
-  // [todo]
-  // note: we need a depth swapchain only to alter the perception of depth
+  // [TODO]
+  // we need a depth swapchain only to alter the perception of depth
   // for specific XR techniques.
 
   return true;
@@ -415,7 +415,7 @@ void OpenXRContext::endFrame() {
     .type = XR_TYPE_FRAME_END_INFO,
     .displayTime = frameState.predictedDisplayTime,
     .environmentBlendMode = XR_ENVIRONMENT_BLEND_MODE_OPAQUE, // << App Specific
-    .layerCount = num_layers_, //,
+    .layerCount = num_layers_,
     .layers = composition_layers_.data(),
   };
   end_render_loop_ = CHECK_XR(xrEndFrame(session_, &frameEndInfo)) < 0;
@@ -460,14 +460,12 @@ void OpenXRContext::processFrame(
       }
       // frameData_.headMatrix = xrutils::PoseMatrix(controls_.frame.head_pose);
       // frameData_.predictedDisplayTime = 1.0e9 * static_cast<double>(frameState.predictedDisplayTime); //
-
-      frameData_.inputs = &controls_.frame; //
       frameData_.shouldRender = shouldRender_;
 
-      update_cb(frameData_);
+      update_cb(/*frameData_*/);
     }
 
-    // RENDER
+    // RENDER.
     {
       num_layers_ = 0u;
       layers_.fill(CompositorLayerUnion_t{});
@@ -509,13 +507,8 @@ void OpenXRContext::processFrame(
 void OpenXRContext::renderProjectionLayer(XRRenderFunc_t const& render_cb) {
   // LOGD(">>> OpenXRContext::renderProjectionLayer ");
 
-
-  XRFrameView_t frameView{}; // [not used anymore..]
-
-  // the swapchain image is currently acquired and released inside the render cb.
-  render_cb(frameView);
-
-  // ----------------------------
+  // The swapchain image is currently acquired and released inside the render cb.
+  render_cb();
 
   /* Setup projection layers for each Eyes. */
   for (uint32_t view_id = 0u; view_id < kNumEyes; ++view_id) {

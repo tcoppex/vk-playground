@@ -15,7 +15,7 @@ namespace shader_interop {
 /* -------------------------------------------------------------------------- */
 
 class SampleApp final : public Application {
-private:
+ private:
   struct Vertex_t {
     vec4 Position;
     vec4 Color;
@@ -27,30 +27,16 @@ private:
   };
 
   std::vector<Vertex_t> const kVertices{
-    {.Position = { -1.0f, -1.0f, +0.0f, 1.0f}, .Color = {0.5f, 0.2f, 1.0f, 1.0f}},
-    {.Position = { +1.0f, -1.0f, +0.0f, 1.0f}, .Color = {1.0f, 0.5f, 0.2f, 1.0f}},
-    {.Position = {   0.0f, +1.0f, +0.0f, 1.0f}, .Color = {0.2f, 1.0f, 0.5f, 1.0f}},
-  };
-
-  static
-  std::array<vec4, 9u> constexpr kColors{
-    vec4(0.89f, 0.45f, 0.00f, 1.0f),
-    vec4(0.52f, 0.26f, 0.75f, 1.0f),
-    vec4(0.48f, 0.60f, 0.61f, 1.0f),
-    vec4(0.43f, 0.87f, 0.62f, 1.0f),
-    vec4(0.98f, 0.98f, 0.98f, 1.0f),
-    vec4(0.96f, 0.38f, 0.32f, 1.0f),
-    vec4(0.24f, 0.16f, 0.09f, 1.0f),
-    vec4(0.96f, 0.51f, 0.66f, 1.0f),
-    vec4(0.70f, 0.85f, 0.45f, 1.0f),
+    {.Position = { -1.0f, -1.0f, +0.0f, 1.0f}, .Color = {0.25f, 0.12f, 1.0f, 1.0f}},
+    {.Position = { +1.0f, -1.0f, +0.0f, 1.0f}, .Color = {1.0f, 0.25f, 0.12f, 1.0f}},
+    {.Position = {  0.0f, +1.0f, +0.0f, 1.0f}, .Color = {0.12f, 1.0f, 0.25f, 1.0f}},
   };
 
  public:
   SampleApp() = default;
 
- private:
   bool setup() final {
-    renderer_.set_color_clear_value(vec4(0.715f, 0.305f, 0.195f, 1.0f));
+    renderer_.set_color_clear_value(vec4(0.125f, 0.125f, 0.125f, 1.0f));
 
     vertex_buffer_ = context_.create_buffer_and_upload(
       kVertices,
@@ -143,7 +129,7 @@ private:
         },
         .primitive = {
           .topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
-          .cullMode = VK_CULL_MODE_NONE,
+          // .cullMode = VK_CULL_MODE_NONE,
         }
       }
     );
@@ -163,7 +149,14 @@ private:
     context_.allocator().destroy_buffer(vertex_buffer_);
   }
 
-  void update_xr(XRFrameData_t const& frame) final {
+  void update(float dt) final {
+    if (!xr_) {
+      return;
+    }
+
+    auto const& frame = xr_->frameData();
+
+    // Update uniform buffer for both eyes.
     std::vector<shader_interop::UniformCameraData> cameraBuffer{
       {
         .projectionMatrix = frame.projMatrices[0],
@@ -176,8 +169,11 @@ private:
     };
     context_.upload_buffer(cameraBuffer, uniform_buffer_);
 
+    // Handle controllers inputs.
+    float z_angle_delta{};
+    float z_depth_delta{};
     {
-      auto const& input = *frame.inputs;
+      auto const& input = xr_->frameControlState();
       if (input.button_a || input.button_x) {
         space_id_ = static_cast<XRSpaceId>(
           (space_id_ == 0u) ? frame.spaceMatrices.size() - 1u : space_id_ - 1
@@ -191,14 +187,19 @@ private:
       if (auto *ptr = frame.spaceMatrices[space_id_]; nullptr != ptr) {
         push_constant_.modelMatrix = *ptr;
       }
+
+      z_angle_delta = lina::smoothstep(0.0f, 1.0f, input.index_trigger[XRSide::Right]);
+      z_depth_delta = lina::smoothstep(0.0f, 1.0f, input.grip_squeeze[XRSide::Right]);
     }
 
-    // Calculate model matrix.
+    // Calculate new model matrix.
     {
-      mat4f const translateMatrix = linalg::translation_matrix(float3{0.0f, 0.0f, -3.0f});
+      float const tZ = -10.0f + z_depth_delta * 7.0f;
+      float const rZ = lina::radians(z_angle_delta * 180.0f);
+      mat4f const translateMatrix = linalg::translation_matrix(float3{0.0f, 0.0f, tZ});
       push_constant_.modelMatrix = linalg::mul(push_constant_.modelMatrix, translateMatrix);
-      // mat4f const rotationMatrix = linalg::rotation_matrix(linalg::rotation_quat(vec3f(0.0f, 1.0f, 0.0f), angle));
-      // modelMatrix_ = linalg::mul(spaceModelMatrix_, modelMatrix_);
+      mat4f const rotationMatrix = lina::rotation_matrix_z(rZ);
+      push_constant_.modelMatrix = linalg::mul(push_constant_.modelMatrix, rotationMatrix);
     }
   }
 
@@ -207,20 +208,11 @@ private:
 
     auto pass = cmd.begin_rendering();
     {
-      // LOGI("{} {}", viewport_size_.width, viewport_size_.height);
-
-      // (in multivew we probably have to set up two viewport scissor..)
-      //-------------
-      // pass.set_viewport_scissor(viewport_size_); // <<< not update on XR
-      // pass.set_viewport_scissor(renderer_.surface_size());//
-      //-------------
-
       pass.bind_pipeline(graphics_pipeline_);
+
       pass.bind_descriptor_set(descriptor_set_, VK_SHADER_STAGE_VERTEX_BIT);
-      pass.bind_vertex_buffer(vertex_buffer_);
-
       pass.push_constant(push_constant_, VK_SHADER_STAGE_VERTEX_BIT);
-
+      pass.bind_vertex_buffer(vertex_buffer_);
       pass.draw(kVertices.size());
     }
     cmd.end_rendering();
@@ -240,8 +232,6 @@ private:
 
   shader_interop::PushConstant push_constant_{};
   XRSpaceId space_id_{XRSpaceId::Local};
-
-  // uint32_t clear_color_index_{};
 };
 
 // ----------------------------------------------------------------------------
