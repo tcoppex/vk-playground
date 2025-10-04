@@ -60,7 +60,6 @@ android {
       manifest.srcFile "src/AndroidManifest.xml"
       res.srcDirs = ["src/res"]
       shaders.srcDirs = ["src/shaders"]
-      // assets.srcDirs = [ rootProject.ext.frameworkSpirvDirs ]
     }
   }
 

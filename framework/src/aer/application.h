@@ -23,7 +23,7 @@ class Application : public EventCallbacks
                   , public AppCmdCallbacks {
  public:
   Application() = default;
-  virtual ~Application() {}
+  virtual ~Application() = default;
 
   int run(bool use_xr, AppData_t app_data = {});
 

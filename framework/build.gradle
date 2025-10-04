@@ -54,7 +54,7 @@ android {
 
   sourceSets {
     main {
-      assets.srcDirs += [ "${sharedDir}/assets", rootProject.ext.frameworkSpirvDirs ]
+      assets.srcDirs += ["${sharedDir}/assets", rootProject.ext.frameworkSpirvDirs]
       res.srcDirs += ["${sharedDir}/res"]
     }
   }
