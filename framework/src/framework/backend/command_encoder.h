@@ -32,7 +32,7 @@ class GenericCommandEncoder {
   }
 
   [[nodiscard]]
-  uint32_t get_target_queue_index() const noexcept {
+  uint32_t target_queue_index() const noexcept {
     return target_queue_index_;
   }
 
@@ -288,14 +288,26 @@ class CommandEncoder : public GenericCommandEncoder {
   // --- Rendering ---
 
   /* Dynamic rendering. */
-  [[nodiscard]] RenderPassEncoder begin_rendering(RenderPassDescriptor const& desc) const;
-  [[nodiscard]] RenderPassEncoder begin_rendering(backend::RTInterface const& render_target);
-  [[nodiscard]] RenderPassEncoder begin_rendering(std::shared_ptr<backend::RTInterface> render_target);
-  [[nodiscard]] RenderPassEncoder begin_rendering();
+
+  [[nodiscard]]
+  RenderPassEncoder begin_rendering(RenderPassDescriptor const& desc) const;
+
+  [[nodiscard]]
+  RenderPassEncoder begin_rendering(backend::RTInterface const& render_target);
+
+  [[nodiscard]]
+  RenderPassEncoder begin_rendering(std::shared_ptr<backend::RTInterface> render_target); //
+
+  [[nodiscard]]
+  RenderPassEncoder begin_rendering();
+
   void end_rendering();
 
   /* Legacy rendering. */
-  [[nodiscard]] RenderPassEncoder begin_render_pass(backend::RPInterface const& render_pass) const;
+
+  [[nodiscard]]
+  RenderPassEncoder begin_render_pass(backend::RPInterface const& render_pass) const;
+
   void end_render_pass() const;
 
   // --- UI ----
@@ -430,4 +442,4 @@ class RenderPassEncoder : public GenericCommandEncoder {
 
 /* -------------------------------------------------------------------------- */
 
-#endif
+#endif // VKFRAMEWORK_BACKEND_COMMAND_ENCODER_H

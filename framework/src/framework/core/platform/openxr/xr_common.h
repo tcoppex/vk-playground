@@ -119,7 +119,6 @@ struct XRFrameData_t {
 
   std::array<mat4f const*, XRSpaceId::kNumSpaceId> spaceMatrices{}; //
 
-  //ControlState_t::Frame const& input;
   XRControlState_t::Frame *inputs{};
 
   bool shouldRender{};

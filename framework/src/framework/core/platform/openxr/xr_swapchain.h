@@ -47,11 +47,9 @@ struct OpenXRSwapchain : public SwapchainInterface {
     return (VkFormat)create_info.format;
   }
 
-  backend::RenderingViewInfo renderingViewInfo() const noexcept final {
-    return {
-      .layerCount = 2u,
-      .viewMask = 0b11,
-    };
+  uint32_t viewMask() const noexcept final {
+    LOG_CHECK(create_info.arraySize > 1);
+    return 0b11;
   }
 
   backend::Image currentImage() const noexcept final {
@@ -84,27 +82,25 @@ struct OpenXRSwapchain : public SwapchainInterface {
             ? VK_IMAGE_ASPECT_DEPTH_BIT
             : VK_IMAGE_ASPECT_COLOR_BIT
             ;
-
     auto view_info = VkImageViewCreateInfo{
       .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
       .viewType = (info.arraySize > 1u) ? VK_IMAGE_VIEW_TYPE_2D_ARRAY
                                         : VK_IMAGE_VIEW_TYPE_2D,
-      .format = (VkFormat)info.format,
+      .format = static_cast<VkFormat>(info.format),
       .components = {
-          VK_COMPONENT_SWIZZLE_R,
-          VK_COMPONENT_SWIZZLE_G,
-          VK_COMPONENT_SWIZZLE_B,
-          VK_COMPONENT_SWIZZLE_A,
+        VK_COMPONENT_SWIZZLE_R,
+        VK_COMPONENT_SWIZZLE_G,
+        VK_COMPONENT_SWIZZLE_B,
+        VK_COMPONENT_SWIZZLE_A,
       },
       .subresourceRange = {
-          .aspectMask = aspect_mask,
-          .baseMipLevel = 0,
-          .levelCount = 1,
-          .baseArrayLayer = 0, //
-          .layerCount = info.arraySize, //
+        .aspectMask = aspect_mask,
+        .baseMipLevel = 0,
+        .levelCount = 1,
+        .baseArrayLayer = 0,
+        .layerCount = info.arraySize,
       }
     };
-
     xr_graphics->allocateSwapchainImage(base_images, view_info, images);
 
     return true;

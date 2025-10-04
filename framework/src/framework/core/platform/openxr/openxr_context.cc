@@ -340,7 +340,7 @@ void OpenXRContext::pollEvents() {
 // ----------------------------------------------------------------------------
 
 void OpenXRContext::beginFrame() {
-  LOGD("-- OpenXRContext::beginFrame -- ");
+  // LOGD("-- OpenXRContext::beginFrame -- ");
   auto& frameState = controls_.frame.state;
 
   shouldRender_ = false;
@@ -408,7 +408,7 @@ void OpenXRContext::beginFrame() {
 // ----------------------------------------------------------------------------
 
 void OpenXRContext::endFrame() {
-  LOGD("-- OpenXRContext::endFrame -- ");
+  // LOGD("-- OpenXRContext::endFrame -- ");
   auto& frameState = controls_.frame.state;
 
   XrFrameEndInfo frameEndInfo{
@@ -509,34 +509,11 @@ void OpenXRContext::processFrame(
 void OpenXRContext::renderProjectionLayer(XRRenderFunc_t const& render_cb) {
   // LOGD(">>> OpenXRContext::renderProjectionLayer ");
 
-  /* BEGIN_FRAME: Acquire next swapchain image. */
-  // LOGD("XR Swapchain AcquireNextImage ");
-  // if (!swapchain_.acquireNextImage()) {
-  //   LOGE("fails to acquire next image.");
-  // }
 
-  /* DRAW */
-  {
-    // ----------------
-    // REMEMBER, both eyes are in the same swapchain image, on different layers.
-    // ----------------
+  XRFrameView_t frameView{}; // [not used anymore..]
 
-    // auto swapchain_image = swapchain_.currentImage();
-
-    /* Render **all* the view. */
-    XRFrameView_t frameView{}; // [not used anymore..]
-    render_cb(frameView);
-  }
-
-  /* END_FRAME: Submit render commands to the graphics queue. */
-  {
-    // LOGW("[TODO] XR Swapchain SubmitFrame / FinishFrame");
-
-    // [best to send all the view command buffer together]
-    // swapchain_.submitFrame(queue, command_buffer);
-
-    // swapchain_.finishFrame(queue);
-  }
+  // the swapchain image is currently acquired and released inside the render cb.
+  render_cb(frameView);
 
   // ----------------------------
 

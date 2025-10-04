@@ -176,9 +176,9 @@ class Renderer : public backend::RTInterface {
   }
 
   [[nodiscard]]
-  backend::RenderingViewInfo rendering_view_info() const noexcept final {
+  uint32_t view_mask() const noexcept final {
     LOG_CHECK(swapchain_ptr_ != nullptr);
-    return swapchain_ptr_->renderingViewInfo();
+    return swapchain_ptr_->viewMask();
   }
 
   void set_color_clear_value(VkClearColorValue clear_color, uint32_t index = 0u) final {

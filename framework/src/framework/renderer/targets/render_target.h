@@ -84,8 +84,8 @@ class RenderTarget : public backend::RTInterface {
   }
 
   [[nodiscard]]
-  backend::RenderingViewInfo rendering_view_info() const noexcept final {
-    return backend::RenderingViewInfo{};
+  uint32_t view_mask() const noexcept final {
+    return 0b0u;
   }
 
   void set_color_clear_value(VkClearColorValue clear_color, uint32_t i = 0u) final {

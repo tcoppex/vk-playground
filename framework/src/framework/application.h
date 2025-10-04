@@ -64,6 +64,8 @@ class Application : public EventCallbacks
 
   virtual void update(float const dt) {}
 
+  virtual void update_xr(XRFrameData_t const& frame) {} // tmp
+
   virtual void draw() {}
 
  private:
@@ -91,7 +93,7 @@ class Application : public EventCallbacks
   RenderContext context_{};
   Renderer renderer_{};
 
-  VkExtent2D viewport_size_{}; //
+  VkExtent2D viewport_size_{}; // (to remove)
 
  private:
   // |Android only]

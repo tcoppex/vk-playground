@@ -87,7 +87,8 @@ bool Application::presetup(AppData_t app_data) {
 
   // ---------------------------------------
 
-  static constexpr bool kEnableXR = false;
+  static constexpr bool kEnableXR = true;
+  LOGW("OpenXR is {}.", kEnableXR ? "enabled" : "disabled");
 
   /* OpenXR */
   if constexpr (kEnableXR) {
@@ -104,7 +105,7 @@ bool Application::presetup(AppData_t app_data) {
   /* Vulkan context. */
   if (!context_.init(app_name,
                      wm_->vulkanInstanceExtensions(),
-                     vulkanDeviceExtensions(),
+                     vulkanDeviceExtensions(), // [unused]
                      xr_ ? xr_->graphicsInterface() : nullptr))
   {
     LOGE("Vulkan context initialization fails");
@@ -241,7 +242,7 @@ void Application::mainloop(AppData_t app_data) {
 
     if (xr_->isSessionRunning()) [[likely]] {
       xr_->processFrame(
-        [this](auto const& frameData) { update(delta_time()); },
+        [this](auto const& frameData) { update_xr(frameData); },
         [this](auto const& frameView) { draw(); }
       );
     } else {

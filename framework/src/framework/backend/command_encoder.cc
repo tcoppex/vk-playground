@@ -287,8 +287,8 @@ RenderPassEncoder CommandEncoder::begin_rendering(RenderPassDescriptor const& de
     .pNext                = nullptr,
     .flags                = 0b0u,
     .renderArea           = desc.renderArea,
-    .layerCount           = desc.renderingViewInfo.layerCount,
-    .viewMask             = desc.renderingViewInfo.viewMask,
+    .layerCount           = 1u,
+    .viewMask             = desc.viewMask,
     .colorAttachmentCount = static_cast<uint32_t>(desc.colorAttachments.size()),
     .pColorAttachments    = desc.colorAttachments.data(),
     .pDepthAttachment     = &desc.depthAttachment,
@@ -296,7 +296,7 @@ RenderPassEncoder CommandEncoder::begin_rendering(RenderPassDescriptor const& de
   };
   vkCmdBeginRenderingKHR(command_buffer_, &rendering_info);
 
-  return RenderPassEncoder(command_buffer_, get_target_queue_index());
+  return RenderPassEncoder(command_buffer_, target_queue_index());
 }
 
 // ----------------------------------------------------------------------------
@@ -313,7 +313,7 @@ RenderPassEncoder CommandEncoder::begin_rendering(backend::RTInterface const& re
     VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
   );
 
-  RenderPassDescriptor rp_desc{
+  auto desc = RenderPassDescriptor{
     .colorAttachments = {},
     .depthAttachment = {
       .sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
@@ -331,29 +331,28 @@ RenderPassEncoder CommandEncoder::begin_rendering(backend::RTInterface const& re
       .storeOp     = VK_ATTACHMENT_STORE_OP_STORE,
       .clearValue  = render_target.depth_stencil_clear_value(),
     },
-    .renderArea = {{0, 0}, render_target.surface_size()},
+    .renderArea = {
+      .offset = {0, 0},
+      .extent = render_target.surface_size()
+    },
+    .viewMask = render_target.view_mask(),
   };
 
-  rp_desc.colorAttachments.resize(colors.size(), {
+  desc.colorAttachments.resize(colors.size(), {
     .sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
     .imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR,
     .storeOp     = VK_ATTACHMENT_STORE_OP_STORE,
   });
-
-  rp_desc.renderingViewInfo = render_target.rendering_view_info();
-
   for (size_t i = 0u; i < colors.size(); ++i) {
-    auto& attach = rp_desc.colorAttachments[i];
+    auto& attach = desc.colorAttachments[i];
     attach.imageView  = colors[i].view;
     attach.loadOp     = render_target.color_load_op(i);
     attach.clearValue = render_target.color_clear_value(i);
   }
 
-  auto pass_encoder = begin_rendering(rp_desc);
-
   current_render_target_ptr_ = &render_target;
 
-  return pass_encoder;
+  return begin_rendering(desc);
 }
 
 // ----------------------------------------------------------------------------
@@ -411,7 +410,7 @@ RenderPassEncoder CommandEncoder::begin_render_pass(backend::RPInterface const& 
   };
   vkCmdBeginRenderPass(command_buffer_, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
-  return RenderPassEncoder(command_buffer_, get_target_queue_index());
+  return RenderPassEncoder(command_buffer_, target_queue_index());
 }
 
 // ----------------------------------------------------------------------------

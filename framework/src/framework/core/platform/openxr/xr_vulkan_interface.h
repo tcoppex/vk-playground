@@ -120,19 +120,21 @@ struct XRVulkanInterface : public XRGraphicsInterface {
 
   [[nodiscard]]
   uint32_t supportedSampleCount(XrViewConfigurationView const& view) const final {
-    return VK_SAMPLE_COUNT_1_BIT;
+    return view.recommendedSwapchainSampleCount; //VK_SAMPLE_COUNT_1_BIT;
   }
 
   void allocateSwapchainImage(
     std::vector<XrSwapchainImageVulkanKHR> const& base_images,
-    VkImageViewCreateInfo view_info,
+    VkImageViewCreateInfo &view_info,
     std::vector<backend::Image> &images
   ) {
-    images.clear(); //
+    LOG_CHECK(!base_images.empty());
+
+    images.clear();
     images.reserve(base_images.size());
     for (auto const& base : base_images) {
+      view_info.image = base.image;
       VkImageView image_view{};
-      view_info.image = base.image,
       vkCreateImageView(binding_.device, &view_info, nullptr, &image_view);
       images.push_back(backend::Image{
         .image = base.image,
@@ -146,6 +148,7 @@ struct XRVulkanInterface : public XRGraphicsInterface {
     for (auto & img : images) {
       vkDestroyImageView(binding_.device, img.view, nullptr);
     }
+    images.clear();
   }
 
  private:

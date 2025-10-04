@@ -63,11 +63,8 @@ class Swapchain : public SwapchainInterface {
     return images_[0u].format;
   }
 
-  backend::RenderingViewInfo renderingViewInfo() const noexcept final {
-    return {
-      .layerCount = 1u,
-      .viewMask = 0b0,
-    };
+  uint32_t viewMask() const noexcept final {
+    return 0;
   }
 
   [[nodiscard]]

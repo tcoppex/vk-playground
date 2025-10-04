@@ -71,11 +71,18 @@ void Context::deinit() {
 backend::Image Context::create_image_2d(
   uint32_t width,
   uint32_t height,
-  VkFormat const format,
-  VkImageUsageFlags const extra_usage,
+  uint32_t array_layers,
+  uint32_t levels,
+  VkFormat format,
+  VkImageUsageFlags extra_usage,
   std::string_view debugName
 ) const {
   LOG_CHECK( width > 0 && height > 0 );
+  LOG_CHECK( array_layers > 0 );
+
+  // [todo]
+  LOG_CHECK(levels == 1u);
+
   VkImageUsageFlags usage{
       VK_IMAGE_USAGE_SAMPLED_BIT
     | extra_usage
@@ -100,9 +107,9 @@ backend::Image Context::create_image_2d(
       height,
       1u
     },
-    .mipLevels = 1u, // [todo]
-    .arrayLayers = 1u, //
-    .samples = VK_SAMPLE_COUNT_1_BIT,
+    .mipLevels = levels,
+    .arrayLayers = array_layers,
+    .samples = VK_SAMPLE_COUNT_1_BIT, //
     .tiling = VK_IMAGE_TILING_OPTIMAL,
     .usage = usage,
     .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
@@ -238,7 +245,7 @@ void Context::finish_transient_command_encoder(CommandEncoder const& encoder) co
   };
 
   auto const target_queue{
-    static_cast<TargetQueue>(encoder.get_target_queue_index())
+    static_cast<TargetQueue>(encoder.target_queue_index())
   };
 
   CHECK_VK( vkQueueSubmit2(queue(target_queue).queue, 1u, &submit_info_2, fence) );
@@ -638,20 +645,28 @@ bool Context::init_device() {
 
     vkGetPhysicalDeviceFeatures2(gpu_, &feature_.base);
   }
-  LOG_CHECK(feature_.dynamic_rendering.dynamicRendering);
-  LOG_CHECK(feature_.timeline_semaphore.timelineSemaphore);
-  LOG_CHECK(feature_.synchronization2.synchronization2);
-  LOG_CHECK(feature_.descriptor_indexing.descriptorBindingPartiallyBound);
-  LOG_CHECK(feature_.descriptor_indexing.runtimeDescriptorArray);
-  LOG_CHECK(feature_.descriptor_indexing.shaderSampledImageArrayNonUniformIndexing);
-  LOG_CHECK(feature_.vertex_input_dynamic_state.vertexInputDynamicState);
+
+  auto enable_feature = [](auto &feature) {
+    feature = bool(feature) ? VK_TRUE : VK_FALSE;
+  };
+
+  enable_feature(feature_.dynamic_rendering.dynamicRendering);
+  enable_feature(feature_.timeline_semaphore.timelineSemaphore);
+  enable_feature(feature_.synchronization2.synchronization2);
+  enable_feature(feature_.descriptor_indexing.descriptorBindingPartiallyBound);
+  enable_feature(feature_.descriptor_indexing.runtimeDescriptorArray);
+  enable_feature(feature_.descriptor_indexing.shaderSampledImageArrayNonUniformIndexing);
+  enable_feature(feature_.vertex_input_dynamic_state.vertexInputDynamicState);
 
 #if !defined(ANDROID)
-  LOG_CHECK(feature_.ray_tracing_pipeline.rayTracingPipeline);
+  enable_feature(feature_.ray_tracing_pipeline.rayTracingPipeline);
+#endif
+
   if (vulkan_xr_) {
     LOG_CHECK(feature_.multiview.multiview);
+    enable_feature(feature_.multiview.multiview);
   }
-#endif
+  feature_.multiview.multiview = VK_TRUE;
 
   // --------------------
 

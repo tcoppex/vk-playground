@@ -103,7 +103,15 @@ bool Renderer::resize(uint32_t w, uint32_t h) {
   if (depth_stencil_.valid()) {
     allocator_ptr_->destroy_image(&depth_stencil_);
   }
-  depth_stencil_ = ctx_ptr_->create_image_2d(w, h, valid_depth_format());
+
+  depth_stencil_ = ctx_ptr_->create_image_2d(
+    w, h, (view_mask() > 0) ? 2u : 1u,
+    1u,
+    valid_depth_format(),
+    {},
+    "Renderer::DepthStencilImage"
+  );
+
   return true;
 }
 
@@ -241,24 +249,27 @@ VkGraphicsPipelineCreateInfo Renderer::create_graphics_pipeline_create_info(
       data.color_attachments[i] = color_format;
 
       data.color_blend_attachments[i] = {
-        .blendEnable = target.blend.enable,
+        .blendEnable         = target.blend.enable,
         .srcColorBlendFactor = target.blend.color.srcFactor,
         .dstColorBlendFactor = target.blend.color.dstFactor,
-        .colorBlendOp = target.blend.color.operation,
+        .colorBlendOp        = target.blend.color.operation,
         .srcAlphaBlendFactor = target.blend.alpha.srcFactor,
         .dstAlphaBlendFactor = target.blend.alpha.dstFactor,
-        .alphaBlendOp = target.blend.alpha.operation,
-        .colorWriteMask = target.writeMask,
+        .alphaBlendOp        = target.blend.alpha.operation,
+        .colorWriteMask      = target.writeMask,
       };
     }
 
     data.dynamic_rendering_create_info = {
       .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
+      .pNext = nullptr,
+      .viewMask = view_mask(), ///
       .colorAttachmentCount = static_cast<uint32_t>(data.color_attachments.size()),
       .pColorAttachmentFormats = data.color_attachments.data(),
       .depthAttachmentFormat = depth_format,
       .stencilAttachmentFormat = stencil_format,
     };
+    LOGI("data.dynamic_rendering_create_info {}", data.dynamic_rendering_create_info.viewMask);
   }
 
   /* Shaders stages */

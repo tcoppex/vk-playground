@@ -93,10 +93,24 @@ class Context {
   backend::Image create_image_2d(
     uint32_t width,
     uint32_t height,
-    VkFormat const format,
-    VkImageUsageFlags const extra_usage = {},
-    std::string_view debugName = ""
+    uint32_t array_layers,
+    uint32_t levels,
+    VkFormat format,
+    VkImageUsageFlags extra_usage,
+    std::string_view debugName
   ) const;
+
+  [[nodiscard]]
+  backend::Image create_image_2d(
+    uint32_t width,
+    uint32_t height,
+    VkFormat format,
+    VkImageUsageFlags extra_usage = {},
+    std::string_view debugName = ""
+  ) const {
+    return create_image_2d(width, height, 1u, 1u, format, extra_usage, debugName);
+  }
+
 
   // --- Shader Module ---
 
@@ -260,6 +274,8 @@ class Context {
 
   struct {
     VkPhysicalDeviceFeatures2 base{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
+
+    // (to be used with later vulkan version)
     // VkPhysicalDeviceVulkan11Features features11{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES};
     // VkPhysicalDeviceVulkan12Features features12{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES};
     // VkPhysicalDeviceVulkan13Features features13{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
