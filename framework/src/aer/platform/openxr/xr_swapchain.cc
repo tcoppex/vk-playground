@@ -78,7 +78,7 @@ bool OpenXRSwapchain::create(
       VK_COMPONENT_SWIZZLE_A,
     },
     .subresourceRange = {
-      .aspectMask = aspect_mask,
+      .aspectMask = static_cast<VkImageAspectFlags>(aspect_mask),
       .baseMipLevel = 0,
       .levelCount = 1,
       .baseArrayLayer = 0,
