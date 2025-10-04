@@ -6,13 +6,13 @@
 //
 /* -------------------------------------------------------------------------- */
 
-#include "framework/application.h"
-#include "framework/core/camera.h"
-#include "framework/core/arcball_controller.h"
-#include "framework/renderer/fx/postprocess/post_fx_pipeline.h"
-#include "framework/renderer/fx/postprocess/compute/impl/depth_minmax.h"
-#include "framework/renderer/fx/postprocess/fragment/impl/normaldepth_edge.h"
-#include "framework/renderer/fx/postprocess/fragment/impl/object_edge.h"
+#include "aer/application.h"
+#include "aer/core/camera.h"
+#include "aer/core/arcball_controller.h"
+#include "aer/renderer/fx/postprocess/post_fx_pipeline.h"
+#include "aer/renderer/fx/postprocess/compute/impl/depth_minmax.h"
+#include "aer/renderer/fx/postprocess/fragment/impl/normaldepth_edge.h"
+#include "aer/renderer/fx/postprocess/fragment/impl/object_edge.h"
 
 namespace shader_interop {
 #include "shaders/interop.h"

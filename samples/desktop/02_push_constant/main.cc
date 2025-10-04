@@ -10,7 +10,7 @@
 //
 /* -------------------------------------------------------------------------- */
 
-#include "framework/application.h"
+#include "aer/application.h"
 
 /* Constants & data structures shared between the host and the device. */
 namespace shader_interop {

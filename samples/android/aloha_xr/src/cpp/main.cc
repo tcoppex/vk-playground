@@ -6,7 +6,7 @@
 //
 /* -------------------------------------------------------------------------- */
 
-#include "framework/application.h"
+#include "aer/application.h"
 
 namespace shader_interop {
 #include "../shaders/interop.h"

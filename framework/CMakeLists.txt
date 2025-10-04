@@ -4,7 +4,7 @@
 # 
 # -----------------------------------------------------------------------------
 
-set(target vkframework)
+set(target aer)
 
 if(ANDROID)
   # We add a suffix to  avoid collision with the Desktop build.
@@ -36,7 +36,7 @@ file(GLOB_RECURSE Sources CONFIGURE_DEPENDS
 # Platform specific Source dependencies.
 # -----------------------------------------------------------------------------
 
-set(FRAMEWORK_PLATFORM_SRC_DIR ${FRAMEWORK_SOURCE_DIR}/framework/platform)
+set(FRAMEWORK_PLATFORM_SRC_DIR ${FRAMEWORK_SOURCE_DIR}/aer/platform) #!
 
 # Exclude all platform specific codes..
 list(FILTER Sources EXCLUDE REGEX "${FRAMEWORK_PLATFORM_SRC_DIR}/.*")

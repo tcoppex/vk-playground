@@ -6,8 +6,8 @@
 //
 /* -------------------------------------------------------------------------- */
 
-#include "framework/application.h"
-#include "framework/scene/mesh.h"
+#include "aer/application.h"
+#include "aer/scene/mesh.h"
 
 namespace shader_interop {
 #include "shaders/interop.h"

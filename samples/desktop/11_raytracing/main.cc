@@ -6,11 +6,11 @@
 //
 /* -------------------------------------------------------------------------- */
 
-#include "framework/application.h"
-#include "framework/core/camera.h"
-#include "framework/core/arcball_controller.h"
+#include "aer/application.h"
+#include "aer/core/camera.h"
+#include "aer/core/arcball_controller.h"
 
-#include "framework/renderer/fx/postprocess/ray_tracing/ray_tracing_fx.h"
+#include "aer/renderer/fx/postprocess/ray_tracing/ray_tracing_fx.h"
 
 namespace shader_interop {
 #include "shaders/interop.h"

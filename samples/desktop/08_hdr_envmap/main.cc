@@ -6,10 +6,10 @@
 //
 /* -------------------------------------------------------------------------- */
 
-#include "framework/application.h"
+#include "aer/application.h"
 
-#include "framework/core/camera.h"
-#include "framework/core/arcball_controller.h"
+#include "aer/core/camera.h"
+#include "aer/core/arcball_controller.h"
 
 namespace shader_interop {
 #include "shaders/interop.h"
