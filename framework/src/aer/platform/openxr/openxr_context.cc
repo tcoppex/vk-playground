@@ -10,7 +10,7 @@
 /* -------------------------------------------------------------------------- */
 
 #if !defined(FRAMEWORK_NAME)
-#define FRAMEWORK_NAME "vkframework" //
+#define FRAMEWORK_NAME "aer" //
 #endif
 
 static constexpr char const* kEngineName{FRAMEWORK_NAME}; //

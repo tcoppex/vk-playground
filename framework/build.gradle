@@ -10,7 +10,7 @@ plugins {
 
 // ----------------------------------------------------------------------------
 
-def appName = "vkframework" //projectDir.name
+def appName = "aer" //projectDir.name
 def packageName = "${rootProject.ext.orgPrefix}.${appName}"
 
 // ----------------------------------------------------------------------------
