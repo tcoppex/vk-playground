@@ -17,7 +17,7 @@ static constexpr char const* kEngineName{FRAMEWORK_NAME}; //
 
 /* -------------------------------------------------------------------------- */
 
-SwapchainInterface::~SwapchainInterface() = default;
+// SwapchainInterface::~SwapchainInterface() = default;
 
 namespace {
 
