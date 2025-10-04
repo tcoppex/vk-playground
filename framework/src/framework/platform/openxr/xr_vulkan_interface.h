@@ -6,7 +6,7 @@
 #endif
 
 #include "framework/backend/types.h" // (for backend::Image)
-#include "framework/core/platform/openxr/xr_utils.h"
+#include "framework/platform/openxr/xr_utils.h"
 
 #include "volk.h"
 #include "openxr/openxr_platform.h"

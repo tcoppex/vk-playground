@@ -8,11 +8,11 @@ using namespace std::chrono_literals;
 
 #include "framework/core/common.h"
 
-#include "framework/core/platform/common.h"
-#include "framework/core/platform/event_callbacks.h"
-#include "framework/core/platform/wm_interface.h"
-#include "framework/core/platform/ui_controller.h"
-#include "framework/core/platform/xr_interface.h"
+#include "framework/platform/common.h"
+#include "framework/platform/event_callbacks.h"
+#include "framework/platform/wm_interface.h"
+#include "framework/platform/ui_controller.h"
+#include "framework/platform/xr_interface.h"
 
 #include "framework/backend/swapchain.h"
 
@@ -63,8 +63,6 @@ class Application : public EventCallbacks
   virtual void build_ui() {}
 
   virtual void update(float const dt) {}
-
-  // virtual void update_xr(XRFrameData_t const& frame) {} // tmp
 
   virtual void draw() {}
 

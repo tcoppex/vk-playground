@@ -6,8 +6,8 @@
 #include "framework/core/common.h"
 
 #include "framework/backend/swapchain.h"
-// #include "framework/core/platform/openxr/xr_vulkan_interface.h" //
-#include "framework/core/platform/openxr/openxr_context.h" //
+// #include "framework/platform/openxr/xr_vulkan_interface.h" //
+#include "framework/platform/openxr/openxr_context.h" //
 
 #include "framework/renderer/render_context.h"
 #include "framework/backend/command_encoder.h"

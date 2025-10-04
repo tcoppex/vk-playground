@@ -1,5 +1,5 @@
-#ifndef VKFRAMEWORK_CORE_PLATEFORM_ANDROID_JNI_CONTEXT_H_
-#define VKFRAMEWORK_CORE_PLATEFORM_ANDROID_JNI_CONTEXT_H_
+#ifndef VKFRAMEWORK_PLATEFORM_ANDROID_JNI_CONTEXT_H_
+#define VKFRAMEWORK_PLATEFORM_ANDROID_JNI_CONTEXT_H_
 
 /* -------------------------------------------------------------------------- */
 
@@ -10,7 +10,7 @@ extern "C" {
 }
 
 #include "framework/core/common.h"
-#include "framework/core/platform/common.h" //
+#include "framework/platform/common.h" //
 #include "framework/core/singleton.h"
 
 /* -------------------------------------------------------------------------- */
@@ -57,4 +57,4 @@ class JNIContext final : public Singleton<JNIContext> {
 
 /* -------------------------------------------------------------------------- */
 
-#endif // VKFRAMEWORK_CORE_PLATEFORM_ANDROID_JNI_CONTEXT_H_
+#endif // VKFRAMEWORK_PLATEFORM_ANDROID_JNI_CONTEXT_H_

@@ -1,8 +1,8 @@
-#ifndef VKFRAMEWORK_CORE_PLATEFORM_DESKTOP_XR_DESKTOP_H_
-#define VKFRAMEWORK_CORE_PLATEFORM_DESKTOP_XR_DESKTOP_H_
+#ifndef VKFRAMEWORK_PLATEFORM_DESKTOP_XR_DESKTOP_H_
+#define VKFRAMEWORK_PLATEFORM_DESKTOP_XR_DESKTOP_H_
 
-#include "framework/core/platform/common.h"
-#include "framework/core/platform/openxr/xr_platform_interface.h"
+#include "framework/platform/common.h"
+#include "framework/platform/openxr/xr_platform_interface.h"
 
 /* -------------------------------------------------------------------------- */
 
@@ -27,4 +27,4 @@ struct XRPlatformDesktop final : XRPlatformInterface {
 
 /* -------------------------------------------------------------------------- */
 
-#endif // VKFRAMEWORK_CORE_PLATEFORM_DESKTOP_XR_DESKTOP_H_
+#endif // VKFRAMEWORK_PLATEFORM_DESKTOP_XR_DESKTOP_H_

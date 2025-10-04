@@ -1,5 +1,5 @@
 
-#include "framework/core/platform/openxr/xr_swapchain.h" //
+#include "framework/platform/openxr/xr_swapchain.h" //
 
 /* -------------------------------------------------------------------------- */
 

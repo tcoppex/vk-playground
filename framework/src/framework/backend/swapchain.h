@@ -6,7 +6,7 @@
 #include "framework/backend/types.h"
 class Context;
 
-#include "framework/core/platform/swapchain_interface.h" //
+#include "framework/platform/swapchain_interface.h" //
 
 /* -------------------------------------------------------------------------- */
 

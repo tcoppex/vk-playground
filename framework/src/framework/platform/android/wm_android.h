@@ -1,9 +1,9 @@
-#ifndef VKFRAMEWORK_CORE_PLATEFORM_ANDROID_WM_ANDROID_H_
-#define VKFRAMEWORK_CORE_PLATEFORM_ANDROID_WM_ANDROID_H_
+#ifndef VKFRAMEWORK_PLATEFORM_ANDROID_WM_ANDROID_H_
+#define VKFRAMEWORK_PLATEFORM_ANDROID_WM_ANDROID_H_
 
-#include "framework/core/platform/common.h"
-#include "framework/core/platform/wm_interface.h"
-#include "framework/core/platform/android/xr_android.h"
+#include "framework/platform/common.h"
+#include "framework/platform/wm_interface.h"
+#include "framework/platform/android/xr_android.h"
 
 /* -------------------------------------------------------------------------- */
 
@@ -88,4 +88,4 @@ struct WMAndroid final : public WMInterface {
 
 /* -------------------------------------------------------------------------- */
 
-#endif // VKFRAMEWORK_CORE_PLATEFORM_ANDROID_WM_ANDROID_H_
+#endif // VKFRAMEWORK_PLATEFORM_ANDROID_WM_ANDROID_H_

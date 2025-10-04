@@ -11,7 +11,7 @@
 #endif
 
 #define IMGUI_WRAPPER_IMPL
-#include "framework/core/platform/ui_controller.h" //
+#include "framework/platform/ui_controller.h" //
 
 #include <backends/imgui_impl_android.h>
 #include <imgui_internal.h>

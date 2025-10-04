@@ -1,13 +1,13 @@
-#ifndef VKFRAMEWORK_CORE_PLATEFORM_UI_UI_CONTROLLER_H_
-#define VKFRAMEWORK_CORE_PLATEFORM_UI_UI_CONTROLLER_H_
+#ifndef VKFRAMEWORK_PLATEFORM_UI_UI_CONTROLLER_H_
+#define VKFRAMEWORK_PLATEFORM_UI_UI_CONTROLLER_H_
 
 /* -------------------------------------------------------------------------- */
 
 #include "framework/core/common.h"
 #include "framework/backend/context.h"
 
-#include "framework/core/platform/wm_interface.h"
-#include "framework/core/platform/imgui_wrapper.h" //
+#include "framework/platform/wm_interface.h"
+#include "framework/platform/imgui_wrapper.h" //
 
 class Context;
 class Renderer;
@@ -35,4 +35,4 @@ class UIController {
 
 /* -------------------------------------------------------------------------- */
 
-#endif // VKFRAMEWORK_CORE_PLATEFORM_UI_UI_CONTROLLER_H_
+#endif // VKFRAMEWORK_PLATEFORM_UI_UI_CONTROLLER_H_

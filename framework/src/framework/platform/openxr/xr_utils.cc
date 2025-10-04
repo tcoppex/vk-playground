@@ -1,4 +1,4 @@
-#include "framework/core/platform/openxr/xr_utils.h"
+#include "framework/platform/openxr/xr_utils.h"
 
 namespace xrutils {
 

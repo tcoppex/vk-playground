@@ -1,5 +1,5 @@
-#ifndef VKFRAMEWORK_CORE_PLATEFORM_EVENTS_H
-#define VKFRAMEWORK_CORE_PLATEFORM_EVENTS_H
+#ifndef VKFRAMEWORK_PLATEFORM_EVENTS_H
+#define VKFRAMEWORK_PLATEFORM_EVENTS_H
 
 #include <functional>
 #include <set>
@@ -9,7 +9,7 @@
 #include <vector>
 
 #include "framework/core/singleton.h"
-#include "framework/core/platform/event_callbacks.h"
+#include "framework/platform/event_callbacks.h"
 
 // ----------------------------------------------------------------------------
 
@@ -138,4 +138,4 @@ class Events final : public Singleton<Events>
 
 // ----------------------------------------------------------------------------
 
-#endif // VKFRAMEWORK_CORE_PLATEFORM_EVENTS_H
+#endif // VKFRAMEWORK_PLATEFORM_EVENTS_H

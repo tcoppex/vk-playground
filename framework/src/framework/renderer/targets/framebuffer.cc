@@ -2,7 +2,7 @@
 
 #include "framework/backend/context.h"
 #include "framework/renderer/targets/render_target.h" // (for kDefaultImageUsageFlags)
-#include "framework/core/platform/swapchain_interface.h"
+#include "framework/platform/swapchain_interface.h"
 
 /* -------------------------------------------------------------------------- */
 

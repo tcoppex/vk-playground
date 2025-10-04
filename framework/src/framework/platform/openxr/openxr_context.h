@@ -5,13 +5,13 @@
 
 #include "framework/core/common.h"
 
-#include "framework/core/platform/xr_interface.h"
-#include "framework/core/platform/openxr/xr_common.h"
-#include "framework/core/platform/openxr/xr_utils.h"
+#include "framework/platform/xr_interface.h"
+#include "framework/platform/openxr/xr_common.h"
+#include "framework/platform/openxr/xr_utils.h"
 
-#include "framework/core/platform/openxr/xr_platform_interface.h"
-#include "framework/core/platform/openxr/xr_vulkan_interface.h" //
-#include "framework/core/platform/openxr/xr_swapchain.h"
+#include "framework/platform/openxr/xr_platform_interface.h"
+#include "framework/platform/openxr/xr_vulkan_interface.h" //
+#include "framework/platform/openxr/xr_swapchain.h"
 
 /* -------------------------------------------------------------------------- */
 

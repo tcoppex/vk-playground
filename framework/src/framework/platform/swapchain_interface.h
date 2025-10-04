@@ -9,7 +9,6 @@
 
 class SwapchainInterface {
  public:
-  // SwapchainInterface() = default;
   virtual ~SwapchainInterface() = default;
 
   virtual bool acquireNextImage() = 0;

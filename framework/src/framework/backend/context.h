@@ -7,7 +7,7 @@
 #include "framework/backend/command_encoder.h"
 #include "framework/backend/allocator.h"
 
-#include "framework/core/platform/openxr/xr_vulkan_interface.h" //
+#include "framework/platform/openxr/xr_vulkan_interface.h" //
 
 /* -------------------------------------------------------------------------- */
 

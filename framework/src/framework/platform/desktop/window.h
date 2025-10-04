@@ -1,8 +1,8 @@
-#ifndef VKFRAMEWORK_CORE_PLATEFORM_DESKTOP_WINDOW_H_
-#define VKFRAMEWORK_CORE_PLATEFORM_DESKTOP_WINDOW_H_
+#ifndef VKFRAMEWORK_PLATEFORM_DESKTOP_WINDOW_H_
+#define VKFRAMEWORK_PLATEFORM_DESKTOP_WINDOW_H_
 
-#include "framework/core/platform/wm_interface.h"
-#include "framework/core/platform/desktop/xr_desktop.h"
+#include "framework/platform/wm_interface.h"
+#include "framework/platform/desktop/xr_desktop.h"
 
 #define GLFW_INCLUDE_NONE
 #include "GLFW/glfw3.h"

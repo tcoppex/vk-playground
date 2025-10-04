@@ -2,8 +2,8 @@
   #include <windows.h> // for SetConsoleOutputCP
 #endif
 
-#include "framework/core/platform/desktop/window.h"
-#include "framework/core/platform/events.h"
+#include "framework/platform/desktop/window.h"
+#include "framework/platform/events.h"
 #include "framework/core/logger.h"
 
 /* -------------------------------------------------------------------------- */

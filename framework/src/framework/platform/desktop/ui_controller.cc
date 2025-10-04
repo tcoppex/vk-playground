@@ -11,7 +11,7 @@
 #endif
 
 #define IMGUI_WRAPPER_IMPL
-#include "framework/core/platform/ui_controller.h" //
+#include "framework/platform/ui_controller.h" //
 
 #include <backends/imgui_impl_glfw.h>
 #include <imgui_internal.h>
@@ -27,7 +27,7 @@
 #include "framework/renderer/renderer.h"
 #include "framework/backend/context.h"
 
-#include "framework/core/platform/desktop/window.h" // for glfwGetWindowContentScale
+#include "framework/platform/desktop/window.h" // for glfwGetWindowContentScale
 
 /* -------------------------------------------------------------------------- */
 

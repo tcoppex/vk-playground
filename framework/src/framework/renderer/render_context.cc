@@ -1,6 +1,6 @@
 #include "framework/renderer/render_context.h"
 
-#include "framework/core/platform/swapchain_interface.h" //
+#include "framework/platform/swapchain_interface.h" //
 #include "framework/scene/image_data.h" // ~
 #include "framework/shaders/material/interop.h" // for kAttribLocation_*
 

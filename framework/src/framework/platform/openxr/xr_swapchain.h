@@ -3,9 +3,9 @@
 /* -------------------------------------------------------------------------- */
 
 #include "framework/core/common.h"
-#include "framework/core/platform/openxr/xr_common.h"
-#include "framework/core/platform/openxr/xr_vulkan_interface.h" //
-#include "framework/core/platform/swapchain_interface.h" //
+#include "framework/platform/openxr/xr_common.h"
+#include "framework/platform/openxr/xr_vulkan_interface.h" //
+#include "framework/platform/swapchain_interface.h" //
 
 /* -------------------------------------------------------------------------- */
 

@@ -1,5 +1,5 @@
-#ifndef VKFRAMEWORK_CORE_PLATEFORM_COMMON_H_
-#define VKFRAMEWORK_CORE_PLATEFORM_COMMON_H_
+#ifndef VKFRAMEWORK_PLATEFORM_COMMON_H_
+#define VKFRAMEWORK_PLATEFORM_COMMON_H_
 
 /* -------------------------------------------------------------------------- */
 
@@ -22,10 +22,10 @@ extern "C" {
 
 #if defined(USE_OPENXR)
 
-#include "framework/core/platform/openxr/openxr_context.h"
+#include "framework/platform/openxr/openxr_context.h"
 
 // #if defined(XR_USE_PLATFORM_ANDROID)
-// #include "framework/core/platform/android/xr_android.h"
+// #include "framework/platform/android/xr_android.h"
 // #endif
 
 #endif

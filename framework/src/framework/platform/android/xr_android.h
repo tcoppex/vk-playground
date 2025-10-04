@@ -1,10 +1,10 @@
-#ifndef VKFRAMEWORK_CORE_PLATEFORM_ANDROID_XR_ANDROID_H_
-#define VKFRAMEWORK_CORE_PLATEFORM_ANDROID_XR_ANDROID_H_
+#ifndef VKFRAMEWORK_PLATEFORM_ANDROID_XR_ANDROID_H_
+#define VKFRAMEWORK_PLATEFORM_ANDROID_XR_ANDROID_H_
 
-#include "framework/core/platform/common.h"
-#include "framework/core/platform/android/jni_context.h"
+#include "framework/platform/common.h"
+#include "framework/platform/android/jni_context.h"
 
-#include "framework/core/platform/openxr/xr_platform_interface.h"
+#include "framework/platform/openxr/xr_platform_interface.h"
 
 /* -------------------------------------------------------------------------- */
 
@@ -54,4 +54,4 @@ struct XRPlatformAndroid final : XRPlatformInterface {
 
 /* -------------------------------------------------------------------------- */
 
-#endif // VKFRAMEWORK_CORE_PLATEFORM_ANDROID_XR_ANDROID_H_
+#endif // VKFRAMEWORK_PLATEFORM_ANDROID_XR_ANDROID_H_

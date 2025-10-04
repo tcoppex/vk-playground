@@ -111,15 +111,10 @@ struct XRControlState_t {
 // ----------------------------------------------------------------------------
 
 struct XRFrameData_t {
-  double predictedDisplayTime{};
-
   std::array<mat4f, XRSide::kNumSide> viewMatrices{};
   std::array<mat4f, XRSide::kNumSide> projMatrices{};
-
   std::array<mat4f const*, XRSpaceId::kNumSpaceId> spaceMatrices{}; //
-
-  // XRControlState_t::Frame *inputs{};
-
+  double predictedDisplayTime{};
   bool shouldRender{};
 };
 

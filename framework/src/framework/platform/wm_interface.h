@@ -1,9 +1,9 @@
-#ifndef VKFRAMEWORK_CORE_PLATEFORM_WM_INTERFACE_H
-#define VKFRAMEWORK_CORE_PLATEFORM_WM_INTERFACE_H
+#ifndef VKFRAMEWORK_PLATEFORM_WM_INTERFACE_H
+#define VKFRAMEWORK_PLATEFORM_WM_INTERFACE_H
 
 #include "framework/core/common.h"
-#include "framework/core/platform/common.h"
-#include "framework/core/platform/openxr/xr_platform_interface.h"
+#include "framework/platform/common.h"
+#include "framework/platform/openxr/xr_platform_interface.h"
 
 #include "framework/backend/vk_utils.h"
 
@@ -55,4 +55,4 @@ struct WMInterface {
 
 /* -------------------------------------------------------------------------- */
 
-#endif  // VKFRAMEWORK_CORE_PLATEFORM_WM_INTERFACE_H
+#endif  // VKFRAMEWORK_PLATEFORM_WM_INTERFACE_H

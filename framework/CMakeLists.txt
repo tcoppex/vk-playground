@@ -36,7 +36,7 @@ file(GLOB_RECURSE Sources CONFIGURE_DEPENDS
 # Platform specific Source dependencies.
 # -----------------------------------------------------------------------------
 
-set(FRAMEWORK_PLATFORM_SRC_DIR ${FRAMEWORK_SOURCE_DIR}/framework/core/platform)
+set(FRAMEWORK_PLATFORM_SRC_DIR ${FRAMEWORK_SOURCE_DIR}/framework/platform)
 
 # Exclude all platform specific codes..
 list(FILTER Sources EXCLUDE REGEX "${FRAMEWORK_PLATFORM_SRC_DIR}/.*")

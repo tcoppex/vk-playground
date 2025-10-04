@@ -4,8 +4,8 @@
 #include <string>
 #include <unordered_set>
 
-#include "framework/core/platform/openxr/openxr_context.h"
-#include "framework/core/platform/openxr/xr_utils.h"
+#include "framework/platform/openxr/openxr_context.h"
+#include "framework/platform/openxr/xr_utils.h"
 
 /* -------------------------------------------------------------------------- */
 
