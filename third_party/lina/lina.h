@@ -1,4 +1,4 @@
-//  lina.h - v0.3.2
+//  lina.h - v0.4.0
 //
 //  Public domain linear algebra header, wrapping sgorsten/linalg.h
 //  <http://unlicense.org/>
@@ -158,12 +158,14 @@ constexpr bool almost_equal(aliases::vec3 const& a, aliases::vec3 const& b, floa
 template<typename T>
 constexpr T saturate(T const& a) {
   static_assert( std::is_floating_point<T>::value );
-  return clamp(a, 0, 1);
+  return linalg::clamp(a, 0, 1);
 }
 
 // ----------------------------------------------------------------------------
 
-template<class T, int M> constexpr linalg::vec<T,M> mul(const linalg::vec<T,4> & a, const linalg::mat<T,M,4> & b) { return a.x*b.row(0) + a.y*b.row(1) + a.z*b.row(2) + a.w*b.row(3); }
+template<class T, int M> constexpr linalg::vec<T,M> mul(const linalg::vec<T,4> & a, const linalg::mat<T,M,4> & b) {
+  return a.x*b.row(0) + a.y*b.row(1) + a.z*b.row(2) + a.w*b.row(3);
+}
 
 // ----------------------------------------------------------------------------
 
@@ -178,6 +180,13 @@ template<typename T>
 constexpr T step(T const& a, T const& x) {
   static_assert( std::is_floating_point<T>::value );
   return static_cast<T>(select(a > x, 0, 1));
+}
+
+template<typename T>
+constexpr T smoothstep(T const& edge0, T const& edge1, T x) {
+  static_assert( std::is_floating_point<T>::value );
+  x = saturate((x - edge0) / (edge1 - edge0));
+  return x * x * (3.0 - 2.0 * x);
 }
 
 // Interpolate in two steps. ([0, 0.5, 1.0]->[a, b, c])
@@ -218,7 +227,7 @@ constexpr T gain(T const& a, T const& b) {
   if (a > (1.0-kEpsilon)) {
     return 1.0;
   }
-  const T bb = clamp(b, kEpsilon, 1.0 - kEpsilon);
+  const T bb = linalg::clamp(b, kEpsilon, 1.0 - kEpsilon);
   const T e = log(1.0-bb) / kHalfLog;
   auto f = [e](auto x) { return pow(2.0 * x, e) / 2.0; };
   return (a < 0.5) ? f(a) : 1.0 - f(1.0 - a);
@@ -294,7 +303,7 @@ bool solve_basic_ik(T const lenA, T const lenB, const linalg::vec<T, 3>& target,
     }
 
     linalg::vec<T, 3> S;
-    S.x = clamp(0.5 * (lenR + (lenA2 - lenB2) / lenR), 0.0, (1.0 - kEpsilon) * lenA);
+    S.x = linalg::clamp(0.5 * (lenR + (lenA2 - lenB2) / lenR), 0.0, (1.0 - kEpsilon) * lenA);
 
     T const ySquared = lenA2 - S.x * S.x;
     if (ySquared < 0.0) {
