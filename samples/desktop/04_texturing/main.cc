@@ -6,8 +6,8 @@
 //
 /* -------------------------------------------------------------------------- */
 
-#include "framework/application.h"
-#include "framework/scene/mesh.h"
+#include "aer/application.h"
+#include "aer/scene/mesh.h"
 
 namespace shader_interop {
 #include "shaders/interop.h"
@@ -78,7 +78,7 @@ class SampleApp final : public Application {
       );
 
       /* Load a texture using the current transient command encoder. */
-      if (std::string fn{ASSETS_DIR "textures/whynot.png"}; !renderer_.load_image_2d(cmd, fn, image_)) {
+      if (std::string fn{ASSETS_DIR "textures/whynot.png"}; !context_.load_image_2d(cmd, fn, image_)) {
         LOGW("The texture image '{}' could not be found.", fn);
       }
 
@@ -87,14 +87,14 @@ class SampleApp final : public Application {
 
     /* Alternatively the texture could have been loaded directly using an
      * internal transient command encoder. */
-    // renderer_.load_image_2d(path_to_texture, image_);
+    // context_.load_image_2d(path_to_texture, image_);
 
     /* We don't need to keep the host data so we can clear them. */
     cube_.clear_indices_and_vertices();
 
     /* Descriptor set. */
     {
-      descriptor_set_layout_ = renderer_.create_descriptor_set_layout({
+      descriptor_set_layout_ = context_.create_descriptor_set_layout({
         {
           .binding = shader_interop::kDescriptorSetBinding_UniformBuffer,
           .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
@@ -113,7 +113,7 @@ class SampleApp final : public Application {
         },
       });
 
-      descriptor_set_ = renderer_.create_descriptor_set(descriptor_set_layout_, {
+      descriptor_set_ = context_.create_descriptor_set(descriptor_set_layout_, {
         {
           .binding = shader_interop::kDescriptorSetBinding_UniformBuffer,
           .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
@@ -124,7 +124,7 @@ class SampleApp final : public Application {
           .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
           .images = {
             {
-              .sampler = renderer_.default_sampler(),
+              .sampler = context_.default_sampler(),
               .imageView = image_.view,
               .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             }
@@ -140,7 +140,7 @@ class SampleApp final : public Application {
 
     /* Setup the graphics pipeline. */
     {
-      VkPipelineLayout const pipeline_layout = renderer_.create_pipeline_layout({
+      VkPipelineLayout const pipeline_layout = context_.create_pipeline_layout({
         .setLayouts = { descriptor_set_layout_ },
         .pushConstantRanges = {
           {
@@ -163,7 +163,7 @@ class SampleApp final : public Application {
           .module = shaders[1u].module,
           .targets = {
             {
-              .format = renderer_.get_color_attachment().format,
+              .format = renderer_.color_attachment().format,
               .writeMask = VK_COLOR_COMPONENT_R_BIT
                          | VK_COLOR_COMPONENT_G_BIT
                          | VK_COLOR_COMPONENT_B_BIT
@@ -173,7 +173,7 @@ class SampleApp final : public Application {
           },
         },
         .depthStencil = {
-          .format = renderer_.get_depth_stencil_attachment().format,
+          .format = renderer_.depth_stencil_attachment().format,
           .depthTestEnable = VK_TRUE,
           .depthWriteEnable = VK_TRUE,
           .depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL,
@@ -191,9 +191,9 @@ class SampleApp final : public Application {
   }
 
   void release() final {
-    renderer_.destroy_descriptor_set_layout(descriptor_set_layout_);
-    renderer_.destroy_pipeline_layout(graphics_pipeline_.get_layout());
-    renderer_.destroy_pipeline(graphics_pipeline_);
+    context_.destroy_descriptor_set_layout(descriptor_set_layout_);
+    context_.destroy_pipeline_layout(graphics_pipeline_.layout());
+    context_.destroy_pipeline(graphics_pipeline_);
 
     allocator_ptr_->destroy_image(&image_);
 
@@ -254,10 +254,10 @@ class SampleApp final : public Application {
   Pipeline graphics_pipeline_{};
 };
 
+
+
 // ----------------------------------------------------------------------------
 
-int main(int argc, char *argv[]) {
-  return SampleApp().run();
-}
+ENTRY_POINT(SampleApp)
 
 /* -------------------------------------------------------------------------- */

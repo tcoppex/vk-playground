@@ -6,9 +6,9 @@
 //
 /* -------------------------------------------------------------------------- */
 
-#include "framework/application.h"
-#include "framework/core/camera.h"
-#include "framework/core/arcball_controller.h"
+#include "aer/application.h"
+#include "aer/core/camera.h"
+#include "aer/core/arcball_controller.h"
 
 /* -------------------------------------------------------------------------- */
 
@@ -44,9 +44,9 @@ class SampleApp final : public Application {
     };
 
     if constexpr(true) {
-      future_scene_ = renderer_.async_load_to_device(gtlf_filename);
+      future_scene_ = renderer_.async_load_gltf(gtlf_filename);
     } else {
-      scene_ = renderer_.load_and_upload(gtlf_filename);
+      scene_ = renderer_.load_gltf(gtlf_filename);
     }
 
     return true;
@@ -73,7 +73,7 @@ class SampleApp final : public Application {
       scene_ = future_scene_.get();
     }
     if (scene_) {
-      scene_->update(camera_, renderer_.get_surface_size(), elapsed_time());
+      scene_->update(camera_, renderer_.surface_size(), elapsed_time());
     }
   }
 
@@ -108,10 +108,10 @@ class SampleApp final : public Application {
   GLTFScene scene_{};
 };
 
+
+
 // ----------------------------------------------------------------------------
 
-int main(int argc, char *argv[]) {
-  return SampleApp().run();
-}
+ENTRY_POINT(SampleApp)
 
 /* -------------------------------------------------------------------------- */

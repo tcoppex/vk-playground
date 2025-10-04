@@ -6,13 +6,13 @@
 //
 /* -------------------------------------------------------------------------- */
 
-#include "framework/application.h"
-#include "framework/core/camera.h"
-#include "framework/core/arcball_controller.h"
-#include "framework/renderer/fx/postprocess/post_fx_pipeline.h"
-#include "framework/renderer/fx/postprocess/compute/impl/depth_minmax.h"
-#include "framework/renderer/fx/postprocess/fragment/impl/normaldepth_edge.h"
-#include "framework/renderer/fx/postprocess/fragment/impl/object_edge.h"
+#include "aer/application.h"
+#include "aer/core/camera.h"
+#include "aer/core/arcball_controller.h"
+#include "aer/renderer/fx/postprocess/post_fx_pipeline.h"
+#include "aer/renderer/fx/postprocess/compute/impl/depth_minmax.h"
+#include "aer/renderer/fx/postprocess/fragment/impl/normaldepth_edge.h"
+#include "aer/renderer/fx/postprocess/fragment/impl/object_edge.h"
 
 namespace shader_interop {
 #include "shaders/interop.h"
@@ -64,14 +64,14 @@ class SceneFx final : public RenderTargetFx {
   }
 
   void createRenderTarget(VkExtent2D const dimension) final {
-    render_target_ = renderer_ptr_->create_render_target({
+    render_target_ = context_ptr_->create_render_target({
       .color_formats = {
         VK_FORMAT_R32G32B32A32_SFLOAT,
         VK_FORMAT_R32G32B32A32_SFLOAT,
       },
       .depth_stencil_format = VK_FORMAT_D24_UNORM_S8_UINT,
       .size = dimension,
-      .sampler = renderer_ptr_->default_sampler(),
+      .sampler = context_ptr_->default_sampler(),
     });
 
     // Set the clear values for color attachments.
@@ -125,8 +125,8 @@ class SceneFx final : public RenderTargetFx {
       .fragment = {
         .module = shaders[1u].module,
         .targets = {
-          { .format = render_target_->get_color_attachment(0).format },
-          { .format = render_target_->get_color_attachment(1).format }
+          { .format = render_target_->color_attachment(0).format },
+          { .format = render_target_->color_attachment(1).format }
         },
       },
       .depthStencil = {
@@ -283,7 +283,7 @@ class SampleApp final : public Application {
       "DamagedHelmet.glb"
     };
 
-    auto gltf_scene = renderer_.load_and_upload(gltf_filename, {
+    auto gltf_scene = renderer_.load_gltf(gltf_filename, {
       { Geometry::AttributeType::Position,  shader_interop::kAttribLocation_Position },
       { Geometry::AttributeType::Texcoord,  shader_interop::kAttribLocation_Texcoord },
       { Geometry::AttributeType::Normal,    shader_interop::kAttribLocation_Normal   },
@@ -291,7 +291,7 @@ class SampleApp final : public Application {
 
     /* Fx Pipeline. */
     toon_pipeline_.init(renderer_);
-    toon_pipeline_.setup(renderer_.get_surface_size());
+    toon_pipeline_.setup(renderer_.surface_size());
 
     if (auto sceneFx = toon_pipeline_.getEntryFx(); sceneFx) {
       sceneFx->setModel(gltf_scene);
@@ -357,10 +357,10 @@ class SampleApp final : public Application {
   ToonFxPipeline toon_pipeline_{};
 };
 
+
+
 // ----------------------------------------------------------------------------
 
-int main(int argc, char *argv[]) {
-  return SampleApp().run();
-}
+ENTRY_POINT(SampleApp)
 
 /* -------------------------------------------------------------------------- */

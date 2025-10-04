@@ -6,8 +6,8 @@
 //
 /* -------------------------------------------------------------------------- */
 
-#include "framework/application.h"
-#include "framework/scene/mesh.h"
+#include "aer/application.h"
+#include "aer/scene/mesh.h"
 
 namespace shader_interop {
 #include "shaders/interop.h"
@@ -127,7 +127,7 @@ class SampleApp final : public Application {
 
     /* Descriptor set. */
     {
-      descriptor_set_layout_ = renderer_.create_descriptor_set_layout({
+      descriptor_set_layout_ = context_.create_descriptor_set_layout({
         {
           .binding = shader_interop::kDescriptorSetBinding_UniformBuffer,
           .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
@@ -140,7 +140,7 @@ class SampleApp final : public Application {
         },
       });
 
-      descriptor_set_ = renderer_.create_descriptor_set(descriptor_set_layout_, {
+      descriptor_set_ = context_.create_descriptor_set(descriptor_set_layout_, {
         {
           .binding = shader_interop::kDescriptorSetBinding_UniformBuffer,
           .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
@@ -150,7 +150,7 @@ class SampleApp final : public Application {
     }
 
     /* Create a Pipeline Layout to be shared. */
-    pipeline_layout_ = renderer_.create_pipeline_layout({
+    pipeline_layout_ = context_.create_pipeline_layout({
       .setLayouts = { descriptor_set_layout_ },
       .pushConstantRanges = {
         {
@@ -178,13 +178,13 @@ class SampleApp final : public Application {
           .module = shaders[2u].module,
           .targets = {
             {
-              .format = renderer_.get_color_attachment().format,
+              .format = renderer_.color_attachment().format,
               .writeMask = 0u,
             }
           },
         },
         .depthStencil = {
-          .format = renderer_.get_depth_stencil_attachment().format,
+          .format = renderer_.depth_stencil_attachment().format,
           .depthTestEnable = VK_TRUE,
           .depthWriteEnable = VK_FALSE,
           .depthCompareOp = VK_COMPARE_OP_ALWAYS,
@@ -218,7 +218,7 @@ class SampleApp final : public Application {
           .module = shaders[2u].module,
           .targets = {
             {
-              .format = renderer_.get_color_attachment().format,
+              .format = renderer_.color_attachment().format,
               .writeMask = VK_COLOR_COMPONENT_R_BIT
                          | VK_COLOR_COMPONENT_G_BIT
                          | VK_COLOR_COMPONENT_B_BIT
@@ -228,7 +228,7 @@ class SampleApp final : public Application {
           },
         },
         .depthStencil = {
-          .format = renderer_.get_depth_stencil_attachment().format,
+          .format = renderer_.depth_stencil_attachment().format,
           .depthTestEnable = VK_TRUE,
           .depthWriteEnable = VK_TRUE,
           .depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL,
@@ -263,7 +263,7 @@ class SampleApp final : public Application {
           .module = shaders[2u].module,
           .targets = {
             {
-              .format = renderer_.get_color_attachment().format,
+              .format = renderer_.color_attachment().format,
               .writeMask = VK_COLOR_COMPONENT_R_BIT
                          | VK_COLOR_COMPONENT_G_BIT
                          | VK_COLOR_COMPONENT_B_BIT
@@ -273,7 +273,7 @@ class SampleApp final : public Application {
           },
         },
         .depthStencil = {
-          .format = renderer_.get_depth_stencil_attachment().format,
+          .format = renderer_.depth_stencil_attachment().format,
           .depthTestEnable = VK_TRUE,
           .depthWriteEnable = VK_TRUE,
           .depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL,
@@ -292,10 +292,10 @@ class SampleApp final : public Application {
 
   void release() final {
     for (auto const& pipeline : pipelines_) {
-      renderer_.destroy_pipeline(pipeline);
+      context_.destroy_pipeline(pipeline);
     }
-    renderer_.destroy_descriptor_set_layout(descriptor_set_layout_);
-    renderer_.destroy_pipeline_layout(pipeline_layout_);
+    context_.destroy_descriptor_set_layout(descriptor_set_layout_);
+    context_.destroy_pipeline_layout(pipeline_layout_);
 
     auto allocator = context_.allocator();
     allocator.destroy_buffer(plane_.index);
@@ -376,10 +376,10 @@ class SampleApp final : public Application {
   EnumArray<Pipeline, PipelineID> pipelines_;
 };
 
+
+
 // ----------------------------------------------------------------------------
 
-int main(int argc, char *argv[]) {
-  return SampleApp().run();
-}
+ENTRY_POINT(SampleApp)
 
 /* -------------------------------------------------------------------------- */

@@ -1,0 +1,113 @@
+#ifndef AER_APPLICATION_H
+#define AER_APPLICATION_H
+
+/* -------------------------------------------------------------------------- */
+
+#include <chrono>
+using namespace std::chrono_literals;
+
+#include "aer/core/common.h"
+
+#include "aer/platform/common.h"
+#include "aer/core/event_callbacks.h"
+#include "aer/platform/wm_interface.h"
+#include "aer/platform/ui_controller.h"
+#include "aer/platform/xr_interface.h"
+#include "aer/platform/backend/swapchain.h"
+#include "aer/renderer/render_context.h"
+#include "aer/renderer/renderer.h"
+
+/* -------------------------------------------------------------------------- */
+
+class Application : public EventCallbacks
+                  , public AppCmdCallbacks {
+ public:
+  Application() = default;
+  virtual ~Application() = default;
+
+  int run(bool use_xr, AppData_t app_data = {});
+
+ protected:
+  [[nodiscard]]
+  float elapsed_time() const noexcept;
+
+  [[nodiscard]]
+  float frame_time() const noexcept {
+    return frame_time_;
+  }
+
+  [[nodiscard]]
+  float delta_time() const noexcept {
+    return frame_time_ - last_frame_time_;
+  }
+
+ protected:
+  virtual bool setup() {
+    return true;
+  }
+
+  virtual void release() {}
+
+  [[nodiscard]]
+  virtual std::vector<char const*> xrExtensions() const noexcept {
+    return {};
+  }
+
+  [[nodiscard]]
+  virtual std::vector<char const*> vulkanDeviceExtensions() const noexcept {
+    return {};
+  }
+
+  virtual void build_ui() {}
+
+  virtual void update(float const dt) {}
+
+  virtual void draw() {}
+
+ private:
+  [[nodiscard]]
+  bool presetup(bool use_xr, AppData_t app_data);
+
+  [[nodiscard]]
+  bool next_frame(AppData_t app_data);
+
+  void update_timer() noexcept;
+
+  void update_ui() noexcept;
+
+  void mainloop(AppData_t app_data);
+
+  bool reset_swapchain();
+
+  void shutdown();
+
+ protected:
+  std::unique_ptr<WMInterface> wm_{};
+  std::unique_ptr<OpenXRContext> xr_{}; //
+  std::unique_ptr<UIController> ui_{};
+
+  RenderContext context_{};
+  Renderer renderer_{};
+
+  VkExtent2D viewport_size_{}; // (to remove)
+
+ private:
+  // |Android only]
+  UserData user_data_{};
+
+  // [Desktop only]
+  std::unique_ptr<EventCallbacks> default_callbacks_{};
+
+  // [non-XR only]
+  VkSurfaceKHR surface_{};
+  Swapchain swapchain_{};
+
+  std::chrono::time_point<std::chrono::high_resolution_clock> chrono_{};
+  float frame_time_{};
+  float last_frame_time_{};
+  uint32_t rand_seed_{};
+};
+
+/* -------------------------------------------------------------------------- */
+
+#endif

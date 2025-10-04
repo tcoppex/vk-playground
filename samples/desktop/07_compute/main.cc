@@ -7,8 +7,8 @@
 //
 /* -------------------------------------------------------------------------- */
 
-#include "framework/application.h"
-#include "framework/core/geometry.h"
+#include "aer/application.h"
+#include "aer/scene/geometry.h"
 
 namespace shader_interop {
 #include "shaders/interop.h"
@@ -119,7 +119,7 @@ class SampleApp final : public Application {
         | VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT
       };
 
-      descriptor_set_layout_ = renderer_.create_descriptor_set_layout({
+      descriptor_set_layout_ = context_.create_descriptor_set_layout({
         {
           .binding = shader_interop::kDescriptorSetBinding_UniformBuffer,
           .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
@@ -157,7 +157,7 @@ class SampleApp final : public Application {
         },
       });
 
-      descriptor_set_ = renderer_.create_descriptor_set(descriptor_set_layout_, {
+      descriptor_set_ = context_.create_descriptor_set(descriptor_set_layout_, {
         {
           .binding = shader_interop::kDescriptorSetBinding_UniformBuffer,
           .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
@@ -182,7 +182,7 @@ class SampleApp final : public Application {
     }
 
     /* Create a shared pipeline layout. */
-    pipeline_layout_ = renderer_.create_pipeline_layout({
+    pipeline_layout_ = context_.create_pipeline_layout({
       .setLayouts = { descriptor_set_layout_ },
       .pushConstantRanges = {
         {
@@ -207,7 +207,7 @@ class SampleApp final : public Application {
         "sort_indices.comp.glsl",
       })};
 
-      renderer_.create_compute_pipelines(pipeline_layout_, shaders, compute_pipelines_.data());
+      context_.create_compute_pipelines(pipeline_layout_, shaders, compute_pipelines_.data());
 
       context_.release_shader_modules(shaders);
     }
@@ -227,7 +227,7 @@ class SampleApp final : public Application {
           .module = shaders[1u].module,
           .targets = {
             {
-              .format = renderer_.get_color_attachment().format,
+              .format = renderer_.color_attachment().format,
               .writeMask = VK_COLOR_COMPONENT_R_BIT
                          | VK_COLOR_COMPONENT_G_BIT
                          | VK_COLOR_COMPONENT_B_BIT
@@ -250,7 +250,7 @@ class SampleApp final : public Application {
           },
         },
         .depthStencil = {
-          .format = renderer_.get_depth_stencil_attachment().format, //
+          .format = renderer_.depth_stencil_attachment().format, //
         },
         .primitive = {
           .topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP,
@@ -266,11 +266,11 @@ class SampleApp final : public Application {
 
   void release() final {
     for (auto pipeline : compute_pipelines_) {
-      renderer_.destroy_pipeline(pipeline);
+      context_.destroy_pipeline(pipeline);
     }
-    renderer_.destroy_pipeline(graphics_pipeline_);
-    renderer_.destroy_pipeline_layout(pipeline_layout_);
-    renderer_.destroy_descriptor_set_layout(descriptor_set_layout_);
+    context_.destroy_pipeline(graphics_pipeline_);
+    context_.destroy_pipeline_layout(pipeline_layout_);
+    context_.destroy_descriptor_set_layout(descriptor_set_layout_);
 
     auto allocator = context_.allocator();
     allocator.destroy_buffer(dot_product_buffer_);
@@ -463,10 +463,10 @@ class SampleApp final : public Application {
   Pipeline graphics_pipeline_{};
 };
 
+
+
 // ----------------------------------------------------------------------------
 
-int main(int argc, char *argv[]) {
-  return SampleApp().run();
-}
+ENTRY_POINT(SampleApp)
 
 /* -------------------------------------------------------------------------- */

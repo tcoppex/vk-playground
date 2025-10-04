@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.22.1)
 # Project.
 # -----------------------------------------------------------------------------
 
-set(PROJECT_NAME vkplayground)
+set(PROJECT_NAME aer_framework)
 
 project(${PROJECT_NAME}
   VERSION
@@ -31,7 +31,7 @@ set(DEFAULT_CPM_SOURCE_CACHE        ${PROJECT_THIRD_PARTY_DIR}/.cpmlocalcache)
 set(FRAMEWORK_PATH                  ${PROJECT_ROOT_PATH}/framework)
 set(FRAMEWORK_SOURCE_DIR            ${FRAMEWORK_PATH}/src)
 set(FRAMEWORK_INCLUDE_DIR           ${FRAMEWORK_PATH}/src) #!
-set(FRAMEWORK_SHADERS_DIR           ${FRAMEWORK_SOURCE_DIR}/framework/shaders) #!
+set(FRAMEWORK_SHADERS_DIR           ${FRAMEWORK_SOURCE_DIR}/aer/shaders) #!
 set(FRAMEWORK_COMPILED_SHADERS_DIR  ${PROJECT_BINARY_DIR}/spirv)
 
 # -----------------------------------------------------------------------------

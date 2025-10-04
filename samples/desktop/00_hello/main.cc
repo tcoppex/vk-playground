@@ -6,7 +6,7 @@
 //
 /* -------------------------------------------------------------------------- */
 
-#include "framework/application.h"
+#include "aer/application.h"
 
 /* -------------------------------------------------------------------------- */
 
@@ -50,7 +50,7 @@ class SampleApp final : public Application {
 
 #else /* Alternative with more controls */
 
-    auto const& current_swapchain_image{ renderer_.get_color_attachment().image };
+    auto const& current_swapchain_image{ renderer_.color_attachment().image };
 
     /**
      * When a RenderPassDescriptor_t is passed to 'begin_rendering' we need
@@ -66,7 +66,7 @@ class SampleApp final : public Application {
       .colorAttachments = {
         {
           .sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
-          .imageView   = renderer_.get_color_attachment().view,
+          .imageView   = renderer_.color_attachment().view,
           .imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR,
           .loadOp      = VK_ATTACHMENT_LOAD_OP_CLEAR,
           .storeOp     = VK_ATTACHMENT_STORE_OP_STORE,
@@ -75,7 +75,7 @@ class SampleApp final : public Application {
       },
       .depthAttachment = {
         .sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
-        .imageView   = renderer_.get_depth_stencil_attachment().view,
+        .imageView   = renderer_.depth_stencil_attachment().view,
         .imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR,
         .loadOp      = VK_ATTACHMENT_LOAD_OP_CLEAR,
         .storeOp     = VK_ATTACHMENT_STORE_OP_STORE,
@@ -103,10 +103,10 @@ class SampleApp final : public Application {
   }
 };
 
+
+
 // ----------------------------------------------------------------------------
 
-int main(int argc, char *argv[]) {
-  return SampleApp().run();
-}
+ENTRY_POINT(SampleApp)
 
 /* -------------------------------------------------------------------------- */

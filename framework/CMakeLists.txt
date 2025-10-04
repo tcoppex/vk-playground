@@ -4,7 +4,7 @@
 # 
 # -----------------------------------------------------------------------------
 
-set(target vkframework)
+set(target aer)
 
 if(ANDROID)
   # We add a suffix to  avoid collision with the Desktop build.
@@ -36,7 +36,7 @@ file(GLOB_RECURSE Sources CONFIGURE_DEPENDS
 # Platform specific Source dependencies.
 # -----------------------------------------------------------------------------
 
-set(FRAMEWORK_PLATFORM_SRC_DIR ${FRAMEWORK_SOURCE_DIR}/framework/core/platform)
+set(FRAMEWORK_PLATFORM_SRC_DIR ${FRAMEWORK_SOURCE_DIR}/aer/platform) #!
 
 # Exclude all platform specific codes..
 list(FILTER Sources EXCLUDE REGEX "${FRAMEWORK_PLATFORM_SRC_DIR}/.*")
@@ -49,19 +49,32 @@ file(GLOB PlatformCommonSources CONFIGURE_DEPENDS
 
 # Add back target platform specifics sources.
 if(ANDROID)
-  set(FRAMEWORK_PLATFORM_SRC_DIR ${FRAMEWORK_PLATFORM_SRC_DIR}/android)
+  set(FRAMEWORK_PLATFORM_SRC_SUB_DIR ${FRAMEWORK_PLATFORM_SRC_DIR}/android)
 else()
-  set(FRAMEWORK_PLATFORM_SRC_DIR ${FRAMEWORK_PLATFORM_SRC_DIR}/desktop)
+  set(FRAMEWORK_PLATFORM_SRC_SUB_DIR ${FRAMEWORK_PLATFORM_SRC_DIR}/desktop)
 endif()
 file(GLOB_RECURSE PlatformSources CONFIGURE_DEPENDS
   LIST_DIRECTORIES FALSE
-  ${FRAMEWORK_PLATFORM_SRC_DIR}/*.cc
-  ${FRAMEWORK_PLATFORM_SRC_DIR}/*.h
+  ${FRAMEWORK_PLATFORM_SRC_SUB_DIR}/*.cc
+  ${FRAMEWORK_PLATFORM_SRC_SUB_DIR}/*.h
 )
+
+# -----------------------------------------------
+# (hacky, todo, legacy stuff used to be separated from platform)
+# Add back Vulkan / OpenXR specific sources.
+file(GLOB VKSources LIST_DIRECTORIES FALSE
+  ${FRAMEWORK_PLATFORM_SRC_DIR}/backend/*.cc
+)
+file(GLOB XRSources LIST_DIRECTORIES FALSE
+  ${FRAMEWORK_PLATFORM_SRC_DIR}/openxr/*.cc
+)
+# -----------------------------------------------
 
 list(APPEND Sources
   ${PlatformCommonSources}
   ${PlatformSources}
+  ${VKSources}
+  ${XRSources}
 )
 
 # -----------------------------------------------------------------------------
@@ -70,7 +83,6 @@ list(APPEND Sources
 
 add_library(${target} STATIC ${Sources})
 set(FRAMEWORK_LIBRARIES ${target} CACHE INTERNAL "")
-
 
 # -----------------------------------------------------------------------------
 # Platform specific Third Parties Dependencies.
@@ -108,6 +120,9 @@ if(ANDROID)
     target_link_libraries(${target} PUBLIC $<TARGET_OBJECTS:android_native_app_glue>)
   endfunction()
 
+  # (we might prefer to link the native app to the sample in the future)
+  helpers_addNativeAppGlue(${target})
+
   # (Alternatively just uncomment the following line.)
   # set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -u ANativeActivity_onCreate")
 else() # DESKTOP
@@ -125,6 +140,51 @@ else() # DESKTOP
   )
   list(APPEND PlatformLibs glfw)
   list(APPEND PlatformIncludeDirs ${glfw_SOURCE_DIR}/include)
+endif()
+
+# -----------------------------------------------------------------------------
+# OpenXR SDK Loader
+# -----------------------------------------------------------------------------
+
+if(TRUE)
+  CPMAddPackage(
+    NAME sanitizers
+    GITHUB_REPOSITORY arsenm/sanitizers-cmake
+    GIT_TAG master
+    DOWNLOAD_ONLY YES
+  )
+  list(APPEND CMAKE_MODULE_PATH ${sanitizers_SOURCE_DIR}/cmake)
+
+  CPMAddPackage(
+    NAME OPENXR_SDK
+    GITHUB_REPOSITORY KhronosGroup/OpenXR-SDK
+    GIT_TAG release-1.1.52
+    # DOWNLOAD_ONLY YES
+  )
+  set(OPENXR_INCLUDE_DIRS ${OPENXR_SDK_SOURCE_DIR}/include)
+  set(OPENXR_LOADER_SHARED_LIBRARY OpenXR::openxr_loader)
+
+  # ----
+
+  target_include_directories(${target} PUBLIC ${OPENXR_INCLUDE_DIRS})
+  target_link_libraries(${target} PUBLIC ${OPENXR_LOADER_SHARED_LIBRARY})
+  target_compile_definitions(${target}
+    PUBLIC
+      USE_OPENXR=1 #!
+      XR_USE_GRAPHICS_API_VULKAN=1
+  )
+  if(OS_ANDROID)
+    target_compile_definitions(${target}
+      PUBLIC
+        XR_USE_PLATFORM_ANDROID=1
+    )
+  endif()
+
+  # # Add OpenXR specific sources.
+  # file(GLOB XRSources LIST_DIRECTORIES FALSE
+  #   ${FRAMEWORK_PLATFORM_SRC_DIR}/openxr/*.cc   ## !
+  # )
+  # target_sources(${target} PRIVATE ${XRSources})
 endif()
 
 # -----------------------------------------------------------------------------
@@ -346,12 +406,6 @@ set_target_properties(${target}
   PROPERTIES
     LINK_FLAGS "${CXX_LINK_FLAGS}"
 )
-# -----------------------------------------------------------------------------
-
-# should probably be inside the Sample App instead..
-if(ANDROID)
-  helpers_addNativeAppGlue(${target})
-endif()
 
 # -----------------------------------------------------------------------------
 # Compile Framework shaders.

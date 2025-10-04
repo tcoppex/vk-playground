@@ -1,0 +1,83 @@
+// ----------------------------------------------------------------------------
+//
+//  Android Sample - AlohaXR
+//
+// ----------------------------------------------------------------------------
+
+plugins {
+  id 'com.android.application'
+}
+
+// ----------------------------------------------------------------------------
+
+def appName = projectDir.name
+def packageName = "${rootProject.ext.orgPrefix}.samples.${appName}"
+
+// ----------------------------------------------------------------------------
+
+base {
+  archivesName = appName
+}
+
+android {
+  namespace = packageName
+
+  ndkVersion = "29.0.14033849"
+  compileSdk = 36
+
+  defaultConfig {
+    applicationId = packageName
+
+    minSdk = 29
+    versionCode = 1
+    versionName = "1.0"
+
+    //noinspection ExpiredTargetSdkVersion
+    targetSdk = 32
+
+    shaders {
+      glslcArgs.addAll(['-c', '-g'])
+    }
+
+    externalNativeBuild {
+      ndk {
+        abiFilters("arm64-v8a")
+      }
+      cmake {
+        targets(appName)
+      }
+    }
+  }
+
+  externalNativeBuild {
+    cmake {
+      path(file("${rootProject.ext.rootPath}/CMakeLists.txt"))
+    }
+  }
+
+  sourceSets {
+    main {
+      manifest.srcFile "src/AndroidManifest.xml"
+      res.srcDirs = ["src/res"]
+      shaders.srcDirs = ["src/shaders"]
+    }
+  }
+
+  buildFeatures {
+    shaders = true
+  }
+
+  buildTypes {
+    release {
+      minifyEnabled = false
+    }
+  }
+}
+
+// ----------------------------------------------------------------------------
+
+dependencies {
+  implementation project(":framework")
+}
+
+// ----------------------------------------------------------------------------

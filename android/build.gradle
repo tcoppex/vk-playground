@@ -23,6 +23,7 @@ def uberRootDir = file("../")
 ext {
   orgPrefix = "cc.polysfaer.vkframework"
   rootPath = "${uberRootDir}"
+  sharedDir = "$rootDir/shared"
   frameworkSpirvDirs = "${uberRootDir}/bin/spirv"
   sampleFrameworkSpirvAssetsSubdir = "shaders/framework"
 }

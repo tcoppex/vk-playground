@@ -6,10 +6,10 @@
 //
 /* -------------------------------------------------------------------------- */
 
-#include "framework/application.h"
+#include "aer/application.h"
 
-#include "framework/core/camera.h"
-#include "framework/core/arcball_controller.h"
+#include "aer/core/camera.h"
+#include "aer/core/arcball_controller.h"
 
 namespace shader_interop {
 #include "shaders/interop.h"
@@ -24,10 +24,6 @@ static constexpr uint32_t kMaxNumTextures = 128u;
 class SampleApp final : public Application {
  public:
   using HostData_t = shader_interop::UniformData;
-
- public:
-  SampleApp() = default;
-  ~SampleApp() {}
 
  private:
   bool setup() final {
@@ -73,7 +69,7 @@ class SampleApp final : public Application {
 
       /* Load the model directly on device, as we do not change the model's internal data
        * layout we need to specify how to map its attributes to the shader used. */
-      scene_ = renderer_.load_and_upload(gltf_filename, {
+      scene_ = renderer_.load_gltf(gltf_filename, {
         { Geometry::AttributeType::Position,  shader_interop::kAttribLocation_Position },
         { Geometry::AttributeType::Texcoord,  shader_interop::kAttribLocation_Texcoord },
         { Geometry::AttributeType::Normal,    shader_interop::kAttribLocation_Normal   },
@@ -88,7 +84,7 @@ class SampleApp final : public Application {
 
     /* Descriptor set. */
     {
-      descriptor_set_layout_ = renderer_.create_descriptor_set_layout({
+      descriptor_set_layout_ = context_.create_descriptor_set_layout({
         {
           .binding = shader_interop::kDescriptorSetBinding_UniformBuffer,
           .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
@@ -114,7 +110,7 @@ class SampleApp final : public Application {
         },
       });
 
-      descriptor_set_ = renderer_.create_descriptor_set(descriptor_set_layout_, {
+      descriptor_set_ = context_.create_descriptor_set(descriptor_set_layout_, {
         {
           .binding = shader_interop::kDescriptorSetBinding_UniformBuffer,
           .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
@@ -125,7 +121,7 @@ class SampleApp final : public Application {
           .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
           .images = {
             {
-              .sampler = renderer_.default_sampler(),
+              .sampler = context_.default_sampler(),
               .imageView = skybox.irradiance_map().view,
               .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             }
@@ -150,7 +146,7 @@ class SampleApp final : public Application {
 
     /* Setup the graphics pipeline. */
     {
-      VkPipelineLayout const pipeline_layout = renderer_.create_pipeline_layout({
+      VkPipelineLayout const pipeline_layout = context_.create_pipeline_layout({
         .setLayouts = { descriptor_set_layout_ },
         .pushConstantRanges = {
           {
@@ -199,9 +195,9 @@ class SampleApp final : public Application {
   }
 
   void release() final {
-    renderer_.destroy_descriptor_set_layout(descriptor_set_layout_);
-    renderer_.destroy_pipeline_layout(graphics_pipeline_.get_layout());
-    renderer_.destroy_pipeline(graphics_pipeline_);
+    context_.destroy_descriptor_set_layout(descriptor_set_layout_);
+    context_.destroy_pipeline_layout(graphics_pipeline_.layout());
+    context_.destroy_pipeline(graphics_pipeline_);
     allocator_ptr_->destroy_buffer(uniform_buffer_);
     scene_.reset();
   }
@@ -276,10 +272,10 @@ class SampleApp final : public Application {
   GLTFScene scene_{};
 };
 
+
+
 // ----------------------------------------------------------------------------
 
-int main(int argc, char *argv[]) {
-  return SampleApp().run();
-}
+ENTRY_POINT(SampleApp)
 
 /* -------------------------------------------------------------------------- */

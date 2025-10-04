@@ -10,7 +10,7 @@ plugins {
 
 // ----------------------------------------------------------------------------
 
-def appName = "vkframework" //projectDir.name
+def appName = "aer" //projectDir.name
 def packageName = "${rootProject.ext.orgPrefix}.${appName}"
 
 // ----------------------------------------------------------------------------
@@ -54,8 +54,8 @@ android {
 
   sourceSets {
     main {
-      assets.srcDirs = [ rootProject.ext.frameworkSpirvDirs ]
-      res.srcDirs += ["${rootDir}/shared_res"]
+      assets.srcDirs += ["${sharedDir}/assets", rootProject.ext.frameworkSpirvDirs]
+      res.srcDirs += ["${sharedDir}/res"]
     }
   }
 
@@ -69,7 +69,7 @@ android {
 // ----------------------------------------------------------------------------
 
 dependencies {
-  // implementation 'org.khronos.openxr:openxr_loader_for_android:1.1.46'
+  implementation 'org.khronos.openxr:openxr_loader_for_android:1.1.46'
 }
 
 // ----------------------------------------------------------------------------
