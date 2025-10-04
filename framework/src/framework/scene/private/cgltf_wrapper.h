@@ -19,7 +19,7 @@ extern "C" {
 }
 
 #include "framework/backend/vk_utils.h"
-#include "framework/core/geometry.h"
+#include "framework/scene/geometry.h"
 
 /* -------------------------------------------------------------------------- */
 

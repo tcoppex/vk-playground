@@ -3,7 +3,7 @@
 // ----------------------------------------------------------------------------
 
 #include "framework/core/common.h"
-#include "framework/core/geometry.h"
+#include "framework/scene/geometry.h"
 
 namespace material_shader_interop {
 #include "framework/shaders/material/interop.h"
