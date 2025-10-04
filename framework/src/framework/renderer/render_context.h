@@ -191,6 +191,18 @@ class RenderContext : public Context {
     return sampler_pool_;
   }
 
+ public:
+  template <typename... VulkanHandles>
+  void destroyResources(VulkanHandles... handles) {
+    (destroyResource(handles), ...);
+  }
+  void destroyResource(VkDescriptorSetLayout h)         { destroy_descriptor_set_layout(h); }
+  void destroyResource(VkPipelineLayout h)              { destroy_pipeline_layout(h); }
+  void destroyResource(Pipeline const& h)               { destroy_pipeline(h); }
+  // void destroyResource(VkPipeline h)                    { vkDestroyPipeline(device_, h, nullptr); }
+  // void destroyResource(backend::Buffer const& buffer)   { allocator_ptr->destroy_buffer(buffer); }
+  // void destroyResource(backend::Image const& image)     { allocator_ptr->destroy_image(buffer); }
+
  private:
   VkPipelineCache pipeline_cache_{};
   SamplerPool sampler_pool_{};
