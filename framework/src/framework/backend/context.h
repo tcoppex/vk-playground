@@ -173,6 +173,13 @@ class Context {
     size_t const device_buffer_offset = 0u
   ) const;
 
+  template<typename T> requires (SpanConvertible<T>)
+  void upload_buffer(T const& host_data, backend::Buffer const& device_buffer) {
+    auto const host_span{ std::span(host_data) };
+    size_t const bytesize{ sizeof(typename decltype(host_span)::element_type) * host_span.size() };
+    transfer_host_to_device(host_span.data(), bytesize, device_buffer);
+  }
+
   void copy_buffer(
     backend::Buffer const& src,
     backend::Buffer const& dst,
