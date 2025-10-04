@@ -21,9 +21,9 @@ struct DefaultAppEventCallbacks final : public EventCallbacks {
 
 /* -------------------------------------------------------------------------- */
 
-int Application::run(AppData_t app_data) {
+int Application::run(bool use_xr, AppData_t app_data) {
   /* Framework initialization. */
-  if (!presetup(app_data)) {
+  if (!presetup(use_xr, app_data)) {
     return EXIT_FAILURE;
   }
 
@@ -63,7 +63,7 @@ float Application::elapsed_time() const noexcept {
 
 // ----------------------------------------------------------------------------
 
-bool Application::presetup(AppData_t app_data) {
+bool Application::presetup(bool use_xr, AppData_t app_data) {
   auto const app_name = "VkFramework::DefaultAppName"; //
 
   /* Singletons. */
@@ -85,13 +85,8 @@ bool Application::presetup(AppData_t app_data) {
     return false;
   }
 
-  // ---------------------------------------
-
-  static constexpr bool kEnableXR = true;
-  LOGW("OpenXR is {}.", kEnableXR ? "enabled" : "disabled");
-
   /* OpenXR */
-  if constexpr (kEnableXR) {
+  if (use_xr) {
     if (xr_ = std::make_unique<OpenXRContext>(); xr_) {
       user_data_.xr = xr_.get(); //
       if (!xr_->init(wm_->xrPlatformInterface(), app_name, xrExtensions())) {
@@ -101,6 +96,7 @@ bool Application::presetup(AppData_t app_data) {
       }
     }
   }
+  LOGD("OpenXR is {}.", use_xr ? "enabled" : "disabled");
 
   /* Vulkan context. */
   if (!context_.init(app_name,

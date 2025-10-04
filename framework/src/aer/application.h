@@ -25,7 +25,7 @@ class Application : public EventCallbacks
   Application() = default;
   virtual ~Application() {}
 
-  int run(AppData_t app_data = {});
+  int run(bool use_xr, AppData_t app_data = {});
 
  protected:
   [[nodiscard]]
@@ -66,7 +66,7 @@ class Application : public EventCallbacks
 
  private:
   [[nodiscard]]
-  bool presetup(AppData_t app_data);
+  bool presetup(bool use_xr, AppData_t app_data);
 
   [[nodiscard]]
   bool next_frame(AppData_t app_data);

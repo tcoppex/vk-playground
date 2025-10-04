@@ -103,10 +103,10 @@ class SampleApp final : public Application {
   }
 };
 
+
+
 // ----------------------------------------------------------------------------
 
-int main(int argc, char *argv[]) {
-  return SampleApp().run();
-}
+ENTRY_POINT(SampleApp)
 
 /* -------------------------------------------------------------------------- */

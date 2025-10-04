@@ -357,10 +357,10 @@ class SampleApp final : public Application {
   ToonFxPipeline toon_pipeline_{};
 };
 
+
+
 // ----------------------------------------------------------------------------
 
-int main(int argc, char *argv[]) {
-  return SampleApp().run();
-}
+ENTRY_POINT(SampleApp)
 
 /* -------------------------------------------------------------------------- */

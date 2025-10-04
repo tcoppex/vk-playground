@@ -71,22 +71,26 @@ struct AppCmdCallbacks {
 /* -------------------------------------------------------------------------- */
 // -- Macros
 
+#if !defined(AER_USE_OPENXR)
+#define AER_USE_OPENXR 0
+#endif
+
 #if defined(ANDROID)
 
 #define ENTRY_POINT(AppClass)                         \
 extern "C" {                                          \
   void android_main(struct android_app* app_data) {   \
-    AppClass().run(app_data);                         \
+    AppClass().run(bool(AER_USE_OPENXR), app_data);   \
   }                                                   \
 }
 
 #else // DESKTOP
 
-#define ENTRY_POINT(AppClass)           \
-extern "C" {                            \
-  int main(int argc, char *argv[]) {    \
-    return SampleApp().run();           \
-  }                                     \
+#define ENTRY_POINT(AppClass)                         \
+extern "C" {                                          \
+  int main(int argc, char *argv[]) {                  \
+    return AppClass().run(bool(AER_USE_OPENXR));      \
+  }                                                   \
 }
 
 #endif

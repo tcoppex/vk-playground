@@ -52,6 +52,7 @@ helpers_setupTarget(
 
   DEFINITIONS
     COMPILED_SHADERS_DIR="shaders/"
+    AER_USE_OPENXR=1
 )
 
 # -----------------------------------------------------------------------------

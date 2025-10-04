@@ -376,10 +376,10 @@ class SampleApp final : public Application {
   EnumArray<Pipeline, PipelineID> pipelines_;
 };
 
+
+
 // ----------------------------------------------------------------------------
 
-int main(int argc, char *argv[]) {
-  return SampleApp().run();
-}
+ENTRY_POINT(SampleApp)
 
 /* -------------------------------------------------------------------------- */

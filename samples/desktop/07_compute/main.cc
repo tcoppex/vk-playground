@@ -463,10 +463,10 @@ class SampleApp final : public Application {
   Pipeline graphics_pipeline_{};
 };
 
+
+
 // ----------------------------------------------------------------------------
 
-int main(int argc, char *argv[]) {
-  return SampleApp().run();
-}
+ENTRY_POINT(SampleApp)
 
 /* -------------------------------------------------------------------------- */
