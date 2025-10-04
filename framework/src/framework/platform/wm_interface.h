@@ -5,7 +5,7 @@
 #include "framework/platform/common.h"
 #include "framework/platform/openxr/xr_platform_interface.h"
 
-#include "framework/backend/vk_utils.h"
+#include "framework/platform/backend/vk_utils.h"
 
 /* -------------------------------------------------------------------------- */
 

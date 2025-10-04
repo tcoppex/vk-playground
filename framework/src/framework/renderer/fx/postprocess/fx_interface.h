@@ -2,8 +2,8 @@
 #define VKFRAMEWORK_RENDERER_FX_FX_INTERFACE_H_
 
 #include "framework/core/common.h"
-#include "framework/backend/context.h"
-#include "framework/backend/types.h"
+#include "framework/platform/backend/context.h"
+#include "framework/platform/backend/types.h"
 
 class Renderer;
 class RenderContext;

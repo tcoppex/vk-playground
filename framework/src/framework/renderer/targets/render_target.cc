@@ -1,7 +1,7 @@
 #include "framework/renderer/targets/render_target.h"
 
-#include "framework/backend/context.h"
-#include "framework/backend/allocator.h"
+#include "framework/platform/backend/context.h"
+#include "framework/platform/backend/allocator.h"
 
 /* -------------------------------------------------------------------------- */
 

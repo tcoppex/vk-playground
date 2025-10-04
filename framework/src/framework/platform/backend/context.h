@@ -1,11 +1,11 @@
-#ifndef VKFRAMEWORK_BACKEND_CONTEXT_H
-#define VKFRAMEWORK_BACKEND_CONTEXT_H
+#ifndef VKFRAMEWORK_PLATFORM_BACKEND_CONTEXT_H
+#define VKFRAMEWORK_PLATFORM_BACKEND_CONTEXT_H
 
 /* -------------------------------------------------------------------------- */
 
-#include "framework/backend/types.h"
-#include "framework/backend/command_encoder.h"
-#include "framework/backend/allocator.h"
+#include "framework/platform/backend/types.h"
+#include "framework/platform/backend/command_encoder.h"
+#include "framework/platform/backend/allocator.h"
 
 #include "framework/platform/openxr/xr_vulkan_interface.h" //
 

@@ -1,9 +1,9 @@
-#ifndef VKFRAMEWORK_BACKEND_COMMAND_ENCODER_H
-#define VKFRAMEWORK_BACKEND_COMMAND_ENCODER_H
+#ifndef VKFRAMEWORK_PLATFORM_BACKEND_COMMAND_ENCODER_H
+#define VKFRAMEWORK_PLATFORM_BACKEND_COMMAND_ENCODER_H
 
-#include "framework/backend/allocator.h"
-#include "framework/backend/types.h"
-#include "framework/backend/vk_utils.h"
+#include "framework/platform/backend/allocator.h"
+#include "framework/platform/backend/types.h"
+#include "framework/platform/backend/vk_utils.h"
 
 class RenderPassEncoder;
 class PostFxInterface;
@@ -442,4 +442,4 @@ class RenderPassEncoder : public GenericCommandEncoder {
 
 /* -------------------------------------------------------------------------- */
 
-#endif // VKFRAMEWORK_BACKEND_COMMAND_ENCODER_H
+#endif // VKFRAMEWORK_PLATFORM_BACKEND_COMMAND_ENCODER_H

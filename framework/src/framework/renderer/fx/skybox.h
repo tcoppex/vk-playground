@@ -3,7 +3,7 @@
 
 #include "framework/core/common.h"
 
-#include "framework/backend/command_encoder.h"
+#include "framework/platform/backend/command_encoder.h"
 #include "framework/renderer/pipeline.h"
 #include "framework/scene/mesh.h"
 #include "framework/renderer/fx/envmap.h"

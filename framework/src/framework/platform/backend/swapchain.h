@@ -1,9 +1,9 @@
-#ifndef VKFRAMEWORK_BACKEND_SWAPCHAIN_H
-#define VKFRAMEWORK_BACKEND_SWAPCHAIN_H
+#ifndef VKFRAMEWORK_PLATFORM_BACKEND_SWAPCHAIN_H
+#define VKFRAMEWORK_PLATFORM_BACKEND_SWAPCHAIN_H
 
 /* -------------------------------------------------------------------------- */
 
-#include "framework/backend/types.h"
+#include "framework/platform/backend/types.h"
 class Context;
 
 #include "framework/platform/swapchain_interface.h" //

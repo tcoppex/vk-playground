@@ -1,6 +1,6 @@
 #include "framework/renderer/fx/postprocess/ray_tracing/ray_tracing_fx.h"
 
-#include "framework/backend/accel_struct.h"
+#include "framework/platform/backend/accel_struct.h"
 #include "framework/scene/vertex_internal.h" // (for material_shader_interop)
 
 /* -------------------------------------------------------------------------- */

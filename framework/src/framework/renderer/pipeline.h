@@ -1,7 +1,7 @@
 #ifndef VKFRAMEWORK_RENDERER_PIPELINE_H_
 #define VKFRAMEWORK_RENDERER_PIPELINE_H_
 
-#include "framework/backend/types.h"
+#include "framework/platform/backend/types.h"
 class Renderer;
 
 /* -------------------------------------------------------------------------- */

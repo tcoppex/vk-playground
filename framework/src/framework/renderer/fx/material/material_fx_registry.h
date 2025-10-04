@@ -2,7 +2,7 @@
 #define VKFRAMEWORK_RENDERER_FX_MATERIAL_MATERIAL_FX_REGISTRY_H_
 
 #include "framework/core/common.h"
-#include "framework/backend/types.h"  // for DescriptorSetWriteEntry
+#include "framework/platform/backend/types.h"  // for DescriptorSetWriteEntry
 #include "framework/scene/material.h" // for scene::MaterialRef, scene::MaterialProxy
 
 #include <set>

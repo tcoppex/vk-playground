@@ -59,9 +59,22 @@ file(GLOB_RECURSE PlatformSources CONFIGURE_DEPENDS
   ${FRAMEWORK_PLATFORM_SRC_SUB_DIR}/*.h
 )
 
+# -----------------------------------------------
+# (hacky, todo, legacy stuff used to be separated from platform)
+# Add back Vulkan / OpenXR specific sources.
+file(GLOB VKSources LIST_DIRECTORIES FALSE
+  ${FRAMEWORK_PLATFORM_SRC_DIR}/backend/*.cc
+)
+file(GLOB XRSources LIST_DIRECTORIES FALSE
+  ${FRAMEWORK_PLATFORM_SRC_DIR}/openxr/*.cc
+)
+# -----------------------------------------------
+
 list(APPEND Sources
   ${PlatformCommonSources}
   ${PlatformSources}
+  ${VKSources}
+  ${XRSources}
 )
 
 # -----------------------------------------------------------------------------
@@ -167,11 +180,11 @@ if(TRUE)
     )
   endif()
 
-  # Add OpenXR specific sources.
-  file(GLOB XRSources LIST_DIRECTORIES FALSE
-    ${FRAMEWORK_PLATFORM_SRC_DIR}/openxr/*.cc   ## !
-  )
-  target_sources(${target} PRIVATE ${XRSources})
+  # # Add OpenXR specific sources.
+  # file(GLOB XRSources LIST_DIRECTORIES FALSE
+  #   ${FRAMEWORK_PLATFORM_SRC_DIR}/openxr/*.cc   ## !
+  # )
+  # target_sources(${target} PRIVATE ${XRSources})
 endif()
 
 # -----------------------------------------------------------------------------

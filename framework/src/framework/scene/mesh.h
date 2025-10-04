@@ -4,7 +4,7 @@
 #include "framework/core/common.h"
 
 #include "framework/scene/geometry.h"
-#include "framework/backend/types.h"      // for VertexInputDescriptor
+#include "framework/platform/backend/types.h"      // for VertexInputDescriptor
 #include "framework/renderer/pipeline.h"  // for PipelineVertexBufferDescriptors
 
 namespace scene {

@@ -5,12 +5,12 @@
 
 #include "framework/core/common.h"
 
-#include "framework/backend/swapchain.h"
+#include "framework/platform/backend/swapchain.h"
 // #include "framework/platform/openxr/xr_vulkan_interface.h" //
 #include "framework/platform/openxr/openxr_context.h" //
 
 #include "framework/renderer/render_context.h"
-#include "framework/backend/command_encoder.h"
+#include "framework/platform/backend/command_encoder.h"
 
 #include "framework/renderer/fx/skybox.h"
 #include "framework/renderer/gpu_resources.h" // (for GLTFScene)

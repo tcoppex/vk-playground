@@ -1,10 +1,10 @@
-#ifndef VKFRAMEWORK_BACKEND_VKUTILS_H
-#define VKFRAMEWORK_BACKEND_VKUTILS_H
+#ifndef VKFRAMEWORK_PLATFORM_BACKEND_VKUTILS_H
+#define VKFRAMEWORK_PLATFORM_BACKEND_VKUTILS_H
 
 /* -------------------------------------------------------------------------- */
 
 #include "framework/core/common.h"
-#include "framework/backend/types.h"
+#include "framework/platform/backend/types.h"
 
 #include "volk.h" // load core vulkan + extensions.
 
@@ -147,4 +147,4 @@ VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDebugMessage(
 
 /* -------------------------------------------------------------------------- */
 
-#endif // VKFRAMEWORK_BACKEND_VKUTILS_H
+#endif // VKFRAMEWORK_PLATFORM_BACKEND_VKUTILS_H

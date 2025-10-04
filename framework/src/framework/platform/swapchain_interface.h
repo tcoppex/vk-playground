@@ -3,7 +3,7 @@
 #include <vector>
 #include "volk.h"
 
-#include "framework/backend/types.h" // (for backend::Image)
+#include "framework/platform/backend/types.h" // (for backend::Image)
 
 /* -------------------------------------------------------------------------- */
 

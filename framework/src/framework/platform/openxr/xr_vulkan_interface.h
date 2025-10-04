@@ -5,7 +5,7 @@
 #include <jni.h> //
 #endif
 
-#include "framework/backend/types.h" // (for backend::Image)
+#include "framework/platform/backend/types.h" // (for backend::Image)
 #include "framework/platform/openxr/xr_utils.h"
 
 #include "volk.h"

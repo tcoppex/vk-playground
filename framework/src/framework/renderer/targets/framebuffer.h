@@ -4,7 +4,7 @@
 /* -------------------------------------------------------------------------- */
 
 #include "framework/core/common.h"
-#include "framework/backend/types.h"
+#include "framework/platform/backend/types.h"
 
 class Context;
 class SwapchainInterface;

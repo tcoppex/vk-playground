@@ -1,8 +1,8 @@
 #ifndef VKFRAMEWORK_RENDERER_RAYTRACING_SCENE_H_
 #define VKFRAMEWORK_RENDERER_RAYTRACING_SCENE_H_
 
-#include "framework/backend/context.h"
-#include "framework/backend/accel_struct.h"
+#include "framework/platform/backend/context.h"
+#include "framework/platform/backend/accel_struct.h"
 #include "framework/scene/host_resources.h" // for scene::ResourceBuffer
 #include "framework/scene/mesh.h"
 

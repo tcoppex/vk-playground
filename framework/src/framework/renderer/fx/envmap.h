@@ -4,7 +4,7 @@
 #include "framework/core/common.h"
 #include "framework/core/utils.h"
 
-#include "framework/backend/command_encoder.h"
+#include "framework/platform/backend/command_encoder.h"
 #include "framework/renderer/pipeline.h"
 
 namespace shader_interop::envmap {

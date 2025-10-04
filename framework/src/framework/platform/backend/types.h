@@ -1,5 +1,5 @@
-#ifndef VKFRAMEWORK_BACKEND_TYPES_H
-#define VKFRAMEWORK_BACKEND_TYPES_H
+#ifndef VKFRAMEWORK_PLATFORM_BACKEND_TYPES_H
+#define VKFRAMEWORK_PLATFORM_BACKEND_TYPES_H
 
 /* -------------------------------------------------------------------------- */
 

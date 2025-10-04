@@ -1,11 +1,11 @@
-#ifndef VKFRAMEWORK_BACKEND_ALLOCATOR_H
-#define VKFRAMEWORK_BACKEND_ALLOCATOR_H
+#ifndef VKFRAMEWORK_PLATFORM_BACKEND_ALLOCATOR_H
+#define VKFRAMEWORK_PLATFORM_BACKEND_ALLOCATOR_H
 
 /* -------------------------------------------------------------------------- */
 
 #include "framework/core/common.h"
-#include "framework/backend/types.h"
-#include "framework/backend/vk_utils.h"
+#include "framework/platform/backend/types.h"
+#include "framework/platform/backend/vk_utils.h"
 
 /* -------------------------------------------------------------------------- */
 

@@ -1,8 +1,8 @@
-#ifndef VKFRAMEWORK_BACKEND_ACCEL_STRUCT_H_
-#define VKFRAMEWORK_BACKEND_ACCEL_STRUCT_H_
+#ifndef VKFRAMEWORK_PLATFORM_BACKEND_ACCEL_STRUCT_H_
+#define VKFRAMEWORK_PLATFORM_BACKEND_ACCEL_STRUCT_H_
 
 #include <vector>
-#include "framework/backend/types.h"
+#include "framework/platform/backend/types.h"
 
 /* -------------------------------------------------------------------------- */
 

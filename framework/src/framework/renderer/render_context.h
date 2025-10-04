@@ -4,7 +4,7 @@
 /* -------------------------------------------------------------------------- */
 
 #include "framework/core/common.h"
-#include "framework/backend/context.h"
+#include "framework/platform/backend/context.h"
 
 #include "framework/renderer/targets/framebuffer.h"
 #include "framework/renderer/targets/render_target.h"

@@ -13,7 +13,7 @@ using namespace std::chrono_literals;
 #include "framework/platform/wm_interface.h"
 #include "framework/platform/ui_controller.h"
 #include "framework/platform/xr_interface.h"
-#include "framework/backend/swapchain.h"
+#include "framework/platform/backend/swapchain.h"
 #include "framework/renderer/render_context.h"
 #include "framework/renderer/renderer.h"
 
