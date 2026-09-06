@@ -29,6 +29,13 @@ class GaussianSplatSample final : public Application {
   static constexpr uint32_t kHeuristicMaxTilePerGaussian{ 6 }; //
 
   public:
+    enum QueryTimestamp {
+      QueryTimestamp_Start,
+      QueryTimestamp_End,
+
+      QueryTimestamp_kCount,
+    };
+
     enum GSCompute {
       GSCompute_Preprocess,
       GSCompute_DecoupledPrefixSum,
@@ -107,6 +114,10 @@ class GaussianSplatSample final : public Application {
       }
 
       // ---
+
+      query_pool_ = context_.createQueryPool(
+        VK_QUERY_TYPE_TIMESTAMP, QueryTimestamp_kCount
+      );
 
       gaussians_count_ = static_cast<uint32_t>(reader.num_rows());
       gaussians.resize(gaussians_count_);
@@ -436,6 +447,7 @@ class GaussianSplatSample final : public Application {
       context_.destroyPipeline(pipeline);
     }
     context_.destroyResources(
+      query_pool_,
       pipeline_layout_,
       uniform_buffer_,
       gaussian_sbo_,
@@ -864,68 +876,49 @@ class GaussianSplatSample final : public Application {
       context_.writeBuffer(uniform_buffer_, host_data_);
     }
 
-#if 0
-    auto cmd = context_.createTransientCommandEncoder(Context::TargetQueue::Compute);
+    // Query previous frame Timestamps.
+    if (frame_index() > 0)
     {
-      runGaussianSplattingPipeline(cmd);
+      // To avoid CPU bottlenecks when using VK_QUERY_RESULT_WAIT_BIT we fetch previous
+      // frame's result once its synchronization fence signals.
 
-      if constexpr(kEnableDebugRun)
-      cmd.pipelineBufferBarriers({
-        {
-          .srcStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-          .srcAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT,
-          .dstStageMask = VK_PIPELINE_STAGE_2_HOST_BIT,
-          .dstAccessMask = VK_ACCESS_2_HOST_READ_BIT,
-          .buffer = indirect_kv_count_sbo_.buffer,
-        },
-        {
-          .srcStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-          .srcAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT,
-          .dstStageMask = VK_PIPELINE_STAGE_2_HOST_BIT,
-          .dstAccessMask = VK_ACCESS_2_HOST_READ_BIT,
-          .buffer = splat_keys_sbo_.buffer,
-        },
-      });
-    }
-    context_.finishTransientCommandEncoder(cmd);
+      std::array<uint64_t, QueryTimestamp_kCount> timestamps{};
+      auto res = context_.getQueryPoolResults(
+        query_pool_,
+        QueryTimestamp_Start,
+        QueryTimestamp_kCount,
+        sizeof(timestamps),
+        timestamps.data(),
+        sizeof(timestamps[0]),
+        VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT
+      );
+      auto printElapsedTime = [&C = this->context_, &timestamps](std::string const& name, uint32_t start, uint32_t end) {
+        uint64_t const elapsedTicks = timestamps[end] - timestamps[start];
+        double const elapsedPeriod = C.gpu_properties().limits.timestampPeriod;
+        double const elapsedMillis = static_cast<double>(
+          (elapsedTicks * elapsedPeriod) / 1e6
+        );
+        LOGI("> {} : {:0.2f} ms.", name, elapsedMillis);
+      };
 
-    if constexpr (kEnableDebugRun) {
-      uint32_t kv_real_size = 0;
-
-      uint32_t *indirect_buf;
-      context_.mapMemory(indirect_kv_count_sbo_, &indirect_buf);
-        kv_real_size = indirect_buf[3];
-        LOGI("kv size {}", kv_real_size);
-        if (kv_real_size == splat_kv_heuristic_size_) {
-          LOGI(" -> it has probably been clamped to avoid an overflow.");
-        }
-      context_.unmapMemory(indirect_kv_count_sbo_);
-
-      // uint32_t const nSize = push_constant_.numElems; //
-      // LOGI("> pre sort KEYS output <first>");
-      // debugMapBuffer<uint64_t>(splat_keys_sbo_, 0u, 2*kv_real_size, kv_real_size);
-
-      // LOGI("Total original Gaussian : {}", gaussians_count_);
-      // LOGI("> mapping TILE COUNT output {}/{} elements.", nSize, push_constant_.numElems);
-      // debugMapBuffer(splat_tilecount_sbo_, 0, nSize, 256);
-
-      // LOGI("> mapping TILE OFFSET output.");
-      // debugMapBuffer(prefix_output_sbo_, 0, nSize, 256);
-
-      LOGI("> post sort KEYS output <first>");
-      debugMapBuffer<uint64_t>(splat_keys_sbo_, 0u, kv_real_size, kv_real_size);
-
-      static int frame = 0;
-      if (++frame == 1) {
-        // exit(-1);
+      if (VK_SUCCESS == res) {
+        printElapsedTime("runGaussianSplattingPipeline", QueryTimestamp_Start, QueryTimestamp_End);
       }
-      LOGI("------------------------------->");
     }
-#endif
   }
 
   void draw(CommandEncoder const& cmd) final {
+    cmd.resetQueryPool(query_pool_, QueryTimestamp_Start, QueryTimestamp_kCount);
+
+    cmd.writeTimestamp(
+      VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, query_pool_, QueryTimestamp_Start
+    );
+
     runGaussianSplattingPipeline(cmd);
+
+    cmd.writeTimestamp(
+      VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, query_pool_, QueryTimestamp_End
+    );
 
     auto pass = cmd.beginRendering();
     cmd.endRendering();
@@ -955,6 +948,8 @@ class GaussianSplatSample final : public Application {
 
   shader_interop::UniformBufferData host_data_{};
   backend::Buffer uniform_buffer_{};
+
+  VkQueryPool query_pool_{};
 
   // ----------
 
