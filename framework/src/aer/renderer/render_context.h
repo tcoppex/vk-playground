@@ -266,11 +266,12 @@ class RenderContext : public Context {
   void destroyResources(VulkanHandles... handles) const {
     (destroyResource(handles), ...);
   }
-  void destroyResource(VkDescriptorSetLayout h) const        { destroyDescriptorSetLayout(h); }
-  void destroyResource(VkPipelineLayout h) const             { destroyPipelineLayout(h); }
-  void destroyResource(Pipeline const& h) const              { destroyPipeline(h); }
-  void destroyResource(backend::Buffer const& buffer) const  { destroyBuffer(buffer); }
-  void destroyResource(backend::Image & image) const         { destroyImage(image); }
+  void destroyResource(VkDescriptorSetLayout h) const         { destroyDescriptorSetLayout(h); }
+  void destroyResource(VkPipelineLayout h) const              { destroyPipelineLayout(h); }
+  void destroyResource(Pipeline const& h) const               { destroyPipeline(h); }
+  void destroyResource(backend::Buffer const& buffer) const   { destroyBuffer(buffer); }
+  void destroyResource(backend::Image & image) const          { destroyImage(image); }
+  void destroyResource(VkQueryPool qp) const                  { destroyQueryPool(qp); }
 
  private:
   Settings settings_{};

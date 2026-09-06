@@ -278,6 +278,44 @@ void Context::freeCommandBuffer(
 
 // ----------------------------------------------------------------------------
 
+VkQueryPool Context::createQueryPool(
+  VkQueryType queryType,
+  uint32_t const count
+) const noexcept {
+  auto createInfo = VkQueryPoolCreateInfo{
+    .sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO,
+    .queryType = queryType,
+    .queryCount = count
+  };
+  VkQueryPool queryPool{};
+  vkCreateQueryPool(handle_, &createInfo, nullptr, &queryPool);
+  return queryPool;
+}
+
+// ----------------------------------------------------------------------------
+
+VkResult Context::getQueryPoolResults(
+  VkQueryPool queryPool,
+  uint32_t firstQuery,
+  uint32_t queryCount,
+  size_t dataSize,
+  void* pData,
+  VkDeviceSize stride,
+  VkQueryResultFlags flags
+) const noexcept {
+  return vkGetQueryPoolResults(
+    handle_, queryPool, firstQuery, queryCount, dataSize, pData, stride, flags
+  );
+}
+
+// ----------------------------------------------------------------------------
+
+void Context::destroyQueryPool(VkQueryPool queryPool) const noexcept {
+  vkDestroyQueryPool(handle_, queryPool, nullptr);
+}
+
+// ----------------------------------------------------------------------------
+
 CommandEncoder Context::createTransientCommandEncoder(
   Context::TargetQueue const& target_queue
 ) const {

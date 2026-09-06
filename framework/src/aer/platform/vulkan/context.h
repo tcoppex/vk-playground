@@ -307,6 +307,26 @@ class Context {
     VkCommandBuffer command_buffer
   ) const noexcept;
 
+  // --- Query Pool ---
+
+  [[nodiscard]]
+  VkQueryPool createQueryPool(
+    VkQueryType queryType,
+    uint32_t const count
+  ) const noexcept;
+
+  void destroyQueryPool(VkQueryPool queryPool) const noexcept;
+
+  VkResult getQueryPoolResults(
+    VkQueryPool queryPool,
+    uint32_t firstQuery,
+    uint32_t queryCount,
+    size_t dataSize,
+    void* pData,
+    VkDeviceSize stride,
+    VkQueryResultFlags flags
+  ) const noexcept;
+
   // --- Transient Command Encoder ---
 
   [[nodiscard]]

@@ -146,6 +146,16 @@ class GenericCommandEncoder {
 
   void pipelineImageBarriers(std::vector<VkImageMemoryBarrier2> barriers) const;
 
+  // --- Query Pool ---
+
+  void resetQueryPool(VkQueryPool queryPool, uint32_t firstQuery, uint32_t queryCount) const noexcept {
+    vkCmdResetQueryPool(handle_, queryPool, firstQuery, queryCount);
+  }
+
+  void writeTimestamp(VkPipelineStageFlags2 stage, VkQueryPool queryPool, uint32_t query) const {
+    vkCmdWriteTimestamp2(handle_, stage, queryPool, query);
+  }
+
   // --- Compute ---
 
   template<uint32_t tX = 1u, uint32_t tY = 1u, uint32_t tZ = 1u>
