@@ -41,6 +41,7 @@ class GaussianSplatSample final : public Application {
       GSCompute_DecoupledPrefixSum,
       GSCompute_ResetIndirectBuffers,
       GSCompute_DuplicateKeys,
+      GSCompute_IdentifyTileRanges,
 
       GSCompute_kCount,
     };
@@ -305,6 +306,17 @@ class GaussianSplatSample final : public Application {
           buffer[6] = 1;
         context_.unmapMemory(indirect_kv_count_sbo_);
       }
+
+      LOGI("> res {} {}", viewport_size_.width, viewport_size_.height);
+      auto numTileX = vk_utils::GetKernelGridDim(viewport_size_.width, 16);
+      auto numTileY = vk_utils::GetKernelGridDim(viewport_size_.height, 16);
+
+      tile_ranges_sbo_ = context_.createBuffer(
+        numTileX * numTileY * 2u * sizeof(uint32_t), //
+          VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
+        | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+          kDefaultBufferMemoryUsage
+      );
     }
 
     /* Create the Compute Pipelines */
@@ -323,6 +335,7 @@ class GaussianSplatSample final : public Application {
         "gs_prefix_sum.slang",
         "gs_reset_indirect.slang",
         "gs_duplicate_keys.slang",
+        "gs_identify_tile_ranges.slang",
       });
       context_.createComputePipelines(
         pipeline_layout_,
@@ -457,7 +470,8 @@ class GaussianSplatSample final : public Application {
       splat_values_sbo_,
       prefix_output_sbo_,
       prefix_descriptor_and_count_sbo_,
-      indirect_kv_count_sbo_
+      indirect_kv_count_sbo_,
+      tile_ranges_sbo_
     );
 
     /* Radix */
@@ -970,6 +984,8 @@ class GaussianSplatSample final : public Application {
   VkDeviceSize key_count_offset_{};
   VkDeviceSize indirect_histogram_offset_{};
   VkDeviceSize indirect_binning_offset_{};
+
+  backend::Buffer tile_ranges_sbo_{};
 
   VkPipelineLayout pipeline_layout_{};
   shader_interop::PushConstant push_constant_{};
