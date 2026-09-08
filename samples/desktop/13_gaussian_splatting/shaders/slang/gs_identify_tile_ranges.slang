@@ -17,7 +17,7 @@ void main(
   uint gid : SV_DispatchThreadID
 )
 {
-  let NumInstances = pushConstant.numElems; // (uint32_t)pushConstant.numkeys_addr
+  let NumInstances = *((uint32_t*)pushConstant.numkeys_addr);
 
   if (gid >= NumInstances) {
     return;

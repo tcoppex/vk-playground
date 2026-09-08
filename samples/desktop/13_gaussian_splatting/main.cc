@@ -872,6 +872,24 @@ class GaussianSplatSample final : public Application {
       splat_keys_sbo_,
       splat_values_sbo_
     );
+
+    // 5. Identify Tile Ranges.
+    {
+      cmd.bindPipeline(compute_pipelines_[GSCompute_IdentifyTileRanges]);
+
+      cmd.pipelineBufferBarriers({
+        {
+          .srcStageMask  = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+          .srcAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT,
+          .dstStageMask  = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+          .dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT,
+          .buffer        = splat_keys_sbo_.buffer,
+        },
+      });
+
+      // (Use the same kernel size than the radix histogram)
+      cmd.dispatchIndirect(indirect_kv_count_sbo_, indirect_histogram_offset_);
+    }
   }
 
   void update(float const dt) final {
