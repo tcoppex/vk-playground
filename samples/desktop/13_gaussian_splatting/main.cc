@@ -882,10 +882,20 @@ class GaussianSplatSample final : public Application {
     // Query previous frame Timestamps.
     if (frame_index() > 0)
     {
-      // To avoid CPU bottlenecks when using VK_QUERY_RESULT_WAIT_BIT we fetch previous
-      // frame's result once its synchronization fence signals.
+      // To avoid CPU bottlenecks when using VK_QUERY_RESULT_WAIT_BIT we fetch
+      // previous frame's result once its synchronization fence signals.
 
       std::array<uint64_t, QueryTimestamp_kCount> timestamps{};
+
+      auto printElapsedTime = [&C = this->context_, &timestamps](std::string const& name, uint32_t start, uint32_t end) {
+        uint64_t const elapsedTicks = timestamps[end] - timestamps[start];
+        double const elapsedPeriod = C.gpu_properties().limits.timestampPeriod;
+        double const elapsedMillis = static_cast<double>(
+          (elapsedTicks * elapsedPeriod) / 1e6
+        );
+        LOGI("> {} : {:0.2f} ms.", name, elapsedMillis);
+      };
+
       auto res = context_.getQueryPoolResults(
         query_pool_,
         QueryTimestamp_Start,
@@ -895,14 +905,6 @@ class GaussianSplatSample final : public Application {
         sizeof(timestamps[0]),
         VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT
       );
-      auto printElapsedTime = [&C = this->context_, &timestamps](std::string const& name, uint32_t start, uint32_t end) {
-        uint64_t const elapsedTicks = timestamps[end] - timestamps[start];
-        double const elapsedPeriod = C.gpu_properties().limits.timestampPeriod;
-        double const elapsedMillis = static_cast<double>(
-          (elapsedTicks * elapsedPeriod) / 1e6
-        );
-        LOGI("> {} : {:0.2f} ms.", name, elapsedMillis);
-      };
 
       if (VK_SUCCESS == res) {
         printElapsedTime("runGaussianSplattingPipeline", QueryTimestamp_Start, QueryTimestamp_End);
@@ -913,15 +915,9 @@ class GaussianSplatSample final : public Application {
   void draw(CommandEncoder const& cmd) final {
     cmd.resetQueryPool(query_pool_, QueryTimestamp_Start, QueryTimestamp_kCount);
 
-    cmd.writeTimestamp(
-      VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, query_pool_, QueryTimestamp_Start
-    );
-
+    cmd.writeTimestamp(VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, query_pool_, QueryTimestamp_Start);
     runGaussianSplattingPipeline(cmd);
-
-    cmd.writeTimestamp(
-      VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, query_pool_, QueryTimestamp_End
-    );
+    cmd.writeTimestamp(VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, query_pool_, QueryTimestamp_End);
 
     auto pass = cmd.beginRendering();
     cmd.endRendering();
