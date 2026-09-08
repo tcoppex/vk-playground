@@ -16,7 +16,7 @@ uint32_t groupCount(uint32_t numElems, uint32_t threadsPerGroup) {
 [numthreads(1, 1, 1)]
 void main()
 {
-  let g_indirect = (uint32_t*)pushConstant.scan_indirect_count_addr;
+  let g_indirect = (uint32_t*)pushConstant.indirect_count_addr;
 
   let lastId     = (pushConstant.numElems > 0) ? pushConstant.numElems - 1 : 0;
   let lastCount  = ((uint32_t*)pushConstant.scan_input_addr)[lastId];

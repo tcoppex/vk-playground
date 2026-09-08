@@ -421,11 +421,13 @@ class GaussianSplatSample final : public Application {
       pc.scan_descriptor_addr   = prefix_descriptor_and_count_sbo_.address;
       pc.scan_counter_addr      = prefix_descriptor_and_count_sbo_.address
                                 + prefix_descriptor_count_offset_;
-      pc.scan_indirect_count_addr = indirect_kv_count_sbo_.address;
+
+      pc.indirect_count_addr    = indirect_kv_count_sbo_.address;
+      pc.numkeys_addr           = indirect_kv_count_sbo_.address
+                                + key_count_offset_;
 
       pc.keys_addr              = splat_keys_sbo_.address;
       pc.values_addr            = splat_values_sbo_.address;
-
       pc.tile_ranges_addr       = tile_ranges_sbo_.address;
     }
 
@@ -506,7 +508,7 @@ class GaussianSplatSample final : public Application {
     pc.scan_output_addr     = output.address;
     pc.scan_descriptor_addr = descriptor.address;
     pc.scan_counter_addr    = descriptor.address + prefix_descriptor_count_offset_;
-    pc.scan_indirect_count_addr = total_indirect.address;
+    pc.indirect_count_addr = total_indirect.address;
     cmd.pushConstant(pc, pipeline_layout_, VK_SHADER_STAGE_COMPUTE_BIT);
 
     // 1. Clear both descriptor flags AND the atomic counter.
