@@ -96,8 +96,9 @@ class GaussianSplatSample final : public Application {
     /* Import point cloud (ply) data */
     std::vector<shader_interop::GaussianData> gaussians{};
     {
-      auto reader = miniply::PLYReader(
-        ASSETS_DIR "pointclouds/bonzai_7000/point_cloud.ply"
+      auto reader = miniply::PLYReader( ASSETS_DIR "pointclouds/"
+        "bonzai_7000/point_cloud.ply"
+        // "flowers_1/flowers_1.ply"
       );
       if (!reader.valid()) {
         LOGW("miniply: invalid filename");
@@ -685,19 +686,7 @@ class GaussianSplatSample final : public Application {
       // [probably have room for optimizations here]
 #if 0
       cmd.fillBuffer(descriptor, 0u);
-      cmd.pipelineBufferBarriers({
-        {
-          .srcStageMask = VK_PIPELINE_STAGE_2_CLEAR_BIT,
-          .srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
-          .dstStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-          .dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT
-                         | VK_ACCESS_2_SHADER_WRITE_BIT,
-          .buffer = descriptor.buffer,
-        }
-      });
 #else
-      // (no performance gain)
-
       cmd.pipelineBufferBarriers({
         {
           .srcStageMask  = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
@@ -712,22 +701,20 @@ class GaussianSplatSample final : public Application {
       cmd.bindPipeline(radix_.pipelines[RadixCompute_ClearDescriptor]);
       cmd.dispatchIndirect(indirect_key_count, indirect_binning_offset_);
       cmd.bindPipeline(radix_.pipelines[RadixCompute_Binning]);
-
-      cmd.pipelineBufferBarriers({
-        {
-          .srcStageMask  = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-          .srcAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT,
-          .dstStageMask  = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-          .dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT
-                         | VK_ACCESS_2_SHADER_WRITE_BIT,
-          .buffer        = descriptor.buffer,
-        }
-      });
-
 #endif
       // -------------------------------------
 
       cmd.pipelineBufferBarriers({
+        {
+          .srcStageMask  = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT
+                         | VK_PIPELINE_STAGE_2_CLEAR_BIT,
+          .srcAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT
+                         | VK_ACCESS_2_TRANSFER_WRITE_BIT,
+          .dstStageMask  = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+          .dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT
+                         | VK_ACCESS_2_SHADER_WRITE_BIT,
+          .buffer        = descriptor.buffer,
+        },
         {
           .srcStageMask  = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
           .srcAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT,
