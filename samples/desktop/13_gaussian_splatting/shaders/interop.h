@@ -37,6 +37,7 @@ struct UniformBufferData {
   uint32_t pad0_[2];
 };
 
+// 104 bytes
 struct PushConstant {
   uint32_t numElems;              // kernel max threads count.
   uint32_t maxKeyValueCapacity;   // limit for output with dynamic bounds.
@@ -54,8 +55,10 @@ struct PushConstant {
   uint64_t scan_counter_addr;     // PrefixScan atomic counter.
   uint64_t scan_indirect_count_addr;
   // ----
-  uint64_t unsorted_keys_addr;
-  uint64_t unsorted_values_addr;
+  uint64_t keys_addr;
+  uint64_t values_addr;
+  // ----
+  uint64_t tile_ranges_addr;
 };
 
 // ---------------------------------------------------------------------------

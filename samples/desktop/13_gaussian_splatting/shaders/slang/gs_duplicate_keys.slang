@@ -38,8 +38,8 @@ void main(
   let depthId   = uint64_t(asuint(splat.depth));
 
   // Output pointers.
-  let out_key   = (uint64_t*)pushConstant.unsorted_keys_addr;
-  let out_value = (uint32_t*)pushConstant.unsorted_values_addr;
+  let out_key   = (uint64_t*)pushConstant.keys_addr;
+  let out_value = (uint32_t*)pushConstant.values_addr;
 
   for (var y = splat.minTile.y; y < splat.maxTile.y; ++y) {
     for (var x = splat.minTile.x; x < splat.maxTile.x; ++x) {

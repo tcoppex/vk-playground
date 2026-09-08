@@ -422,8 +422,10 @@ class GaussianSplatSample final : public Application {
                                 + prefix_descriptor_count_offset_;
       pc.scan_indirect_count_addr = indirect_kv_count_sbo_.address;
 
-      pc.unsorted_keys_addr     = splat_keys_sbo_.address;
-      pc.unsorted_values_addr   = splat_values_sbo_.address;
+      pc.keys_addr              = splat_keys_sbo_.address;
+      pc.values_addr            = splat_values_sbo_.address;
+
+      pc.tile_ranges_addr       = tile_ranges_sbo_.address;
     }
 
     LOGI("TileSize is {}", shader_interop::kTileSize);
