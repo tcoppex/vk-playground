@@ -100,6 +100,29 @@ void GenericCommandEncoder::pushDescriptorSet(
 
 // ----------------------------------------------------------------------------
 
+void GenericCommandEncoder::clearColorImage(
+  backend::Image const& image,
+  vec4 const& color
+  ) const {
+  auto subresourceRange = VkImageSubresourceRange{
+    .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+    .baseMipLevel   = 0,
+    .levelCount     = 1,
+    .baseArrayLayer = 0,
+    .layerCount     = 1,
+  };
+  vkCmdClearColorImage(
+    handle_,
+    image.image,
+    VK_IMAGE_LAYOUT_GENERAL, //
+    reinterpret_cast<const VkClearColorValue*>(&color),
+    1u,
+    &subresourceRange
+  );
+}
+
+// ----------------------------------------------------------------------------
+
 void GenericCommandEncoder::pipelineBufferBarriers(
   std::vector<VkBufferMemoryBarrier2> barriers
 ) const {

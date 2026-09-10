@@ -140,6 +140,10 @@ class GenericCommandEncoder {
     fillBuffer(buffer, 0u, VK_WHOLE_SIZE, data);
   }
 
+  // --- Images ---
+
+  void clearColorImage(backend::Image const& image, vec4 const& color) const;
+
   // --- Pipeline Barrier ---
 
   void pipelineBufferBarriers(std::vector<VkBufferMemoryBarrier2> barriers) const;
