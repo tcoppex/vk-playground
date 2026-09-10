@@ -42,6 +42,7 @@ class GaussianSplatSample final : public Application {
       GSCompute_ResetIndirectBuffers,
       GSCompute_DuplicateKeys,
       GSCompute_IdentifyTileRanges,
+      GSCompute_Rasterize,
 
       GSCompute_kCount,
     };
@@ -320,9 +321,47 @@ class GaussianSplatSample final : public Application {
       );
     }
 
+    /* GS rasterizer output image */
+    gs_image_ = context_.createImage2D(
+      viewport_size_.width,
+      viewport_size_.height,
+      VK_FORMAT_R16G16B16A16_SFLOAT, // VK_FORMAT_B8G8R8A8_UNORM,
+        VK_IMAGE_USAGE_STORAGE_BIT
+      | VK_IMAGE_USAGE_TRANSFER_SRC_BIT
+      | VK_IMAGE_USAGE_TRANSFER_DST_BIT
+      // | VK_IMAGE_USAGE_SAMPLED_BIT
+      ,
+      "GaussianSplatting::OutputImage"
+    );
+
+    /* Descriptor set. */
+    {
+      descriptor_set_layout_ = context_.createDescriptorSetLayout({
+        {
+          .binding = 0,
+          .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+          .descriptorCount = 1u,
+          .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
+        }
+      });
+      descriptor_set_ = context_.createDescriptorSet(descriptor_set_layout_, {
+        {
+          .binding = 0,
+          .type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+          .images = {
+            {
+              .imageView = gs_image_.view,
+              .imageLayout = VK_IMAGE_LAYOUT_GENERAL,
+            }
+          }
+        },
+      });
+    }
+
     /* Create the Compute Pipelines */
     {
       pipeline_layout_ = context_.createPipelineLayout({
+        .setLayouts = { descriptor_set_layout_ },
         .pushConstantRanges = {
           {
             .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
@@ -337,6 +376,7 @@ class GaussianSplatSample final : public Application {
         "gs_reset_indirect.slang",
         "gs_duplicate_keys.slang",
         "gs_identify_tile_ranges.slang",
+        "gs_rasterize.slang"
       });
       context_.createComputePipelines(
         pipeline_layout_,
@@ -476,7 +516,9 @@ class GaussianSplatSample final : public Application {
       prefix_output_sbo_,
       prefix_descriptor_and_count_sbo_,
       indirect_kv_count_sbo_,
-      tile_ranges_sbo_
+      tile_ranges_sbo_,
+      gs_image_,
+      descriptor_set_layout_
     );
 
     /* Radix */
@@ -762,6 +804,15 @@ class GaussianSplatSample final : public Application {
   }
 
   void runGaussianSplattingPipeline(CommandEncoder const& cmd) {
+    if (frame_index() == 0) {
+      cmd.transitionColorImages(
+        { gs_image_ },
+        VK_IMAGE_LAYOUT_UNDEFINED,
+        VK_IMAGE_LAYOUT_GENERAL
+      );
+    }
+    cmd.clearColorImage(gs_image_, vec4(1.0f, 0.0f, 1.0f, 1.0f));
+
     // 1. Preprocess 3D Gaussian splats to tiled 2D screen space.
     {
       cmd.bindPipeline(compute_pipelines_[GSCompute_Preprocess]);
@@ -890,6 +941,43 @@ class GaussianSplatSample final : public Application {
       // (Use the same kernel size than the radix histogram)
       cmd.dispatchIndirect(indirect_kv_count_sbo_, indirect_histogram_offset_);
     }
+
+    // 6. Rasterize
+    {
+      cmd.bindPipeline(compute_pipelines_[GSCompute_Rasterize]);
+
+      cmd.bindDescriptorSet(descriptor_set_, VK_SHADER_STAGE_COMPUTE_BIT);
+
+      cmd.pipelineBufferBarriers({
+        {
+          .srcStageMask  = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+          .srcAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT,
+          .dstStageMask  = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+          .dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT,
+          .buffer        = splat_keys_sbo_.buffer,
+        },
+      });
+      cmd.pipelineImageBarriers({
+        {
+          .srcStageMask  = VK_ACCESS_TRANSFER_WRITE_BIT,
+          .dstAccessMask = VK_ACCESS_SHADER_READ_BIT
+                         | VK_ACCESS_SHADER_WRITE_BIT
+                         ,
+          .oldLayout = VK_IMAGE_LAYOUT_GENERAL,
+          .newLayout = VK_IMAGE_LAYOUT_GENERAL,
+          .image = gs_image_.image,
+          .subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 } //
+        },
+      });
+
+      // cmd.dispatch(
+      //   vk_utils::GetKernelGridDim(viewport_size_.width, shader_interop::kTileResolution),
+      //   vk_utils::GetKernelGridDim(viewport_size_.height, shader_interop::kTileResolution)
+      // );
+      cmd.runKernel<shader_interop::kTileResolution, shader_interop::kTileResolution>(
+        viewport_size_.width, viewport_size_.height
+      );
+    }
   }
 
   void update(float const dt) final {
@@ -992,6 +1080,10 @@ class GaussianSplatSample final : public Application {
 
   backend::Buffer tile_ranges_sbo_{};
 
+  backend::Image gs_image_{};
+
+  VkDescriptorSetLayout descriptor_set_layout_{};
+  VkDescriptorSet descriptor_set_{};
   VkPipelineLayout pipeline_layout_{};
   shader_interop::PushConstant push_constant_{};
   std::array<Pipeline, GSCompute_kCount> compute_pipelines_{};
