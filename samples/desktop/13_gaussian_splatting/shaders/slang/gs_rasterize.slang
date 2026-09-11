@@ -136,19 +136,12 @@ void main(
 
   // --------------------------------------------------
 
-  let N = abs(range.y - range.x);
-  let dn = 0.75 * smoothstep(0, 40, N);
-
-  // Debug
-  var outputColor = float4(0.75f, 0.25f, 0.25f + dn, 1.0f);
-
   if (inBounds) {
-    const float3 background = float3(0.0f, 0.0f, 0.0f);
+    let background = float3(0.0f, 0.0f, 0.0f);
     let finalColor = accumColor + T * background;
-    outputColor = float4(finalColor, 1.0f - T);
+    outputImage[pixel] = float4(finalColor, 1.0f - T);
   }
 
-  outputImage[pixel] = outputColor;
 }
 
 // ----------------------------------------------------------------------------

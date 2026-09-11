@@ -26,7 +26,7 @@ class GaussianSplatSample final : public Application {
   static constexpr bool kEnableDebugRun{ false };
   static constexpr uint32_t kDebugBufferSize{ 1 << 8 /*1157141*/ };
 
-  static constexpr uint32_t kHeuristicMaxTilePerGaussian{ 6 }; //
+  static constexpr uint32_t kHeuristicMaxTilePerGaussian{ 5 }; //
 
   public:
     enum QueryTimestamp {
@@ -79,7 +79,7 @@ class GaussianSplatSample final : public Application {
         750.0f
       );
       camera_.set_controller(&arcball_controller_);
-      arcball_controller_.set_dolly(55.0f);
+      arcball_controller_.set_dolly(5.0f);
     }
 
     /* Allocate the uniform buffer. */
@@ -102,8 +102,8 @@ class GaussianSplatSample final : public Application {
     std::vector<shader_interop::GaussianData> gaussians{};
     {
       auto reader = miniply::PLYReader( ASSETS_DIR "pointclouds/"
-        "bonzai_7000/point_cloud.ply"
-        // "flowers_1/flowers_1.ply"
+        // "bonzai_7000/point_cloud.ply"
+        "flowers_1/flowers_1.ply"
       );
       if (!reader.valid()) {
         LOGW("miniply: invalid filename");

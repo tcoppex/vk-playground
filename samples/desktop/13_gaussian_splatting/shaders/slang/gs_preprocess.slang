@@ -80,7 +80,7 @@ void main(
   const float kEpsilon          = 0.001f;
 
   // [highly affect performance and throughput]
-  const float kMaxSplatRadius   = 1024.0f; //
+  const float kMaxSplatRadius   = 256.0f; //
 
   // --------------------------------------------------
 
