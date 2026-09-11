@@ -820,26 +820,30 @@ class GaussianSplatSample final : public Application {
   }
 
   void runGaussianSplattingPipeline(CommandEncoder const& cmd) {
-    if (frame_index() == 0) {
-      cmd.transitionColorImages(
-        { gs_image_ },
-        VK_IMAGE_LAYOUT_UNDEFINED,
-        VK_IMAGE_LAYOUT_GENERAL
-      );
-    }
-    // (debug GS rasterizer clear color)
-    cmd.clearColorImage(gs_image_, vec4(0.8f, 0.5f, 0.8f, 1.0f));
+    // Shared push constants.
+    auto pc = push_constant_;
+    cmd.pushConstant(pc, pipeline_layout_, VK_SHADER_STAGE_COMPUTE_BIT);
 
-    cmd.fillBuffer(tile_ranges_sbo_, 0u); //
+    // 0. Reset output images & buffers.
+    {
+      if (frame_index() == 0) {
+        cmd.transitionColorImages(
+          { gs_image_ },
+          VK_IMAGE_LAYOUT_UNDEFINED,
+          VK_IMAGE_LAYOUT_GENERAL
+        );
+      }
+
+      // (debug GS rasterizer clear color)
+      auto tile_clear_color = vec4(0.8f, 0.5f, 0.8f, 1.0f);
+      cmd.clearColorImage(gs_image_, tile_clear_color);
+
+      cmd.fillBuffer(tile_ranges_sbo_, 0u); //
+    }
 
     // 1. Preprocess 3D Gaussian splats to tiled 2D screen space.
     {
       cmd.bindPipeline(compute_pipelines_[GSCompute_Preprocess]);
-
-      // [hack] Used to cull excedent tiles count ...
-      auto pc = push_constant_;
-      pc.maxKeyValueCapacity = kHeuristicMaxTilePerGaussian;
-      cmd.pushConstant(pc, VK_SHADER_STAGE_COMPUTE_BIT);
 
       cmd.pipelineBufferBarriers({
         {
@@ -891,10 +895,10 @@ class GaussianSplatSample final : public Application {
     {
       cmd.bindPipeline(compute_pipelines_[GSCompute_DuplicateKeys]);
 
-      auto pc = push_constant_;
-      pc.numElems            = gaussians_count_;
-      pc.maxKeyValueCapacity = splat_kv_heuristic_size_;
-      cmd.pushConstant(pc, VK_SHADER_STAGE_COMPUTE_BIT);
+      auto kv_pc = push_constant_;
+      kv_pc.numElems            = gaussians_count_;
+      kv_pc.maxKeyValueCapacity = splat_kv_heuristic_size_;
+      cmd.pushConstant(kv_pc, VK_SHADER_STAGE_COMPUTE_BIT);
 
       cmd.pipelineBufferBarriers({
         {
@@ -942,6 +946,10 @@ class GaussianSplatSample final : public Application {
       splat_keys_sbo_,
       splat_values_sbo_
     );
+
+    // [important]
+    // we must update the push constant after the RadixSort, which uses its own.
+    cmd.pushConstant(pc, pipeline_layout_, VK_SHADER_STAGE_COMPUTE_BIT);
 
     // 5. Identify Tile Ranges.
     {
