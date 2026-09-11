@@ -234,6 +234,8 @@ macro(slang2spirv shader)
     spvImageQuery
     spvMinLod
     spvSparseResidency
+    # spvVulkanMemoryModelKHR #!
+    # spvVulkanMemoryModelDeviceScopeKHR  #!
   )
 
   if(SLANG_TARGET STREQUAL "slang-module")

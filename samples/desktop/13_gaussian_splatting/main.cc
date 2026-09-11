@@ -224,7 +224,7 @@ class GaussianSplatSample final : public Application {
         std::vector<uint32_t> counts(gaussians_count_, 0);
         for (size_t i = 0; (i<kDebugBufferSize) && (i<counts.size()); ++i) {
           // BUGTRACK: force a possible oveflow problem
-          counts[i] = 0 + rand() % (kHeuristicMaxTilePerGaussian + 2); //<
+          counts[i] = 2 + rand() % kHeuristicMaxTilePerGaussian; //<
         }
 
         splat_tilecount_sbo_ = context_.transientCreateBuffer(
@@ -935,7 +935,7 @@ class GaussianSplatSample final : public Application {
 
     // 4. Sort key-value pairs.
     // [This use 64bits key as per the original 2023 GS paper, but we might be
-    //  able to halve it to 32bits for performance gain.]
+    //  able to halve it to 32bits for performance.]
     dispatchRadixSort(
       cmd,
       indirect_kv_count_sbo_,

@@ -780,6 +780,11 @@ bool Context::initDevice() {
     LOG_CHECK(features_.v12.timelineSemaphore && "Timeline semaphore required (Vulkan 1.2 core)");
     LOG_CHECK(features_.v12.bufferDeviceAddress && "Buffer device address required (Vulkan 1.2 core)");
 
+    // LOG_CHECK(features_.v12.vulkanMemoryModel
+    //   && "Vulkan Memory Model required for cross-workgroup BDA atomics.");
+    // LOG_CHECK(features_.v12.vulkanMemoryModelDeviceScope
+    //   && "Vulkan Memory Model Device scope required.");
+
     LOG_CHECK(features_.v13.synchronization2 && "Synchronization2 required (Vulkan 1.3 core)");
     LOG_CHECK(features_.v13.dynamicRendering && "Dynamic Rendering required (Vulkan 1.3 core)");
     LOG_CHECK(features_.v13.maintenance4 && "Maintenance4 required (Vulkan 1.3 core)");

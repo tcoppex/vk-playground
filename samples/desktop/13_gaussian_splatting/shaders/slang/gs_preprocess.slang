@@ -93,8 +93,8 @@ void main(
   let resolution: float2   = uData.resolution;
 
   // Outputs
-  SplatOutput *output = &(((SplatOutput*)pushConstant.splat_addr)[gid]);
-  uint32_t *tileCount = &(((uint32_t*)pushConstant.scan_input_addr)[gid]);
+  let output    = &(((SplatOutput*)pushConstant.splat_addr)[gid]);
+  let tileCount = &(((uint32_t*)pushConstant.scan_input_addr)[gid]);
 
   // Reset tile overlapped count.
   *tileCount = 0;
@@ -195,18 +195,22 @@ void main(
 
   uint32_t count = (maxTile.x - minTile.x) * (maxTile.y - minTile.y);
 
+  // [Unused, only for bugtracking]
   // [hacky] Force per gaussian tile output budget.
-  if (pushConstant.maxKeyValueCapacity > 0) {
-    // count = uint32_t(min(count, pushConstant.maxKeyValueCapacity));
-  }
+  // if (pushConstant.maxKeyValueCapacity > 0) {
+  //   count = uint32_t(min(count, pushConstant.maxKeyValueCapacity));
+  // }
 
   *tileCount = count;
 
   // ----
 
   // TODO : compute color from Spherical Harmonics.
+  // We currently using a simple color scheme for debugging
+  const float SH_C0 = 0.28209479177387814f;
+  float3 rgb = max(float3(0.0f), gaussian.color.rgb * SH_C0 + 0.5f);
 
-  output->color       = gaussian.color; // (redundant)
+  output->color       = float4(rgb, gaussian.color.w); //
   output->conic       = conic;
   output->depth       = - pos_view.z; //
   output->screen_pos  = pos_screen;

@@ -114,7 +114,7 @@ void GenericCommandEncoder::clearColorImage(
   vkCmdClearColorImage(
     handle_,
     image.image,
-    VK_IMAGE_LAYOUT_GENERAL, //
+    VK_IMAGE_LAYOUT_GENERAL, // VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
     reinterpret_cast<const VkClearColorValue*>(&color),
     1u,
     &subresourceRange
@@ -305,18 +305,18 @@ void CommandEncoder::blitImage2D(
 
   // 3. Transition to Final Layouts (Prepare for Present/Shader Read)
   pipelineImageBarriers({
-  {
-    .oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-    .newLayout = final_src_layout,
-    .image = src.image,
-    .subresourceRange = subresourceRange,
-  },
-  {
-    .oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-    .newLayout = final_dst_layout,
-    .image = dst.image,
-    .subresourceRange = subresourceRange,
-  },
+    {
+      .oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+      .newLayout = final_src_layout,
+      .image = src.image,
+      .subresourceRange = subresourceRange,
+    },
+    {
+      .oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+      .newLayout = final_dst_layout,
+      .image = dst.image,
+      .subresourceRange = subresourceRange,
+    },
   });
 }
 
