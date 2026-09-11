@@ -140,8 +140,17 @@ if(TRUE)
     NAME OPENXR_SDK
     GITHUB_REPOSITORY KhronosGroup/OpenXR-SDK
     GIT_TAG release-1.1.52
+    SYSTEM YES
     # DOWNLOAD_ONLY YES
   )
+  
+  if(TARGET openxr_sdk)
+    target_compile_options(openxr_sdk PRIVATE -w)
+  endif()
+  if(TARGET openxr_jsoncpp)
+    target_compile_options(openxr_jsoncpp PRIVATE -w)
+  endif()
+
   set(OPENXR_INCLUDE_DIRS ${OPENXR_SDK_SOURCE_DIR}/include)
   set(OPENXR_LOADER_SHARED_LIBRARY OpenXR::openxr_loader)
 
@@ -171,6 +180,8 @@ endif()
 # -----------------------------------------------------------------------------
 # Third Parties Dependencies.
 # -----------------------------------------------------------------------------
+
+set(GITHUB_RAW_URL https://raw.githubusercontent.com/)
 
 #-----------------------------------
 # Vulkan
@@ -238,9 +249,28 @@ set(VMA_INCLUDE_DIR  ${VulkanMemoryAllocator_SOURCE_DIR}/include)
 CPMAddPackage(
   NAME cgltf
   GITHUB_REPOSITORY jkuhlmann/cgltf
-  GIT_TAG v1.14
+  GIT_TAG v1.15
 )
 set(CGLTF_INCLUDE_DIR ${cgltf_SOURCE_DIR})
+
+#-----------------------------------
+# miniply (.ply loader)
+#-----------------------------------
+CPMAddPackage(
+  NAME miniply
+  GITHUB_REPOSITORY vilya/miniply
+  GIT_TAG master
+  DOWNLOAD_ONLY YES
+)
+set(MINIPLY_INCLUDE_DIR "${miniply_SOURCE_DIR}")
+
+set(MINIPLY_SRC ${miniply_SOURCE_DIR}/miniply.cpp)
+target_sources(${target} PRIVATE ${MINIPLY_SRC})
+set_source_files_properties(
+  ${MINIPLY_SRC}
+  PROPERTIES
+    COMPILE_OPTIONS "-Wno-shadow"
+)
 
 #-----------------------------------
 # Draco (not currently supported)
@@ -268,6 +298,7 @@ CPMAddPackage(
   NAME entt
   GITHUB_REPOSITORY skypjack/entt
   GIT_TAG v3.16.0
+  SYSTEM YES
   # OPTIONS
   #   "ENTT_INCLUDE_HEADERS ON"
   #   "ENTT_INCLUDE_NATVIS ON"
@@ -393,7 +424,7 @@ set(UTFCPP_INCLUDE_DIR ${utfcpp_SOURCE_DIR}/source)
 #-----------------------------------
 # STB libs
 #-----------------------------------
-set(STB_LIB_URL https://raw.githubusercontent.com/nothings/stb/refs/heads/master/)
+set(STB_LIB_URL ${GITHUB_RAW_URL}/nothings/stb/refs/heads/master/)
 list(APPEND STB_LIBS_TO_FETCH
   stb_truetype.h # (currently v1.26)
   stb_image.h # (currently v2.30)
@@ -436,6 +467,7 @@ target_include_directories(${target}
     ${IMGUI_INCLUDE_DIR}
     ${UTFCPP_INCLUDE_DIR}
     ${ENTT_INCLUDE_DIR}
+    ${MINIPLY_INCLUDE_DIR}
   PRIVATE
     ${FRAMEWORK_SHADERS_DIR}
     ${CGLTF_INCLUDE_DIR}

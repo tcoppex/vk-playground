@@ -100,6 +100,29 @@ void GenericCommandEncoder::pushDescriptorSet(
 
 // ----------------------------------------------------------------------------
 
+void GenericCommandEncoder::clearColorImage(
+  backend::Image const& image,
+  vec4 const& color
+  ) const {
+  auto subresourceRange = VkImageSubresourceRange{
+    .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+    .baseMipLevel   = 0,
+    .levelCount     = 1,
+    .baseArrayLayer = 0,
+    .layerCount     = 1,
+  };
+  vkCmdClearColorImage(
+    handle_,
+    image.image,
+    VK_IMAGE_LAYOUT_GENERAL, // VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
+    reinterpret_cast<const VkClearColorValue*>(&color),
+    1u,
+    &subresourceRange
+  );
+}
+
+// ----------------------------------------------------------------------------
+
 void GenericCommandEncoder::pipelineBufferBarriers(
   std::vector<VkBufferMemoryBarrier2> barriers
 ) const {
@@ -282,18 +305,18 @@ void CommandEncoder::blitImage2D(
 
   // 3. Transition to Final Layouts (Prepare for Present/Shader Read)
   pipelineImageBarriers({
-  {
-    .oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-    .newLayout = final_src_layout,
-    .image = src.image,
-    .subresourceRange = subresourceRange,
-  },
-  {
-    .oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-    .newLayout = final_dst_layout,
-    .image = dst.image,
-    .subresourceRange = subresourceRange,
-  },
+    {
+      .oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+      .newLayout = final_src_layout,
+      .image = src.image,
+      .subresourceRange = subresourceRange,
+    },
+    {
+      .oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+      .newLayout = final_dst_layout,
+      .image = dst.image,
+      .subresourceRange = subresourceRange,
+    },
   });
 }
 
@@ -324,6 +347,18 @@ void CommandEncoder::transferBufferToDevice(
     copyBuffer(
       staging_buffer, 0u, device_buffer, device_buffer_offset, host_data_size
     );
+    pipelineBufferBarriers({
+      {
+        .srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+        .srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
+        .dstStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT
+                      | VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT
+                      ,
+        .dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT
+                       | VK_ACCESS_2_SHADER_WRITE_BIT,
+        .buffer = device_buffer.buffer,
+      },
+    });
   }
 }
 
@@ -333,21 +368,23 @@ backend::Buffer CommandEncoder::createBufferAndUpload(
   void const* host_data,
   size_t const host_data_size,
   VkBufferUsageFlags2KHR const usage,
+  VmaMemoryUsage const memory_usage,
   size_t const device_buffer_offset,
   size_t const device_buffer_size
 ) const {
   LOG_CHECK(host_data != nullptr);
   LOG_CHECK(host_data_size > 0u);
 
-  size_t const buffer_bytesize = (device_buffer_size > 0) ? device_buffer_size
-                                                          : host_data_size
-                                                          ;
+  size_t const buffer_bytesize = (device_buffer_size > 0)
+                                ? device_buffer_size
+                                : host_data_size
+                                ;
   LOG_CHECK(host_data_size <= buffer_bytesize);
 
   auto device_buffer{allocator_ptr_->createBuffer(
     static_cast<VkDeviceSize>(buffer_bytesize),
     usage | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-    VMA_MEMORY_USAGE_GPU_ONLY
+    memory_usage
   )};
   transferBufferToDevice(
     host_data, host_data_size, device_buffer, device_buffer_offset

@@ -92,6 +92,7 @@ class SampleApp final : public Application {
         mesh.vertex = cmd.createBufferAndUpload(
           mesh.geo.vertices(),
           VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+          VMA_MEMORY_USAGE_GPU_ONLY,
           vertex_buffer_bytesize_, 2u * vertex_buffer_bytesize_
         );
 
@@ -99,6 +100,7 @@ class SampleApp final : public Application {
         mesh.index = cmd.createBufferAndUpload(
           mesh.geo.indices(),
           VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+          VMA_MEMORY_USAGE_GPU_ONLY,
           0u, 2u * index_buffer_bytesize_
         );
       }
@@ -209,7 +211,6 @@ class SampleApp final : public Application {
         "rendering.slang",
       });
 
-#if 1
       context_.createComputePipelines(
         pipeline_layout_,
         ShaderStageDescriptors{
@@ -220,26 +221,6 @@ class SampleApp final : public Application {
         },
         compute_pipelines_.data()
       );
-#else
-    {
-      auto cs_shaders{context_.createShaderModules(SAMPLE_SPIRV_DIR "sort/", {
-        "simulation.comp.glsl",
-        "fill_indices.comp.glsl",
-        "calculate_dot_product.comp.glsl",
-        "sort_indices.comp.glsl",
-      })};
-
-      /* Create the compute pipelines. */
-      context_.createComputePipelines(
-        pipeline_layout_, cs_shaders, compute_pipelines_.data()
-      );
-      context_.releaseShaderModules(cs_shaders);
-    }
-#endif
-      // auto cg_shaders = context_.createShaderModules(SAMPLE_SPIRV_DIR, {
-      //   "simple.vert.glsl",
-      //   "simple.frag.glsl",
-      // });
 
       /* Create the graphics pipeline. */
       graphics_pipeline_ = context_.createGraphicsPipeline(pipeline_layout_, {
@@ -336,11 +317,11 @@ class SampleApp final : public Application {
 
       /// 1) Simulate a simple particle system (Wave simulations).
       cmd.bindPipeline(compute_pipelines_.at(Compute_Simulation));
-      cmd.dispatch<shader_interop::kCompute_Simulation_kernelSize_x>(nelems);
+      cmd.runKernel<shader_interop::kCompute_Simulation_kernelSize_x>(nelems);
 
       /// 2) Fill the first part of the indices buffer with continuous indices.
       cmd.bindPipeline(compute_pipelines_.at(Compute_FillIndices));
-      cmd.dispatch<shader_interop::kCompute_FillIndex_kernelSize_x>(nelems);
+      cmd.runKernel<shader_interop::kCompute_FillIndex_kernelSize_x>(nelems);
 
       cmd.pipelineBufferBarriers({
         {
@@ -354,7 +335,7 @@ class SampleApp final : public Application {
 
       /// 3) Compute the particles dot products against the camera view direction.
       cmd.bindPipeline(compute_pipelines_.at(Compute_DotProduct));
-      cmd.dispatch<shader_interop::kCompute_DotProduct_kernelSize_x>(nelems);
+      cmd.runKernel<shader_interop::kCompute_DotProduct_kernelSize_x>(nelems);
 
       cmd.pipelineBufferBarriers({
         {
@@ -406,7 +387,7 @@ class SampleApp final : public Application {
               offsetof(shader_interop::PushConstant, compute)
             );
 
-            cmd.dispatch<shader_interop::kCompute_SortIndex_kernelSize_x>(nelems / 2u);
+            cmd.runKernel<shader_interop::kCompute_SortIndex_kernelSize_x>(nelems / 2u);
 
             cmd.pipelineBufferBarriers({
               {

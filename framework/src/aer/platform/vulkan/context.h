@@ -15,6 +15,8 @@
 
 class Context {
  public:
+  static constexpr uint32_t kRequiredSubgroupSize{ 32u };
+
   enum class TargetQueue {
     Main,
     Transfer,
@@ -82,13 +84,23 @@ class Context {
   }
 
   [[nodiscard]]
-  VkPhysicalDeviceMemoryProperties const& memory_properties() const noexcept {
-    return properties_.memory2.memoryProperties;
+  VkPhysicalDeviceSubgroupProperties const& subgroup_properties() const noexcept {
+    return properties_.subgroup;
+  }
+
+  [[nodiscard]]
+  VkPhysicalDeviceSubgroupSizeControlProperties const& subgroup_size_control_properties() const noexcept {
+    return properties_.subgroup_size_control;
   }
 
   [[nodiscard]]
   VkPhysicalDeviceDescriptorBufferPropertiesEXT const& descriptor_buffer_properties() const noexcept {
-    return properties_.descriptor_buffer_properties;
+    return properties_.descriptor_buffer;
+  }
+
+  [[nodiscard]]
+  VkPhysicalDeviceMemoryProperties const& memory_properties() const noexcept {
+    return properties_.memory2.memoryProperties;
   }
 
   [[nodiscard]]
@@ -145,8 +157,9 @@ class Context {
     allocator_.clearStagingBuffers();
   }
 
-  void mapMemory(backend::Buffer const& buffer, void **data) const {
-    allocator_.mapMemory(buffer, data);
+  template<typename T>
+  void mapMemory(backend::Buffer const& buffer, T **data) const {
+    allocator_.mapMemory(buffer, (void**)data);
   }
 
   void unmapMemory(backend::Buffer const& buffer) const {
@@ -294,6 +307,26 @@ class Context {
     VkCommandBuffer command_buffer
   ) const noexcept;
 
+  // --- Query Pool ---
+
+  [[nodiscard]]
+  VkQueryPool createQueryPool(
+    VkQueryType queryType,
+    uint32_t const count
+  ) const noexcept;
+
+  void destroyQueryPool(VkQueryPool queryPool) const noexcept;
+
+  VkResult getQueryPoolResults(
+    VkQueryPool queryPool,
+    uint32_t firstQuery,
+    uint32_t queryCount,
+    size_t dataSize,
+    void* pData,
+    VkDeviceSize stride,
+    VkQueryResultFlags flags
+  ) const noexcept;
+
   // --- Transient Command Encoder ---
 
   [[nodiscard]]
@@ -312,8 +345,7 @@ class Context {
     void const* host_data,
     size_t host_data_size,
     VkBufferUsageFlags2KHR usage,
-    size_t device_buffer_offset = 0u,
-    size_t device_buffer_size = 0u
+    VmaMemoryUsage const memory_usage = VMA_MEMORY_USAGE_AUTO
   ) const;
 
   template<SpanConvertible T>
@@ -321,15 +353,14 @@ class Context {
   backend::Buffer transientCreateBuffer(
     T const& host_data,
     VkBufferUsageFlags2KHR usage,
-    size_t device_buffer_offset = 0u,
-    size_t device_buffer_size = 0u
+    VmaMemoryUsage const memory_usage = VMA_MEMORY_USAGE_AUTO
   ) const {
     auto const host_span{ std::span(host_data) };
     auto const bytesize{
       sizeof(typename decltype(host_span)::element_type) * host_span.size()
     };
     return transientCreateBuffer(
-      host_span.data(), bytesize, usage, device_buffer_offset, device_buffer_size
+      host_span.data(), bytesize, usage, memory_usage
     );
   }
 

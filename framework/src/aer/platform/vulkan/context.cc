@@ -278,6 +278,44 @@ void Context::freeCommandBuffer(
 
 // ----------------------------------------------------------------------------
 
+VkQueryPool Context::createQueryPool(
+  VkQueryType queryType,
+  uint32_t const count
+) const noexcept {
+  auto createInfo = VkQueryPoolCreateInfo{
+    .sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO,
+    .queryType = queryType,
+    .queryCount = count
+  };
+  VkQueryPool queryPool{};
+  vkCreateQueryPool(handle_, &createInfo, nullptr, &queryPool);
+  return queryPool;
+}
+
+// ----------------------------------------------------------------------------
+
+VkResult Context::getQueryPoolResults(
+  VkQueryPool queryPool,
+  uint32_t firstQuery,
+  uint32_t queryCount,
+  size_t dataSize,
+  void* pData,
+  VkDeviceSize stride,
+  VkQueryResultFlags flags
+) const noexcept {
+  return vkGetQueryPoolResults(
+    handle_, queryPool, firstQuery, queryCount, dataSize, pData, stride, flags
+  );
+}
+
+// ----------------------------------------------------------------------------
+
+void Context::destroyQueryPool(VkQueryPool queryPool) const noexcept {
+  vkDestroyQueryPool(handle_, queryPool, nullptr);
+}
+
+// ----------------------------------------------------------------------------
+
 CommandEncoder Context::createTransientCommandEncoder(
   Context::TargetQueue const& target_queue
 ) const {
@@ -331,8 +369,8 @@ void Context::finishTransientCommandEncoder(
 
   CHECK_VK( vkQueueSubmit2(queue(target_queue).queue, 1u, &submit_info_2, fence) );
 
-  CHECK_VK( vkWaitForFences(handle_, 1u, &fence, VK_TRUE, 2000000000ULL) ); // UINT64_MAX
-  vkDestroyFence(handle_, fence, nullptr);
+  CHECK_VK( vkWaitForFences(handle_, 1u, &fence, VK_TRUE, 600000000ULL) ); // UINT64_MAX
+  vkDestroyFence(handle_, fence, nullptr); // todo: use vkResetFences
 
   VkCommandBuffer command_buffers[] = { encoder.handle() };
   vkFreeCommandBuffers(
@@ -346,12 +384,11 @@ backend::Buffer Context::transientCreateBuffer(
   void const* host_data,
   size_t host_data_size,
   VkBufferUsageFlags2KHR usage,
-  size_t device_buffer_offset,
-  size_t device_buffer_size
+  VmaMemoryUsage const memory_usage
 ) const {
   auto cmd = createTransientCommandEncoder(TargetQueue::Transfer);
   auto buffer = cmd.createBufferAndUpload(
-    host_data, host_data_size, usage, device_buffer_offset, device_buffer_size
+    host_data, host_data_size, usage, memory_usage
   );
   finishTransientCommandEncoder(cmd);
   return buffer;
@@ -484,9 +521,10 @@ void Context::initInstance(
 
   VkDebugUtilsMessengerCreateInfoEXT debug_info{
     .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
-    .messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT
-                     | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT
+    .messageSeverity = 0
+                     | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT
 #ifndef NDEBUG
+                     | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT
                      // | VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT
                      // | VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT
 #endif
@@ -742,9 +780,24 @@ bool Context::initDevice() {
     LOG_CHECK(features_.v12.timelineSemaphore && "Timeline semaphore required (Vulkan 1.2 core)");
     LOG_CHECK(features_.v12.bufferDeviceAddress && "Buffer device address required (Vulkan 1.2 core)");
 
+    // LOG_CHECK(features_.v12.vulkanMemoryModel
+    //   && "Vulkan Memory Model required for cross-workgroup BDA atomics.");
+    // LOG_CHECK(features_.v12.vulkanMemoryModelDeviceScope
+    //   && "Vulkan Memory Model Device scope required.");
+
     LOG_CHECK(features_.v13.synchronization2 && "Synchronization2 required (Vulkan 1.3 core)");
     LOG_CHECK(features_.v13.dynamicRendering && "Dynamic Rendering required (Vulkan 1.3 core)");
     LOG_CHECK(features_.v13.maintenance4 && "Maintenance4 required (Vulkan 1.3 core)");
+    LOG_CHECK(features_.v13.subgroupSizeControl && "Subgroup Size Control required (Vulkan 1.3 core)");
+    {
+      auto const& props = subgroup_size_control_properties();
+      LOG_CHECK(
+        "Subgroup Size Control: unsupported subgroup size required for Compute Shaders."
+        && (props.requiredSubgroupSizeStages & VK_SHADER_STAGE_COMPUTE_BIT)
+        && (props.minSubgroupSize <= kRequiredSubgroupSize)
+        && (props.maxSubgroupSize >= kRequiredSubgroupSize)
+      );
+    }
   }
 
 

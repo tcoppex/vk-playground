@@ -25,14 +25,16 @@ cmake --build build --config Release
 ##### Third parties
 
  * CMake 3.22.1
- * CPM 0.40.3 (_downloaded automatically_)
+ * CPM 0.40.3 (_fetched_)
  * Vulkan SDK 1.3 (_1.4.321.0 headers downloaded via CPM_)
  * Volk 1.4.321.0 (_via CPM_)
  * VulkanMemoryAllocator 3.2.0 (_via CPM_)
- * Slang 2026.5.2 (_downloaded automatically_)
+ * Slang 2026.5.2 (_fetched_)
  * GLFW 3.4 (_via CPM_)
  * libfmt 12.0.0 (_via CPM_)
  * ImGUI v1.92.3-docking (_via CPM_)
+ * cgltf 1.15 (_via CPM_)
+ * miniply 1.10 (_via CPM_)
  * MikkTSpace (_via CPM_)
  * linalg v2.2 (_via CPM_)
  * earcut v2.2.4 (_via CPM_)
@@ -77,15 +79,15 @@ You can either install them via Android Studio (_eg. Narwhal 3 Feature Drop | 20
 # Install tools and the JDK.
 sudo apt-get install -y unzip wget openjdk-17-jdk
 
-# Setup ANDROID_SDK.
-export ANDROID_SDK=$HOME/Android
-mkdir $ANDROID_SDK && cd $ANDROID_SDK
+# Setup ANDROID_HOME.
+export ANDROID_HOME=$HOME/Android
+mkdir $ANDROID_HOME && cd $ANDROID_HOME
 
 # Download & install Android SDK Command-line Tools 12.0.
 wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
 unzip commandlinetools-linux-11076708_latest.zip -d cmdline-tools
 mv cmdline-tools/cmdline-tools cmdline-tools/latest
-export PATH=$ANDROID_SDK/cmdline-tools/latest/bin:$ANDROID_SDK/platform-tools:$PATH
+export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH
 
 # Install dependencies.
 sdkmanager "platforms;android-36" "platform-tools" "build-tools;36.0.0" "ndk;29.0.14033849"
@@ -99,18 +101,18 @@ sdkmanager "platforms;android-36" "platform-tools" "build-tools;36.0.0" "ndk;29.
 # Install JDK manually on Windows (eg. Temurin 17), and setup the JAVA_HOME environment variable.
 #export JAVA_HOME="C:\Program Files (x86)\Eclipse Adoptium\jdk-17.0.16.8-hotspot"
 
-# Setup ANDROID_SDK (also refered as $ANDROID_HOME)
-export ANDROID_SDK="$HOME/Android"
-mkdir -p $ANDROID_SDK && cd $ANDROID_SDK
+# Setup ANDROID_HOME as needed
+export ANDROID_HOME="$HOME/Android/Sdk"
+mkdir -p $ANDROID_HOME && cd $ANDROID_HOME
 
 # Download & install Android SDK Command-line Tools 12.0.
 curl -O https://dl.google.com/android/repository/commandlinetools-win-11076708_latest.zip
 unzip commandlinetools-win-11076708_latest.zip -d cmdline-tools
 mv cmdline-tools/cmdline-tools cmdline-tools/latest
-export PATH=$ANDROID_SDK/cmdline-tools/latest/bin:$ANDROID_SDK/platform-tools:$PATH
+export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH
 
 # Install dependencies.
-sdkmanager.bat --sdk_root=$ANDROID_SDK "platforms;android-36" "platform-tools" "build-tools;36.0.0" "ndk;29.0.14033849"
+sdkmanager.bat --sdk_root=$ANDROID_HOME "platforms;android-36" "platform-tools" "build-tools;36.0.0" "ndk;29.0.14033849"
 ```
 </details>
 

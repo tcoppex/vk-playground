@@ -128,24 +128,62 @@ class GenericCommandEncoder {
     pushConstants(values, currently_bound_pipeline_->layout(), stage_flags, offset);
   }
 
+  // --- Buffers ---
+
+  inline
+  void fillBuffer(backend::Buffer const& buffer, VkDeviceSize offset, VkDeviceSize bytesize, uint32_t data) const noexcept {
+    vkCmdFillBuffer(handle_, buffer.buffer, offset, bytesize, data);
+  }
+
+  inline
+  void fillBuffer(backend::Buffer const& buffer, uint32_t data) const noexcept {
+    fillBuffer(buffer, 0u, VK_WHOLE_SIZE, data);
+  }
+
+  // --- Images ---
+
+  void clearColorImage(backend::Image const& image, vec4 const& color) const;
+
   // --- Pipeline Barrier ---
 
   void pipelineBufferBarriers(std::vector<VkBufferMemoryBarrier2> barriers) const;
 
   void pipelineImageBarriers(std::vector<VkImageMemoryBarrier2> barriers) const;
 
+  // --- Query Pool ---
+
+  void resetQueryPool(VkQueryPool queryPool, uint32_t firstQuery, uint32_t queryCount) const noexcept {
+    vkCmdResetQueryPool(handle_, queryPool, firstQuery, queryCount);
+  }
+
+  void writeTimestamp(VkPipelineStageFlags2 stage, VkQueryPool queryPool, uint32_t query) const {
+    vkCmdWriteTimestamp2(handle_, stage, queryPool, query);
+  }
+
   // --- Compute ---
 
   template<uint32_t tX = 1u, uint32_t tY = 1u, uint32_t tZ = 1u>
-  void dispatch(uint32_t x = 1u, uint32_t y = 1u, uint32_t z = 1u) const {
-    LOG_CHECK(x > 0u);
-    LOG_CHECK(y > 0u);
-    LOG_CHECK(z > 0u);
-
-    vkCmdDispatch(handle_,
+  void runKernel(uint32_t x = 1u, uint32_t y = 1u, uint32_t z = 1u) const {
+    // LOGD("RunKernel<{},{},{}>({},{},{}) => {}, {}, {}",
+    //   tX, tY, tZ,
+    //   x, y, z,
+    //   vk_utils::GetKernelGridDim(x, tX),
+    //   vk_utils::GetKernelGridDim(y, tY),
+    //   vk_utils::GetKernelGridDim(z, tZ)
+    // );
+    dispatch(
       vk_utils::GetKernelGridDim(x, tX),
       vk_utils::GetKernelGridDim(y, tY),
       vk_utils::GetKernelGridDim(z, tZ)
+    );
+  }
+
+  void dispatch(uint32_t groupCountX = 1u, uint32_t groupCountY = 1u, uint32_t groupCountZ = 1u) const {
+    LOG_CHECK( (groupCountX > 0u) && (groupCountY > 0u) && (groupCountZ > 0u) );
+    vkCmdDispatch(handle_,
+      groupCountX,
+      groupCountY,
+      groupCountZ
     );
   }
 
@@ -229,6 +267,7 @@ class CommandEncoder : public GenericCommandEncoder {
     void const* host_data,
     size_t const host_data_size,
     VkBufferUsageFlags2KHR const usage,
+    VmaMemoryUsage const memory_usage = VMA_MEMORY_USAGE_AUTO,
     size_t const device_buffer_offset = 0u,
     size_t const device_buffer_size = 0u
   ) const;
@@ -238,6 +277,7 @@ class CommandEncoder : public GenericCommandEncoder {
   backend::Buffer createBufferAndUpload(
     T const& host_data,
     VkBufferUsageFlags2KHR const usage = {},
+    VmaMemoryUsage const memory_usage = VMA_MEMORY_USAGE_AUTO,
     size_t const device_buffer_offset = 0u,
     size_t const device_buffer_size = 0u
   ) const {
@@ -246,7 +286,7 @@ class CommandEncoder : public GenericCommandEncoder {
       sizeof(typename decltype(host_span)::element_type) * host_span.size()
     };
     return createBufferAndUpload(
-      host_span.data(), bytesize, usage, device_buffer_offset, device_buffer_size
+      host_span.data(), bytesize, usage, memory_usage, device_buffer_offset, device_buffer_size
     );
   }
 

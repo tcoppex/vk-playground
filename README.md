@@ -10,13 +10,13 @@
    /::::\   \:::\    \      /::::\   \:::\    \      /::::\   \:::\    \
   /::::::\   \:::\    \    /::::::\   \:::\    \    /::::::\   \:::\    \
  /:::/\:::\   \:::\    \  /:::/\:::\   \:::\    \  /:::/\:::\   \:::\____\
-/:::/  \:::\   \:::\____\/:::/__\:::\   \:::\____\/:::/  \:::\   \:::|    |
+/:::/  \:::\   \:::\____\/:::/__\:::\   \:::\____\/:::/  \:::\   \:::\    \
 \::/    \:::\  /:::/    /\:::\   \:::\   \::/    /\::/   |::::\  /:::|____|
  \/____/ \:::\/:::/    /  \:::\   \:::\   \/____/  \/____|:::::\/:::/    /
           \::::::/    /    \:::\   \:::\    \            |:::::::::/    /
            \::::/    /      \:::\   \:::\____\           |::|\::::/    /
-           /:::/    /        \:::\   \::/    /           |::| \::/____/
-          /:::/    /          \:::\   \/____/            |::|  ~|
+           /:::/    /        \:::\   \::/    /           |::| \::/    /
+          /:::/    /          \:::\   \/____/            |::|  \/____/
          /:::/    /            \:::\    \                |::|   |
         /:::/    /              \:::\____\               \::|   |
         \::/    /                \::/    /                \:|   |
@@ -33,9 +33,9 @@
 
 # aer
 
-A cross-platform real-time rendering framework, inspired by WebGPU and _vk\_minimal\_latest_.
+A cross-platform real-time rendering framework, for both desktop & XR, inspired by WebGPU and _vk\_minimal\_latest_.
 
-Tested on GNU/Linux, Windows 11 and Android 12L (_Meta Quest 3_). See [BUILD.md](BUILD.md) for detailed build instructions.
+Runs on GNU/Linux, Windows 11 and Android 12L (_Meta Quest 3_). See [BUILD.md](BUILD.md) for detailed build instructions.
 
 <details>
   <summary><strong>Quick start & run!</strong></summary>
@@ -44,8 +44,8 @@ Tested on GNU/Linux, Windows 11 and Android 12L (_Meta Quest 3_). See [BUILD.md]
 # [Optional] Retrieve system build dependencies with Synaptic.
 # sudo apt install git git-lfs build-essential cmake vulkan-sdk
 
-# [Optionnal] Specify the ANDROID_SDK path to create Android targets.
-# export ANDROID_SDK=~/Android/Sdk
+# [Optionnal] Specify the ANDROID_HOME path to create Android targets.
+# export ANDROID_HOME=~/Android/Sdk
 
 # Clone the repository.
 git clone https://github.com/tcoppex/aer
@@ -80,6 +80,7 @@ cmake --build build --config Release
 * **[10_material](samples/desktop/10_material/)**: Showcase the internal PBR material system with scene graph ordering (_Pipeline Cache_, _Specialization Constants_).
 * **[11_ray_tracing](samples/desktop/11_ray_tracing/)**: Simple path tracer on a Cornell box via hardware-accelerated ray tracing (_Acceleration Structure_, _Ray Tracing Pipeline_, _Buffer Device Address_).
 * **[12_font](samples/desktop/12_font/)**: Dynamic 2D/3D text generation from a font file.
+* **[13_gaussian_splatting](samples/desktop/13_gaussian_splatting/)**: Implements _3D Gaussian Splatting for Real-Time Radiance Field Rendering_.
 
 Samples are linear in progression: when a feature is introduced the
 first version uses a somewhat verbose semantic before switching to simpler ones in subsequent examples.

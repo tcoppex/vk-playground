@@ -1,0 +1,87 @@
+#ifndef SHADERS_INTEROP_H_
+#define SHADERS_INTEROP_H_
+
+// ---------------------------------------------------------------------------
+//
+// Reference:
+//   "3D Gaussian Splatting for Real-Time Radiance Field Rendering"
+//   Bernhard Kerbl, Georgios Kopanas, Thomas Leimkühler, George Drettakis
+//   ACM Transactions on Graphics (TOG), Vol. 42, No. 4, July 2023
+//   https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/
+//
+// see also
+//   https://github.com/graphdeco-inria/diff-gaussian-rasterization
+//
+// ---------------------------------------------------------------------------
+
+#ifdef __cplusplus
+#define ALIGNAS(x)  alignas(16)
+#else
+#define ALIGNAS(x)
+#endif
+
+static const uint32_t kCompute_Preprocess_kernelSize_x  = 256;
+static const uint32_t kCompute_PrefixSum_kernelSize_x   = 256;
+static const uint32_t kCompute_Duplicate_kernelSize_x   = 256;
+
+static const uint32_t kTileResolution = 16u;
+
+// ---------------------------------------------------------------------------
+
+struct UniformBufferData {
+  float4x4 viewMatrix;
+  float4x4 projectionMatrix;
+  float2 tanFov;
+  float2 focal;
+  float2 resolution;
+  uint32_t pad0_[2];
+};
+
+// 112 bytes
+struct PushConstant {
+  uint32_t numElems;              // kernel max threads count.
+  uint32_t maxKeyValueCapacity;   // limit for output with dynamic bounds.
+  // ----
+  uint32_t tileSize;              // use only by resetTotalCountIndirect.
+  uint32_t radixSize;             // ~
+  // ----
+  uint64_t uniform_addr;
+  uint64_t gaussian_addr;
+  uint64_t splat_addr;
+  // ----
+  uint64_t scan_input_addr;       // Splats' tile count
+  uint64_t scan_output_addr;      // Splats' tile offset
+  uint64_t scan_descriptor_addr;  // PrefixScan descriptor flags.
+  uint64_t scan_counter_addr;     // PrefixScan atomic counter.
+  // ----
+  uint64_t indirect_count_addr;
+  uint64_t numkeys_addr;
+  // ----
+  uint64_t keys_addr;
+  uint64_t values_addr;
+  uint64_t tile_ranges_addr;
+  // ----
+};
+
+// ---------------------------------------------------------------------------
+
+struct ALIGNAS(16) GaussianData {
+  float4 position;
+  float4 rotation;
+  float4 scale;
+  float4 color;
+};
+
+struct ALIGNAS(16) SplatOutput {
+  float4 color;
+  float3 conic;
+  float depth;
+  float2 screen_pos;
+  uint2 minTile;
+  uint2 maxTile;
+  uint32_t pad0_[2];
+};
+
+// ---------------------------------------------------------------------------
+
+#endif
