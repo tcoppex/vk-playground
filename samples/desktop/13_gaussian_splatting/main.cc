@@ -94,6 +94,10 @@ class GaussianSplatSample final : public Application {
       );
     }
 
+    query_pool_ = context_.createQueryPool(
+      VK_QUERY_TYPE_TIMESTAMP, QueryTimestamp_kCount
+    );
+
     /* Import point cloud (ply) data */
     std::vector<shader_interop::GaussianData> gaussians{};
     {
@@ -118,23 +122,22 @@ class GaussianSplatSample final : public Application {
 
       // ---
 
-      query_pool_ = context_.createQueryPool(
-        VK_QUERY_TYPE_TIMESTAMP, QueryTimestamp_kCount
-      );
-
       gaussians_count_ = static_cast<uint32_t>(reader.num_rows());
-      gaussians.resize(gaussians_count_);
+      gaussians.resize(gaussians_count_, shader_interop::GaussianData{});
 
       constexpr uint32_t kPropCount = 14u;
-      constexpr std::array<const char*, kPropCount> names{
+      std::array<uint32_t, kPropCount> indexes{};
+
+      bool res = reader.find_properties(indexes.data(), kPropCount,
         "x", "y", "z",
         "rot_1", "rot_2", "rot_3", "rot_0", // 'w' at the end
         "scale_0", "scale_1", "scale_2",
         "f_dc_0", "f_dc_1", "f_dc_2", "opacity"
-      };
-
-      std::array<uint32_t, kPropCount> indexes{};
-      reader.find_properties(indexes.data(), kPropCount, names.data());
+      );
+      if (!res) {
+        LOGW("miniply: one or more properties not found in the PLY header!");
+        return false;
+      }
 
       auto const stride = sizeof(shader_interop::GaussianData);
 
