@@ -118,12 +118,14 @@ void main(
       let testT = T * (1.0f - alpha);
       if (testT < kTransmittanceMin) {
         done = true;
-        InterlockedAdd(s_doneCount, 1u);
         break;
       }
 
       accumColor += s_color[j].rgb * alpha * T;
       T = testT;
+    }
+    if (done) {
+      InterlockedAdd(s_doneCount, 1u);
     }
     GroupMemoryBarrierWithGroupSync();
 
