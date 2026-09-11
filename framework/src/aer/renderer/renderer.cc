@@ -227,13 +227,14 @@ void Renderer::endFrame() {
 
 void Renderer::blitColor(
   CommandEncoder const& cmd,
-  backend::Image const& src_image
+  backend::Image const& src_image,
+  VkImageLayout src_layout
 ) const noexcept {
   auto const& dst_image = main_render_target().resolve_attachment();
 
   cmd.blitImage2D(
     src_image,
-    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+    src_layout,
     VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 
     dst_image,

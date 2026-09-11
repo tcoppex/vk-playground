@@ -309,15 +309,18 @@ class GaussianSplatSample final : public Application {
         context_.unmapMemory(indirect_kv_count_sbo_);
       }
 
-      LOGI("> res {} {}", viewport_size_.width, viewport_size_.height);
-      auto numTileX = vk_utils::GetKernelGridDim(viewport_size_.width, 16);
-      auto numTileY = vk_utils::GetKernelGridDim(viewport_size_.height, 16);
+      // LOGI("> res {} {}", viewport_size_.width, viewport_size_.height);
+
+      tile_count_x_ = vk_utils::GetKernelGridDim(viewport_size_.width, shader_interop::kTileResolution);
+      tile_count_y_ = vk_utils::GetKernelGridDim(viewport_size_.height, shader_interop::kTileResolution);
 
       tile_ranges_sbo_ = context_.createBuffer(
-        numTileX * numTileY * 2u * sizeof(uint32_t), //
+        tile_count_x_ * tile_count_y_ * 2u * sizeof(uint32_t), //
           VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
-        | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-          kDefaultBufferMemoryUsage
+        | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT
+        | VK_BUFFER_USAGE_TRANSFER_DST_BIT
+        ,
+        kDefaultBufferMemoryUsage
       );
     }
 
@@ -329,6 +332,7 @@ class GaussianSplatSample final : public Application {
         VK_IMAGE_USAGE_STORAGE_BIT
       | VK_IMAGE_USAGE_TRANSFER_SRC_BIT
       | VK_IMAGE_USAGE_TRANSFER_DST_BIT
+      | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
       // | VK_IMAGE_USAGE_SAMPLED_BIT
       ,
       "GaussianSplatting::OutputImage"
@@ -559,17 +563,17 @@ class GaussianSplatSample final : public Application {
       cmd.pipelineBufferBarriers({
         {
           .srcStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-          .srcAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT,
+          .srcAccessMask = VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
           .dstStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-          .dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT,
+          .dstAccessMask = VK_ACCESS_2_SHADER_STORAGE_READ_BIT,
           .buffer = input.buffer,
         },
         {
           .srcStageMask = VK_PIPELINE_STAGE_2_CLEAR_BIT,
           .srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
           .dstStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-          .dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT
-                         | VK_ACCESS_2_SHADER_WRITE_BIT
+          .dstAccessMask = VK_ACCESS_2_SHADER_STORAGE_READ_BIT
+                         | VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT
                          ,
           .buffer = output.buffer,
         },
@@ -577,8 +581,8 @@ class GaussianSplatSample final : public Application {
           .srcStageMask = VK_PIPELINE_STAGE_2_CLEAR_BIT,
           .srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
           .dstStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-          .dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT
-                         | VK_ACCESS_2_SHADER_WRITE_BIT
+          .dstAccessMask = VK_ACCESS_2_SHADER_STORAGE_READ_BIT
+                         | VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT
                          ,
           .buffer = descriptor.buffer,
         },
@@ -600,16 +604,16 @@ class GaussianSplatSample final : public Application {
       cmd.pipelineBufferBarriers({
         {
           .srcStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-          .srcAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT,
+          .srcAccessMask = VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
           .dstStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-          .dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT,
+          .dstAccessMask = VK_ACCESS_2_SHADER_STORAGE_READ_BIT,
           .buffer = output.buffer,
         },
         {
           .srcStageMask = VK_PIPELINE_STAGE_2_NONE, //
           .srcAccessMask = VK_ACCESS_NONE, //
           .dstStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-          .dstAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT,
+          .dstAccessMask = VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
           .buffer = total_indirect.buffer,
         },
       });
@@ -649,18 +653,18 @@ class GaussianSplatSample final : public Application {
       cmd.pipelineBufferBarriers({
         {
           .srcStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-          .srcAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT,
+          .srcAccessMask = VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
           .dstStageMask = VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT
                         | VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT
                         ,
           .dstAccessMask = VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT
-                         | VK_ACCESS_2_SHADER_READ_BIT
+                         | VK_ACCESS_2_SHADER_STORAGE_READ_BIT
                          ,
           .buffer = indirect_key_count.buffer,
         },
         {
           .srcStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-          .srcAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT,
+          .srcAccessMask = VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
           .dstStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
           .dstAccessMask = VK_ACCESS_2_SHADER_STORAGE_READ_BIT,
           .buffer = keys.buffer,
@@ -681,10 +685,10 @@ class GaussianSplatSample final : public Application {
       cmd.pipelineBufferBarriers({
         {
           .srcStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-          .srcAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT,
+          .srcAccessMask = VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
           .dstStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-          .dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT
-                         | VK_ACCESS_2_SHADER_WRITE_BIT
+          .dstAccessMask = VK_ACCESS_2_SHADER_STORAGE_READ_BIT
+                         | VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT
                          ,
           .buffer = histograms.buffer,
         },
@@ -698,10 +702,10 @@ class GaussianSplatSample final : public Application {
       cmd.pipelineBufferBarriers({
         {
           .srcStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-          .srcAccessMask = VK_ACCESS_2_SHADER_READ_BIT
-                         | VK_ACCESS_2_SHADER_WRITE_BIT,
+          .srcAccessMask = VK_ACCESS_2_SHADER_STORAGE_READ_BIT
+                         | VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
           .dstStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-          .dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT,
+          .dstAccessMask = VK_ACCESS_2_SHADER_STORAGE_READ_BIT,
           .buffer = histograms.buffer,
         },
       });
@@ -729,21 +733,33 @@ class GaussianSplatSample final : public Application {
       // -------------------------------------
       // [probably have room for optimizations here]
 #if 0
+      if (pass > 0) {
+        cmd.pipelineBufferBarriers({
+          {
+            .srcStageMask  = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+            .srcAccessMask = VK_ACCESS_2_SHADER_STORAGE_READ_BIT
+                           | VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
+            .dstStageMask  = VK_PIPELINE_STAGE_2_CLEAR_BIT,
+            .dstAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
+            .buffer        = descriptor.buffer,
+          }
+        });
+      }
       cmd.fillBuffer(descriptor, 0u);
 #else
       cmd.pipelineBufferBarriers({
         {
           .srcStageMask  = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-          .srcAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT,
+          .srcAccessMask = VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
           .dstStageMask  = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-          .dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT
-                         | VK_ACCESS_2_SHADER_WRITE_BIT,
+          .dstAccessMask = VK_ACCESS_2_SHADER_STORAGE_READ_BIT
+                         | VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
           .buffer        = descriptor.buffer,
         }
       });
-
       cmd.bindPipeline(radix_.pipelines[RadixCompute_ClearDescriptor]);
       cmd.dispatchIndirect(indirect_key_count, indirect_binning_offset_);
+
       cmd.bindPipeline(radix_.pipelines[RadixCompute_Binning]);
 #endif
       // -------------------------------------
@@ -752,45 +768,45 @@ class GaussianSplatSample final : public Application {
         {
           .srcStageMask  = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT
                          | VK_PIPELINE_STAGE_2_CLEAR_BIT,
-          .srcAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT
+          .srcAccessMask = VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT
                          | VK_ACCESS_2_TRANSFER_WRITE_BIT,
           .dstStageMask  = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-          .dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT
-                         | VK_ACCESS_2_SHADER_WRITE_BIT,
+          .dstAccessMask = VK_ACCESS_2_SHADER_STORAGE_READ_BIT
+                         | VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
           .buffer        = descriptor.buffer,
         },
         {
           .srcStageMask  = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-          .srcAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT,
+          .srcAccessMask = VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
           .dstStageMask  = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-          .dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT,
+          .dstAccessMask = VK_ACCESS_2_SHADER_STORAGE_READ_BIT,
           .buffer        = keys.buffer,
           .offset        = src_keys - keys.address,
           .size          = keys_buffer_size,
         },
         {
           .srcStageMask  = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-          .srcAccessMask = VK_ACCESS_2_SHADER_READ_BIT,
+          .srcAccessMask = VK_ACCESS_2_SHADER_STORAGE_READ_BIT,
           .dstStageMask  = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-          .dstAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT,
+          .dstAccessMask = VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
           .buffer        = keys.buffer,
           .offset        = dst_keys - keys.address,
           .size          = keys_buffer_size,
         },
         {
           .srcStageMask  = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-          .srcAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT,
+          .srcAccessMask = VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
           .dstStageMask  = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-          .dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT,
+          .dstAccessMask = VK_ACCESS_2_SHADER_STORAGE_READ_BIT,
           .buffer        = values.buffer,
           .offset        = src_vals - values.address,
           .size          = values_buffer_size,
         },
         {
           .srcStageMask  = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-          .srcAccessMask = VK_ACCESS_2_SHADER_READ_BIT,
+          .srcAccessMask = VK_ACCESS_2_SHADER_STORAGE_READ_BIT,
           .dstStageMask  = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-          .dstAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT,
+          .dstAccessMask = VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
           .buffer        = values.buffer,
           .offset        = dst_vals - values.address,
           .size          = values_buffer_size,
@@ -811,7 +827,10 @@ class GaussianSplatSample final : public Application {
         VK_IMAGE_LAYOUT_GENERAL
       );
     }
-    cmd.clearColorImage(gs_image_, vec4(1.0f, 0.0f, 1.0f, 1.0f));
+    // (debug GS rasterizer clear color)
+    cmd.clearColorImage(gs_image_, vec4(0.8f, 0.5f, 0.8f, 1.0f));
+
+    cmd.fillBuffer(tile_ranges_sbo_, 0u); //
 
     // 1. Preprocess 3D Gaussian splats to tiled 2D screen space.
     {
@@ -880,14 +899,14 @@ class GaussianSplatSample final : public Application {
       cmd.pipelineBufferBarriers({
         {
           .srcStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-          .srcAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT,
+          .srcAccessMask = VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
           .dstStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
           .dstAccessMask = VK_ACCESS_2_SHADER_STORAGE_READ_BIT,
           .buffer = splat_tilecount_sbo_.buffer,
         },
         {
           .srcStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-          .srcAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT,
+          .srcAccessMask = VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
           .dstStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
           .dstAccessMask = VK_ACCESS_2_SHADER_STORAGE_READ_BIT,
           .buffer = prefix_output_sbo_.buffer,
@@ -931,37 +950,45 @@ class GaussianSplatSample final : public Application {
       cmd.pipelineBufferBarriers({
         {
           .srcStageMask  = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-          .srcAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT,
+          .srcAccessMask = VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
           .dstStageMask  = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-          .dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT,
+          .dstAccessMask = VK_ACCESS_2_SHADER_STORAGE_READ_BIT,
           .buffer        = splat_keys_sbo_.buffer,
+        },
+        {
+          .srcStageMask  = VK_PIPELINE_STAGE_2_CLEAR_BIT,
+          .srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
+          .dstStageMask  = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+          .dstAccessMask = VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
+          .buffer        = tile_ranges_sbo_.buffer,
         },
       });
 
-      // (Use the same kernel size than the radix histogram)
-      cmd.dispatchIndirect(indirect_kv_count_sbo_, indirect_histogram_offset_);
+      // (Use the same kernel size than the radix binning)
+      cmd.dispatchIndirect(indirect_kv_count_sbo_, indirect_binning_offset_);
     }
 
     // 6. Rasterize
     {
       cmd.bindPipeline(compute_pipelines_[GSCompute_Rasterize]);
-
       cmd.bindDescriptorSet(descriptor_set_, VK_SHADER_STAGE_COMPUTE_BIT);
 
       cmd.pipelineBufferBarriers({
         {
           .srcStageMask  = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-          .srcAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT,
+          .srcAccessMask = VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
           .dstStageMask  = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-          .dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT,
-          .buffer        = splat_keys_sbo_.buffer,
+          .dstAccessMask = VK_ACCESS_2_SHADER_STORAGE_READ_BIT,
+          .buffer        = tile_ranges_sbo_.buffer,
         },
       });
       cmd.pipelineImageBarriers({
         {
-          .srcStageMask  = VK_ACCESS_TRANSFER_WRITE_BIT,
-          .dstAccessMask = VK_ACCESS_SHADER_READ_BIT
-                         | VK_ACCESS_SHADER_WRITE_BIT
+          .srcStageMask  = VK_PIPELINE_STAGE_2_CLEAR_BIT,
+          .srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
+          .dstStageMask  = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+          .dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT
+                         | VK_ACCESS_2_SHADER_WRITE_BIT
                          ,
           .oldLayout = VK_IMAGE_LAYOUT_GENERAL,
           .newLayout = VK_IMAGE_LAYOUT_GENERAL,
@@ -970,13 +997,14 @@ class GaussianSplatSample final : public Application {
         },
       });
 
-      // cmd.dispatch(
-      //   vk_utils::GetKernelGridDim(viewport_size_.width, shader_interop::kTileResolution),
-      //   vk_utils::GetKernelGridDim(viewport_size_.height, shader_interop::kTileResolution)
-      // );
+#if 1
+      cmd.dispatch(tile_count_x_, tile_count_y_); //
+#else
       cmd.runKernel<shader_interop::kTileResolution, shader_interop::kTileResolution>(
-        viewport_size_.width, viewport_size_.height
+        viewport_size_.width,
+        viewport_size_.height
       );
+#endif
     }
   }
 
@@ -984,53 +1012,91 @@ class GaussianSplatSample final : public Application {
     // Camera Uniform Data.
     {
       host_data_.viewMatrix = camera_.view();
-      context_.writeBuffer(uniform_buffer_, host_data_);
+      context_.writeBuffer(uniform_buffer_, host_data_); //
     }
+
+    // ---------------------------------------------
+
+    // Executing the GS pipeline in the draw command encoder bug
+    // (especially the radix sort, for some reasons)
+    // so we execute it here.
+
+    auto cmd = context_.createTransientCommandEncoder(Context::TargetQueue::Compute);
+    {
+      cmd.resetQueryPool(query_pool_, QueryTimestamp_Start, QueryTimestamp_kCount);
+      cmd.writeTimestamp(VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, query_pool_, QueryTimestamp_Start);
+
+      runGaussianSplattingPipeline(cmd);
+
+      cmd.writeTimestamp(VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, query_pool_, QueryTimestamp_End);
+    }
+    context_.finishTransientCommandEncoder(cmd);
+
+    // ---------------------------------------------
 
     // Query previous frame Timestamps.
     if (frame_index() > 0)
     {
       // To avoid CPU bottlenecks when using VK_QUERY_RESULT_WAIT_BIT we fetch
       // previous frame's result once its synchronization fence signals.
+      if constexpr (false)
+      {
+        std::array<uint64_t, QueryTimestamp_kCount> timestamps{};
 
-      std::array<uint64_t, QueryTimestamp_kCount> timestamps{};
+        auto printElapsedTime = [&C = this->context_, &timestamps](std::string const& name, uint32_t start, uint32_t end) {
+          uint64_t const elapsedTicks = timestamps[end] - timestamps[start];
+          double const elapsedPeriod = C.gpu_properties().limits.timestampPeriod;
+          double const elapsedMillis = static_cast<double>(
+            (elapsedTicks * elapsedPeriod) / 1e6
+          );
+          LOGI("> {} : {:0.2f} ms.", name, elapsedMillis);
+        };
 
-      auto printElapsedTime = [&C = this->context_, &timestamps](std::string const& name, uint32_t start, uint32_t end) {
-        uint64_t const elapsedTicks = timestamps[end] - timestamps[start];
-        double const elapsedPeriod = C.gpu_properties().limits.timestampPeriod;
-        double const elapsedMillis = static_cast<double>(
-          (elapsedTicks * elapsedPeriod) / 1e6
+        auto res = context_.getQueryPoolResults(
+          query_pool_,
+          QueryTimestamp_Start,
+          QueryTimestamp_kCount,
+          sizeof(timestamps),
+          timestamps.data(),
+          sizeof(timestamps[0]),
+          VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT
         );
-        LOGI("> {} : {:0.2f} ms.", name, elapsedMillis);
-      };
 
-      auto res = context_.getQueryPoolResults(
-        query_pool_,
-        QueryTimestamp_Start,
-        QueryTimestamp_kCount,
-        sizeof(timestamps),
-        timestamps.data(),
-        sizeof(timestamps[0]),
-        VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT
-      );
+        if (VK_SUCCESS == res) {
+          printElapsedTime("runGaussianSplattingPipeline", QueryTimestamp_Start, QueryTimestamp_End);
+        }
+      }
 
-      if (VK_SUCCESS == res) {
-        printElapsedTime("runGaussianSplattingPipeline", QueryTimestamp_Start, QueryTimestamp_End);
+      if constexpr (kEnableDebugRun)
+      {
+        LOGI("> post sort KEYS output <first>");
+        debugMapBuffer<uint64_t>(splat_keys_sbo_, 0u, kDebugBufferSize, 256u);
+        exit(-1);
       }
     }
   }
 
   void draw(CommandEncoder const& cmd) final {
-    cmd.resetQueryPool(query_pool_, QueryTimestamp_Start, QueryTimestamp_kCount);
+    // auto pass = cmd.beginRendering();
+    // cmd.endRendering();
 
-    cmd.writeTimestamp(VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, query_pool_, QueryTimestamp_Start);
-    runGaussianSplattingPipeline(cmd);
-    cmd.writeTimestamp(VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, query_pool_, QueryTimestamp_End);
-
-    auto pass = cmd.beginRendering();
-    cmd.endRendering();
+    // Test display result
+    cmd.transitionColorImages({gs_image_}, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+    renderer_.blitColor(cmd, gs_image_, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+    cmd.transitionColorImages({gs_image_}, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL);
 
     drawUI(cmd);
+
+    if constexpr (kEnableDebugRun)
+    cmd.pipelineBufferBarriers({
+      {
+        .srcStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+        .srcAccessMask = VK_ACCESS_2_SHADER_STORAGE_READ_BIT,
+        .dstStageMask = VK_PIPELINE_STAGE_2_HOST_BIT,
+        .dstAccessMask = VK_ACCESS_2_HOST_READ_BIT,
+        .buffer = splat_keys_sbo_.buffer,
+      },
+    });
   }
 
   template<typename T = uint32_t>
@@ -1078,6 +1144,8 @@ class GaussianSplatSample final : public Application {
   VkDeviceSize indirect_histogram_offset_{};
   VkDeviceSize indirect_binning_offset_{};
 
+  uint32_t tile_count_x_{};
+  uint32_t tile_count_y_{};
   backend::Buffer tile_ranges_sbo_{};
 
   backend::Image gs_image_{};

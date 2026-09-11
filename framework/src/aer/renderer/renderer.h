@@ -42,7 +42,8 @@ class Renderer {
   /* Blit an image to the final color image, before the swapchain. */
   void blitColor(
     CommandEncoder const& cmd,
-    backend::Image const& src_image
+    backend::Image const& src_image,
+    VkImageLayout src_layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
   ) const noexcept;
 
   // --- GPUResources gltf objects ---
