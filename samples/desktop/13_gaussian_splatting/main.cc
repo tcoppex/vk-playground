@@ -478,8 +478,8 @@ class GaussianSplatSample final : public Application {
       pc.tile_ranges_addr       = tile_ranges_sbo_.address;
     }
 
-    LOGI("TileSize is {}", shader_interop::kTileSize);
-    LOGI("RadixSize is {}", shader_interop::kRadixSize);
+    LOGD("TileSize is {}", shader_interop::kTileSize);
+    LOGD("RadixSize is {}", shader_interop::kRadixSize);
 
     // Setup initial uniform buffer.
     {
@@ -1028,10 +1028,7 @@ class GaussianSplatSample final : public Application {
 
     // ---------------------------------------------
 
-    // Executing the GS pipeline in the draw command encoder bug
-    // (especially the radix sort, for some reasons)
-    // so we execute it here.
-
+#if 0
     auto cmd = context_.createTransientCommandEncoder(Context::TargetQueue::Compute);
     {
       cmd.resetQueryPool(query_pool_, QueryTimestamp_Start, QueryTimestamp_kCount);
@@ -1042,6 +1039,7 @@ class GaussianSplatSample final : public Application {
       cmd.writeTimestamp(VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, query_pool_, QueryTimestamp_End);
     }
     context_.finishTransientCommandEncoder(cmd);
+#endif
 
     // ---------------------------------------------
 
@@ -1088,6 +1086,8 @@ class GaussianSplatSample final : public Application {
   }
 
   void draw(CommandEncoder const& cmd) final {
+    runGaussianSplattingPipeline(cmd);
+
     // auto pass = cmd.beginRendering();
     // cmd.endRendering();
 
