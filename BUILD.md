@@ -1,6 +1,6 @@
 # Build
 
-This project target the following platforms with their correlated compiler :
+This project was tested on the following platforms and compilers:
 
 | Platform                | Compiler                |
 |-------------------------|-------------------------|
@@ -14,10 +14,19 @@ to fetch the project dependencies automatically.
 You can then easily fetch and build the project using those commands :
 
 ```bash
+# [Optional] Retrieve system build dependencies with Synaptic.
+# sudo apt install git git-lfs build-essential cmake vulkan-sdk
+
+# Clone the repository.
 git clone https://github.com/tcoppex/aer
 cd aer
+
+# Build.
 cmake . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build --config Release
+
+# [Optionnal] Build & Run an Android sample on a connected device.
+# cmake --build build --target run_aloha
 ```
 
 ### Dependencies
