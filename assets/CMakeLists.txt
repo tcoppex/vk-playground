@@ -33,16 +33,20 @@ foreach(asset IN LISTS glbKhronosAssets)
   )
 endforeach()
 
-download_model(
-  "https://raw.githubusercontent.com/SaschaWillems/VulkanPathTracer/refs/heads/master/data/models/CornellBox-Original.gltf"
+list(APPEND modelURLs
+  https://raw.githubusercontent.com/SaschaWillems/VulkanPathTracer/refs/heads/master/data/models/CornellBox-Original.gltf
 )
+
+foreach(modelURL IN LISTS modelURLs)
+  download_model("${modelURL}")
+endforeach()
 
 # -----------------------------------------------------------------------------
 # Download Textures.
 # -----------------------------------------------------------------------------
 
 list(APPEND hdriPolyhavenAssets
-  qwantani_dusk_2_2k              # (already on git-lfs)
+  qwantani_dusk_2_2k
   rogland_clear_night_2k
 )
 
@@ -53,6 +57,14 @@ foreach(asset IN LISTS hdriPolyhavenAssets)
   download_texture(
     "${HDRI_POLYHAVEN_ASSETS_URL}/${asset}.hdr"
   )
+endforeach()
+
+list(APPEND imageURLS
+  https://raw.githubusercontent.com/brachior/scalajs-cordova-threejs-examples/refs/heads/master/www/img/whynot.png
+)
+
+foreach(imageURL IN LISTS imageURLS)
+  download_texture("${imageURL}")
 endforeach()
 
 # -----------------------------------------------------------------------------
